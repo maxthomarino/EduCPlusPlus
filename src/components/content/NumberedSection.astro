@@ -1,0 +1,41 @@
+---
+import CodeBlock from "./CodeBlock.astro";
+import WatchOut from "./WatchOut.astro";
+import HowItWorks from "./HowItWorks.astro";
+import type { NumberedSection as NumberedSectionType } from "../../lib/types.js";
+
+interface Props {
+  section: NumberedSectionType;
+}
+
+const { section } = Astro.props;
+
+function slugifyId(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").substring(0, 60);
+}
+
+const sectionId = slugifyId(`${section.number}-${section.title}`);
+---
+
+<section id={sectionId} class="my-8 scroll-mt-20">
+  <h2 class="mb-3 text-xl font-bold text-gray-900 dark:text-slate-100">
+    <span class="mr-2 text-blue-600 dark:text-blue-400">{section.number}.</span>
+    {section.title}
+  </h2>
+
+  {section.description && (
+    <div class="mb-4 text-[15px] leading-relaxed text-gray-900 dark:text-slate-200">
+      <pre class="whitespace-pre-wrap font-sans" set:text={section.description} />
+    </div>
+  )}
+
+  {section.watchOuts.map((wo) => (
+    <WatchOut content={wo} />
+  ))}
+
+  {section.inlineHowItWorks.map((hiw) => (
+    <HowItWorks title={hiw.title} content={hiw.content} />
+  ))}
+
+  {section.code && <CodeBlock code={section.code} />}
+</section>

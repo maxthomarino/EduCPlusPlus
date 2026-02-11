@@ -1,0 +1,125 @@
+---
+import { getCollection } from "astro:content";
+import DocLayout from "../layouts/DocLayout.astro";
+import { buildSidebarData } from "../lib/sidebar-data.js";
+import { buildToc } from "../lib/toc.js";
+import type { ParsedFile, Section, SidebarFile } from "../lib/types.js";
+
+import PageHeader from "../components/content/PageHeader.astro";
+import FaqSection from "../components/content/FaqSection.astro";
+import HowItWorks from "../components/content/HowItWorks.astro";
+import KeyTakeaways from "../components/content/KeyTakeaways.astro";
+import WatchOut from "../components/content/WatchOut.astro";
+import NumberedSection from "../components/content/NumberedSection.astro";
+import DecisionGuide from "../components/content/DecisionGuide.astro";
+import GenericSection from "../components/content/GenericSection.astro";
+import CodeBlock from "../components/content/CodeBlock.astro";
+
+export async function getStaticPaths() {
+  const allLessons = await getCollection("lessons");
+  const sidebarData = buildSidebarData(allLessons.map((e) => e.data as unknown as ParsedFile));
+
+  // Build a flat ordered list for prev/next navigation
+  const orderedSlugs: string[] = [];
+  for (const mod of sidebarData) {
+    for (const sub of mod.subfolders) {
+      for (const file of sub.files) {
+        orderedSlugs.push(file.slug);
+      }
+    }
+  }
+
+  return allLessons.map((entry) => {
+    const idx = orderedSlugs.indexOf(entry.data.slug);
+    const prevSlug = idx > 0 ? orderedSlugs[idx - 1] : null;
+    const nextSlug = idx < orderedSlugs.length - 1 ? orderedSlugs[idx + 1] : null;
+
+    // Find titles for prev/next
+    const findTitle = (slug: string | null) => {
+      if (!slug) return null;
+      const lesson = allLessons.find((l) => l.data.slug === slug);
+      return lesson ? lesson.data.header.shortTitle : null;
+    };
+
+    return {
+      params: { slug: entry.data.slug },
+      props: {
+        entry: entry.data,
+        sidebarData,
+        prev: prevSlug ? { slug: prevSlug, title: findTitle(prevSlug) } : null,
+        next: nextSlug ? { slug: nextSlug, title: findTitle(nextSlug) } : null,
+      },
+    };
+  });
+}
+
+const { entry, sidebarData, prev, next } = Astro.props;
+const toc = buildToc(entry.sections);
+const language = entry.fileName === "CMakeLists.txt" ? "cmake" : "cpp";
+---
+
+<DocLayout
+  title={entry.header.shortTitle}
+  description={entry.header.description}
+  sidebarData={sidebarData}
+  currentSlug={entry.slug}
+  toc={toc}
+>
+  <PageHeader
+    header={entry.header}
+    moduleName={entry.moduleName}
+    moduleTitle={entry.moduleTitle}
+    subfolder={entry.subfolder}
+  />
+
+  {entry.sections.map((section: Section) => {
+    switch (section.type) {
+      case "faq":
+        return <FaqSection questions={section.questions} />;
+      case "how-it-works":
+        return <HowItWorks title={section.title} content={section.content} />;
+      case "key-takeaways":
+        return <KeyTakeaways items={section.items} />;
+      case "numbered-section":
+        return <NumberedSection section={section} />;
+      case "decision-guide":
+        return <DecisionGuide title={section.title} content={section.content} />;
+      case "generic-section":
+        return <GenericSection title={section.title} content={section.content} />;
+      case "code":
+        return <CodeBlock code={section.code} language={section.language || language} />;
+      case "watch-out":
+        return <WatchOut content={section.content} />;
+      default:
+        return null;
+    }
+  })}
+
+  <!-- Prev / Next navigation -->
+  {(prev || next) && (
+    <nav class="mt-12 flex items-stretch gap-4 border-t border-gray-200 pt-6 dark:border-slate-700">
+      {prev ? (
+        <a
+          href={`/${prev.slug}`}
+          class="group flex flex-1 flex-col rounded-lg border border-gray-200 p-4 transition-colors hover:border-blue-200 hover:bg-blue-50/30 dark:border-slate-700 dark:hover:border-blue-800 dark:hover:bg-blue-950/20"
+        >
+          <span class="text-xs font-medium text-gray-400 group-hover:text-blue-400 dark:text-slate-500">Previous</span>
+          <span class="mt-1 text-sm font-medium text-gray-700 group-hover:text-blue-600 dark:text-slate-300 dark:group-hover:text-blue-400">&larr; {prev.title}</span>
+        </a>
+      ) : (
+        <div class="flex-1" />
+      )}
+      {next ? (
+        <a
+          href={`/${next.slug}`}
+          class="group flex flex-1 flex-col items-end rounded-lg border border-gray-200 p-4 transition-colors hover:border-blue-200 hover:bg-blue-50/30 dark:border-slate-700 dark:hover:border-blue-800 dark:hover:bg-blue-950/20"
+        >
+          <span class="text-xs font-medium text-gray-400 group-hover:text-blue-400 dark:text-slate-500">Next</span>
+          <span class="mt-1 text-sm font-medium text-gray-700 group-hover:text-blue-600 dark:text-slate-300 dark:group-hover:text-blue-400">{next.title} &rarr;</span>
+        </a>
+      ) : (
+        <div class="flex-1" />
+      )}
+    </nav>
+  )}
+</DocLayout>

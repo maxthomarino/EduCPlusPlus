@@ -1,0 +1,70 @@
+---
+import { getCollection } from "astro:content";
+import DocLayout from "../layouts/DocLayout.astro";
+import { buildSidebarData } from "../lib/sidebar-data.js";
+import type { ParsedFile } from "../lib/types.js";
+
+const allLessons = await getCollection("lessons");
+const sidebarData = buildSidebarData(allLessons.map((e) => e.data as unknown as ParsedFile));
+
+// Total counts
+const totalFiles = allLessons.length;
+const totalModules = sidebarData.length;
+---
+
+<DocLayout
+  title="EduC++ Documentation"
+  description="Modern C++ educational documentation"
+  sidebarData={sidebarData}
+  currentSlug=""
+>
+  <div class="mb-10">
+    <h1 class="text-4xl font-bold tracking-tight text-gray-900 dark:text-slate-100">
+      EduC++
+    </h1>
+    <p class="mt-3 text-lg text-gray-600 dark:text-slate-400">
+      A comprehensive, hands-on guide to Modern C++ — from fundamentals to advanced template metaprogramming.
+      Browse <strong>{totalFiles}</strong> documented examples across <strong>{totalModules}</strong> modules.
+    </p>
+  </div>
+
+  <div class="grid gap-4 sm:grid-cols-2">
+    {sidebarData.map((mod) => {
+      const firstFile = mod.subfolders[0]?.files[0];
+      const fileCount = mod.subfolders.reduce((sum, sub) => sum + sub.files.length, 0);
+      return (
+        <a
+          href={firstFile ? `/${firstFile.slug}` : "#"}
+          class="group rounded-lg border border-gray-200 p-5 transition-all hover:border-blue-200 hover:shadow-sm dark:border-slate-700 dark:hover:border-blue-800"
+        >
+          <div class="flex items-start gap-3">
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-50 text-sm font-bold text-blue-600 group-hover:bg-blue-100 dark:bg-blue-900/40 dark:text-blue-400 dark:group-hover:bg-blue-900/60">
+              {mod.order}
+            </span>
+            <div class="min-w-0">
+              <h2 class="font-semibold text-gray-900 group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-blue-400">
+                {mod.title}
+              </h2>
+              <p class="mt-1 text-sm text-gray-500 dark:text-slate-500">
+                {fileCount} {fileCount === 1 ? "lesson" : "lessons"} &middot;{" "}
+                {mod.subfolders.map((s) => s.name.replace(/_/g, " ")).join(", ")}
+              </p>
+            </div>
+          </div>
+        </a>
+      );
+    })}
+  </div>
+
+  <div class="mt-10 rounded-lg border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">
+    <p class="font-medium text-gray-800 dark:text-slate-200">Getting Started</p>
+    <p class="mt-1">
+      Pick a module from the sidebar or the cards above. Each lesson contains documented C++ code with
+      explanations, FAQs, common pitfalls, and runnable examples. Start with{" "}
+      <a href={`/${sidebarData[0]?.subfolders[0]?.files[0]?.slug || ""}`} class="text-blue-600 hover:underline dark:text-blue-400">
+        Module 1: Fundamentals
+      </a>{" "}
+      if you're new to Modern C++.
+    </p>
+  </div>
+</DocLayout>

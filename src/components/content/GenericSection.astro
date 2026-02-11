@@ -1,0 +1,20 @@
+---
+interface Props {
+  title: string;
+  content: string;
+  id?: string;
+}
+
+const { title, content, id } = Astro.props;
+
+function slugifyId(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").substring(0, 60);
+}
+---
+
+<section id={id || slugifyId(title)} class="my-8 scroll-mt-20">
+  <h2 class="mb-3 text-xl font-bold text-gray-900 dark:text-slate-100">{title}</h2>
+  {content && (
+    <pre class="whitespace-pre-wrap font-sans text-[15px] leading-relaxed text-gray-900 dark:text-slate-200" set:text={content} />
+  )}
+</section>

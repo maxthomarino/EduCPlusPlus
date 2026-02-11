@@ -1,0 +1,128 @@
+@import "tailwindcss";
+
+/* Class-based dark mode for Tailwind v4 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  --color-sidebar-bg: #f8f9fa;
+  --color-accent: #3b82f6;
+  --color-accent-light: #eff6ff;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fffbeb;
+  --color-success: #10b981;
+  --color-success-light: #ecfdf5;
+  --color-deep-dive: #6366f1;
+  --color-deep-dive-light: #eef2ff;
+  --color-code-bg: #1e1e1e;
+
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-code: "JetBrains Mono", "Fira Code", ui-monospace, monospace;
+
+  --sidebar-width: 280px;
+  --toc-width: 220px;
+  --content-max-width: 800px;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-body);
+  color: #0f172a;
+  background: #ffffff;
+  font-size: 15px;
+  line-height: 1.7;
+  letter-spacing: -0.01em;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.dark body {
+  color: #e2e8f0;
+  background: #0f172a;
+}
+
+/* Stronger headings */
+h1, h2, h3, h4 {
+  letter-spacing: -0.025em;
+  color: #0f172a;
+}
+
+.dark h1, .dark h2, .dark h3, .dark h4 {
+  color: #f1f5f9;
+}
+
+/* Body text: slightly heavier for readability */
+p, li, pre, span, div {
+  font-weight: 420;
+}
+
+/* Bold/semibold elements should feel bolder */
+strong, b {
+  font-weight: 650;
+}
+
+/* Only apply monospace to actual code blocks, not content <pre> tags */
+code,
+pre.astro-code {
+  font-family: var(--font-code);
+}
+
+/* Shiki code blocks: padding + font size */
+pre.astro-code {
+  padding: 1rem 1.25rem;
+  font-size: 0.8125rem;
+  line-height: 1.7;
+  border-radius: 0.5rem;
+}
+
+/* Scrollbar styling for sidebar */
+.sidebar-scroll::-webkit-scrollbar {
+  width: 4px;
+}
+
+.sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 2px;
+}
+
+.dark .sidebar-scroll::-webkit-scrollbar-thumb {
+  background: #475569;
+}
+
+/* Smooth details/summary transitions */
+details summary {
+  cursor: pointer;
+  list-style: none;
+}
+
+details summary::-webkit-details-marker {
+  display: none;
+}
+
+details[open] > summary .chevron {
+  transform: rotate(90deg);
+}
+
+.chevron {
+  transition: transform 0.2s ease;
+}
+
+/* Code block copy button */
+.code-block-wrapper {
+  position: relative;
+}
+
+.copy-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+
+.code-block-wrapper:hover .copy-button {
+  opacity: 1;
+}

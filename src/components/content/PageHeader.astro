@@ -1,0 +1,45 @@
+---
+import type { FileHeader } from "../../lib/types.js";
+
+interface Props {
+  header: FileHeader;
+  moduleName: string;
+  moduleTitle: string;
+  subfolder: string;
+}
+
+const { header, moduleName, moduleTitle, subfolder } = Astro.props;
+---
+
+<div class="mb-8">
+  <!-- Breadcrumb -->
+  <nav class="mb-4 text-sm text-gray-400 dark:text-slate-500">
+    <span>{moduleTitle}</span>
+    <span class="mx-1.5">/</span>
+    <span>{subfolder.replace(/_/g, " ")}</span>
+  </nav>
+
+  <h1 class="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-slate-50">
+    {header.shortTitle}
+  </h1>
+
+  {header.description && (
+    <p class="mt-3 text-lg leading-relaxed text-gray-800 dark:text-slate-200" set:html={header.description.replace(/\n\n/g, "<br/><br/>").replace(/\n/g, " ")} />
+  )}
+
+  <!-- Metadata cards -->
+  <div class="mt-5 flex flex-wrap gap-3">
+    {header.prerequisites && (
+      <div class="rounded-md bg-gray-50 px-3 py-2 text-sm dark:bg-slate-800">
+        <span class="font-medium text-gray-500 dark:text-slate-400">Prerequisites:</span>{" "}
+        <span class="text-gray-700 dark:text-slate-300">{header.prerequisites}</span>
+      </div>
+    )}
+    {header.standard && (
+      <div class="rounded-md bg-gray-50 px-3 py-2 text-sm dark:bg-slate-800">
+        <span class="font-medium text-gray-500 dark:text-slate-400">Standard:</span>{" "}
+        <span class="text-gray-700 dark:text-slate-300">{header.standard}</span>
+      </div>
+    )}
+  </div>
+</div>

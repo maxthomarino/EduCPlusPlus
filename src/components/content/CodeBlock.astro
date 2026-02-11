@@ -1,0 +1,36 @@
+---
+import { Code } from "astro:components";
+
+interface Props {
+  code: string;
+  language?: string;
+}
+
+const { code, language = "cpp" } = Astro.props;
+const trimmedCode = code.trim();
+const lang = language === "cmake" ? "cmake" : "cpp";
+---
+
+{trimmedCode && (
+  <div class="code-block-wrapper group relative my-4 overflow-hidden rounded-lg border border-gray-200 dark:border-slate-700">
+    <button
+      class="copy-button absolute right-2 top-2 z-10 rounded-md bg-gray-700 px-2 py-1 text-xs text-gray-300 opacity-0 transition-opacity hover:bg-gray-600 group-hover:opacity-100"
+      data-code={trimmedCode}
+    >
+      Copy
+    </button>
+    <Code code={trimmedCode} lang={lang} theme="github-dark" />
+  </div>
+)}
+
+<script>
+  document.querySelectorAll(".copy-button").forEach((btn) => {
+    btn.addEventListener("click", async () => {
+      const code = (btn as HTMLElement).dataset.code || "";
+      await navigator.clipboard.writeText(code);
+      const original = btn.textContent;
+      btn.textContent = "Copied!";
+      setTimeout(() => (btn.textContent = original), 1500);
+    });
+  });
+</script>

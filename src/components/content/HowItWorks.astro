@@ -1,0 +1,26 @@
+---
+interface Props {
+  title: string;
+  content: string;
+  id?: string;
+}
+
+const { title, content, id } = Astro.props;
+
+function slugifyId(text: string): string {
+  return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").substring(0, 60);
+}
+---
+
+<details id={id || slugifyId(title)} class="my-6 rounded-lg border-l-4 border-indigo-400 bg-indigo-50/50 transition-colors open:bg-indigo-50 dark:border-indigo-500 dark:bg-indigo-950/30 dark:open:bg-indigo-950/50">
+  <summary class="flex cursor-pointer items-center gap-2 px-4 py-3 text-[15px] font-bold text-indigo-800 dark:text-indigo-300">
+    <svg class="chevron h-4 w-4 shrink-0 text-indigo-400 dark:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+    </svg>
+    <span>{title}</span>
+    <span class="ml-auto text-xs font-medium text-indigo-400 dark:text-indigo-500">Deep Dive</span>
+  </summary>
+  <div class="px-4 pb-4 pl-10">
+    <pre class="whitespace-pre-wrap font-sans text-[15px] leading-relaxed text-indigo-950 dark:text-indigo-100" set:text={content} />
+  </div>
+</details>
