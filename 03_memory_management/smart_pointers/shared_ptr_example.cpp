@@ -38,6 +38,34 @@ public:
 };
 
 // -----------------------------------------------
+// HOW IT WORKS: HOW SHARED_PTR WORKS INTERNALLY
+// -----------------------------------------------
+// shared_ptr maintains a *control block* -- a separate heap-allocated
+// structure that contains:
+//   (a) Strong reference count -- how many shared_ptrs point to the object.
+//   (b) Weak reference count   -- how many weak_ptrs observe the object.
+//   (c) The deleter function   -- (or default delete) used to destroy the
+//       managed object when the strong count reaches 0.
+//   (d) The allocator          -- (if specified) used to deallocate memory.
+//
+// When you copy a shared_ptr, the strong count is atomically incremented.
+// Atomic operations are thread-safe, but they do have a cost compared to
+// plain integer operations (they involve memory barriers / cache-line
+// synchronisation).
+//
+// When a shared_ptr is destroyed (or reset), the strong count is
+// atomically decremented.  When the strong count reaches 0, the managed
+// object is destroyed (its destructor runs and its memory may be freed).
+//
+// The control block itself is destroyed only when BOTH the strong AND
+// weak counts reach 0.  This is because weak_ptrs still need the control
+// block to check whether the object is alive (via lock() / expired()).
+//
+// sizeof(shared_ptr<T>) == 2 * sizeof(T*).  It stores two pointers:
+// one to the managed object, and one to the control block.
+// -----------------------------------------------
+
+// -----------------------------------------------
 // 1. Basic shared ownership and reference counting
 //
 //    Watch out: creating two separate shared_ptrs from the same raw
@@ -46,6 +74,31 @@ public:
 //        auto p = new Widget;
 //        std::shared_ptr<Widget> a(p);
 //        std::shared_ptr<Widget> b(p);  // BUG: double-delete
+// -----------------------------------------------
+// -----------------------------------------------
+// HOW IT WORKS: HOW MAKE_SHARED OPTIMIZES ALLOCATION
+// -----------------------------------------------
+// std::make_shared<T>(args...) performs ONE heap allocation for both the
+// managed object and the control block.  They are placed in contiguous
+// memory (the control block is typically placed right before or after
+// the object).
+//
+// By contrast, shared_ptr<T>(new T(args...)) performs TWO separate heap
+// allocations: one for the T object (via new), and one for the control
+// block (inside the shared_ptr constructor).
+//
+// Single allocation advantages:
+//   - Better cache locality (object + metadata sit next to each other).
+//   - Less allocator overhead (one header instead of two).
+//   - Fewer points of failure (one allocation to succeed, not two).
+//
+// Watch out: with make_shared, the object's memory cannot be freed until
+// the LAST weak_ptr is also destroyed, because the object and control
+// block share the same allocation -- you cannot free half of it.  With
+// separate allocations (shared_ptr<T>(new T)), the object's memory CAN
+// be freed as soon as the strong count reaches 0, while the control
+// block persists until the weak count also reaches 0.  This matters if
+// T is large and weak_ptrs are long-lived.
 // -----------------------------------------------
 void demonstrate_shared_ownership() {
     std::cout << "--- Shared Ownership ---\n";
@@ -83,6 +136,29 @@ void demonstrate_shared_ownership() {
 //    leaks -- the reference count never reaches zero.  Use std::weak_ptr
 //    to break cycles.  A weak_ptr observes the resource without
 //    contributing to the reference count.
+// -----------------------------------------------
+// -----------------------------------------------
+// HOW IT WORKS: HOW WEAK_PTR AND LOCK() WORK
+// -----------------------------------------------
+// weak_ptr stores the same two pointers as shared_ptr (one to the
+// managed object, one to the control block), but it does NOT increment
+// the strong reference count.  Instead, it increments the weak count.
+//
+// lock() performs an atomic check-and-increment:
+//   1. Atomically read the strong count.
+//   2. If strong count > 0, atomically increment it and return a new
+//      shared_ptr that shares ownership.
+//   3. If strong count == 0, the object is already destroyed -- return
+//      an empty shared_ptr (nullptr).
+// This entire check-and-increment is a single atomic compare-and-swap,
+// so it is thread-safe.
+//
+// expired() checks whether the strong count is 0.  However, do NOT
+// use expired() as a guard before lock().  Between the call to expired()
+// and the call to lock(), another thread could destroy the last
+// shared_ptr, causing a TOCTOU (time-of-check-to-time-of-use) race.
+// Always call lock() directly and check the returned shared_ptr:
+//     if (auto sp = weak.lock()) { /* use sp */ }
 // -----------------------------------------------
 
 // -- BAD: circular reference (would leak if both used shared_ptr) --

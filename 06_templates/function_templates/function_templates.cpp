@@ -38,6 +38,35 @@ T max_of(T a, T b) {
     return (a > b) ? a : b;
 }
 
+// HOW TEMPLATE INSTANTIATION WORKS:
+//   When you call max_of(3, 7), the compiler deduces T=int and generates a
+//   concrete function — conceptually max_of_int_int — with every occurrence
+//   of T replaced by int.  This is called *instantiation*.
+//
+//   Each unique set of template arguments creates a separate instantiation
+//   with its own machine code.  max_of<int> and max_of<double> are two
+//   completely independent functions in the final binary.
+//
+//   Instantiation happens entirely at compile time — there is zero overhead
+//   compared to hand-written per-type functions.  You get type-safety and
+//   code reuse for free.
+//
+//   Because the compiler must see the full template body to stamp out each
+//   specialization, the definition must be visible at the point of use.
+//   In practice this means keeping template definitions in header files.
+//   Putting the body in a .cpp file and including only a declaration causes
+//   linker errors (the other translation unit cannot instantiate what it
+//   cannot see).
+//
+//   There are two kinds of instantiation:
+//     - Implicit instantiation: triggered automatically when you use the
+//       template (e.g., calling max_of(3, 7)).
+//     - Explicit instantiation: you force the compiler to generate a
+//       specific version with a declaration like:
+//         template int max_of(int, int);
+//       in a .cpp file.  This can reduce compile times in large projects by
+//       instantiating once and linking everywhere.
+
 // -----------------------------------------------
 // 2. Multiple template parameters
 //
@@ -83,6 +112,28 @@ template<> std::string type_name<int>()         { return "int"; }
 template<> std::string type_name<double>()      { return "double"; }
 template<> std::string type_name<std::string>() { return "std::string"; }
 
+// HOW SPECIALIZATION RESOLUTION WORKS:
+//   When you write type_name<int>(), the compiler must decide which
+//   definition to call.  It follows a strict priority order:
+//
+//   1. First, look for a *full (explicit) specialization* that matches the
+//      template arguments exactly.  type_name<int>() has one above, so it
+//      wins immediately — returning "int" instead of "unknown".
+//
+//   2. If no full specialization matches, look for a *partial
+//      specialization*.  This applies to class templates only — function
+//      templates cannot be partially specialized.  (You can achieve a
+//      similar effect for functions by using overloading or if constexpr.)
+//
+//   3. If no specialization matches at all, use the *primary template*.
+//      For type_name<float>() — which has no specialization — the primary
+//      template would be selected, returning "unknown".
+//
+//   This layered resolution is why you can customize type_name<int>()
+//   without affecting the general template: the specialization is a
+//   completely separate function that the compiler prefers when the
+//   arguments match exactly.
+
 // -----------------------------------------------
 // 5. SFINAE and enable_if (pre-C++20 way to constrain)
 //    Only enable this function for integral types.
@@ -91,6 +142,36 @@ template<typename T>
 auto is_even(T value) -> std::enable_if_t<std::is_integral_v<T>, bool> {
     return value % 2 == 0;
 }
+
+// HOW SFINAE WORKS:
+//   SFINAE = Substitution Failure Is Not An Error.
+//
+//   When the compiler encounters a call like is_even(42), it tries every
+//   candidate template.  For this overload it substitutes T=int into the
+//   signature, including the return type:
+//     std::enable_if_t<std::is_integral_v<int>, bool>
+//   Since is_integral_v<int> is true, enable_if_t<true, bool> yields bool,
+//   the substitution succeeds, and this overload is viable.
+//
+//   If you called is_even(3.14), the compiler substitutes T=double:
+//     std::enable_if_t<std::is_integral_v<double>, bool>
+//   is_integral_v<double> is false, so enable_if_t<false, bool> has no
+//   member type — the substitution *fails*.  Instead of emitting a compile
+//   error, the compiler silently removes this overload from the candidate
+//   set.  That is SFINAE in action.
+//
+//   Watch out: only errors in the *immediate context* count as SFINAE
+//   errors.  The immediate context is the function signature: return type,
+//   parameter types, template parameter default arguments, and explicit
+//   template arguments.  If the substitution succeeds in the signature but
+//   an error occurs inside the *function body*, that is a hard compile
+//   error — not SFINAE.
+//
+//   C++20 concepts replaced most SFINAE usage with clearer, more readable
+//   syntax.  For example, the function above can be rewritten as:
+//     template<std::integral T>
+//     bool is_even(T value) { return value % 2 == 0; }
+//   Concepts produce better error messages and are easier to compose.
 
 // -----------------------------------------------
 // 6. if constexpr: compile-time branching in templates
@@ -121,6 +202,34 @@ void print_all(Args&&... args) {
     ((std::cout << args << ' '), ...);  // Comma fold
     std::cout << '\n';
 }
+
+// HOW FOLD EXPRESSIONS EXPAND:
+//   A fold expression collapses a parameter pack with a binary operator.
+//   The compiler expands it at compile time — there is no loop at runtime.
+//
+//   Given args = {1, 2, 3}:
+//
+//   Unary right fold:  (args + ...)
+//     expands to:  (1 + (2 + 3))
+//     — association starts from the right.
+//
+//   Unary left fold:   (... + args)
+//     expands to:  ((1 + 2) + 3)
+//     — association starts from the left.
+//
+//   Binary left fold:  (init + ... + args)
+//     expands to:  (((init + 1) + 2) + 3)
+//     — an initial value is folded in from the left.
+//
+//   Binary right fold: (args + ... + init)
+//     expands to:  (1 + (2 + (3 + init)))
+//     — an initial value is folded in from the right.
+//
+//   The comma fold used in print_all above — ((std::cout << args << ' '), ...)
+//   — expands to a sequence of comma-separated expressions:
+//     (std::cout << a1 << ' '), (std::cout << a2 << ' '), ...
+//   Each expression is evaluated left-to-right (guaranteed by the comma
+//   operator), so the arguments print in order.
 
 // -----------------------------------------------
 // Key Takeaways

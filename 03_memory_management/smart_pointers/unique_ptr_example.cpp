@@ -18,6 +18,7 @@
 #include <iostream>
 #include <memory>
 #include <format>
+#include <cstdio>
 
 // -----------------------------------------------
 // Helper class -- a resource that logs its lifetime
@@ -37,6 +38,36 @@ public:
 };
 
 // -----------------------------------------------
+// HOW IT WORKS: HOW UNIQUE_PTR WORKS INTERNALLY
+// -----------------------------------------------
+// unique_ptr is essentially a thin wrapper around a raw pointer.
+// sizeof(unique_ptr<T>) == sizeof(T*) when using the default deleter.
+// The compiler can optimise unique_ptr usage to generate code identical to
+// raw pointer usage -- this means zero overhead in practice.
+//
+// Exclusive ownership is enforced at compile time: unique_ptr's copy
+// constructor and copy assignment operator are explicitly = delete'd.
+// Any attempt to copy a unique_ptr is a hard compile error, not a runtime
+// check.
+//
+// Move operations simply swap the internal pointer: the source unique_ptr
+// is set to nullptr, and the destination receives the pointer.  There is
+// no heap allocation, no reference counting, and the operation is O(1).
+//
+// The destructor calls delete (or delete[] for unique_ptr<T[]>) on the
+// stored pointer if it is not nullptr.  This is the RAII guarantee:
+// the resource is freed exactly once, exactly when the unique_ptr goes
+// out of scope or is reset.
+//
+// Custom deleters: unique_ptr<T, Deleter> lets you specify HOW to clean
+// up.  For example, you can use fclose for FILE*, or a custom free
+// function for C APIs.  Watch out: a stateful deleter (one that stores
+// data) increases sizeof(unique_ptr) beyond sizeof(T*), because the
+// deleter is stored inside the unique_ptr object itself (via empty-base
+// optimisation for stateless deleters like function pointers).
+// -----------------------------------------------
+
+// -----------------------------------------------
 // 1. Transferring ownership to a function
 //
 //    Watch out: unique_ptr cannot be copied -- use std::move() to
@@ -54,9 +85,70 @@ void transfer_ownership(std::unique_ptr<Resource> res) {
 //    -- it returns the raw pointer and relinquishes ownership,
 //    causing a leak if the return value is not captured.
 // -----------------------------------------------
+// -----------------------------------------------
+// HOW IT WORKS: HOW MAKE_UNIQUE IS EXCEPTION-SAFE
+// -----------------------------------------------
+// Consider this call:
+//   f(std::unique_ptr<A>(new A), std::unique_ptr<B>(new B));
+//
+// Before C++17, the compiler was allowed to evaluate sub-expressions in
+// any order.  A possible sequence:
+//   1. new A            -- allocate A on the heap
+//   2. new B            -- allocate B on the heap
+//   3. construct unique_ptr<A> from the raw A*
+//   4. construct unique_ptr<B> from the raw B*
+//
+// If step 2 (new B) throws an exception, the memory from step 1 (new A)
+// leaks -- no unique_ptr was constructed yet to own it!
+//
+// std::make_unique<A>() bundles the heap allocation and the unique_ptr
+// construction into a single function call.  Because function arguments
+// are fully evaluated before the next argument begins, there is no
+// window where a raw pointer exists without an owning unique_ptr.
+//
+// C++17 tightened the evaluation rules so that each function argument
+// is fully evaluated before the next one starts, which eliminates the
+// interleaving problem.  Even so, make_unique is still preferred for
+// clarity: it expresses intent, avoids mentioning new at all, and is
+// one fewer place to get the type wrong.
+// -----------------------------------------------
 std::unique_ptr<Resource> create_resource(const std::string& name) {
     // No std::move needed -- the compiler applies copy elision / implicit move
     return std::make_unique<Resource>(name);
+}
+
+// -----------------------------------------------
+// 3. Custom deleter example
+//
+//    unique_ptr can manage any resource -- not just heap objects -- by
+//    providing a custom deleter.  Here we wrap a C-style FILE* so that
+//    fclose is called automatically when the unique_ptr goes out of scope.
+// -----------------------------------------------
+void demonstrate_custom_deleter() {
+    std::cout << "\n--- Custom deleter (FILE*) ---\n";
+
+    // Lambda deleter: closes the file and logs
+    auto file_deleter = [](FILE* fp) {
+        if (fp) {
+            std::cout << std::format("Custom deleter: closing FILE*\n");
+            std::fclose(fp);
+        }
+    };
+
+    // unique_ptr<FILE, decltype(lambda)> -- the deleter type is part of
+    // the unique_ptr type.  Because the lambda is stateless (captures
+    // nothing), the empty-base optimisation keeps sizeof == sizeof(FILE*).
+    {
+        auto file = std::unique_ptr<FILE, decltype(file_deleter)>(
+            std::fopen("unique_ptr_demo.txt", "w"), file_deleter);
+
+        if (file) {
+            std::fputs("Hello from unique_ptr with custom deleter!\n", file.get());
+            std::cout << std::format("Wrote to file via unique_ptr<FILE*>\n");
+        }
+        // file goes out of scope here -> file_deleter is called -> fclose
+    }
+    std::cout << "File automatically closed by custom deleter\n";
 }
 
 // -----------------------------------------------
@@ -95,6 +187,9 @@ int main() {
     auto res3 = create_resource("Network");
     res3->use();
     // res3 cleaned up automatically at end of scope
+
+    // Custom deleter demonstration
+    demonstrate_custom_deleter();
 
     std::cout << "Back in main - resources auto-cleaned!\n";
     return 0;

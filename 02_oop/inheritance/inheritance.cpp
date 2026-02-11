@@ -57,6 +57,36 @@ public:
 };
 
 // -----------------------------------------------
+// HOW IT WORKS: Inheritance Memory Layout
+// -----------------------------------------------
+// A derived object contains the complete base sub-object as its first
+// portion in memory.  For single inheritance the layout is:
+//
+//   Dog object in memory:
+//   +-------------------------------+
+//   | vptr (-> Dog's vtable)        |  \
+//   | name_  (std::string)          |   } Animal sub-object
+//   | age_   (int)                  |  /
+//   +-------------------------------+
+//   | breed_ (std::string)          |  <- Dog-specific member
+//   +-------------------------------+
+//
+// Because the Animal sub-object starts at the very beginning of the Dog
+// object, an Animal* and a Dog* that point to the same Dog have the same
+// numeric address.  This is why upcasting (Dog* -> Animal*) is free —
+// no pointer adjustment is needed for single inheritance.  The compiler
+// simply reinterprets the same address as a different type.
+//
+// A consequence of this layout is that
+//     sizeof(Dog) >= sizeof(Animal)
+// always holds.  Derived can never be smaller than Base, because it
+// physically contains the entire Base sub-object plus any additional
+// members it declares.
+//
+// Reference: reference/en/cpp/language/derived_class
+// -----------------------------------------------
+
+// -----------------------------------------------
 // 2. Public inheritance: "is-a" relationship
 //    Dog IS-A Animal.
 //
@@ -65,6 +95,25 @@ public:
 //    (wrong parameter type, missing const) silently creates a NEW
 //    function instead of overriding the base version.  The override
 //    keyword turns that silent bug into a compile-time error.
+//
+//    HOW IT WORKS: override Checking
+//    When the compiler sees the override keyword on a method, it
+//    verifies that a virtual function with the EXACT same signature
+//    (name, parameter types, const/volatile qualifiers, ref-qualifiers)
+//    exists in a base class.  If no matching base virtual function is
+//    found, compilation fails immediately.
+//
+//    Without override, a mismatched signature silently creates a brand-
+//    new virtual function in the derived class that hides the base
+//    version.  For example:
+//        // Base:    virtual void speak() const;
+//        // Derived: void speak();          // missing const — NEW function!
+//    The derived speak() does NOT override the base speak() const; it
+//    hides it.  Calls through a Base* still invoke Base::speak() const.
+//    Adding override catches this at compile time:
+//        void speak() override;   // ERROR: does not override any base method
+//
+//    Reference: reference/en/cpp/language/override
 // -----------------------------------------------
 class Dog : public Animal {
     std::string breed_;
@@ -121,6 +170,60 @@ public:
 //    base sub-object exists.  Be aware that virtual inheritance adds
 //    a small runtime cost (extra indirection through a vptr) and
 //    complicates constructor ordering.
+//
+//    HOW IT WORKS: The Diamond Problem
+//    Without virtual inheritance, each inheritance path creates its
+//    own copy of the shared base:
+//
+//        class A { int x_; };
+//        class B : public A {};
+//        class C : public A {};
+//        class D : public B, public C {};
+//
+//        D object layout (no virtual inheritance):
+//        +---------------------+
+//        | B sub-object:       |
+//        |   A sub-object (#1) |  <- first copy of A
+//        |     x_              |
+//        |   [B members]       |
+//        +---------------------+
+//        | C sub-object:       |
+//        |   A sub-object (#2) |  <- second copy of A
+//        |     x_              |
+//        |   [C members]       |
+//        +---------------------+
+//
+//    Accessing d.x_ is ambiguous — the compiler does not know which
+//    copy you mean (B::x_ or C::x_), and you get a compile error.
+//
+//    With virtual inheritance the compiler shares a single A:
+//
+//        class B : virtual public A {};
+//        class C : virtual public A {};
+//        class D : public B, public C {};
+//
+//        D object layout (virtual inheritance):
+//        +---------------------+
+//        | B sub-object:       |
+//        |   vbase_ptr --------+--> offset to shared A
+//        |   [B members]       |
+//        +---------------------+
+//        | C sub-object:       |
+//        |   vbase_ptr --------+--> offset to shared A
+//        |   [C members]       |
+//        +---------------------+
+//        | A sub-object (shared)|  <- single copy of A
+//        |   x_                 |
+//        +----------------------+
+//
+//    Each intermediate class (B, C) holds a hidden vbase pointer that
+//    the compiler uses to locate the single shared A sub-object at
+//    runtime.  Because A's position relative to B or C can vary, the
+//    most-derived class (D) is responsible for constructing the virtual
+//    base — D's member initializer list must call A's constructor
+//    directly, regardless of the inheritance depth.
+//
+//    Reference: reference/en/cpp/language/derived_class
 // -----------------------------------------------
 class Flyable {
 public:

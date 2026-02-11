@@ -23,6 +23,35 @@
 #include <numeric>
 
 // -----------------------------------------------
+// HOW IT WORKS: Lazy Evaluation in Ranges
+//
+// A view pipeline like filter | transform | take does NOT create
+// three separate loops or three intermediate containers.  Instead,
+// each view wraps the previous one, forming a chain of lightweight
+// adaptor objects.
+//
+// When you iterate the final view (e.g., in a range-for loop),
+// requesting the next element triggers a pull-based chain:
+//
+//   take asks transform for an element
+//     -> transform asks filter for an element
+//       -> filter asks the source container, skipping elements
+//          that don't match the predicate
+//       <- filter returns the first matching element to transform
+//     <- transform applies its function and returns the result
+//   <- take yields the result to the caller
+//
+// This is "pull-based" iteration: the consumer (take) pulls one
+// element at a time through the entire pipeline.  No element is
+// processed until it is actually requested.
+//
+// Because of this design, take(3) on an INFINITE source (like
+// views::iota(1)) works perfectly — it only ever pulls 3 elements,
+// never touching the rest.  The infinite source never fully
+// materializes.
+// -----------------------------------------------
+
+// -----------------------------------------------
 // 1. Ranges vs traditional iterator pairs
 //    Traditional: algorithm(begin, end, predicate)
 //    Ranges:      algorithm(container, predicate)
@@ -30,6 +59,29 @@
 //
 //    Watch out: range-based algorithms are in std::ranges::,
 //    not std::. The two namespaces have different overloads.
+//
+//    HOW IT WORKS: Views vs Containers
+//
+//    A container OWNS its elements.  std::vector allocates memory
+//    and stores the actual data.  Copying a container copies every
+//    element.
+//
+//    A view DESCRIBES a transformation — it stores only a reference
+//    (or iterator pair) to the source range plus the operation
+//    (predicate, function, count, etc.).  It does not allocate
+//    memory for results.
+//
+//    Views are cheap to copy — O(1) — because they are just a
+//    pointer plus some lightweight state (a lambda, an integer).
+//
+//    Multiple views can refer to the same underlying container.
+//    Watch out: modifying the container (inserting, erasing) while
+//    a view refers to it invalidates the view, just like it would
+//    invalidate iterators.
+//
+//    Formally, views satisfy the std::ranges::view concept: they
+//    are semiregular (movable, default-constructible in most cases)
+//    and have O(1) move and destruction.
 // -----------------------------------------------
 
 // -----------------------------------------------
@@ -78,6 +130,32 @@
 // 7. Projections — sort/compare by a computed key
 //    A projection is an extra argument that transforms each element
 //    before the comparator sees it. Avoids writing custom comparators.
+//
+//    HOW IT WORKS: Projections
+//
+//    A projection is simply a callable that the algorithm applies
+//    to each element BEFORE passing it to the comparator or
+//    predicate.  Internally, the algorithm does:
+//      compare(projection(a), projection(b))
+//    instead of:
+//      compare(a, b)
+//
+//    Example:
+//      std::ranges::sort(students, std::ranges::greater{}, &Student::grade);
+//    is equivalent to sorting with:
+//      compare(a.grade, b.grade)  using greater-than
+//
+//    Member pointers like &Student::grade are valid callables
+//    because std::invoke (which range algorithms use internally)
+//    knows how to call a member pointer on an object: it evaluates
+//    std::invoke(&Student::grade, s) as s.grade.
+//
+//    You can use any callable as a projection:
+//      - member pointers:   &Student::grade
+//      - lambdas:           [](const Student& s) { return s.grade; }
+//      - function pointers: a free function that takes Student
+//    The default projection is std::identity{}, which returns the
+//    element unchanged.
 // -----------------------------------------------
 
 // =========================================

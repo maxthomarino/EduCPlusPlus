@@ -20,6 +20,38 @@
  *                 value in the "empty" case.
  */
 
+// -----------------------------------------------
+// HOW OPTIONAL STORES ITS VALUE:
+//
+// std::optional<T> is laid out roughly as:
+//
+//    struct optional<T> {
+//        bool has_value_;                      // engagement flag
+//        aligned_storage_for<T> storage_;      // raw bytes, sizeof(T)
+//    };
+//
+// - When EMPTY: has_value_ is false, storage_ is uninitialized raw bytes.
+//   No constructor of T runs -- this is why optional<T> is cheap to
+//   default-construct even if T is expensive.
+//
+// - When ENGAGED: has_value_ is true, and a T object has been constructed
+//   in-place inside storage_ (using placement new).
+//
+// - sizeof(optional<T>) is approximately sizeof(T) + sizeof(bool), rounded
+//   up for alignment.  For example, optional<int> is typically 8 bytes
+//   (4 for int + 1 for bool + 3 padding).
+//
+// - NO HEAP ALLOCATION ever occurs -- the value lives entirely inside the
+//   optional object itself, on the stack or wherever the optional resides.
+//
+// - Assignment or emplace() uses placement new to construct T in the
+//   internal buffer.  If a T was already engaged, its destructor is called
+//   first before constructing the new value.
+//
+// - reset() or ~optional() calls T's destructor if engaged, then sets the
+//   flag to false.  If already empty, it is a no-op.
+// -----------------------------------------------
+
 #include <iostream>
 #include <format>
 #include <optional>
@@ -33,6 +65,22 @@
 // Watch out: accessing an empty optional via
 // operator* or operator-> is undefined behavior.
 // Always check has_value() or use value_or().
+//
+// HOW OPTIONAL RETURN WORKS:
+//    - `return static_cast<int>(i)` implicitly constructs an
+//      optional<int> containing the value.  This works because
+//      optional<T> has a non-explicit constructor that accepts T
+//      (or anything convertible to T), so the compiler inserts an
+//      implicit conversion:  return optional<int>(static_cast<int>(i));
+//
+//    - `return std::nullopt` constructs an empty optional.  nullopt_t
+//      is a special tag type whose sole purpose is to signal "no value".
+//      optional<T> has a constructor that accepts nullopt_t.
+//
+//    - At the call site, the caller's `optional<int> idx` is constructed
+//      directly from the return value.  Thanks to copy elision (guaranteed
+//      since C++17), no extra copy or move occurs -- the returned optional
+//      is constructed directly in the caller's storage.
 // -----------------------------------------------
 std::optional<int> find_index(const std::vector<int>& vec, int target) {
     for (size_t i = 0; i < vec.size(); ++i) {
@@ -123,6 +171,29 @@ int main() {
     }
 
     // Transforming optionals (C++23 has monadic ops, but we can do:)
+    //
+    // HOW C++23 MONADIC OPERATIONS WORK:
+    //    C++23 adds three member functions that let you chain optional
+    //    operations without nested if-checks:
+    //
+    //    and_then(f):  if engaged, calls f(value) which must return
+    //                  optional<U>.  If empty, returns empty optional<U>.
+    //                  Use when f itself might fail (returns optional).
+    //
+    //    transform(f): if engaged, calls f(value) and WRAPS the result
+    //                  in optional<U>.  If empty, returns empty optional<U>.
+    //                  Use when f always succeeds (returns plain U).
+    //
+    //    or_else(f):   if EMPTY, calls f() which must return optional<T>.
+    //                  If engaged, returns *this unchanged.
+    //                  Use to provide a fallback computation.
+    //
+    //    Example (C++23):
+    //      find_index(numbers, 30)
+    //          .transform([](int i) { return i * 2; })   // double the index
+    //          .or_else([] { return std::optional<int>{0}; }); // default to 0
+    //
+    //    The lambda below is the pre-C++23 equivalent of .transform():
     auto double_if_found = [&](int target) -> std::optional<int> {
         if (auto idx = find_index(numbers, target)) {
             return *idx * 2;

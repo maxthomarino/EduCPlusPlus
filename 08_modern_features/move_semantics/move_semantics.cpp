@@ -28,6 +28,40 @@
 #include <cstring>
 
 // -----------------------------------------------
+// HOW IT WORKS: VALUE CATEGORIES
+// -----------------------------------------------
+// Every expression in C++ has a *value category* that determines
+// whether the compiler will copy or move from it.  There are three:
+//
+//   lvalue  -- "has identity, persists beyond the expression."
+//              Variables, dereferenced pointers, array elements.
+//              Has a name and an address you can take with &.
+//              Example:  int x = 42;   // 'x' is an lvalue
+//
+//   prvalue -- "pure rvalue, no identity."
+//              Temporaries, literals, return-by-value results.
+//              About to evaporate at the end of the full-expression.
+//              Example:  foo()         // if foo() returns by value
+//                        42            // integer literal
+//
+//   xvalue  -- "eXpiring value -- has identity but you have said goodbye."
+//              The result of std::move(x), or a cast to T&&.
+//              It still has a name and an address, but you have
+//              explicitly marked it as "I no longer need this."
+//              Example:  std::move(x)  // x is an xvalue here
+//
+// The compiler uses the value category to pick the overload:
+//   - lvalue   -> copy constructor  (const T&)
+//   - prvalue  -> move constructor  (T&&), or copy elision (NRVO)
+//   - xvalue   -> move constructor  (T&&)
+//
+// T&& in a function parameter is an *rvalue reference* -- it can
+// bind to rvalues (prvalues and xvalues) but NOT to lvalues.
+// This is how the compiler routes temporaries and std::move'd
+// objects into the move constructor instead of the copy constructor.
+// -----------------------------------------------
+
+// -----------------------------------------------
 // 1. A class that manages a heap-allocated buffer
 //    to demonstrate copy vs move.
 //
@@ -67,6 +101,31 @@ public:
     }
 
     // ---- Move constructor (cheap: just pointer swap) ----
+    //
+    // HOW IT WORKS: STD::MOVE
+    //
+    // std::move does NOT move anything.  It is purely a cast:
+    //
+    //   template<typename T>
+    //   constexpr std::remove_reference_t<T>&& move(T&& x) noexcept {
+    //       return static_cast<std::remove_reference_t<T>&&>(x);
+    //   }
+    //
+    // Conceptually: T&& move(T& x) { return static_cast<T&&>(x); }
+    //
+    // All it does is change the value category of 'x' from lvalue to
+    // xvalue (eXpiring value).  This makes the expression eligible for
+    // binding to T&& parameters, so the compiler selects the move
+    // constructor instead of the copy constructor.
+    //
+    // The *actual* resource transfer (stealing the pointer, nulling the
+    // source) happens right here in the move constructor that YOU write.
+    //
+    // Watch out: after std::move, the source object is in a
+    // "valid but unspecified" state.  The C++ standard only guarantees
+    // that you can safely destroy it or assign a new value to it.
+    // Do NOT read from it expecting any particular contents.
+    //
     Buffer(Buffer&& other) noexcept
         : data_(other.data_),           // Steal the pointer
           size_(other.size_),
@@ -157,6 +216,39 @@ void stl_move_demo() {
 // -----------------------------------------------
 // 4. Perfect forwarding with std::forward
 //    Preserves the value category (lvalue/rvalue) of arguments.
+// -----------------------------------------------
+//
+// HOW IT WORKS: PERFECT FORWARDING
+//
+// In the signature  template<typename T> void wrapper(T&& arg),
+// T&& is a "forwarding reference" (sometimes called "universal
+// reference") -- NOT an rvalue reference -- because T is being
+// deduced by the compiler.
+//
+// Reference collapsing rules determine what T&& becomes:
+//
+//   If the caller passes an lvalue (e.g., a named variable):
+//     T is deduced as int&
+//     T&&  =  int& &&  =  int&          (reference collapsing)
+//     -> arg is an lvalue reference
+//
+//   If the caller passes an rvalue (e.g., std::move(x) or a temp):
+//     T is deduced as int
+//     T&&  =  int&&                      (no collapsing needed)
+//     -> arg is an rvalue reference
+//
+// The problem: inside the function, 'arg' is always an lvalue
+// (because it has a name), regardless of what the caller passed.
+// If you just wrote  take_ownership(arg);  it would ALWAYS copy.
+//
+// std::forward<T>(arg) casts 'arg' back to its original category:
+//   - If T = int&  :  forward returns int&   (stays lvalue)
+//   - If T = int   :  forward returns int&&  (restored to rvalue)
+//
+// Without std::forward, the rvalue-ness of the original argument
+// is lost the moment it binds to the named parameter 'arg'.
+// Forward restores it, enabling the callee (take_ownership) to
+// select the move constructor when the caller intended a move.
 // -----------------------------------------------
 template<typename T>
 void wrapper(T&& arg) {

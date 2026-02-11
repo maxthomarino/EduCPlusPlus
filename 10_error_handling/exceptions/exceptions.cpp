@@ -20,6 +20,38 @@
  * REFERENCE:      reference/en/cpp/error/exception
  */
 
+// -----------------------------------------------
+// HOW EXCEPTION PROPAGATION WORKS:
+//
+// 1. When `throw expr` executes, the runtime creates an exception object.
+//    This object is stored in a special implementation-managed memory area
+//    (not on the normal stack), so it survives stack unwinding.
+//
+// 2. The runtime searches UP the call stack for a try block that has a
+//    catch handler whose parameter type matches the thrown object's type.
+//
+// 3. For every stack frame the runtime exits on the way up, it calls the
+//    destructors of all local objects in that frame, in reverse order of
+//    construction.  This is called STACK UNWINDING and is the reason RAII
+//    works -- resources are released even on the error path.
+//
+// 4. Matching is done by TYPE: `catch (const T& e)` matches if the thrown
+//    object's type IS-A T (exact match, or the thrown type is derived from
+//    T).  This uses the same RTTI mechanism as dynamic_cast.
+//
+// 5. Catch handlers are checked in ORDER -- the FIRST match wins.  This is
+//    why you must put more-derived types before their bases:
+//      catch (const ConnectionError& e) { ... }   // derived -- check first
+//      catch (const DatabaseError& e)   { ... }   // base   -- check second
+//    If the base were listed first, the derived handler would never execute.
+//
+// 6. `catch (...)` matches ANY exception type.  Use it as a last resort
+//    (e.g., to log and rethrow) because you lose all type information.
+//
+// 7. If no matching handler is found in ANY frame on the call stack,
+//    std::terminate() is called and the program aborts.
+// -----------------------------------------------
+
 #include <iostream>
 #include <format>
 #include <stdexcept>
@@ -50,6 +82,29 @@
 //    slicing the exception object.  Catching by
 //    value would copy-slice a derived exception
 //    into its base, losing the extra data.
+//
+// HOW EXCEPTION MATCHING WORKS:
+//    The runtime uses RTTI (the same system that powers dynamic_cast) to
+//    compare the thrown exception's type against each catch parameter type.
+//    The comparison is a linear search through the catch clauses attached
+//    to the enclosing try block; the FIRST matching clause handles it.
+//
+//    Given the hierarchy below (ConnectionError -> DatabaseError -> runtime_error):
+//
+//    catch (const ConnectionError& e)
+//      - ConnectionError thrown  -> MATCHES (exact)
+//      - QueryError thrown       -> no (ConnectionError is not a base of QueryError)
+//      - DatabaseError thrown    -> no (ConnectionError is more derived)
+//
+//    catch (const DatabaseError& e)
+//      - ConnectionError thrown  -> MATCHES (ConnectionError IS-A DatabaseError)
+//      - QueryError thrown       -> MATCHES (QueryError IS-A DatabaseError)
+//      - std::runtime_error thrown -> no (runtime_error is the BASE of DatabaseError)
+//
+//    This is why ordering matters: if `catch (const DatabaseError&)` were
+//    listed before `catch (const ConnectionError&)`, ConnectionError would
+//    be caught by the DatabaseError handler and the ConnectionError-specific
+//    handler would never execute.
 // -----------------------------------------------
 class DatabaseError : public std::runtime_error {
     int error_code_;
@@ -114,6 +169,25 @@ void run_query(const std::string& sql) {
 //    stack unwinding calls std::terminate.  Mark
 //    destructors noexcept (they are noexcept by
 //    default since C++11 -- do not change that).
+//
+// HOW NOEXCEPT AFFECTS CODE GENERATION:
+//    1. When a function is marked noexcept, the compiler can SKIP generating
+//       exception-handling tables (unwind tables / LSDA) for that function.
+//       This reduces binary size and can speed up the normal (non-throwing)
+//       path because the compiler knows unwinding will never happen here.
+//
+//    2. For move constructors this matters especially: std::vector checks
+//       std::is_nothrow_move_constructible_v<T> at COMPILE TIME when it
+//       needs to reallocate.  If true, it moves elements into the new
+//       buffer.  If false, it COPIES them instead -- because a move that
+//       throws partway through would leave the vector in a corrupted state
+//       (some elements moved-from, some not, and the strong exception
+//       guarantee would be violated).
+//
+//    3. If a noexcept function throws anyway, std::terminate() is called
+//       IMMEDIATELY -- no stack unwinding occurs, no destructors run.
+//       This is by design: the compiler already promised the caller that
+//       no exception would escape, so cleanup code may not even exist.
 // -----------------------------------------------
 void safe_function() noexcept {
     // If this throws, std::terminate is called.
@@ -132,6 +206,35 @@ void swap_values(T& a, T& b) noexcept(std::is_nothrow_move_constructible_v<T>) {
 // 5. RAII for exception safety
 //    Use RAII objects so resources are cleaned up
 //    even when exceptions are thrown.
+//
+// HOW EXCEPTION SAFETY LEVELS WORK:
+//    C++ defines four levels of exception safety.  Every function you write
+//    should provide at least the basic guarantee:
+//
+//    1. No-throw guarantee (strongest):
+//       The operation NEVER throws.  Examples: destructors, swap(),
+//       noexcept functions.  This is the only level safe for cleanup code.
+//
+//    2. Strong guarantee (rollback):
+//       If the operation throws, the program state is UNCHANGED -- as if
+//       the operation never started.  The classic technique is
+//       copy-and-swap: do all work on a temporary copy, then swap (which
+//       is no-throw) into the real object.
+//
+//    3. Basic guarantee (minimum acceptable):
+//       If the operation throws, no resources leak and all objects remain
+//       in a VALID but potentially MODIFIED state.  The caller cannot
+//       assume the original values are preserved, but can safely destroy
+//       or reassign the objects.
+//
+//    4. No guarantee (unacceptable):
+//       An exception leaves objects in an INVALID state -- dangling
+//       pointers, leaked memory, broken invariants.  Never acceptable
+//       in C++ code.
+//
+//    The Transaction class below demonstrates the strong guarantee via
+//    RAII: if do_work() throws, the Transaction destructor rolls back,
+//    leaving the system as if the work never happened.
 // -----------------------------------------------
 class Transaction {
     std::string name_;

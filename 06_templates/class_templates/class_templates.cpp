@@ -63,6 +63,26 @@ public:
     [[nodiscard]] std::size_t size() const { return top_; }
 };
 
+// HOW CLASS TEMPLATE INSTANTIATION WORKS:
+//   Stack<int, 5> and Stack<double, 10> are completely separate types with
+//   no inheritance relationship between them.  The compiler stamps out an
+//   independent class definition for each unique combination of template
+//   arguments, each with its own vtable (if any), its own static members,
+//   and its own machine code.  You cannot implicitly convert one to the
+//   other.
+//
+//   A crucial detail: only member functions you actually *call* are
+//   instantiated.  If you never call Stack<int, 5>::peek(), the compiler
+//   never generates code for it.  This means a class template can contain
+//   member functions that would not compile for certain types, as long as
+//   those functions are never invoked for those types.
+//
+//   For example, you could add a print() method to Stack that uses
+//   operator<< on T.  Stack<int, 5> would work fine, but if you
+//   instantiated Stack<SomeTypeWithNoOutput, 5> and never called print(),
+//   the code would still compile — print() is never instantiated for that
+//   type, so the missing operator<< is never an error.
+
 // -----------------------------------------------
 // 2. Class template with multiple type parameters
 //    A simple key-value pair.
@@ -83,7 +103,8 @@ struct Pair {
 // Deduction guide (explicit CTAD for C++17)
 // Allows: Pair p("hello", 42); -> Pair<const char*, int>
 // With this guide: -> Pair<std::string, int>
-Pair(const char*, auto) -> Pair<std::string, decltype(std::declval<decltype(std::declval<int>())>())>;
+template<typename V>
+Pair(const char*, V) -> Pair<std::string, V>;
 
 // -----------------------------------------------
 // 3. Partial specialization
@@ -114,6 +135,34 @@ public:
         return std::format("Array of {} elements", N);
     }
 };
+
+// HOW PARTIAL SPECIALIZATION MATCHING WORKS:
+//   When you write TypeInfo<int*>::describe(), the compiler must choose
+//   among the primary template and all partial specializations.  It does
+//   this by *pattern matching* the template arguments against each
+//   specialization's parameter pattern.
+//
+//   TypeInfo<int*>:
+//     - Primary template TypeInfo<T>: matches with T=int*.
+//     - Partial specialization TypeInfo<T*>: matches with T=int.
+//     The pointer specialization is *more specific* (it constrains the
+//     argument to be a pointer), so it wins.
+//
+//   TypeInfo<int[5]>:
+//     - Primary template TypeInfo<T>: matches with T=int[5].
+//     - Partial specialization TypeInfo<T[N]>: matches with T=int, N=5.
+//     The array specialization is more specific, so it wins.
+//
+//   TypeInfo<int>:
+//     - Primary template TypeInfo<T>: matches with T=int.
+//     - Neither TypeInfo<T*> nor TypeInfo<T[N]> matches int.
+//     The primary template is selected.
+//
+//   The compiler always prefers the most specific match.  If two partial
+//   specializations are equally specific for a given set of arguments
+//   (neither is "more specialized" than the other), the result is a
+//   compile error due to ambiguity.  You would need to add another
+//   specialization to break the tie.
 
 // -----------------------------------------------
 // 4. A more realistic example: Matrix

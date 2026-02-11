@@ -24,6 +24,33 @@
  * Compile with: g++ -std=c++20 -pthread atomics.cpp
  */
 
+// -----------------------------------------------
+// HOW IT WORKS: ATOMICS AT THE HARDWARE LEVEL
+// -----------------------------------------------
+// Modern CPUs have special atomic instructions that operate on memory
+// in a single, indivisible step visible to all cores:
+//   - x86:  LOCK XADD (atomic fetch-and-add), LOCK INC, LOCK CMPXCHG
+//   - ARM:  LDREX/STREX (load-exclusive / store-exclusive) pairs,
+//           and on ARMv8.1+: LDADD, CAS, SWP (single-instruction atomics)
+//
+// These instructions rely on hardware cache-coherence protocols
+// (MESI / MOESI) to guarantee that all cores observe the same value.
+// When core 1 does a LOCK XADD, the cache-coherence protocol ensures
+// that core 2's cache line for that address is invalidated or updated
+// before the instruction completes.
+//
+// Crucially, std::atomic operations map *directly* to these hardware
+// instructions.  There is no OS involvement, no system call, and no
+// context switch -- just a single (or small sequence of) CPU
+// instruction(s).
+//
+// If the type T is too large for the CPU's native atomic instructions
+// (e.g., a 128-bit struct on a 64-bit platform without CMPXCHG16B),
+// the implementation falls back to a hidden spinlock.  You can check
+// this at runtime with atomic_var.is_lock_free(), or at compile time
+// with std::atomic<T>::is_always_lock_free.
+// -----------------------------------------------
+
 #include <iostream>
 #include <format>
 #include <atomic>
@@ -81,6 +108,40 @@ void basic_atomic_counter() {
 // Watch out: compare_exchange_weak can fail spuriously on LL/SC
 // architectures (e.g., ARM). Always use it in a loop.
 // compare_exchange_strong never fails spuriously but may be slower.
+// -----------------------------------------------
+//
+// HOW IT WORKS: COMPARE-AND-SWAP AT THE HARDWARE LEVEL
+//
+// On x86:
+//   CAS maps to the CMPXCHG instruction (with the LOCK prefix for
+//   multi-core safety).  This is a *single* atomic instruction:
+//     LOCK CMPXCHG [mem], desired
+//   The CPU atomically reads [mem], compares it to EAX (expected),
+//   and if equal, writes 'desired' to [mem].  If not equal, it loads
+//   the current value into EAX.  All in one indivisible step.
+//
+// On ARM (and other LL/SC architectures like RISC-V, PowerPC):
+//   There is no single CAS instruction.  Instead, CAS is built from
+//   a Load-Linked / Store-Conditional (LL/SC) pair:
+//     1. LDREX r0, [mem]     -- "load-exclusive": reads [mem] and
+//                                sets a per-core "exclusive monitor"
+//                                on that cache line.
+//     2. CMP r0, expected    -- compare in software
+//     3. STREX r1, desired, [mem]  -- "store-conditional": writes
+//                                     'desired' ONLY if the exclusive
+//                                     monitor is still set.  r1 = 0
+//                                     on success, 1 on failure.
+//
+//   The exclusive monitor is cleared if *any* other core writes to
+//   that cache line -- or even if an unrelated cache eviction occurs.
+//   This is why compare_exchange_weak can "spuriously fail": the
+//   value matched, but the STREX failed because the monitor was lost.
+//
+//   compare_exchange_strong wraps the LL/SC pair in a retry loop
+//   internally, filtering out spurious failures.  When you are
+//   already writing your own CAS loop (as in lock-free algorithms),
+//   prefer compare_exchange_weak -- it avoids the double loop and
+//   is more efficient on LL/SC platforms.
 // -----------------------------------------------
 void cas_example() {
     std::cout << "\n--- Compare-and-Swap ---\n";
@@ -176,6 +237,47 @@ public:
 // between threads. Only use it when you just need atomicity, not
 // synchronization. In the example below, using relaxed instead of
 // acquire/release would make the assertion on data unreliable.
+// -----------------------------------------------
+//
+// HOW IT WORKS: MEMORY ORDERING
+//
+// Modern CPUs aggressively reorder instructions for performance:
+// out-of-order execution pipelines, store buffers that delay writes,
+// and write-combining buffers that batch stores.  Without explicit
+// ordering constraints, a store performed on core 1 might become
+// visible to core 2 in a *different order* than it was issued.
+//
+// The C++ memory orders map to hardware barriers:
+//
+//   memory_order_release (stores):
+//     Flushes the store buffer -- all writes performed *before* this
+//     store are guaranteed to be visible to other cores before this
+//     store becomes visible.  On x86 this is usually free (stores are
+//     already ordered), but on ARM it emits a DMB (data memory barrier).
+//
+//   memory_order_acquire (loads):
+//     Prevents the compiler and CPU from reordering later reads or
+//     writes *before* this load.  On x86 loads are already ordered, so
+//     this is typically a compiler barrier.  On ARM it emits a DMB.
+//
+//   Acquire-release synchronization:
+//     An acquire-load "synchronizes-with" a release-store to the same
+//     atomic variable.  This creates a happens-before edge: *all*
+//     writes performed before the release-store are guaranteed visible
+//     to code that runs after the acquire-load reads the stored value.
+//
+//   memory_order_seq_cst (the default):
+//     Establishes a single total order of all seq_cst operations
+//     visible to every thread.  This is the safest model but also the
+//     most expensive, because it typically requires a full memory
+//     barrier (MFENCE on x86, DMB ISH + DSB ISH on ARM).
+//
+//   memory_order_relaxed:
+//     Guarantees only atomicity -- the individual load or store will
+//     not be torn (you will never see a half-written value).  But you
+//     get *no* guarantees about when other threads see this operation
+//     relative to other operations.  Use it for statistics counters
+//     or progress indicators where ordering does not matter.
 // -----------------------------------------------
 void memory_ordering_demo() {
     std::cout << "\n--- Memory Ordering ---\n";

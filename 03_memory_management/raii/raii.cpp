@@ -22,6 +22,26 @@
 #include <stdexcept>
 
 // -----------------------------------------------
+// HOW IT WORKS: Stack Unwinding
+//
+// When an exception is thrown, the runtime searches the call stack
+// for a matching catch handler.  For each stack frame it passes
+// through, it calls the destructors of ALL local objects in that
+// frame — in reverse order of construction.  This process is
+// called "stack unwinding."
+//
+// This is WHY RAII works: even if an exception skips over your
+// cleanup code (return statements, manual delete calls, etc.),
+// the destructor still runs during unwinding.  The runtime does
+// not skip destructors — it is required by the standard.
+//
+// Critical consequence: if a destructor itself throws an exception
+// during stack unwinding (while another exception is already "in
+// flight"), the C++ runtime calls std::terminate and the program
+// is killed immediately.  This is why destructors must not throw.
+// -----------------------------------------------
+
+// -----------------------------------------------
 // 1. RAII for file handles
 //    The file closes automatically when the object is destroyed,
 //    even if an exception is thrown.
@@ -30,6 +50,29 @@
 //    close operation can fail, handle it inside the destructor or
 //    provide an explicit close() method that the caller can invoke
 //    before destruction.
+//
+//    HOW IT WORKS: RAII Guarantees Cleanup
+//
+//    The C++ standard guarantees that when an object goes out of
+//    scope — whether by reaching the end of a block, an early
+//    return, or an exception — its destructor is called.
+//
+//    This guarantee is unconditional.  There is no garbage
+//    collector involved, and no "finally" block is needed.  The
+//    compiler inserts the destructor call at every exit point of
+//    the enclosing scope automatically.
+//
+//    The destruction order is always the reverse of construction:
+//    the last object constructed in a scope is the first one
+//    destroyed.  This matters when resources depend on each other
+//    (e.g., a file writer that depends on a database connection).
+//
+//    This guarantee applies to:
+//      - stack objects (local variables)
+//      - class member sub-objects (destroyed in reverse declaration order)
+//      - elements of standard containers
+//    In other words, anything with automatic or member storage
+//    duration gets deterministic, guaranteed cleanup.
 // -----------------------------------------------
 class FileWriter {
     std::ofstream file_;
@@ -72,6 +115,22 @@ public:
 //        std::lock_guard{mtx};   // BUG: unlocks right away
 //    Always give the lock_guard a name so it lives until scope end:
 //        std::lock_guard lock{mtx};  // Correct
+//
+//    HOW IT WORKS: scoped_lock vs lock_guard
+//
+//    lock_guard: locks exactly one mutex on construction and
+//    unlocks it on destruction.  It is minimal — no overhead
+//    beyond the lock/unlock calls themselves.
+//
+//    scoped_lock (C++17): can lock MULTIPLE mutexes atomically.
+//    Internally it uses a deadlock-avoidance algorithm (via
+//    std::lock) that tries different locking orders to prevent
+//    two threads from deadlocking on each other's mutexes.
+//
+//    Rule of thumb:
+//      - Use lock_guard when locking a single mutex.
+//      - Use scoped_lock when locking 2+ mutexes simultaneously,
+//        e.g., std::scoped_lock lock(mtx_a, mtx_b);
 // -----------------------------------------------
 class ThreadSafeCounter {
     int value_ = 0;

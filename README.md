@@ -7,7 +7,7 @@ Educational repository for **Modern C++ (C++20)**.
 | Folder | Topic |
 |--------|-------|
 | `01_fundamentals/` | Basics, control flow, functions |
-| `02_oop/` | Classes, inheritance, polymorphism |
+| `02_oop/` | Classes, inheritance, polymorphism, constructors |
 | `03_memory_management/` | Smart pointers, RAII |
 | `04_stl_containers/` | Vectors, maps, sets, etc. |
 | `05_algorithms/` | STL algorithms, ranges |

@@ -24,6 +24,56 @@
 #include <memory>
 
 // -----------------------------------------------
+// HOW IT WORKS: How the Compiler Transforms a Lambda
+//
+// The compiler transforms every lambda expression into a unique,
+// unnamed class called the "closure type."  That class has a single
+// public method: operator().
+//
+// Example 1 — no captures:
+//   [](int x) { return x * 2; }
+// becomes roughly:
+//   struct __lambda_1 {
+//       auto operator()(int x) const { return x * 2; }
+//   };
+//
+// Example 2 — capture by value:
+//   [multiplier](int x) { return x * multiplier; }
+// becomes roughly:
+//   struct __lambda_2 {
+//       int multiplier;           // captured value stored as member
+//       auto operator()(int x) const { return x * multiplier; }
+//   };
+//
+// Example 3 — capture by reference:
+//   [&counter]() { ++counter; }
+// becomes roughly:
+//   struct __lambda_3 {
+//       int& counter;             // reference member
+//       auto operator()() const { ++counter; }
+//   };
+//   Note: even though operator() is const, it can modify counter
+//   because const on a reference member means the reference itself
+//   can't be reseated — the referred-to value can still change.
+//
+// The mutable keyword:
+//   By default, operator() is const, which means by-value captures
+//   cannot be modified inside the body.  Adding "mutable" removes
+//   the const qualifier from operator(), allowing the lambda to
+//   modify its internal copies of captured variables.
+//
+// Each lambda expression has a UNIQUE type — even two textually
+// identical lambdas produce different closure types.  This means:
+//   auto a = [](int x) { return x; };
+//   auto b = [](int x) { return x; };
+//   // decltype(a) != decltype(b) — they are different types!
+//
+// Consequently, auto is the only way to store a lambda in its
+// "native" type.  std::function<> can also hold a lambda, but it
+// type-erases it — adding indirection and potential heap allocation.
+// -----------------------------------------------
+
+// -----------------------------------------------
 // 1. Basic lambda — no captures, no parameters
 //    The simplest form: [] { body }.
 //    Equivalent to a struct with an operator() — the compiler
@@ -44,6 +94,28 @@
 //
 //    Watch out: capturing a local by reference and returning or storing
 //    the lambda creates a dangling reference — the local dies at scope end.
+//
+//    HOW IT WORKS: Capture Modes
+//
+//    [=] — default capture by value.  The compiler inspects the
+//    lambda body and generates a capture list of ALL local variables
+//    that are actually REFERENCED in the body, each copied by value.
+//    Variables in scope but not used are NOT captured.
+//
+//    [&] — default capture by reference.  Same analysis, but each
+//    referenced variable becomes a reference member in the closure.
+//
+//    [=, &x] — capture everything by value, EXCEPT x which is
+//    captured by reference.  You can mix defaults with explicit
+//    overrides for specific variables.
+//
+//    [this] — captures the enclosing class's this pointer by value.
+//    This means the pointer is copied, NOT the object.  The lambda
+//    can access all members through this pointer, but if the lambda
+//    outlives the object, the pointer dangles.
+//    Watch out: [=] in a member function implicitly captures this
+//    (the pointer, not the object).  C++20 deprecated this behavior;
+//    use [=, this] or [=, *this] (copies the whole object) explicitly.
 // -----------------------------------------------
 
 // -----------------------------------------------
