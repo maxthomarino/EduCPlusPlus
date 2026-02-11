@@ -1,4 +1,4 @@
----
+﻿---
 interface Props {
   content: string;
 }
@@ -6,9 +6,12 @@ interface Props {
 const { content } = Astro.props;
 ---
 
-<div class="my-4 rounded-r-lg border-l-4 border-amber-400 bg-amber-50 px-4 py-3 dark:border-amber-500 dark:bg-amber-950/30">
-  <p class="text-[15px] leading-relaxed text-amber-900 dark:text-amber-200">
-    <span class="font-bold">Watch out:</span>{" "}
+<div
+  class="page-reveal my-4 rounded-r-2xl border-l-4 px-4 py-3"
+  style="border-color: var(--warning); background: color-mix(in srgb, var(--warning-soft) 78%, var(--surface-elevated));"
+>
+  <p class="text-[15px] leading-relaxed" style="color: var(--text-primary);">
+    <span class="font-bold" style="color: var(--warning);">Watch out:</span>{" "}
     {content}
   </p>
 </div>

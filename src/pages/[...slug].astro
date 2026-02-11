@@ -97,14 +97,14 @@ const language = entry.fileName === "CMakeLists.txt" ? "cmake" : "cpp";
 
   <!-- Prev / Next navigation -->
   {(prev || next) && (
-    <nav class="mt-12 flex items-stretch gap-4 border-t border-gray-200 pt-6 dark:border-slate-700">
+    <nav class="page-reveal mt-12 flex items-stretch gap-4 border-t pt-6" style="border-color: var(--border-soft);">
       {prev ? (
         <a
           href={`/${prev.slug}`}
-          class="group flex flex-1 flex-col rounded-lg border border-gray-200 p-4 transition-colors hover:border-blue-200 hover:bg-blue-50/30 dark:border-slate-700 dark:hover:border-blue-800 dark:hover:bg-blue-950/20"
+          class="surface-card hover-lift group flex flex-1 flex-col p-4"
         >
-          <span class="text-xs font-medium text-gray-400 group-hover:text-blue-400 dark:text-slate-500">Previous</span>
-          <span class="mt-1 text-sm font-medium text-gray-700 group-hover:text-blue-600 dark:text-slate-300 dark:group-hover:text-blue-400">&larr; {prev.title}</span>
+          <span class="text-xs font-semibold uppercase tracking-[0.1em]" style="color: var(--text-muted);">Previous</span>
+          <span class="mt-1 text-sm font-semibold" style="color: var(--text-primary);">&larr; {prev.title}</span>
         </a>
       ) : (
         <div class="flex-1" />
@@ -112,10 +112,10 @@ const language = entry.fileName === "CMakeLists.txt" ? "cmake" : "cpp";
       {next ? (
         <a
           href={`/${next.slug}`}
-          class="group flex flex-1 flex-col items-end rounded-lg border border-gray-200 p-4 transition-colors hover:border-blue-200 hover:bg-blue-50/30 dark:border-slate-700 dark:hover:border-blue-800 dark:hover:bg-blue-950/20"
+          class="surface-card hover-lift group flex flex-1 flex-col items-end p-4"
         >
-          <span class="text-xs font-medium text-gray-400 group-hover:text-blue-400 dark:text-slate-500">Next</span>
-          <span class="mt-1 text-sm font-medium text-gray-700 group-hover:text-blue-600 dark:text-slate-300 dark:group-hover:text-blue-400">{next.title} &rarr;</span>
+          <span class="text-xs font-semibold uppercase tracking-[0.1em]" style="color: var(--text-muted);">Next</span>
+          <span class="mt-1 text-sm font-semibold" style="color: var(--text-primary);">{next.title} &rarr;</span>
         </a>
       ) : (
         <div class="flex-1" />

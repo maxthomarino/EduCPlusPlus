@@ -397,39 +397,45 @@ const { summary: featureSummary, cleanedDescription } = buildFeatureSummary(
 const descriptionParagraphs = toParagraphs(cleanedDescription);
 ---
 
-<section id={sectionId} class="my-8 scroll-mt-20">
-  <h2 class="mb-3 text-xl font-bold text-gray-900 dark:text-slate-100">
-    <span class="mr-2 text-blue-600 dark:text-blue-400">{section.number}.</span>
+<section id={sectionId} class="page-reveal my-8 scroll-mt-20">
+  <h2 class="display-font mb-3 text-2xl font-bold tracking-tight" style="color: var(--text-primary);">
+    <span class="mr-2" style="color: var(--accent);">{section.number}.</span>
     {section.title}
   </h2>
 
-  <div class="mb-4 rounded-lg border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-900 dark:bg-blue-950/20">
+  <div
+    class="section-shell mb-4 p-4"
+    style="border-color: color-mix(in srgb, var(--accent) 26%, var(--border-soft)); background: color-mix(in srgb, var(--accent-soft) 66%, var(--surface-elevated));"
+  >
     <div class="grid gap-3 md:grid-cols-2">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">What</p>
-        <p class="mt-1 text-sm leading-relaxed text-gray-900 dark:text-slate-100">{featureSummary.what}</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.09em]" style="color: var(--accent);">What</p>
+        <p class="mt-1 text-sm leading-relaxed" style="color: var(--text-primary);">{featureSummary.what}</p>
       </div>
       <div>
-        <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">When</p>
-        <p class="mt-1 text-sm leading-relaxed text-gray-900 dark:text-slate-100">{featureSummary.when}</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.09em]" style="color: var(--accent);">When</p>
+        <p class="mt-1 text-sm leading-relaxed" style="color: var(--text-primary);">{featureSummary.when}</p>
       </div>
       <div>
-        <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">Why</p>
-        <p class="mt-1 text-sm leading-relaxed text-gray-900 dark:text-slate-100">{featureSummary.why}</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.09em]" style="color: var(--accent);">Why</p>
+        <p class="mt-1 text-sm leading-relaxed" style="color: var(--text-primary);">{featureSummary.why}</p>
       </div>
       <div>
-        <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">Use</p>
-        <p class="mt-1 text-sm leading-relaxed text-gray-900 dark:text-slate-100">{featureSummary.use}</p>
+        <p class="text-xs font-semibold uppercase tracking-[0.09em]" style="color: var(--accent);">Use</p>
+        <p class="mt-1 text-sm leading-relaxed" style="color: var(--text-primary);">{featureSummary.use}</p>
       </div>
     </div>
-    <div class="mt-3 border-t border-blue-100 pt-3 dark:border-blue-900">
-      <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">Which (C++ Version)</p>
-      <p class="mt-1 text-sm leading-relaxed text-gray-900 dark:text-slate-100">{featureSummary.which}</p>
+    <div
+      class="mt-3 border-t pt-3"
+      style="border-color: color-mix(in srgb, var(--accent) 22%, var(--border-soft));"
+    >
+      <p class="text-xs font-semibold uppercase tracking-[0.09em]" style="color: var(--accent);">Which (C++ Version)</p>
+      <p class="mt-1 text-sm leading-relaxed" style="color: var(--text-primary);">{featureSummary.which}</p>
     </div>
   </div>
 
   {descriptionParagraphs.length > 0 && (
-    <div class="mb-4 text-[15px] leading-relaxed text-gray-900 dark:text-slate-200">
+    <div class="mb-4 text-[15px] leading-relaxed" style="color: var(--text-secondary);">
       {descriptionParagraphs.map((paragraph) => (
         <p class="mb-3 last:mb-0">{paragraph}</p>
       ))}

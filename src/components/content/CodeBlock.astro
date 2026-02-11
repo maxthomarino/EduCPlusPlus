@@ -1,4 +1,4 @@
----
+﻿---
 import { Code } from "astro:components";
 
 interface Props {
@@ -9,16 +9,25 @@ interface Props {
 const { code, language = "cpp" } = Astro.props;
 const trimmedCode = code.trim();
 const lang = language === "cmake" ? "cmake" : "cpp";
+const langLabel = lang === "cmake" ? "CMake" : "C++";
 ---
 
 {trimmedCode && (
-  <div class="code-block-wrapper group relative my-4 overflow-hidden rounded-lg border border-gray-200 dark:border-slate-700">
-    <button
-      class="copy-button absolute right-2 top-2 z-10 rounded-md bg-gray-700 px-2 py-1 text-xs text-gray-300 opacity-0 transition-opacity hover:bg-gray-600 group-hover:opacity-100"
-      data-code={trimmedCode}
-    >
-      Copy
-    </button>
+  <div
+    class="code-block-wrapper page-reveal group relative my-5 overflow-hidden rounded-2xl border"
+    style="border-color: var(--border-soft); background: var(--surface-code); box-shadow: var(--shadow-sm);"
+  >
+    <div class="flex items-center justify-between gap-3 border-b px-4 py-2" style="border-color: rgba(255, 255, 255, 0.1); background: rgba(255, 255, 255, 0.03);">
+      <span class="text-[11px] font-semibold uppercase tracking-[0.12em]" style="color: #afc2ef;">{langLabel}</span>
+      <button
+        class="copy-button rounded-md border px-2 py-1 text-xs"
+        style="border-color: rgba(255, 255, 255, 0.18); color: #d8e3ff; background: rgba(18, 31, 56, 0.82);"
+        data-code={trimmedCode}
+        type="button"
+      >
+        Copy
+      </button>
+    </div>
     <Code code={trimmedCode} lang={lang} theme="github-dark" />
   </div>
 )}

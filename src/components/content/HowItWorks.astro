@@ -1,4 +1,4 @@
----
+﻿---
 interface Props {
   title: string;
   content: string;
@@ -12,15 +12,21 @@ function slugifyId(text: string): string {
 }
 ---
 
-<details id={id || slugifyId(title)} class="my-6 rounded-lg border-l-4 border-indigo-400 bg-indigo-50/50 transition-colors open:bg-indigo-50 dark:border-indigo-500 dark:bg-indigo-950/30 dark:open:bg-indigo-950/50">
-  <summary class="flex cursor-pointer items-center gap-2 px-4 py-3 text-[15px] font-bold text-indigo-800 dark:text-indigo-300">
-    <svg class="chevron h-4 w-4 shrink-0 text-indigo-400 dark:text-indigo-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+<details
+  id={id || slugifyId(title)}
+  class="page-reveal my-6 overflow-hidden rounded-2xl border-l-4"
+  style="border-color: var(--deep); background: color-mix(in srgb, var(--deep-soft) 68%, var(--surface-elevated));"
+>
+  <summary class="flex cursor-pointer items-center gap-2 px-4 py-3 text-[15px] font-bold" style="color: var(--deep);">
+    <svg class="chevron h-4 w-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
     </svg>
-    <span>{title}</span>
-    <span class="ml-auto text-xs font-medium text-indigo-400 dark:text-indigo-500">Deep Dive</span>
+    <span class="callout-title">{title}</span>
+    <span class="ml-auto text-[10px] font-bold uppercase tracking-[0.12em]" style="color: color-mix(in srgb, var(--deep) 78%, black);">
+      Deep Dive
+    </span>
   </summary>
   <div class="px-4 pb-4 pl-10">
-    <pre class="whitespace-pre-wrap font-sans text-[15px] leading-relaxed text-indigo-950 dark:text-indigo-100" set:text={content} />
+    <pre class="whitespace-pre-wrap font-sans text-[15px] leading-relaxed" style="color: var(--text-primary);" set:text={content} />
   </div>
 </details>

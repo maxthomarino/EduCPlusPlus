@@ -13,24 +13,40 @@ const { module, currentSlug } = Astro.props;
 const isActive = module.subfolders.some((sub) =>
   sub.files.some((f) => f.slug === currentSlug)
 );
+const fileCount = module.subfolders.reduce((sum, sub) => sum + sub.files.length, 0);
 ---
 
 <details class="mb-1" open={isActive}>
-  <summary class="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 dark:text-slate-300 dark:hover:bg-slate-800">
-    <svg class="chevron h-3.5 w-3.5 shrink-0 text-gray-400 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <summary
+    class="hover-lift group flex cursor-pointer items-center gap-2 rounded-xl border px-2.5 py-2 text-sm font-semibold"
+    style={
+      isActive
+        ? "border-color: color-mix(in srgb, var(--accent) 34%, var(--border-soft)); background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface-elevated)); color: var(--text-primary);"
+        : "border-color: transparent; color: var(--text-secondary); background: transparent;"
+    }
+  >
+    <svg class="chevron h-3.5 w-3.5 shrink-0" style="color: var(--text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
     </svg>
-    <span class="inline-flex h-5 w-5 items-center justify-center rounded bg-blue-100 text-[10px] font-bold text-blue-600 dark:bg-blue-900/50 dark:text-blue-400">
+    <span
+      class="inline-flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-[10px] font-bold"
+      style={
+        isActive
+          ? "background: var(--accent); color: var(--text-inverse);"
+          : "background: var(--surface-muted); color: var(--text-secondary);"
+      }
+    >
       {String(module.order).padStart(2, "0")}
     </span>
     <span class="truncate">{module.title}</span>
+    <span class="ml-auto text-[10px] font-bold uppercase tracking-[0.08em]" style="color: var(--text-muted);">{fileCount}</span>
   </summary>
 
-  <div class="ml-4 mt-0.5 border-l border-gray-200 pl-2 dark:border-slate-700">
+  <div class="ml-3 mt-1 border-l pl-2.5" style="border-color: var(--border-soft);">
     {module.subfolders.map((sub) => (
       <div class="mb-1">
         {module.subfolders.length > 1 && (
-          <p class="px-2 py-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+          <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-[0.13em]" style="color: var(--text-muted);">
             {sub.name.replace(/_/g, " ")}
           </p>
         )}

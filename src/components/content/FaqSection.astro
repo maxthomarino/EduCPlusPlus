@@ -1,4 +1,4 @@
----
+﻿---
 interface Props {
   questions: { question: string; answer: string }[];
 }
@@ -7,18 +7,18 @@ const { questions } = Astro.props;
 ---
 
 {questions.length > 0 && (
-  <section id="faq" class="my-8">
-    <h2 class="mb-4 text-xl font-bold text-gray-900 dark:text-slate-100">Frequently Asked Questions</h2>
-    <div class="space-y-2">
+  <section id="faq" class="page-reveal my-8 scroll-mt-20">
+    <h2 class="display-font mb-4 text-2xl font-bold tracking-tight" style="color: var(--text-primary);">Frequently Asked Questions</h2>
+    <div class="space-y-2.5">
       {questions.map((qa) => (
-        <details class="group rounded-lg border border-gray-200 transition-colors open:border-blue-200 open:bg-blue-50/30 dark:border-slate-700 dark:open:border-blue-800 dark:open:bg-blue-950/30">
-          <summary class="flex cursor-pointer items-center gap-2 px-4 py-3 text-[15px] font-semibold text-gray-800 dark:text-slate-200">
-            <svg class="chevron h-4 w-4 shrink-0 text-gray-400 transition-transform group-open:rotate-90 dark:text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <details class="surface-card group overflow-hidden transition-colors">
+          <summary class="flex cursor-pointer items-center gap-2 px-4 py-3 text-[15px] font-semibold" style="color: var(--text-primary);">
+            <svg class="chevron h-4 w-4 shrink-0 transition-transform" style="color: var(--text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
             </svg>
             {qa.question}
           </summary>
-          <div class="px-4 pb-4 pl-10 text-[15px] leading-relaxed text-gray-900 dark:text-slate-200">
+          <div class="px-4 pb-4 pl-10 text-[15px] leading-relaxed" style="color: var(--text-secondary);">
             {qa.answer}
           </div>
         </details>

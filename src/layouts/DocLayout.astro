@@ -18,23 +18,25 @@ const { title, description, sidebarData, currentSlug, toc = [] } = Astro.props;
 <BaseLayout title={title} description={description}>
   <!-- Mobile header -->
   <header
-    class="sticky top-0 z-40 flex items-center gap-3 border-b border-gray-200 bg-white/95 px-4 py-3 backdrop-blur md:hidden dark:border-slate-700 dark:bg-slate-900/95"
+    class="glass-bar sticky top-3 z-40 mx-3 flex items-center gap-3 rounded-xl px-3 py-2 md:hidden"
   >
     <button
       id="mobile-menu-btn"
-      class="rounded-md p-1.5 text-gray-600 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-800"
+      class="hover-lift inline-flex h-8 w-8 items-center justify-center rounded-lg border"
+      style="border-color: var(--border-soft); color: var(--text-secondary); background: var(--surface-elevated);"
       aria-label="Open navigation"
     >
       <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
       </svg>
     </button>
-    <span class="text-sm font-semibold text-blue-600 dark:text-blue-400">EduC++</span>
-    <span class="truncate text-sm text-gray-500 dark:text-slate-400">{title}</span>
+    <span class="display-font text-xs font-bold uppercase tracking-[0.14em]" style="color: var(--accent);">EduC++</span>
+    <span class="truncate text-sm font-medium" style="color: var(--text-secondary);">{title}</span>
     <!-- Mobile theme toggle -->
     <button
       id="mobile-theme-toggle"
-      class="ml-auto rounded-md p-1.5 text-gray-500 hover:bg-gray-100 dark:text-slate-400 dark:hover:bg-slate-800"
+      class="hover-lift ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg border"
+      style="border-color: var(--border-soft); color: var(--text-secondary); background: var(--surface-elevated);"
       aria-label="Toggle dark mode"
     >
       <svg class="h-5 w-5 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -50,37 +52,44 @@ const { title, description, sidebarData, currentSlug, toc = [] } = Astro.props;
     <!-- Sidebar overlay (mobile) -->
     <div
       id="sidebar-overlay"
-      class="fixed inset-0 z-40 hidden bg-black/30 md:hidden"
+      class="fixed inset-0 z-40 hidden md:hidden"
+      style="background: var(--surface-overlay);"
     ></div>
 
     <!-- Sidebar -->
     <aside
       id="sidebar"
-      class="fixed inset-y-0 left-0 z-50 w-[280px] -translate-x-full transform border-r border-gray-200 bg-gray-50 transition-transform md:sticky md:top-0 md:z-0 md:h-screen md:translate-x-0 dark:border-slate-700 dark:bg-slate-900"
+      class="fixed inset-y-0 left-0 z-50 w-[280px] -translate-x-full transform transition-transform md:sticky md:top-0 md:z-0 md:h-screen md:translate-x-0"
+      style="background: var(--surface-elevated); border-right: 1px solid var(--border-soft); box-shadow: var(--shadow-sm);"
     >
       <Sidebar modules={sidebarData} currentSlug={currentSlug} />
     </aside>
 
     <!-- Main content -->
     <main class="min-w-0 flex-1">
-      <div class="mx-auto max-w-[800px] px-6 py-8 lg:px-8">
+      <div class="mx-auto max-w-[820px] px-5 py-8 sm:px-7 lg:px-9">
         <slot />
       </div>
     </main>
 
     <!-- Table of Contents (desktop only) -->
     {toc.length > 0 && (
-      <aside class="sticky top-0 hidden h-screen w-[220px] shrink-0 overflow-y-auto border-l border-gray-200 px-4 py-8 xl:block dark:border-slate-700">
-        <p class="mb-3 text-xs font-semibold uppercase tracking-wider text-gray-400 dark:text-slate-500">
+      <aside
+        class="sticky top-0 hidden h-screen w-[220px] shrink-0 overflow-y-auto px-4 py-8 xl:block"
+        style="border-left: 1px solid var(--border-soft);"
+      >
+        <p class="display-font mb-3 text-[10px] font-bold uppercase tracking-[0.16em]" style="color: var(--text-muted);">
           On this page
         </p>
-        <nav>
+        <nav id="toc-nav">
           <ul class="space-y-1.5">
             {toc.map((entry) => (
               <li>
                 <a
                   href={`#${entry.id}`}
-                  class="block text-sm text-gray-500 transition-colors hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400"
+                  class="toc-link"
+                  data-toc-link
+                  data-target-id={entry.id}
                 >
                   {entry.title}
                 </a>
@@ -111,6 +120,12 @@ const { title, description, sidebarData, currentSlug, toc = [] } = Astro.props;
 
     btn?.addEventListener("click", openSidebar);
     overlay?.addEventListener("click", closeSidebar);
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeSidebar();
+    });
+    sidebar?.querySelectorAll("a").forEach((link) => {
+      link.addEventListener("click", () => closeSidebar());
+    });
 
     // Theme toggle
     function toggleTheme() {
@@ -121,5 +136,50 @@ const { title, description, sidebarData, currentSlug, toc = [] } = Astro.props;
 
     document.getElementById("mobile-theme-toggle")?.addEventListener("click", toggleTheme);
     document.getElementById("desktop-theme-toggle")?.addEventListener("click", toggleTheme);
+
+    // Active heading highlight in TOC
+    const tocLinks = Array.from(document.querySelectorAll("[data-toc-link]"));
+    const sectionTargets = tocLinks
+      .map((link) => {
+        const anchor = link.getAttribute("href");
+        if (!anchor?.startsWith("#")) return null;
+        return document.getElementById(anchor.slice(1));
+      })
+      .filter(Boolean);
+
+    const setActiveToc = (id) => {
+      tocLinks.forEach((link) => {
+        const isActive = link.getAttribute("data-target-id") === id;
+        link.classList.toggle("is-active", isActive);
+      });
+    };
+
+    if (tocLinks.length > 0 && sectionTargets.length > 0) {
+      const initialHash = window.location.hash?.slice(1);
+      if (initialHash) setActiveToc(initialHash);
+
+      if ("IntersectionObserver" in window) {
+        const visible = new Set();
+        const observer = new IntersectionObserver(
+          (entries) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                visible.add(entry.target.id);
+              } else {
+                visible.delete(entry.target.id);
+              }
+            });
+
+            const topmost = sectionTargets
+              .filter((element) => visible.has(element.id))
+              .sort((a, b) => a.getBoundingClientRect().top - b.getBoundingClientRect().top)[0];
+            if (topmost) setActiveToc(topmost.id);
+          },
+          { rootMargin: "-22% 0px -62% 0px", threshold: [0, 0.18, 0.6] }
+        );
+
+        sectionTargets.forEach((section) => observer.observe(section));
+      }
+    }
   </script>
 </BaseLayout>

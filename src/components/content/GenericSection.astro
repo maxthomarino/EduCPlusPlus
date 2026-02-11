@@ -1,4 +1,4 @@
----
+﻿---
 interface Props {
   title: string;
   content: string;
@@ -29,12 +29,12 @@ function toParagraphs(text: string): string[] {
 const paragraphs = toParagraphs(content);
 ---
 
-<section id={id || slugifyId(title)} class="my-8 scroll-mt-20">
-  <h2 class="mb-3 text-xl font-bold text-gray-900 dark:text-slate-100">{title}</h2>
+<section id={id || slugifyId(title)} class="page-reveal my-8 scroll-mt-20">
+  <h2 class="display-font mb-3 text-2xl font-bold tracking-tight" style="color: var(--text-primary);">{title}</h2>
   {paragraphs.length > 0 && (
-    <div class="text-[15px] leading-relaxed text-gray-900 dark:text-slate-200">
+    <div class="space-y-3 text-[15px] leading-relaxed" style="color: var(--text-secondary);">
       {paragraphs.map((paragraph) => (
-        <p class="mb-3 last:mb-0">{paragraph}</p>
+        <p>{paragraph}</p>
       ))}
     </div>
   )}

@@ -1,4 +1,4 @@
----
+﻿---
 import type { FileHeader } from "../../lib/types.js";
 
 interface Props {
@@ -11,34 +11,38 @@ interface Props {
 const { header, moduleName, moduleTitle, subfolder } = Astro.props;
 ---
 
-<div class="mb-8">
+<div class="page-reveal mb-9">
   <!-- Breadcrumb -->
-  <nav class="mb-4 text-sm text-gray-400 dark:text-slate-500">
-    <span>{moduleTitle}</span>
-    <span class="mx-1.5">/</span>
-    <span>{subfolder.replace(/_/g, " ")}</span>
+  <nav class="mb-4 flex flex-wrap items-center gap-2 text-xs">
+    <span class="chip">{moduleName}</span>
+    <span class="chip">{moduleTitle}</span>
+    <span class="chip">{subfolder.replace(/_/g, " ")}</span>
   </nav>
 
-  <h1 class="text-3xl font-extrabold tracking-tight text-gray-900 dark:text-slate-50">
+  <h1 class="display-font text-3xl font-bold tracking-tight sm:text-[2.15rem]" style="color: var(--text-primary);">
     {header.shortTitle}
   </h1>
 
   {header.description && (
-    <p class="mt-3 text-lg leading-relaxed text-gray-800 dark:text-slate-200" set:html={header.description.replace(/\n\n/g, "<br/><br/>").replace(/\n/g, " ")} />
+    <p
+      class="mt-3 max-w-3xl text-base leading-relaxed sm:text-lg"
+      style="color: var(--text-secondary);"
+      set:html={header.description.replace(/\n\n/g, "<br/><br/>").replace(/\n/g, " ")}
+    />
   )}
 
   <!-- Metadata cards -->
-  <div class="mt-5 flex flex-wrap gap-3">
+  <div class="mt-5 flex flex-wrap gap-2.5">
     {header.prerequisites && (
-      <div class="rounded-md bg-gray-50 px-3 py-2 text-sm dark:bg-slate-800">
-        <span class="font-medium text-gray-500 dark:text-slate-400">Prerequisites:</span>{" "}
-        <span class="text-gray-700 dark:text-slate-300">{header.prerequisites}</span>
+      <div class="surface-card-soft inline-flex items-center gap-2 px-3 py-2 text-sm">
+        <span class="font-semibold" style="color: var(--text-muted);">Prerequisites</span>
+        <span style="color: var(--text-primary);">{header.prerequisites}</span>
       </div>
     )}
     {header.standard && (
-      <div class="rounded-md bg-gray-50 px-3 py-2 text-sm dark:bg-slate-800">
-        <span class="font-medium text-gray-500 dark:text-slate-400">Standard:</span>{" "}
-        <span class="text-gray-700 dark:text-slate-300">{header.standard}</span>
+      <div class="surface-card-soft inline-flex items-center gap-2 px-3 py-2 text-sm">
+        <span class="font-semibold" style="color: var(--text-muted);">Standard</span>
+        <span style="color: var(--text-primary);">{header.standard}</span>
       </div>
     )}
   </div>

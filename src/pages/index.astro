@@ -1,4 +1,4 @@
----
+﻿---
 import { getCollection } from "astro:content";
 import DocLayout from "../layouts/DocLayout.astro";
 import { buildSidebarData } from "../lib/sidebar-data.js";
@@ -10,6 +10,16 @@ const sidebarData = buildSidebarData(allLessons.map((e) => e.data as unknown as 
 // Total counts
 const totalFiles = allLessons.length;
 const totalModules = sidebarData.length;
+
+function getLevel(order: number): { label: string; tone: string } {
+  if (order <= 4) {
+    return { label: "Beginner", tone: "background: var(--success-soft); color: var(--success);" };
+  }
+  if (order <= 9) {
+    return { label: "Intermediate", tone: "background: var(--warning-soft); color: var(--warning);" };
+  }
+  return { label: "Advanced", tone: "background: var(--deep-soft); color: var(--deep);" };
+}
 ---
 
 <DocLayout
@@ -18,53 +28,92 @@ const totalModules = sidebarData.length;
   sidebarData={sidebarData}
   currentSlug=""
 >
-  <div class="mb-10">
-    <h1 class="text-4xl font-bold tracking-tight text-gray-900 dark:text-slate-100">
-      EduC++
+  <section class="page-reveal surface-card mb-8 overflow-hidden p-6 sm:p-8">
+    <p class="eyebrow mb-3">Modern C++ Learning Studio</p>
+    <h1 class="display-font text-4xl font-bold tracking-tight sm:text-5xl">
+      <span style="color: var(--text-primary);">Build practical </span>
+      <span class="gradient-title">C++20 fluency</span>
+      <span style="color: var(--text-primary);"> with real code.</span>
     </h1>
-    <p class="mt-3 text-lg text-gray-600 dark:text-slate-400">
-      A comprehensive, hands-on guide to Modern C++ — from fundamentals to advanced template metaprogramming.
-      Browse <strong>{totalFiles}</strong> documented examples across <strong>{totalModules}</strong> modules.
+    <p class="mt-4 max-w-2xl text-base sm:text-lg" style="color: var(--text-secondary);">
+      A comprehensive, hands-on path from core fundamentals to advanced modern features. Study production-style
+      patterns, pitfalls, and decision guides in a single documentation flow.
     </p>
+    <div class="mt-5 flex flex-wrap gap-2.5">
+      <span class="metric-pill"><strong>{totalFiles}</strong>&nbsp;lessons</span>
+      <span class="metric-pill"><strong>{totalModules}</strong>&nbsp;modules</span>
+      <span class="metric-pill">C++20-first</span>
+      <span class="metric-pill">Runnable examples</span>
+    </div>
+    <div class="mt-6 flex flex-wrap gap-2">
+      <span class="chip">Guided progression</span>
+      <span class="chip">Concept clarity</span>
+      <span class="chip">Interview ready</span>
+    </div>
+  </section>
+
+  <div class="mb-3 flex items-end justify-between gap-3">
+    <h2 class="display-font text-2xl font-bold tracking-tight" style="color: var(--text-primary);">Explore Modules</h2>
+    <p class="text-xs font-semibold uppercase tracking-[0.12em]" style="color: var(--text-muted);">Structured by depth</p>
   </div>
 
   <div class="grid gap-4 sm:grid-cols-2">
     {sidebarData.map((mod) => {
       const firstFile = mod.subfolders[0]?.files[0];
       const fileCount = mod.subfolders.reduce((sum, sub) => sum + sub.files.length, 0);
+      const level = getLevel(mod.order);
       return (
-        <a
-          href={firstFile ? `/${firstFile.slug}` : "#"}
-          class="group rounded-lg border border-gray-200 p-5 transition-all hover:border-blue-200 hover:shadow-sm dark:border-slate-700 dark:hover:border-blue-800"
-        >
+        <a href={firstFile ? `/${firstFile.slug}` : "#"} class="surface-card hover-lift group page-reveal block p-5">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <span
+              class="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]"
+              style={level.tone}
+            >
+              {level.label}
+            </span>
+            <span class="text-[11px] font-semibold uppercase tracking-[0.1em]" style="color: var(--text-muted);">
+              Module {String(mod.order).padStart(2, "0")}
+            </span>
+          </div>
           <div class="flex items-start gap-3">
-            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-blue-50 text-sm font-bold text-blue-600 group-hover:bg-blue-100 dark:bg-blue-900/40 dark:text-blue-400 dark:group-hover:bg-blue-900/60">
+            <span
+              class="display-font flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
+              style="background: var(--accent-soft); color: var(--accent);"
+            >
               {mod.order}
             </span>
             <div class="min-w-0">
-              <h2 class="font-semibold text-gray-900 group-hover:text-blue-600 dark:text-slate-100 dark:group-hover:text-blue-400">
+              <h3 class="display-font text-lg font-semibold leading-snug tracking-tight" style="color: var(--text-primary);">
                 {mod.title}
-              </h2>
-              <p class="mt-1 text-sm text-gray-500 dark:text-slate-500">
-                {fileCount} {fileCount === 1 ? "lesson" : "lessons"} &middot;{" "}
+              </h3>
+              <p class="mt-1 text-sm" style="color: var(--text-muted);">
+                {fileCount} {fileCount === 1 ? "lesson" : "lessons"} - {" "}
                 {mod.subfolders.map((s) => s.name.replace(/_/g, " ")).join(", ")}
               </p>
             </div>
+          </div>
+          <div class="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold" style="color: var(--accent);">
+            Start module
+            <span aria-hidden="true">-&gt;</span>
           </div>
         </a>
       );
     })}
   </div>
 
-  <div class="mt-10 rounded-lg border border-gray-200 bg-gray-50 p-5 text-sm text-gray-600 dark:border-slate-700 dark:bg-slate-800/50 dark:text-slate-400">
-    <p class="font-medium text-gray-800 dark:text-slate-200">Getting Started</p>
-    <p class="mt-1">
+  <section class="surface-card-soft page-reveal mt-10 p-5 text-sm" style="color: var(--text-secondary);">
+    <p class="display-font text-base font-semibold" style="color: var(--text-primary);">Getting Started</p>
+    <p class="mt-1.5">
       Pick a module from the sidebar or the cards above. Each lesson contains documented C++ code with
-      explanations, FAQs, common pitfalls, and runnable examples. Start with{" "}
-      <a href={`/${sidebarData[0]?.subfolders[0]?.files[0]?.slug || ""}`} class="text-blue-600 hover:underline dark:text-blue-400">
+      explanations, FAQs, common pitfalls, and runnable examples. Start with {" "}
+      <a
+        href={`/${sidebarData[0]?.subfolders[0]?.files[0]?.slug || ""}`}
+        class="font-semibold underline decoration-2 underline-offset-2"
+        style="color: var(--accent);"
+      >
         Module 1: Fundamentals
       </a>{" "}
       if you're new to Modern C++.
     </p>
-  </div>
+  </section>
 </DocLayout>
