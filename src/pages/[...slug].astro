@@ -14,6 +14,7 @@ import NumberedSection from "../components/content/NumberedSection.astro";
 import DecisionGuide from "../components/content/DecisionGuide.astro";
 import GenericSection from "../components/content/GenericSection.astro";
 import CodeBlock from "../components/content/CodeBlock.astro";
+import type { GenericNamedSection } from "../lib/types.js";
 
 export async function getStaticPaths() {
   const allLessons = await getCollection("lessons");
@@ -56,6 +57,12 @@ export async function getStaticPaths() {
 const { entry, sidebarData, prev, next } = Astro.props;
 const toc = buildToc(entry.sections);
 const language = entry.fileName === "CMakeLists.txt" ? "cmake" : "cpp";
+const isGeneralDiscussion = (section: Section) =>
+  section.type === "generic-section" && /^general discussion$/i.test(section.title.trim());
+const mainSections = entry.sections.filter((section: Section) => !isGeneralDiscussion(section));
+const generalDiscussionSections = entry.sections.filter(
+  (section: Section): section is GenericNamedSection => isGeneralDiscussion(section)
+);
 ---
 
 <DocLayout
@@ -72,7 +79,7 @@ const language = entry.fileName === "CMakeLists.txt" ? "cmake" : "cpp";
     subfolder={entry.subfolder}
   />
 
-  {entry.sections.map((section: Section) => {
+  {mainSections.map((section: Section) => {
     switch (section.type) {
       case "faq":
         return <FaqSection questions={section.questions} />;
@@ -122,4 +129,8 @@ const language = entry.fileName === "CMakeLists.txt" ? "cmake" : "cpp";
       )}
     </nav>
   )}
+
+  {generalDiscussionSections.map((section) => (
+    <GenericSection title={section.title} content={section.content} />
+  ))}
 </DocLayout>
