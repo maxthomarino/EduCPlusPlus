@@ -29,8 +29,147 @@ function toParagraphs(text: string): string[] {
     .filter(Boolean);
 }
 
+type FeatureKey = "what" | "when" | "why" | "use" | "which";
+
+interface FeatureSummary {
+  what: string;
+  when: string;
+  why: string;
+  use: string;
+  which: string;
+}
+
+function parseFeatureFields(raw: string): { fields: Partial<FeatureSummary>; cleaned: string } {
+  const fields: Partial<FeatureSummary> = {};
+  const fieldLines: Record<FeatureKey, string[]> = {
+    what: [],
+    when: [],
+    why: [],
+    use: [],
+    which: [],
+  };
+
+  const cleanedLines: string[] = [];
+  let activeField: FeatureKey | null = null;
+
+  for (const line of raw.split("\n")) {
+    const trimmed = line.trim();
+    const fieldMatch = trimmed.match(/^(what|when|why|use|which)\s*:\s*(.*)$/i);
+
+    if (fieldMatch) {
+      activeField = fieldMatch[1].toLowerCase() as FeatureKey;
+      const rest = fieldMatch[2].trim();
+      if (rest) fieldLines[activeField].push(rest);
+      continue;
+    }
+
+    if (activeField) {
+      if (trimmed) {
+        fieldLines[activeField].push(trimmed);
+      } else {
+        activeField = null;
+      }
+      continue;
+    }
+
+    cleanedLines.push(line);
+  }
+
+  for (const key of Object.keys(fieldLines) as FeatureKey[]) {
+    const value = fieldLines[key].join(" ").replace(/\s{2,}/g, " ").trim();
+    if (value) fields[key] = value;
+  }
+
+  return { fields, cleaned: cleanedLines.join("\n").trim() };
+}
+
+function firstSentence(text: string): string {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  const m = normalized.match(/^.+?[.!?](?:\s|$)/);
+  return (m ? m[0] : normalized).trim();
+}
+
+function sentenceContaining(text: string, token: string): string {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) return "";
+  const sentences = normalized.split(/(?<=[.!?])\s+/);
+  return sentences.find((s) => new RegExp(`\\b${token}\\b`, "i").test(s))?.trim() ?? "";
+}
+
+function detectVersion(text: string): string {
+  const matches = text.match(/C\+\+\d{2}/gi);
+  if (!matches) return "";
+  return Array.from(new Set(matches.map((m) => m.toUpperCase()))).join(", ");
+}
+
+function inferVersionFromFeature(text: string): string {
+  const normalized = text.toLowerCase();
+  const hints: Array<{ pattern: RegExp; version: string }> = [
+    { pattern: /\bstring_view\b/, version: "C++17" },
+    { pattern: /\bstructured bindings?\b/, version: "C++17" },
+    { pattern: /\bstd::format\b|\bformat\b/, version: "C++20" },
+    { pattern: /\blambda\b/, version: "C++11" },
+    { pattern: /\binit captures?\b|\bgeneric lambdas?\b/, version: "C++14" },
+    { pattern: /\bconstexpr if\b/, version: "C++17" },
+    { pattern: /\bconcepts?\b/, version: "C++20" },
+    { pattern: /\branges?\b/, version: "C++20" },
+    { pattern: /\bcoroutines?\b/, version: "C++20" },
+    { pattern: /\bthree-way\b|\bspaceship\b/, version: "C++20" },
+    { pattern: /\boptional\b/, version: "C++17" },
+    { pattern: /\bfilesystem\b/, version: "C++17" },
+    { pattern: /\bvariant\b/, version: "C++17" },
+    { pattern: /\bauto\b/, version: "C++11" },
+  ];
+
+  for (const hint of hints) {
+    if (hint.pattern.test(normalized)) return hint.version;
+  }
+
+  return "";
+}
+
+function buildFeatureSummary(
+  sectionTitle: string,
+  rawDescription: string,
+  code: string
+): { summary: FeatureSummary; cleanedDescription: string } {
+  const { fields, cleaned } = parseFeatureFields(rawDescription);
+  const compactDescription = cleaned.replace(/\s+/g, " ").trim();
+  const versionFromText = detectVersion(`${sectionTitle} ${cleaned} ${code}`);
+  const inferredVersion = inferVersionFromFeature(`${sectionTitle} ${cleaned}`);
+
+  return {
+    summary: {
+      what: fields.what || sectionTitle,
+      when:
+        fields.when ||
+        sentenceContaining(compactDescription, "when") ||
+        "When this feature improves clarity, safety, or correctness for your use case.",
+      why:
+        fields.why ||
+        firstSentence(compactDescription) ||
+        "Why: it makes intent clearer and reduces mistakes.",
+      use:
+        fields.use ||
+        "Use it with the pattern shown in the code example below.",
+      which:
+        fields.which ||
+        versionFromText ||
+        inferredVersion ||
+        "Not explicitly specified in this example.",
+    },
+    cleanedDescription: cleaned,
+  };
+}
+
 const sectionId = slugifyId(`${section.number}-${section.title}`);
-const descriptionParagraphs = toParagraphs(section.description);
+const { summary: featureSummary, cleanedDescription } = buildFeatureSummary(
+  section.title,
+  section.description,
+  section.code
+);
+const descriptionParagraphs = toParagraphs(cleanedDescription);
 ---
 
 <section id={sectionId} class="my-8 scroll-mt-20">
@@ -38,6 +177,31 @@ const descriptionParagraphs = toParagraphs(section.description);
     <span class="mr-2 text-blue-600 dark:text-blue-400">{section.number}.</span>
     {section.title}
   </h2>
+
+  <div class="mb-4 rounded-lg border border-blue-100 bg-blue-50/50 p-4 dark:border-blue-900 dark:bg-blue-950/20">
+    <div class="grid gap-3 md:grid-cols-2">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">What</p>
+        <p class="mt-1 text-sm leading-relaxed text-gray-900 dark:text-slate-100">{featureSummary.what}</p>
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">When</p>
+        <p class="mt-1 text-sm leading-relaxed text-gray-900 dark:text-slate-100">{featureSummary.when}</p>
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">Why</p>
+        <p class="mt-1 text-sm leading-relaxed text-gray-900 dark:text-slate-100">{featureSummary.why}</p>
+      </div>
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">Use</p>
+        <p class="mt-1 text-sm leading-relaxed text-gray-900 dark:text-slate-100">{featureSummary.use}</p>
+      </div>
+    </div>
+    <div class="mt-3 border-t border-blue-100 pt-3 dark:border-blue-900">
+      <p class="text-xs font-semibold uppercase tracking-wide text-blue-700 dark:text-blue-300">Which (C++ Version)</p>
+      <p class="mt-1 text-sm leading-relaxed text-gray-900 dark:text-slate-100">{featureSummary.which}</p>
+    </div>
+  </div>
 
   {descriptionParagraphs.length > 0 && (
     <div class="mb-4 text-[15px] leading-relaxed text-gray-900 dark:text-slate-200">
