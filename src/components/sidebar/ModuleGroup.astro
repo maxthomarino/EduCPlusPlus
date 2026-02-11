@@ -18,7 +18,7 @@ const fileCount = module.subfolders.reduce((sum, sub) => sum + sub.files.length,
 
 <details class="mb-1" open={isActive}>
   <summary
-    class="hover-lift group flex cursor-pointer items-center gap-2 rounded-xl border px-2.5 py-2 text-sm font-semibold"
+    class="hover-lift group flex cursor-pointer items-center gap-2 rounded-xl border px-2.5 py-2 text-sm font-medium"
     style={
       isActive
         ? "border-color: color-mix(in srgb, var(--accent) 34%, var(--border-soft)); background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface-elevated)); color: var(--text-primary);"
@@ -29,7 +29,7 @@ const fileCount = module.subfolders.reduce((sum, sub) => sum + sub.files.length,
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
     </svg>
     <span
-      class="inline-flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-[10px] font-bold"
+      class="inline-flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-[10px] font-semibold"
       style={
         isActive
           ? "background: var(--accent); color: var(--text-inverse);"
@@ -39,14 +39,14 @@ const fileCount = module.subfolders.reduce((sum, sub) => sum + sub.files.length,
       {String(module.order).padStart(2, "0")}
     </span>
     <span class="truncate">{module.title}</span>
-    <span class="ml-auto text-[10px] font-bold uppercase tracking-[0.08em]" style="color: var(--text-muted);">{fileCount}</span>
+    <span class="ml-auto text-[10px] font-medium tracking-[0.06em]" style="color: var(--text-muted);">{fileCount}</span>
   </summary>
 
   <div class="ml-3 mt-1 border-l pl-2.5" style="border-color: var(--border-soft);">
     {module.subfolders.map((sub) => (
       <div class="mb-1">
         {module.subfolders.length > 1 && (
-          <p class="px-2 py-1 text-[10px] font-bold uppercase tracking-[0.13em]" style="color: var(--text-muted);">
+          <p class="px-2 py-1 text-[10px] font-medium tracking-[0.08em]" style="color: var(--text-muted);">
             {sub.name.replace(/_/g, " ")}
           </p>
         )}

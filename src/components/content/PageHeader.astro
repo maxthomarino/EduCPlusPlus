@@ -19,7 +19,7 @@ const { header, moduleName, moduleTitle, subfolder } = Astro.props;
     <span class="chip">{subfolder.replace(/_/g, " ")}</span>
   </nav>
 
-  <h1 class="display-font text-3xl font-bold tracking-tight sm:text-[2.15rem]" style="color: var(--text-primary);">
+  <h1 class="display-font text-3xl font-semibold tracking-tight sm:text-[2.15rem]" style="color: var(--text-primary);">
     {header.shortTitle}
   </h1>
 
@@ -35,13 +35,13 @@ const { header, moduleName, moduleTitle, subfolder } = Astro.props;
   <div class="mt-5 flex flex-wrap gap-2.5">
     {header.prerequisites && (
       <div class="surface-card-soft inline-flex items-center gap-2 px-3 py-2 text-sm">
-        <span class="font-semibold" style="color: var(--text-muted);">Prerequisites</span>
+        <span class="font-medium" style="color: var(--text-muted);">Prerequisites</span>
         <span style="color: var(--text-primary);">{header.prerequisites}</span>
       </div>
     )}
     {header.standard && (
       <div class="surface-card-soft inline-flex items-center gap-2 px-3 py-2 text-sm">
-        <span class="font-semibold" style="color: var(--text-muted);">Standard</span>
+        <span class="font-medium" style="color: var(--text-muted);">Standard</span>
         <span style="color: var(--text-primary);">{header.standard}</span>
       </div>
     )}

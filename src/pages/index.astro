@@ -13,12 +13,12 @@ const totalModules = sidebarData.length;
 
 function getLevel(order: number): { label: string; tone: string } {
   if (order <= 4) {
-    return { label: "Beginner", tone: "background: var(--success-soft); color: var(--success);" };
+    return { label: "Beginner", tone: "border: 1px solid color-mix(in srgb, var(--success) 24%, var(--border-soft)); background: color-mix(in srgb, var(--success-soft) 55%, var(--surface-elevated)); color: var(--success);" };
   }
   if (order <= 9) {
-    return { label: "Intermediate", tone: "background: var(--warning-soft); color: var(--warning);" };
+    return { label: "Intermediate", tone: "border: 1px solid color-mix(in srgb, var(--warning) 24%, var(--border-soft)); background: color-mix(in srgb, var(--warning-soft) 55%, var(--surface-elevated)); color: var(--warning);" };
   }
-  return { label: "Advanced", tone: "background: var(--deep-soft); color: var(--deep);" };
+  return { label: "Advanced", tone: "border: 1px solid color-mix(in srgb, var(--deep) 24%, var(--border-soft)); background: color-mix(in srgb, var(--deep-soft) 55%, var(--surface-elevated)); color: var(--deep);" };
 }
 ---
 
@@ -30,14 +30,14 @@ function getLevel(order: number): { label: string; tone: string } {
 >
   <section class="page-reveal surface-card mb-8 overflow-hidden p-6 sm:p-8">
     <p class="eyebrow mb-3">Modern C++ Learning Studio</p>
-    <h1 class="display-font text-4xl font-bold tracking-tight sm:text-5xl">
-      <span style="color: var(--text-primary);">Build practical </span>
-      <span class="gradient-title">C++20 fluency</span>
-      <span style="color: var(--text-primary);"> with real code.</span>
+    <h1 class="display-font text-4xl font-semibold tracking-tight sm:text-5xl">
+      <span style="color: var(--text-primary);">Learn modern </span>
+      <span class="gradient-title">C++20</span>
+      <span style="color: var(--text-primary);"> through practical examples.</span>
     </h1>
     <p class="mt-4 max-w-2xl text-base sm:text-lg" style="color: var(--text-secondary);">
-      A comprehensive, hands-on path from core fundamentals to advanced modern features. Study production-style
-      patterns, pitfalls, and decision guides in a single documentation flow.
+      A structured path from core fundamentals to advanced features, with focused explanations,
+      runnable code, and clear decision-making guidance.
     </p>
     <div class="mt-5 flex flex-wrap gap-2.5">
       <span class="metric-pill"><strong>{totalFiles}</strong>&nbsp;lessons</span>
@@ -48,13 +48,12 @@ function getLevel(order: number): { label: string; tone: string } {
     <div class="mt-6 flex flex-wrap gap-2">
       <span class="chip">Guided progression</span>
       <span class="chip">Concept clarity</span>
-      <span class="chip">Interview ready</span>
     </div>
   </section>
 
   <div class="mb-3 flex items-end justify-between gap-3">
-    <h2 class="display-font text-2xl font-bold tracking-tight" style="color: var(--text-primary);">Explore Modules</h2>
-    <p class="text-xs font-semibold uppercase tracking-[0.12em]" style="color: var(--text-muted);">Structured by depth</p>
+    <h2 class="display-font text-2xl font-semibold tracking-tight" style="color: var(--text-primary);">Explore Modules</h2>
+    <p class="text-xs font-medium tracking-[0.08em]" style="color: var(--text-muted);">Structured by depth</p>
   </div>
 
   <div class="grid gap-4 sm:grid-cols-2">
@@ -66,18 +65,18 @@ function getLevel(order: number): { label: string; tone: string } {
         <a href={firstFile ? `/${firstFile.slug}` : "#"} class="surface-card hover-lift group page-reveal block p-5">
           <div class="mb-3 flex items-center justify-between gap-3">
             <span
-              class="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-[0.08em]"
+              class="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold tracking-[0.04em]"
               style={level.tone}
             >
               {level.label}
             </span>
-            <span class="text-[11px] font-semibold uppercase tracking-[0.1em]" style="color: var(--text-muted);">
+            <span class="text-[11px] font-medium tracking-[0.06em]" style="color: var(--text-muted);">
               Module {String(mod.order).padStart(2, "0")}
             </span>
           </div>
           <div class="flex items-start gap-3">
             <span
-              class="display-font flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-bold"
+              class="display-font flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold"
               style="background: var(--accent-soft); color: var(--accent);"
             >
               {mod.order}
