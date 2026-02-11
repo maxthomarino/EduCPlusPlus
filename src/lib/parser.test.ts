@@ -48,6 +48,17 @@ describe("parseCppFile", () => {
       const code = parsed.sections.filter((s) => s.type === "code");
       expect(code.length).toBeGreaterThan(0);
     });
+
+    it("keeps include directives in rendered code", () => {
+      const codeSections = parsed.sections.filter((s) => s.type === "code");
+      const combinedCode = codeSections
+        .map((s) => (s.type === "code" ? s.code : ""))
+        .join("\n");
+
+      expect(combinedCode).toContain("#include <iostream>");
+      expect(combinedCode).toContain("#include <string_view>");
+      expect(combinedCode).toContain("#include <format>");
+    });
   });
 
   describe("casting_operators.cpp (FAQ + Decision Guide)", () => {

@@ -78,7 +78,6 @@ const RE = {
   when: /^(?:WHEN(?:\s+TO\s+USE)?|When(?:\s+to\s+use)?)\s*:\s*(.*)/i,
 
   blank: /^\s*$/,
-  includeDirective: /^#include\s/,
 };
 
 // ---------------------------------------------------------------------------
@@ -347,12 +346,6 @@ function parseBody(
 
     // Skip blank lines
     if (RE.blank.test(line)) {
-      i++;
-      continue;
-    }
-
-    // Skip #include lines — we don't render them as sections
-    if (RE.includeDirective.test(line)) {
       i++;
       continue;
     }
