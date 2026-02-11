@@ -224,3 +224,13 @@ int main() {
 
     return 0;
 }
+
+// =========================================
+// General Discussion
+// =========================================
+// Use this section for your own editorial notes.
+// Suggested prompts:
+// - Which function features here are worth adopting immediately?
+// - Where should explicitness beat convenience in function declarations?
+// - What would your personal "function style guide" include after this lesson?
+// =========================================

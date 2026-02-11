@@ -118,3 +118,15 @@ int main() {
 
     return 0;
 }
+
+// =========================================
+// General Discussion
+// =========================================
+// Use this section for your own editorial notes.
+// Suggested prompts:
+// - Which of these defaults (auto, string_view, structured bindings, format)
+//   already feel natural to you?
+// - Which one still feels confusing or easy to misuse?
+// - If you were explaining this file to another learner, what would you
+//   emphasize first?
+// =========================================

@@ -180,3 +180,13 @@ int main() {
 
     return 0;
 }
+
+// =========================================
+// General Discussion
+// =========================================
+// Use this section for your own editorial notes.
+// Suggested prompts:
+// - Which control-flow style in this file improves readability the most?
+// - Where would you choose if-init or switch-init in your own code?
+// - What habits would help you avoid branching bugs as code grows?
+// =========================================
