@@ -62,6 +62,12 @@
 // Key Takeaways
 // -----------------------------------------------
 // 1. std::atomic<T> guarantees atomicity for loads, stores, and
+//    What: Atomic types provide race-free operations on shared variables.
+//    When: Use this for counters/flags and low-level synchronization without a mutex.
+//    Why: They provide synchronization semantics with low overhead in suitable cases.
+//    Use: Use std::atomic operations with intentional memory-order choices.
+//    Which: C++11
+//
 //    read-modify-write operations. No mutex needed for single-variable
 //    access.
 // 2. The default memory order is seq_cst (sequentially consistent) --
@@ -78,6 +84,12 @@
 
 // -----------------------------------------------
 // 1. Basic atomic counter
+//    What: Atomic types provide race-free operations on shared variables.
+//    When: Use this for counters/flags and low-level synchronization without a mutex.
+//    Why: They provide synchronization semantics with low overhead in suitable cases.
+//    Use: Use std::atomic operations with intentional memory-order choices.
+//    Which: C++11
+//
 //    No mutex needed -- increment is atomic.
 // -----------------------------------------------
 void basic_atomic_counter() {
@@ -103,6 +115,12 @@ void basic_atomic_counter() {
 
 // -----------------------------------------------
 // 2. Compare-and-swap (CAS)
+//    What: Atomic types provide race-free operations on shared variables.
+//    When: Use this for counters/flags and low-level synchronization without a mutex.
+//    Why: They provide synchronization semantics with low overhead in suitable cases.
+//    Use: Use std::atomic operations with intentional memory-order choices.
+//    Which: C++11
+//
 //    The fundamental building block of lock-free algorithms.
 //    Atomically: if value == expected, set to desired; else load current.
 // Watch out: compare_exchange_weak can fail spuriously on LL/SC

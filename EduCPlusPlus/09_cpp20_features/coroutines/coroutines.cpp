@@ -33,6 +33,12 @@
 
 // -----------------------------------------------
 // 1. Generator<T>: a coroutine that yields values lazily
+//    What: Coroutines suspend and resume execution via compiler-generated state machines.
+//    When: Use this for generators and asynchronous workflows.
+//    Why: They express asynchronous control flow without callback nesting.
+//    Use: Define promise/awaiter support and use co_await, co_yield, or co_return.
+//    Which: C++20
+//
 //    This is the return type of coroutine functions.
 //
 //    Watch out: C++20 coroutines provide the language
@@ -147,6 +153,12 @@ private:
 
 // -----------------------------------------------
 // 2. Generator coroutines: functions that co_yield values
+//    What: Coroutines suspend and resume execution via compiler-generated state machines.
+//    When: Use this for generators and asynchronous workflows.
+//    Why: They express asynchronous control flow without callback nesting.
+//    Use: Define promise/awaiter support and use co_await, co_yield, or co_return.
+//    Which: C++20
+//
 // -----------------------------------------------
 
 // Infinite sequence of natural numbers

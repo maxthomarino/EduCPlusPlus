@@ -35,6 +35,11 @@
 
 // -----------------------------------------------
 // 1. Inheriting constructors (C++11) — using Base::Base
+//    What: Constructors and special members define object initialization and ownership behavior.
+//    When: Use this when class invariants and resource semantics must be explicit.
+//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
+//    Use: Define/default/delete special members to match ownership intent.
+//    Which: C++98+ (major additions in C++11 and later)
 //
 //    HOW IT WORKS:
 //    When a derived class adds no new data members (or all new members
@@ -89,6 +94,11 @@ public:
 
 // -----------------------------------------------
 // 2. std::initializer_list constructor
+//    What: Constructors and special members define object initialization and ownership behavior.
+//    When: Use this when class invariants and resource semantics must be explicit.
+//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
+//    Use: Define/default/delete special members to match ownership intent.
+//    Which: C++98+ (major additions in C++11 and later)
 //
 //    HOW IT WORKS:
 //    std::initializer_list<T> is a lightweight wrapper around a temporary
@@ -135,6 +145,11 @@ public:
 
 // -----------------------------------------------
 // 3. Aggregate initialization — no constructor needed
+//    What: Constructors and special members define object initialization and ownership behavior.
+//    When: Use this when class invariants and resource semantics must be explicit.
+//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
+//    Use: Define/default/delete special members to match ownership intent.
+//    Which: C++98+ (major additions in C++11 and later)
 //
 //    HOW IT WORKS:
 //    An aggregate is a class/struct with:
@@ -179,6 +194,11 @@ struct Color {
 
 // -----------------------------------------------
 // 4. Designated initializers (C++20) — named field initialization
+//    What: Designated initializers let you name aggregate fields directly in brace initialization.
+//    When: Use this for aggregate types when naming each initialized field improves clarity and safety.
+//    Why: They improve readability and reduce bugs from positional argument ordering mistakes.
+//    Use: Initialize aggregates with `.member = value` entries in braces for explicit field intent.
+//    Which: C++20
 //
 //    HOW IT WORKS:
 //    When initializing an aggregate, you can name the fields:
@@ -207,6 +227,11 @@ struct ServerConfig {
 
 // -----------------------------------------------
 // 5. Converting constructor vs explicit — how implicit conversion works
+//    What: Constructors and special members define object initialization and ownership behavior.
+//    When: Use this when class invariants and resource semantics must be explicit.
+//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
+//    Use: Define/default/delete special members to match ownership intent.
+//    Which: C++98+ (major additions in C++11 and later)
 //
 //    HOW IMPLICIT CONVERSION HAPPENS:
 //    When a function expects type A but receives type B, the compiler
@@ -253,6 +278,11 @@ void log_distance_mi(Miles mi) {
 
 // -----------------------------------------------
 // 6. constexpr constructors — compile-time objects
+//    What: constexpr enables compile-time evaluation when inputs are constant expressions.
+//    When: Use this for pure computations or immutable data that can be resolved at compile time.
+//    Why: It shifts work from runtime to compile time and can improve safety/performance.
+//    Use: Mark eligible functions/objects constexpr and keep them valid for constant evaluation.
+//    Which: C++11+ (expanded in later standards)
 //
 //    HOW IT WORKS:
 //    A constexpr constructor allows the class to be used in constant
@@ -318,6 +348,11 @@ constexpr auto unit_directions = build_unit_vectors();
 
 // -----------------------------------------------
 // 7. Conversion operators — the other direction
+//    What: Conversion operators define how an object can be converted from your type to another type.
+//    When: Use this for domain types that need controlled conversion to another representation.
+//    Why: They provide controlled interoperability while keeping conversion intent explicit to callers.
+//    Use: Prefer explicit conversion operators and expose only conversions that preserve clear semantics.
+//    Which: C++11+ (file discusses C++14, C++20, C++98)
 //
 //    HOW THEY RELATE TO CONSTRUCTORS:
 //    A converting constructor converts FROM another type TO your class.

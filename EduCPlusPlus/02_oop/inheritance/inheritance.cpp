@@ -23,6 +23,12 @@
 
 // -----------------------------------------------
 // 1. Base class
+//    What: These OOP constructs model interfaces, reuse, and dynamic behavior.
+//    When: Use this when types share contracts or behavior across hierarchies.
+//    Why: It organizes abstractions and enables polymorphic extension.
+//    Use: Define clear base contracts and override behavior intentionally in derived types.
+//    Which: C++98+ (with modern refinements)
+//
 //    Represents a generic animal with common attributes.
 //
 //    Watch out: If a class will ever be used as a base for
@@ -281,6 +287,12 @@ public:
 // Key Takeaways
 // -----------------------------------------------
 // 1. Always give polymorphic base classes a virtual destructor;
+//    What: Constructors and special members define object initialization and ownership behavior.
+//    When: Use this when class invariants and resource semantics must be explicit.
+//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
+//    Use: Define/default/delete special members to match ownership intent.
+//    Which: C++98+ (major additions in C++11 and later)
+//
 //    otherwise deleting through a base pointer is undefined behaviour.
 // 2. Always use the override keyword on every overriding method so
 //    the compiler catches signature mismatches at compile time.

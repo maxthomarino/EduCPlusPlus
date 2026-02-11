@@ -62,6 +62,12 @@
 
 // -----------------------------------------------
 // 1. Standard exception hierarchy
+//    What: Exceptions signal error conditions using stack unwinding and typed handlers.
+//    When: Use this for error paths that cannot be handled locally and should propagate to a caller.
+//    Why: They separate normal control flow from failure handling and preserve invariants with RAII.
+//    Use: Throw specific exception types and catch by const reference at handling boundaries.
+//    Which: C++98+ (modern guidance continues)
+//
 //    std::exception
 //     +-- std::logic_error
 //     |    +-- std::invalid_argument
@@ -75,6 +81,12 @@
 
 // -----------------------------------------------
 // 2. Custom exception class
+//    What: Exceptions signal error conditions using stack unwinding and typed handlers.
+//    When: Use this for error paths that cannot be handled locally and should propagate to a caller.
+//    Why: They separate normal control flow from failure handling and preserve invariants with RAII.
+//    Use: Throw specific exception types and catch by const reference at handling boundaries.
+//    Which: C++98+ (modern guidance continues)
+//
 //    Inherit from std::exception or its subclasses.
 //
 //    Watch out: catch by const reference
@@ -130,6 +142,12 @@ public:
 
 // -----------------------------------------------
 // 3. Functions that throw
+//    What: Exceptions signal error conditions using stack unwinding and typed handlers.
+//    When: Use this for error paths that cannot be handled locally and should propagate to a caller.
+//    Why: They separate normal control flow from failure handling and preserve invariants with RAII.
+//    Use: Throw specific exception types and catch by const reference at handling boundaries.
+//    Which: C++98+ (modern guidance continues)
+//
 // -----------------------------------------------
 double safe_divide(double a, double b) {
     if (b == 0.0) {
@@ -163,6 +181,12 @@ void run_query(const std::string& sql) {
 
 // -----------------------------------------------
 // 4. noexcept: promise that a function won't throw
+//    What: noexcept declares that a function must not allow exceptions to escape.
+//    When: Use this on destructors, swap, move operations, and other functions that are intended not to throw.
+//    Why: It enables optimizations and lets standard containers prefer move paths that preserve strong guarantees.
+//    Use: Mark functions `noexcept` (or conditionally `noexcept(expr)`) when the no-throw contract is true.
+//    Which: C++11
+//
 //    Enables optimizations (move constructors should be noexcept).
 //
 //    Watch out: throwing in a destructor during
@@ -204,6 +228,12 @@ void swap_values(T& a, T& b) noexcept(std::is_nothrow_move_constructible_v<T>) {
 
 // -----------------------------------------------
 // 5. RAII for exception safety
+//    What: RAII ties resource lifetime to object lifetime and scope.
+//    When: Use this for files, locks, memory, and any acquire/release resource pair.
+//    Why: It guarantees cleanup on all exits, including exceptions.
+//    Use: Acquire in constructors and release in destructors via owning wrapper types.
+//    Which: C++98+ (foundational idiom)
+//
 //    Use RAII objects so resources are cleaned up
 //    even when exceptions are thrown.
 //

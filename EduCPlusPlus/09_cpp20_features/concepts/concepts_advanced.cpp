@@ -28,6 +28,12 @@
 
 // -----------------------------------------------
 // 1. requires-expression: test complex requirements
+//    What: A requires-expression checks whether operations are valid for a type.
+//    When: Use this when concepts need precise syntactic and semantic requirements.
+//    Why: It lets constraints express real usage rather than ad-hoc trait checks.
+//    Use: Write requires(T t) { ... } blocks and compose them into concepts.
+//    Which: C++20
+//
 //    Checks if expressions are valid, their types, etc.
 // -----------------------------------------------
 template<typename T>
@@ -42,6 +48,12 @@ concept Hashable = requires(T t) {
 
 // -----------------------------------------------
 // 2. Compound requirements with nested requires
+//    What: A requires-expression checks whether operations are valid for a type.
+//    When: Use this when concepts need precise syntactic and semantic requirements.
+//    Why: It lets constraints express real usage rather than ad-hoc trait checks.
+//    Use: Write requires(T t) { ... } blocks and compose them into concepts.
+//    Which: C++20
+//
 // -----------------------------------------------
 template<typename T>
 concept Serializable = requires(T t) {
@@ -69,6 +81,12 @@ static_assert(Serializable<Config>);
 
 // -----------------------------------------------
 // 3. Concept composition (combining concepts)
+//    What: Concepts are compile-time constraints for template parameters.
+//    When: Use this when templates require specific operations or properties.
+//    Why: They improve diagnostics and make template contracts explicit.
+//    Use: Apply requires clauses or constrained template parameters.
+//    Which: C++20
+//
 // -----------------------------------------------
 template<typename T>
 concept Numeric = std::integral<T> || std::floating_point<T>;
@@ -87,6 +105,12 @@ void print_numeric(T value) {
 
 // -----------------------------------------------
 // 4. Concept subsumption (overload resolution)
+//    What: Concepts are compile-time constraints for template parameters.
+//    When: Use this when templates require specific operations or properties.
+//    Why: They improve diagnostics and make template contracts explicit.
+//    Use: Apply requires clauses or constrained template parameters.
+//    Which: C++20
+//
 //    More constrained overloads are preferred.
 //
 //    Watch out: concept subsumption only works when
@@ -127,6 +151,12 @@ struct Rock {  // Has name() but no speak()
 
 // -----------------------------------------------
 // 5. Real-world pattern: constrained factory
+//    What: Only allows creating objects that are both default-constructible and printable.
+//    When: Use this when object construction should be allowed only for types that satisfy explicit constraints.
+//    Why: It improves clarity and helps prevent common correctness mistakes.
+//    Use: Follow the code pattern shown in this section and adapt it to your types.
+//    Which: C++20
+//
 //    Only allows creating objects that are both
 //    default-constructible and printable.
 // -----------------------------------------------
@@ -143,6 +173,12 @@ std::unique_ptr<T> make() {
 
 // -----------------------------------------------
 // 6. Abbreviated function templates (terse syntax)
+//    What: Abbreviated function templates use constrained auto parameters.
+//    When: Use this for concise constrained function declarations.
+//    Why: It keeps template signatures short while preserving constraints.
+//    Use: Write functions with Concept auto parameters.
+//    Which: C++20
+//
 //    'auto' with concepts is the cleanest form.
 // -----------------------------------------------
 // All three are equivalent:

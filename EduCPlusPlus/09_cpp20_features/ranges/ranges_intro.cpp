@@ -53,6 +53,12 @@
 
 // -----------------------------------------------
 // 1. Ranges vs traditional iterator pairs
+//    What: C++20 ranges combine views and algorithms into composable pipelines.
+//    When: Use this for transformation/filtering pipelines over sequences.
+//    Why: They improve readability and reduce temporary containers.
+//    Use: Compose views with | and call std::ranges algorithms on the resulting range.
+//    Which: C++20
+//
 //    Traditional: algorithm(begin, end, predicate)
 //    Ranges:      algorithm(container, predicate)
 //    Eliminates mismatched iterator bugs and is shorter to write.
@@ -86,6 +92,12 @@
 
 // -----------------------------------------------
 // 2. View composition with the pipe operator (|)
+//    What: C++20 ranges combine views and algorithms into composable pipelines.
+//    When: Use this for transformation/filtering pipelines over sequences.
+//    Why: They improve readability and reduce temporary containers.
+//    Use: Compose views with | and call std::ranges algorithms on the resulting range.
+//    Which: C++20
+//
 //    Views are lightweight, non-owning wrappers that describe
 //    a transformation. They do NOT store results — each element
 //    is computed on demand during iteration.
@@ -96,6 +108,12 @@
 
 // -----------------------------------------------
 // 3. Lazy evaluation — views compute on demand
+//    What: C++20 ranges combine views and algorithms into composable pipelines.
+//    When: Use this for transformation/filtering pipelines over sequences.
+//    Why: They improve readability and reduce temporary containers.
+//    Use: Compose views with | and call std::ranges algorithms on the resulting range.
+//    Which: C++20
+//
 //    A pipeline like filter | transform | take does not loop
 //    through the data three times. Each element flows through
 //    the entire pipeline before the next element is requested.
@@ -103,6 +121,12 @@
 
 // -----------------------------------------------
 // 4. Common view adaptors
+//    What: C++20 ranges combine views and algorithms into composable pipelines.
+//    When: Use this for transformation/filtering pipelines over sequences.
+//    Why: They improve readability and reduce temporary containers.
+//    Use: Compose views with | and call std::ranges algorithms on the resulting range.
+//    Which: C++20
+//
 //    take(n)    — first n elements
 //    drop(n)    — skip first n elements
 //    reverse    — iterate in reverse
@@ -114,6 +138,12 @@
 
 // -----------------------------------------------
 // 5. views::iota — generate a sequence of values
+//    What: C++20 ranges combine views and algorithms into composable pipelines.
+//    When: Use this for transformation/filtering pipelines over sequences.
+//    Why: They improve readability and reduce temporary containers.
+//    Use: Compose views with | and call std::ranges algorithms on the resulting range.
+//    Which: C++20
+//
 //    iota(start) produces an infinite sequence: start, start+1, ...
 //    iota(start, end) produces [start, end).
 //    Useful for index generation and replacing manual loops.
@@ -121,6 +151,12 @@
 
 // -----------------------------------------------
 // 6. Range algorithms — pass the container, not iterators
+//    What: C++20 ranges combine views and algorithms into composable pipelines.
+//    When: Use this for transformation/filtering pipelines over sequences.
+//    Why: They improve readability and reduce temporary containers.
+//    Use: Compose views with | and call std::ranges algorithms on the resulting range.
+//    Which: C++20
+//
 //    std::ranges::sort, std::ranges::find, std::ranges::count_if, etc.
 //    These accept a range directly and support projections (member
 //    pointers or callables that extract a sort key).
@@ -128,6 +164,12 @@
 
 // -----------------------------------------------
 // 7. Projections — sort/compare by a computed key
+//    What: C++20 ranges combine views and algorithms into composable pipelines.
+//    When: Use this for transformation/filtering pipelines over sequences.
+//    Why: They improve readability and reduce temporary containers.
+//    Use: Compose views with | and call std::ranges algorithms on the resulting range.
+//    Which: C++20
+//
 //    A projection is an extra argument that transforms each element
 //    before the comparator sees it. Avoids writing custom comparators.
 //

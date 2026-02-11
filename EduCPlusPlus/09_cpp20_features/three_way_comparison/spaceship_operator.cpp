@@ -27,6 +27,12 @@
 
 // -----------------------------------------------
 // 1. Defaulted <=> — one line gives you all 6 operators
+//    What: operator<=> defines three-way comparison and can synthesize relational operators.
+//    When: Use this when types need ordering/equality semantics.
+//    Why: It centralizes comparison logic and reduces boilerplate.
+//    Use: Default or implement operator<=> and define operator== when needed.
+//    Which: C++20
+//
 //    The compiler compares members in declaration order, just like
 //    it does for defaulted constructors.
 //
@@ -43,6 +49,12 @@ struct Point {
 
 // -----------------------------------------------
 // 2. Comparison categories
+//    What: Comparison categories describe whether ordering is strong, weak, or partial for a type.
+//    When: Use this when you need to reason about strong, weak, or partial ordering semantics.
+//    Why: Choosing the correct category makes ordering guarantees explicit to generic algorithms.
+//    Use: Return `std::strong_ordering`, `std::weak_ordering`, or `std::partial_ordering` as appropriate.
+//    Which: C++20
+//
 //    The return type of <=> tells you about the ordering:
 //
 //    strong_ordering:  exactly one of <, ==, > is true.
@@ -59,6 +71,12 @@ struct Point {
 
 // -----------------------------------------------
 // 3. Custom <=> implementation
+//    What: operator<=> defines three-way comparison and can synthesize relational operators.
+//    When: Use this when types need ordering/equality semantics.
+//    Why: It centralizes comparison logic and reduces boilerplate.
+//    Use: Default or implement operator<=> and define operator== when needed.
+//    Which: C++20
+//
 //    Write your own when member-wise order is wrong.
 //    Return the appropriate ordering category.
 //
@@ -90,6 +108,12 @@ public:
 
 // -----------------------------------------------
 // 4. Partial ordering with floating point
+//    What: Floating-point comparisons often produce `std::partial_ordering` because NaN is unordered.
+//    When: Use this when compared values can be unordered (for example, floating-point NaN cases).
+//    Why: NaN semantics mean some values are neither less, equal, nor greater, and code must handle that case.
+//    Use: Check `is_ordered()`/equivalent outcomes and avoid assuming total ordering for floating-point data.
+//    Which: C++20
+//
 //    double's <=> returns std::partial_ordering because NaN
 //    is unordered relative to every value, including itself.
 // -----------------------------------------------
@@ -114,6 +138,12 @@ void partial_ordering_demo() {
 
 // -----------------------------------------------
 // 5. Using <=> with containers and algorithms
+//    What: operator<=> defines three-way comparison and can synthesize relational operators.
+//    When: Use this when types need ordering/equality semantics.
+//    Why: It centralizes comparison logic and reduces boilerplate.
+//    Use: Default or implement operator<=> and define operator== when needed.
+//    Which: C++20
+//
 //    Classes with defaulted <=> work immediately in
 //    std::set, std::map, std::sort, and binary search.
 // -----------------------------------------------

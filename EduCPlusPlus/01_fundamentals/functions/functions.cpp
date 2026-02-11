@@ -26,6 +26,12 @@
 
 // -----------------------------------------------
 // 1. Trailing return type (C++11)
+//    What: A trailing return type places the return type after the parameter list.
+//    When: Use this when the return type depends on parameters or is clearer at the end.
+//    Why: It improves readability in template-heavy signatures.
+//    Use: Write auto fn(args) -> ReturnType.
+//    Which: C++11
+//
 //    Syntax: auto f(params) -> ReturnType { ... }
 //    Useful when the return type depends on parameters or
 //    when you want the function name to appear first for
@@ -40,6 +46,12 @@ auto multiply(int a, double b) -> double {
 
 // -----------------------------------------------
 // 2. Auto return type deduction (C++14)
+//    What: Auto return type deduction lets the compiler deduce a function return type from return statements.
+//    When: Use this for simple functions where the return type is obvious from the implementation.
+//    Why: It shortens signatures and avoids repeating long types.
+//    Use: Declare the function with auto and provide return expressions of one consistent type.
+//    Which: C++14
+//
 //    Compiler deduces the return type from the body.
 //    All return statements must deduce to the same type.
 //
@@ -53,6 +65,12 @@ auto make_greeting(std::string_view name) {
 
 // -----------------------------------------------
 // 3. constexpr functions (C++11/14/20)
+//    What: constexpr enables compile-time evaluation when inputs are constant expressions.
+//    When: Use this for pure computations or immutable data that can be resolved at compile time.
+//    Why: It shifts work from runtime to compile time and can improve safety/performance.
+//    Use: Mark eligible functions/objects constexpr and keep them valid for constant evaluation.
+//    Which: C++11+ (expanded in later standards)
+//
 //    Evaluated at compile time when called in a constant
 //    expression; otherwise run normally at runtime. C++14
 //    relaxed the "single return" rule; C++20 allows even
@@ -77,6 +95,12 @@ constexpr bool is_prime(int n) {
 
 // -----------------------------------------------
 // 4. Function overloading
+//    What: Function overloading provides multiple functions with the same name but different signatures.
+//    When: Use this when operations share intent but differ by argument types or counts.
+//    Why: It creates a clean API while preserving type safety.
+//    Use: Define distinct parameter lists and avoid ambiguous overload sets.
+//    Which: C++98+
+//
 //    Same name, different parameter types. The compiler picks
 //    the best match using overload resolution rules.
 //
@@ -98,6 +122,12 @@ void print(std::string_view value) {
 
 // -----------------------------------------------
 // 5. Default and deleted functions (C++11)
+//    What: = default and = delete control special member function generation and availability.
+//    When: Use this when class ownership or copy/move behavior must be explicit.
+//    Why: It documents class semantics and prevents accidental operations.
+//    Use: Default operations you want and delete operations that must not compile.
+//    Which: C++11
+//
 //    = default tells the compiler to generate the special member.
 //    = delete forbids calling that function (compile-time error).
 //
@@ -115,6 +145,12 @@ struct NonCopyable {
 
 // -----------------------------------------------
 // 6. Variadic templates (C++11) -- fold expressions (C++17)
+//    What: Variadic templates accept zero or more template arguments.
+//    When: Use this for type-safe APIs that operate on an arbitrary number of arguments.
+//    Why: They replace unsafe C-style variadics with compile-time checked code.
+//    Use: Expand parameter packs directly or with fold expressions.
+//    Which: C++11 (fold expressions in C++17)
+//
 //    Accept any number of arguments with full type safety.
 //    Fold expressions (C++17) eliminate the need for recursive
 //    template expansion in many common cases.
@@ -142,6 +178,12 @@ void print_all(First first, Rest... rest) {
 
 // -----------------------------------------------
 // 7. [[nodiscard]] attribute (C++17)
+//    What: [[nodiscard]] requests a warning when a returned value is ignored.
+//    When: Use this on functions where ignoring the result is usually a bug.
+//    Why: It catches silent logic errors at compile time.
+//    Use: Annotate return types or functions with [[nodiscard]].
+//    Which: C++17
+//
 //    Warns if the return value is discarded. Apply it to
 //    functions where ignoring the result is almost certainly
 //    a bug (error codes, computed values, RAII guards).

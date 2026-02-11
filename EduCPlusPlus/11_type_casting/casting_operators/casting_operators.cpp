@@ -201,6 +201,12 @@ void safe_legacy_print(const std::string& message) {
 int main() {
     // =================================================
     // 1. static_cast — the workhorse cast
+    //    What: static_cast performs compile-time checked conversions where rules are known at compile time.
+    //    When: Use this for numeric conversions, explicit enum conversions, and safe upcasts.
+    //    Why: It makes conversion intent explicit and avoids C-style cast ambiguity.
+    //    Use: Write static_cast<T>(expr) only when the conversion is expected and well-defined.
+    //    Which: C++98+
+    //
     //    Performs well-defined conversions the compiler can verify:
     //    - Numeric conversions (int -> double, double -> int)
     //    - Upcasts in a class hierarchy (Derived* -> Base*)
@@ -276,6 +282,12 @@ int main() {
 
     // =================================================
     // 2. dynamic_cast — runtime-checked hierarchy cast
+    //    What: dynamic_cast performs runtime-checked casts in polymorphic class hierarchies.
+    //    When: Use this for downcasts when the dynamic type is uncertain.
+    //    Why: It fails safely (nullptr or bad_cast) instead of causing unchecked UB.
+    //    Use: Use pointer form and test for nullptr, or reference form inside try/catch.
+    //    Which: C++98+
+    //
     //    Works ONLY on polymorphic types (classes with at least one
     //    virtual function). Inspects the actual object type at runtime.
     //
@@ -346,6 +358,12 @@ int main() {
 
     // =================================================
     // 3. const_cast — add or remove const/volatile
+    //    What: const_cast is the only cast that can add or remove const/volatile qualifiers.
+    //    When: Use this only for const-correctness interop where underlying data is actually mutable.
+    //    Why: It supports rare legacy interfaces while keeping explicit intent.
+    //    Use: Never modify an object originally declared const after casting away const.
+    //    Which: C++98+
+    //
     //    This is the ONLY cast that can change cv-qualifiers.
     //    static_cast cannot add or remove const.
     //
@@ -418,6 +436,12 @@ int main() {
 
     // =================================================
     // 4. reinterpret_cast — raw bit reinterpretation
+    //    What: reinterpret_cast reinterprets bits as another type without value conversion.
+    //    When: Use this only for low-level tasks like byte views, hardware addresses, or ABI boundaries.
+    //    Why: It enables systems-level interop that other casts cannot express.
+    //    Use: Prefer safer alternatives (like std::bit_cast) when available and legal.
+    //    Which: C++98+ (std::bit_cast in C++20)
+    //
     //    Tells the compiler "treat this pointer/value as a completely
     //    different type." No conversion happens — the bits are unchanged.
     //
@@ -479,6 +503,12 @@ int main() {
 
     // =================================================
     // 5. DECISION GUIDE: Which cast should I use?
+    //    What: This section summarizes how to choose the correct cast for each conversion intent.
+    //    When: Use this checklist whenever you are about to write an explicit cast.
+    //    Why: Choosing the narrowest valid cast reduces undefined behavior risk.
+    //    Use: Start with static_cast, escalate only when requirements demand another cast.
+    //    Which: Applies across modern C++
+    //
     // =================================================
     //
     // Need to convert between numeric types?

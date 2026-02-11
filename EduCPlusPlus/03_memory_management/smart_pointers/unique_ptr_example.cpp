@@ -119,6 +119,11 @@ std::unique_ptr<Resource> create_resource(const std::string& name) {
 
 // -----------------------------------------------
 // 3. Custom deleter example
+//    What: Here we wrap a C-style FILE* so that fclose is called automatically when the unique_ptr goes out of scope.
+//    When: Here we wrap a C-style FILE* so that fclose is called automatically when the unique_ptr goes out of scope.
+//    Why: It improves clarity and helps prevent common correctness mistakes.
+//    Use: Follow the code pattern shown in this section and adapt it to your types.
+//    Which: C++11+ (file discusses C++14, C++17)
 //
 //    unique_ptr can manage any resource -- not just heap objects -- by
 //    providing a custom deleter.  Here we wrap a C-style FILE* so that

@@ -43,6 +43,12 @@
 
 // -----------------------------------------------
 // 1. RAII for file handles
+//    What: RAII ties resource lifetime to object lifetime and scope.
+//    When: Use this for files, locks, memory, and any acquire/release resource pair.
+//    Why: It guarantees cleanup on all exits, including exceptions.
+//    Use: Acquire in constructors and release in destructors via owning wrapper types.
+//    Which: C++98+ (foundational idiom)
+//
 //    The file closes automatically when the object is destroyed,
 //    even if an exception is thrown.
 //
@@ -107,6 +113,12 @@ public:
 
 // -----------------------------------------------
 // 2. RAII for mutex locks
+//    What: RAII ties resource lifetime to object lifetime and scope.
+//    When: Use this for files, locks, memory, and any acquire/release resource pair.
+//    Why: It guarantees cleanup on all exits, including exceptions.
+//    Use: Acquire in constructors and release in destructors via owning wrapper types.
+//    Which: C++98+ (foundational idiom)
+//
 //    std::lock_guard and std::scoped_lock are RAII wrappers
 //    around mutex::lock / mutex::unlock.
 //
@@ -153,6 +165,12 @@ public:
 
 // -----------------------------------------------
 // 3. Custom RAII wrapper (generic pattern)
+//    What: RAII ties resource lifetime to object lifetime and scope.
+//    When: Use this for files, locks, memory, and any acquire/release resource pair.
+//    Why: It guarantees cleanup on all exits, including exceptions.
+//    Use: Acquire in constructors and release in destructors via owning wrapper types.
+//    Which: C++98+ (foundational idiom)
+//
 //    Acquires a resource and guarantees cleanup.
 // -----------------------------------------------
 class Timer {
@@ -179,6 +197,12 @@ public:
 
 // -----------------------------------------------
 // 4. RAII and exception safety
+//    What: RAII ties resource lifetime to object lifetime and scope.
+//    When: Use this for files, locks, memory, and any acquire/release resource pair.
+//    Why: It guarantees cleanup on all exits, including exceptions.
+//    Use: Acquire in constructors and release in destructors via owning wrapper types.
+//    Which: C++98+ (foundational idiom)
+//
 //    Even when exceptions fly, resources are cleaned up.
 // -----------------------------------------------
 void demonstrate_exception_safety() {
@@ -200,6 +224,12 @@ void demonstrate_exception_safety() {
 
 // -----------------------------------------------
 // 5. RAII with smart pointers (modern best practice)
+//    What: RAII ties resource lifetime to object lifetime and scope.
+//    When: Use this for files, locks, memory, and any acquire/release resource pair.
+//    Why: It guarantees cleanup on all exits, including exceptions.
+//    Use: Acquire in constructors and release in destructors via owning wrapper types.
+//    Which: C++98+ (foundational idiom)
+//
 //    unique_ptr and shared_ptr are RAII for heap memory.
 // -----------------------------------------------
 struct Resource {

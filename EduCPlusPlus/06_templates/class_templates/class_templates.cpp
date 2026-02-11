@@ -26,6 +26,12 @@
 
 // -----------------------------------------------
 // 1. Basic class template: a type-safe stack
+//    What: Templates generate type-safe code for families of types or values.
+//    When: Use this when the same logic should work across multiple types.
+//    Why: It improves reuse with compile-time checking and optimization.
+//    Use: Define clear template parameters and constrain behavior where needed.
+//    Which: C++98+ (modern features added later)
+//
 //    Works with any type T and a compile-time capacity N.
 //
 //    Watch out: CTAD (C++17 Class Template Argument
@@ -85,6 +91,12 @@ public:
 
 // -----------------------------------------------
 // 2. Class template with multiple type parameters
+//    What: Templates generate type-safe code for families of types or values.
+//    When: Use this when the same logic should work across multiple types.
+//    Why: It improves reuse with compile-time checking and optimization.
+//    Use: Define clear template parameters and constrain behavior where needed.
+//    Which: C++98+ (modern features added later)
+//
 //    A simple key-value pair.
 // -----------------------------------------------
 template<typename Key, typename Value>
@@ -108,6 +120,12 @@ Pair(const char*, V) -> Pair<std::string, V>;
 
 // -----------------------------------------------
 // 3. Partial specialization
+//    What: Templates generate type-safe code for families of types or values.
+//    When: Use this when the same logic should work across multiple types.
+//    Why: It improves reuse with compile-time checking and optimization.
+//    Use: Define clear template parameters and constrain behavior where needed.
+//    Which: C++98+ (modern features added later)
+//
 //    Specialize the template for pointer types.
 // -----------------------------------------------
 template<typename T>
@@ -166,6 +184,12 @@ public:
 
 // -----------------------------------------------
 // 4. A more realistic example: Matrix
+//    What: Demonstrates template methods and operator overloading.
+//    When: Use this when fixed-size numeric grids benefit from compile-time dimensions and type safety.
+//    Why: It improves clarity and helps prevent common correctness mistakes.
+//    Use: Follow the code pattern shown in this section and adapt it to your types.
+//    Which: C++11+ (file discusses C++17, C++20, C++98)
+//
 //    Demonstrates template methods and operator overloading.
 // -----------------------------------------------
 template<typename T, std::size_t Rows, std::size_t Cols>
@@ -226,6 +250,12 @@ public:
 
 // -----------------------------------------------
 // 5. Type traits: compile-time type introspection
+//    What: Templates generate type-safe code for families of types or values.
+//    When: Use this when the same logic should work across multiple types.
+//    Why: It improves reuse with compile-time checking and optimization.
+//    Use: Define clear template parameters and constrain behavior where needed.
+//    Which: C++98+ (modern features added later)
+//
 //    Build your own traits to query type properties.
 // -----------------------------------------------
 template<typename T>

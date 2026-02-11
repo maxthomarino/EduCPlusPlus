@@ -75,6 +75,12 @@
 
 // -----------------------------------------------
 // 1. Basic lambda — no captures, no parameters
+//    What: A lambda is an unnamed callable object created at the use site.
+//    When: Use this for local callbacks, predicates, and transformations.
+//    Why: It keeps behavior near call sites and reduces ceremony.
+//    Use: Write [captures](params) { body } and choose capture mode intentionally.
+//    Which: C++11
+//
 //    The simplest form: [] { body }.
 //    Equivalent to a struct with an operator() — the compiler
 //    generates one for you.
@@ -82,6 +88,12 @@
 
 // -----------------------------------------------
 // 2. Lambda with parameters and return type
+//    What: A lambda is an unnamed callable object created at the use site.
+//    When: Use this for local callbacks, predicates, and transformations.
+//    Why: It keeps behavior near call sites and reduces ceremony.
+//    Use: Write [captures](params) { body } and choose capture mode intentionally.
+//    Which: C++11
+//
 //    Return type is deduced unless explicitly specified.
 //    Watch out: if the body has multiple return statements
 //    with different types, you must specify -> return_type.
@@ -89,6 +101,12 @@
 
 // -----------------------------------------------
 // 3. Capture by value [x] vs by reference [&x]
+//    What: Capture mode controls whether the lambda stores copied state or references to external state.
+//    When: Use value capture for independent snapshots, and reference capture when shared mutable state is required.
+//    Why: Choosing the right capture mode prevents dangling references and accidental side effects.
+//    Use: Prefer explicit capture lists like [x, &y] so ownership and mutation intent are obvious.
+//    Which: C++11 (with C++20 refinements around `this` capture rules)
+//
 //    By-value captures are const by default inside the lambda body.
 //    By-reference captures see (and can modify) the original variable.
 //
@@ -120,12 +138,24 @@
 
 // -----------------------------------------------
 // 4. Mutable lambdas — modifying by-value captures
+//    What: mutable lambdas allow modification of by-value captures inside operator().
+//    When: Use this when captured snapshots need local mutation.
+//    Why: It enables stateful lambda behavior without mutating outer variables.
+//    Use: Add mutable after the parameter list in the lambda signature.
+//    Which: C++11
+//
 //    The mutable keyword lets you modify the lambda's internal copy
 //    of a captured variable. The original variable is unaffected.
 // -----------------------------------------------
 
 // -----------------------------------------------
 // 5. Generic lambdas (C++14) — auto parameters
+//    What: Generic lambdas deduce parameter types with auto parameters.
+//    When: Use this for short reusable callbacks over multiple argument types.
+//    Why: It provides template-like flexibility without separate template declarations.
+//    Use: Declare lambda parameters as auto (or constrained auto in C++20).
+//    Which: C++14
+//
 //    Each auto parameter makes the lambda's operator() a template.
 //    This is the simplest way to write type-generic inline code.
 //
@@ -135,6 +165,12 @@
 
 // -----------------------------------------------
 // 6. Init captures (C++14) — create new variables in the capture
+//    What: Init-capture creates captured variables from expressions in the capture list.
+//    When: Use this to move ownership or precompute captured values.
+//    Why: It supports move-only captures and clearer lambda state setup.
+//    Use: Write [name = expression] in the capture list.
+//    Which: C++14
+//
 //    Syntax: [name = expr]. Lets you move objects into a lambda or
 //    rename captured variables. Essential for move-only types.
 //
@@ -144,18 +180,36 @@
 
 // -----------------------------------------------
 // 7. Immediately-invoked lambda expressions (IILE)
+//    What: A lambda is an unnamed callable object created at the use site.
+//    When: Use this for local callbacks, predicates, and transformations.
+//    Why: It keeps behavior near call sites and reduces ceremony.
+//    Use: Write [captures](params) { body } and choose capture mode intentionally.
+//    Which: C++11
+//
 //    Call the lambda right where you define it. Useful for
 //    complex initialization of const variables.
 // -----------------------------------------------
 
 // -----------------------------------------------
 // 8. Lambdas with STL algorithms
+//    What: Lambdas are the primary way to customize algorithm behavior.
+//    When: Use this when comparator/predicate logic is local to one algorithm call site.
+//    Why: It keeps behavior close to the algorithm and avoids boilerplate functor classes.
+//    Use: Pass lambdas directly to algorithms such as std::sort, std::find_if, and std::for_each.
+//    Which: C++11
+//
 //    Lambdas are the primary way to customize algorithm behavior.
 //    They replace the old-style functor objects.
 // -----------------------------------------------
 
 // -----------------------------------------------
 // 9. Storing lambdas with std::function
+//    What: std::function is a type-erased wrapper for callables of one signature.
+//    When: Use this when callable type must vary at runtime behind one interface.
+//    Why: It provides uniform storage/invocation for different callable objects.
+//    Use: Declare std::function<R(Args...)> and assign matching callables.
+//    Which: C++11
+//
 //    std::function<R(Args...)> can hold any callable with the
 //    matching signature: lambdas, function pointers, functors.
 //

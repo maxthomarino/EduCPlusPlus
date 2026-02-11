@@ -25,6 +25,12 @@
 
 // -----------------------------------------------
 // 1. Basic function template
+//    What: Templates generate type-safe code for families of types or values.
+//    When: Use this when the same logic should work across multiple types.
+//    Why: It improves reuse with compile-time checking and optimization.
+//    Use: Define clear template parameters and constrain behavior where needed.
+//    Which: C++98+ (modern features added later)
+//
 //    T is deduced from the arguments.
 //
 //    Watch out: template code must be in headers
@@ -69,6 +75,11 @@ T max_of(T a, T b) {
 
 // -----------------------------------------------
 // 2. Multiple template parameters
+//    What: Templates generate type-safe code for families of types or values.
+//    When: Use this when the same logic should work across multiple types.
+//    Why: It improves reuse with compile-time checking and optimization.
+//    Use: Define clear template parameters and constrain behavior where needed.
+//    Which: C++98+ (modern features added later)
 //
 //    Watch out: template argument deduction can fail
 //    silently if types don't match exactly.  Use
@@ -82,6 +93,12 @@ auto add(T a, U b) {
 
 // -----------------------------------------------
 // 3. Non-type template parameters
+//    What: Templates generate type-safe code for families of types or values.
+//    When: Use this when the same logic should work across multiple types.
+//    Why: It improves reuse with compile-time checking and optimization.
+//    Use: Define clear template parameters and constrain behavior where needed.
+//    Which: C++98+ (modern features added later)
+//
 //    Values (not types) as template arguments.
 // -----------------------------------------------
 template<int N>
@@ -100,6 +117,12 @@ void print_array(const T (&arr)[N]) {
 
 // -----------------------------------------------
 // 4. Template specialization
+//    What: Templates generate type-safe code for families of types or values.
+//    When: Use this when the same logic should work across multiple types.
+//    Why: It improves reuse with compile-time checking and optimization.
+//    Use: Define clear template parameters and constrain behavior where needed.
+//    Which: C++98+ (modern features added later)
+//
 //    Provide a custom implementation for a specific type.
 // -----------------------------------------------
 template<typename T>
@@ -136,6 +159,12 @@ template<> std::string type_name<std::string>() { return "std::string"; }
 
 // -----------------------------------------------
 // 5. SFINAE and enable_if (pre-C++20 way to constrain)
+//    What: Templates generate type-safe code for families of types or values.
+//    When: Use this when the same logic should work across multiple types.
+//    Why: It improves reuse with compile-time checking and optimization.
+//    Use: Define clear template parameters and constrain behavior where needed.
+//    Which: C++98+ (modern features added later)
+//
 //    Only enable this function for integral types.
 // -----------------------------------------------
 template<typename T>
@@ -175,6 +204,12 @@ auto is_even(T value) -> std::enable_if_t<std::is_integral_v<T>, bool> {
 
 // -----------------------------------------------
 // 6. if constexpr: compile-time branching in templates
+//    What: constexpr enables compile-time evaluation when inputs are constant expressions.
+//    When: Use this for pure computations or immutable data that can be resolved at compile time.
+//    Why: It shifts work from runtime to compile time and can improve safety/performance.
+//    Use: Mark eligible functions/objects constexpr and keep them valid for constant evaluation.
+//    Which: C++11+ (expanded in later standards)
+//
 //    Different code paths for different types, no runtime cost.
 // -----------------------------------------------
 template<typename T>
@@ -190,6 +225,12 @@ std::string describe(T value) {
 
 // -----------------------------------------------
 // 7. Variadic templates with fold expressions (C++17)
+//    What: Variadic templates accept zero or more template arguments.
+//    When: Use this for type-safe APIs that operate on an arbitrary number of arguments.
+//    Why: They replace unsafe C-style variadics with compile-time checked code.
+//    Use: Expand parameter packs directly or with fold expressions.
+//    Which: C++11 (fold expressions in C++17)
+//
 //    Accept any number of arguments of any types.
 // -----------------------------------------------
 template<typename... Args>

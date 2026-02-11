@@ -25,6 +25,12 @@
 
 // -----------------------------------------------
 // 1. Defining a concept with a requires-expression
+//    What: A requires-expression checks whether operations are valid for a type.
+//    When: Use this when concepts need precise syntactic and semantic requirements.
+//    Why: It lets constraints express real usage rather than ad-hoc trait checks.
+//    Use: Write requires(T t) { ... } blocks and compose them into concepts.
+//    Which: C++20
+//
 //    A concept is a compile-time predicate on types.
 //    The requires-expression lists operations the type must support.
 //
@@ -49,6 +55,12 @@ concept Container = requires(T c) {
 
 // -----------------------------------------------
 // 2. Three syntaxes for using concepts
+//    What: Concepts are compile-time constraints for template parameters.
+//    When: Use this when templates require specific operations or properties.
+//    Why: They improve diagnostics and make template contracts explicit.
+//    Use: Apply requires clauses or constrained template parameters.
+//    Which: C++20
+//
 //    All three are equivalent; choose the one that reads best.
 //
 //    (a) Constrained template parameter: template<Addable T>
@@ -80,6 +92,12 @@ void print_size(const Container auto& c) {
 
 // -----------------------------------------------
 // 3. Combining concepts with && and ||
+//    What: Concepts are compile-time constraints for template parameters.
+//    When: Use this when templates require specific operations or properties.
+//    Why: They improve diagnostics and make template contracts explicit.
+//    Use: Apply requires clauses or constrained template parameters.
+//    Which: C++20
+//
 //    Build complex constraints from simpler ones.
 //    && means "both must hold"; || means "at least one must hold".
 // -----------------------------------------------
@@ -91,6 +109,12 @@ T absolute(T value) {
 
 // -----------------------------------------------
 // 4. Using standard library concepts
+//    What: Concepts are compile-time constraints for template parameters.
+//    When: Use this when templates require specific operations or properties.
+//    Why: They improve diagnostics and make template contracts explicit.
+//    Use: Apply requires clauses or constrained template parameters.
+//    Which: C++20
+//
 //    <concepts> provides many ready-made concepts:
 //    std::integral, std::floating_point, std::signed_integral,
 //    std::same_as, std::convertible_to, std::totally_ordered, etc.
@@ -107,6 +131,12 @@ T average(const std::vector<T>& values) {
 
 // -----------------------------------------------
 // 5. static_assert with concepts
+//    What: Concepts are compile-time constraints for template parameters.
+//    When: Use this when templates require specific operations or properties.
+//    Why: They improve diagnostics and make template contracts explicit.
+//    Use: Apply requires clauses or constrained template parameters.
+//    Which: C++20
+//
 //    Use static_assert to verify that a type satisfies a concept
 //    at compile time. Useful for documentation and catching errors
 //    early in template-heavy code.

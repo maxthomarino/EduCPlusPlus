@@ -131,6 +131,11 @@ void demonstrate_shared_ownership() {
 
 // -----------------------------------------------
 // 2. Circular references and std::weak_ptr
+//    What: Smart pointers encode ownership and automate object lifetime management.
+//    When: Use this instead of raw owning pointers in modern C++.
+//    Why: They prevent leaks and clarify ownership semantics.
+//    Use: Prefer make_unique/make_shared and use weak_ptr to break shared cycles.
+//    Which: C++11
 //
 //    Watch out: circular references between shared_ptrs cause memory
 //    leaks -- the reference count never reaches zero.  Use std::weak_ptr
@@ -231,6 +236,12 @@ void demonstrate_weak_ptr() {
 // Key Takeaways
 // -----------------------------------------------
 // 1. Use std::make_shared<T>(...) to create shared_ptrs -- it is
+//    What: Smart pointers encode ownership and automate object lifetime management.
+//    When: Use this instead of raw owning pointers in modern C++.
+//    Why: They prevent leaks and clarify ownership semantics.
+//    Use: Prefer make_unique/make_shared and use weak_ptr to break shared cycles.
+//    Which: C++11
+//
 //    exception-safe and performs a single allocation for the object
 //    and control block together.
 // 2. Prefer unique_ptr by default; only use shared_ptr when you truly

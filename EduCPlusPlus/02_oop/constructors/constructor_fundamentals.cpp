@@ -32,6 +32,12 @@
 
 // -----------------------------------------------
 // 1. Default constructor
+//    What: Constructors and special members define object initialization and ownership behavior.
+//    When: Use this when class invariants and resource semantics must be explicit.
+//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
+//    Use: Define/default/delete special members to match ownership intent.
+//    Which: C++98+ (major additions in C++11 and later)
+//
 //    A constructor that can be called with no arguments.
 //
 //    HOW THE COMPILER DECIDES:
@@ -68,6 +74,11 @@ public:
 
 // -----------------------------------------------
 // 2. Member initializer list — the RIGHT way to initialize
+//    What: Constructors and special members define object initialization and ownership behavior.
+//    When: Use this when class invariants and resource semantics must be explicit.
+//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
+//    Use: Define/default/delete special members to match ownership intent.
+//    Which: C++98+ (major additions in C++11 and later)
 //
 //    HOW IT WORKS:
 //    The initializer list appears after the colon (:) in the constructor
@@ -122,6 +133,11 @@ public:
 
 // -----------------------------------------------
 // 3. Default member initializers (C++11) — in-class defaults
+//    What: Default member initializers define per-member fallback values directly in the class definition.
+//    When: Use this when multiple constructors should share the same safe defaults.
+//    Why: It removes duplicated initialization code and prevents uninitialized built-in members.
+//    Use: Initialize members at declaration and override only the members that differ in specific constructors.
+//    Which: C++11
 //
 //    HOW IT WORKS:
 //    You can provide a default value right where the member is declared.
@@ -167,6 +183,11 @@ public:
 
 // -----------------------------------------------
 // 4. Delegating constructors (C++11) — one ctor calls another
+//    What: Constructors and special members define object initialization and ownership behavior.
+//    When: Use this when class invariants and resource semantics must be explicit.
+//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
+//    Use: Define/default/delete special members to match ownership intent.
+//    Which: C++98+ (major additions in C++11 and later)
 //
 //    HOW IT WORKS:
 //    Instead of initializing members directly, a delegating constructor
@@ -212,6 +233,11 @@ public:
 
 // -----------------------------------------------
 // 5. explicit — preventing implicit conversions
+//    What: Constructors and special members define object initialization and ownership behavior.
+//    When: Use this when class invariants and resource semantics must be explicit.
+//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
+//    Use: Define/default/delete special members to match ownership intent.
+//    Which: C++98+ (major additions in C++11 and later)
 //
 //    HOW IT WORKS:
 //    By default, a constructor that takes a single argument can be used
@@ -258,6 +284,11 @@ void print_distance(Meters m) {
 
 // -----------------------------------------------
 // 6. Initialization syntax — () vs {} vs =
+//    What: `()`, `{}`, and `=` select different initialization forms with different conversion and overload rules.
+//    When: Use `{}` by default for narrowing safety, and use `()` when constructor overload behavior requires it.
+//    Why: The chosen form changes overload resolution, narrowing checks, and `std::initializer_list` selection.
+//    Use: Pick the initialization form intentionally based on the constructor and conversion semantics you want.
+//    Which: C++11+ (copy elision guarantees strengthened in C++17)
 //
 //    HOW EACH FORM WORKS:
 //
@@ -293,6 +324,11 @@ public:
 
 // -----------------------------------------------
 // 7. = default vs = delete
+//    What: `= default` asks the compiler to generate a function, while `= delete` explicitly forbids one.
+//    When: Use these to make construction, copy, and move capabilities match ownership and API constraints.
+//    Why: They encode intent in the type and stop invalid operations at compile time.
+//    Use: Default operations you want to preserve and delete operations that would violate class invariants.
+//    Which: C++11
 //
 //    HOW THEY WORK:
 //    = default: tells the compiler to generate the default

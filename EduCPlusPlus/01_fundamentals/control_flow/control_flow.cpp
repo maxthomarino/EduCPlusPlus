@@ -44,6 +44,12 @@ std::optional<int> find_first_even(const std::vector<int>& nums) {
 int main() {
     // -----------------------------------------------
     // 1. if-else with initializer (C++17)
+    //    What: If-with-initializer declares a helper variable scoped to the if/else statement.
+    //    When: Use this when a temporary value is needed only for the branch condition and body.
+    //    Why: It keeps helper variables out of outer scope and reduces accidental reuse.
+    //    Use: Use the form if (init; condition) { ... } else { ... }.
+    //    Which: C++17
+    //
     //    Syntax: if (init; condition) { ... }
     //    The variable is scoped to the if/else block, so it
     //    cannot leak into the surrounding scope.
@@ -60,6 +66,12 @@ int main() {
 
     // -----------------------------------------------
     // 2. switch with initializer (C++17)
+    //    What: Switch-with-initializer declares a value scoped to the switch statement.
+    //    When: Use this when the switched value is only relevant inside that switch.
+    //    Why: It keeps local decision state tightly scoped and clearer.
+    //    Use: Use the form switch (init; value) { case ... }.
+    //    Which: C++17
+    //
     //    Same idea as if-init: declare a variable scoped to the
     //    switch statement. Eliminates extra braces or outer variables.
     //
@@ -77,6 +89,12 @@ int main() {
 
     // -----------------------------------------------
     // 3. Range-based for loops (C++11/17/20)
+    //    What: Range-based for loops iterate directly over container elements.
+    //    When: Use this for straightforward element traversal without manual index or iterator control.
+    //    Why: It reduces loop boilerplate and common indexing mistakes.
+    //    Use: Write for (auto& element : container) { ... } and choose const/reference intentionally.
+    //    Which: C++11 (with later enhancements in C++17/C++20)
+    //
     //    Iterate directly over containers and ranges without
     //    manually managing iterators or indices.
     //
@@ -109,6 +127,12 @@ int main() {
 
     // -----------------------------------------------
     // 4. while and do-while
+    //    What: while and do-while loops run repeated work based on a runtime condition.
+    //    When: Use while when zero iterations are possible, and do-while when one iteration is required.
+    //    Why: They model open-ended loops better than fixed-count for loops.
+    //    Use: Keep loop conditions explicit and update loop state in a single obvious place.
+    //    Which: C++98+
+    //
     //    Classic loop forms still useful when the number of
     //    iterations is not known ahead of time.
     //
@@ -133,6 +157,12 @@ int main() {
 
     // -----------------------------------------------
     // 5. constexpr if (C++17) -- compile-time branching
+    //    What: if constexpr performs compile-time branching.
+    //    When: Use this in templates or generic lambdas where behavior depends on type properties.
+    //    Why: It discards invalid branches at compile time and simplifies metaprogramming.
+    //    Use: Write if constexpr (condition) { ... } else { ... }.
+    //    Which: C++17
+    //
     //    Demonstrated inside a lambda for simplicity.
     //    The untaken branch is discarded entirely -- it does not
     //    even need to be valid for the given type.

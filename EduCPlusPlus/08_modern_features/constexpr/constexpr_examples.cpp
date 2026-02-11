@@ -29,6 +29,12 @@
 
 // -----------------------------------------------
 // 1. Basic constexpr functions
+//    What: constexpr enables compile-time evaluation when inputs are constant expressions.
+//    When: Use this for pure computations or immutable data that can be resolved at compile time.
+//    Why: It shifts work from runtime to compile time and can improve safety/performance.
+//    Use: Mark eligible functions/objects constexpr and keep them valid for constant evaluation.
+//    Which: C++11+ (expanded in later standards)
+//
 //    Evaluated at compile time when called with constant arguments,
 //    but can also run at runtime with non-constant arguments.
 //    Since C++14, loops, local variables, and multiple statements
@@ -56,6 +62,12 @@ constexpr double power(double base, int exp) {
 
 // -----------------------------------------------
 // 2. constexpr class: compile-time objects
+//    What: constexpr enables compile-time evaluation when inputs are constant expressions.
+//    When: Use this for pure computations or immutable data that can be resolved at compile time.
+//    Why: It shifts work from runtime to compile time and can improve safety/performance.
+//    Use: Mark eligible functions/objects constexpr and keep them valid for constant evaluation.
+//    Which: C++11+ (expanded in later standards)
+//
 //    Constructors and member functions can be constexpr, allowing
 //    entire objects to be created and manipulated at compile time.
 //    All members must be literal types (scalars, arrays, etc.).
@@ -91,6 +103,12 @@ public:
 
 // -----------------------------------------------
 // 3. constexpr with arrays: build lookup tables at compile time
+//    What: constexpr enables compile-time evaluation when inputs are constant expressions.
+//    When: Use this for pure computations or immutable data that can be resolved at compile time.
+//    Why: It shifts work from runtime to compile time and can improve safety/performance.
+//    Use: Mark eligible functions/objects constexpr and keep them valid for constant evaluation.
+//    Which: C++11+ (expanded in later standards)
+//
 //    The entire table is embedded in the binary as constant data —
 //    zero runtime cost. This replaces the old pattern of static
 //    initialization with manually computed values.
@@ -107,6 +125,12 @@ constexpr auto squares = build_squares_table();
 
 // -----------------------------------------------
 // 4. constexpr if (C++17): compile-time branching
+//    What: if constexpr performs compile-time branching.
+//    When: Use this in templates or generic lambdas where behavior depends on type properties.
+//    Why: It discards invalid branches at compile time and simplifies metaprogramming.
+//    Use: Write if constexpr (condition) { ... } else { ... }.
+//    Which: C++17
+//
 //    Only the taken branch is compiled; the other is discarded.
 //    This enables type-generic code without SFINAE.
 //
@@ -126,6 +150,12 @@ constexpr auto process(T value) {
 
 // -----------------------------------------------
 // 5. constexpr string processing
+//    What: constexpr enables compile-time evaluation when inputs are constant expressions.
+//    When: Use this for pure computations or immutable data that can be resolved at compile time.
+//    Why: It shifts work from runtime to compile time and can improve safety/performance.
+//    Use: Mark eligible functions/objects constexpr and keep them valid for constant evaluation.
+//    Which: C++11+ (expanded in later standards)
+//
 //    std::string_view is a literal type, so it can be processed
 //    at compile time. Useful for compile-time parsing, validation,
 //    and hash computation.
@@ -155,6 +185,12 @@ constexpr bool is_palindrome(std::string_view s) {
 
 // -----------------------------------------------
 // 6. consteval (C++20): MUST be evaluated at compile time
+//    What: consteval makes a function an immediate function that must run at compile time.
+//    When: Use this when runtime evaluation must be forbidden.
+//    Why: It enforces compile-time computation and catches misuse early.
+//    Use: Declare the function consteval and call it only in constant-evaluation contexts.
+//    Which: C++20
+//
 //    Unlike constexpr (which *may* run at runtime), consteval
 //    functions are "immediate functions" — every call MUST produce
 //    a constant expression or the program is ill-formed.
@@ -171,6 +207,12 @@ consteval int compile_time_only(int n) {
 
 // -----------------------------------------------
 // 7. constinit (C++20): ensure static/thread-local initialization
+//    What: constinit guarantees constant initialization for static or thread_local objects.
+//    When: Use this to prevent dynamic initialization order issues for static storage.
+//    Why: It enforces predictable startup initialization semantics.
+//    Use: Apply constinit to static/thread_local variables with constant initializers.
+//    Which: C++20
+//
 //    Guarantees that a static or thread_local variable is initialized
 //    at compile time (constant initialization). Prevents the "static
 //    initialization order fiasco" where globals depend on each other

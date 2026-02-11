@@ -35,6 +35,11 @@
 
 // -----------------------------------------------
 // 1. The problem: shallow copy of raw pointers
+//    What: When the first one is destroyed, it deletes the memory.
+//    When: When the first one is destroyed, it deletes the memory.
+//    Why: It improves clarity and helps prevent common correctness mistakes.
+//    Use: Follow the code pattern shown in this section and adapt it to your types.
+//    Which: C++11+ (file discusses C++17, C++98)
 //
 //    HOW THE DEFAULT COPY CONSTRUCTOR WORKS:
 //    The compiler-generated copy constructor copies each member by value.
@@ -68,6 +73,12 @@ class StringBuffer {
 public:
     // -----------------------------------------------
     // 2. Constructor — allocates and owns the resource
+    //    What: Constructors and special members define object initialization and ownership behavior.
+    //    When: Use this when class invariants and resource semantics must be explicit.
+    //    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
+    //    Use: Define/default/delete special members to match ownership intent.
+    //    Which: C++98+ (major additions in C++11 and later)
+    //
     // -----------------------------------------------
     StringBuffer(std::string label, const char* text)
         : data_(nullptr),
@@ -81,6 +92,11 @@ public:
 
     // -----------------------------------------------
     // 3. Destructor — releases the resource
+    //    What: Constructors and special members define object initialization and ownership behavior.
+    //    When: Use this when class invariants and resource semantics must be explicit.
+    //    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
+    //    Use: Define/default/delete special members to match ownership intent.
+    //    Which: C++98+ (major additions in C++11 and later)
     //
     //    HOW IT WORKS:
     //    Called automatically when the object goes out of scope (stack),
@@ -101,6 +117,11 @@ public:
 
     // -----------------------------------------------
     // 4. Copy constructor — deep copy
+    //    What: Constructors and special members define object initialization and ownership behavior.
+    //    When: Use this when class invariants and resource semantics must be explicit.
+    //    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
+    //    Use: Define/default/delete special members to match ownership intent.
+    //    Which: C++98+ (major additions in C++11 and later)
     //
     //    HOW IT WORKS:
     //    Allocates NEW memory and copies the contents byte-by-byte.
@@ -129,6 +150,11 @@ public:
 
     // -----------------------------------------------
     // 5. Copy assignment operator — copy-and-swap idiom
+    //    What: Copy-and-swap implements copy assignment by copying first, then swapping internals.
+    //    When: Use this for resource-owning types that need exception-safe copy assignment.
+    //    Why: It naturally handles self-assignment and provides a strong exception guarantee.
+    //    Use: Take the parameter by value, then `swap` members with `*this`.
+    //    Which: C++98+ (pairs especially well with move semantics in C++11+)
     //
     //    HOW COPY-AND-SWAP WORKS:
     //    (a) The parameter is taken BY VALUE, triggering the copy constructor.
@@ -154,6 +180,11 @@ public:
 
     // -----------------------------------------------
     // 6. Move constructor — steal resources
+    //    What: Constructors and special members define object initialization and ownership behavior.
+    //    When: Use this when class invariants and resource semantics must be explicit.
+    //    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
+    //    Use: Define/default/delete special members to match ownership intent.
+    //    Which: C++98+ (major additions in C++11 and later)
     //
     //    HOW IT WORKS:
     //    Instead of allocating new memory, the move constructor STEALS the
@@ -201,6 +232,11 @@ public:
 
 // -----------------------------------------------
 // 7. Copy elision — the compiler skips the copy entirely
+//    What: Copy elision constructs the result directly at the destination, skipping copy/move operations.
+//    When: Use normal return-by-value style and let the compiler perform elision automatically.
+//    Why: It avoids unnecessary temporary objects and improves performance without extra code.
+//    Use: Return local objects/prvalues directly; avoid unnecessary `std::move` on named locals.
+//    Which: C++17 (guaranteed prvalue elision; NRVO remains widely implemented)
 //
 //    HOW IT WORKS:
 //    When a function returns a local object by value, the compiler
@@ -232,6 +268,11 @@ StringBuffer make_buffer(const char* text) {
 
 // -----------------------------------------------
 // 8. Rule of Zero / Three / Five
+//    What: Constructors and special members define object initialization and ownership behavior.
+//    When: Use this when class invariants and resource semantics must be explicit.
+//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
+//    Use: Define/default/delete special members to match ownership intent.
+//    Which: C++98+ (major additions in C++11 and later)
 //
 //    HOW TO DECIDE:
 //

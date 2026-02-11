@@ -27,6 +27,12 @@
 
 // -----------------------------------------------
 // 1. Abstract base class (interface)
+//    What: These OOP constructs model interfaces, reuse, and dynamic behavior.
+//    When: Use this when types share contracts or behavior across hierarchies.
+//    Why: It organizes abstractions and enables polymorphic extension.
+//    Use: Define clear base contracts and override behavior intentionally in derived types.
+//    Which: C++98+ (with modern refinements)
+//
 //    Pure virtual functions (= 0) make this class abstract.
 //    You cannot instantiate Shape directly.
 //
@@ -256,6 +262,12 @@ public:
 // Key Takeaways
 // -----------------------------------------------
 // 1. Runtime polymorphism (virtual dispatch) lets you extend a
+//    What: These OOP constructs model interfaces, reuse, and dynamic behavior.
+//    When: Use this when types share contracts or behavior across hierarchies.
+//    Why: It organizes abstractions and enables polymorphic extension.
+//    Use: Define clear base contracts and override behavior intentionally in derived types.
+//    Which: C++98+ (with modern refinements)
+//
 //    system without modifying existing code -- the Open/Closed
 //    Principle in action.
 // 2. Always store polymorphic objects through pointers or references
