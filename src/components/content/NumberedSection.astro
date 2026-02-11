@@ -14,7 +14,23 @@ function slugifyId(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").substring(0, 60);
 }
 
+function toParagraphs(text: string): string[] {
+  return text
+    .split(/\n\s*\n/g)
+    .map((paragraph) =>
+      paragraph
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .join(" ")
+        .replace(/\s{2,}/g, " ")
+        .trim()
+    )
+    .filter(Boolean);
+}
+
 const sectionId = slugifyId(`${section.number}-${section.title}`);
+const descriptionParagraphs = toParagraphs(section.description);
 ---
 
 <section id={sectionId} class="my-8 scroll-mt-20">
@@ -23,9 +39,11 @@ const sectionId = slugifyId(`${section.number}-${section.title}`);
     {section.title}
   </h2>
 
-  {section.description && (
+  {descriptionParagraphs.length > 0 && (
     <div class="mb-4 text-[15px] leading-relaxed text-gray-900 dark:text-slate-200">
-      <pre class="whitespace-pre-wrap font-sans" set:text={section.description} />
+      {descriptionParagraphs.map((paragraph) => (
+        <p class="mb-3 last:mb-0">{paragraph}</p>
+      ))}
     </div>
   )}
 

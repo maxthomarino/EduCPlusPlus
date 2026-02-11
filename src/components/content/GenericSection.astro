@@ -10,11 +10,32 @@ const { title, content, id } = Astro.props;
 function slugifyId(text: string): string {
   return text.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").substring(0, 60);
 }
+
+function toParagraphs(text: string): string[] {
+  return text
+    .split(/\n\s*\n/g)
+    .map((paragraph) =>
+      paragraph
+        .split("\n")
+        .map((line) => line.trim())
+        .filter(Boolean)
+        .join(" ")
+        .replace(/\s{2,}/g, " ")
+        .trim()
+    )
+    .filter(Boolean);
+}
+
+const paragraphs = toParagraphs(content);
 ---
 
 <section id={id || slugifyId(title)} class="my-8 scroll-mt-20">
   <h2 class="mb-3 text-xl font-bold text-gray-900 dark:text-slate-100">{title}</h2>
-  {content && (
-    <pre class="whitespace-pre-wrap font-sans text-[15px] leading-relaxed text-gray-900 dark:text-slate-200" set:text={content} />
+  {paragraphs.length > 0 && (
+    <div class="text-[15px] leading-relaxed text-gray-900 dark:text-slate-200">
+      {paragraphs.map((paragraph) => (
+        <p class="mb-3 last:mb-0">{paragraph}</p>
+      ))}
+    </div>
   )}
 </section>
