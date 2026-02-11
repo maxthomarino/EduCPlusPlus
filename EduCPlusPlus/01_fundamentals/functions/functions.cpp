@@ -228,9 +228,14 @@ int main() {
 // =========================================
 // General Discussion
 // =========================================
-// Use this section for your own editorial notes.
-// Suggested prompts:
-// - Which function features here are worth adopting immediately?
-// - Where should explicitness beat convenience in function declarations?
-// - What would your personal "function style guide" include after this lesson?
+// A useful takeaway from this lesson is that "modern functions" are mostly
+// about expressing intent and preventing misuse, not chasing clever syntax.
+//
+// In practice: use auto return deduction when the return type is obvious,
+// use explicit return types when the interface should communicate more, and
+// use [[nodiscard]] or = delete when you want the compiler to enforce rules.
+//
+// constexpr and variadic templates are powerful, but they are easiest to
+// maintain when kept small and purpose-driven. Clear names and narrow
+// responsibilities still matter more than language features.
 // =========================================

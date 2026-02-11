@@ -122,11 +122,15 @@ int main() {
 // =========================================
 // General Discussion
 // =========================================
-// Use this section for your own editorial notes.
-// Suggested prompts:
-// - Which of these defaults (auto, string_view, structured bindings, format)
-//   already feel natural to you?
-// - Which one still feels confusing or easy to misuse?
-// - If you were explaining this file to another learner, what would you
-//   emphasize first?
+// This lesson feels like a good "new baseline" for writing C++ today.
+// None of the features here are advanced by themselves, but together they
+// make everyday code much easier to read.
+//
+// The most practical habit to build first is probably string_view for
+// read-only inputs and auto for obvious local variables. Those two changes
+// immediately reduce noise without reducing clarity.
+//
+// Structured bindings and std::format are mostly readability wins, but they
+// also reduce small mistakes (wrong pair member, formatting mismatch), which
+// adds up over time in real projects.
 // =========================================

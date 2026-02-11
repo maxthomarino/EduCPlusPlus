@@ -184,9 +184,15 @@ int main() {
 // =========================================
 // General Discussion
 // =========================================
-// Use this section for your own editorial notes.
-// Suggested prompts:
-// - Which control-flow style in this file improves readability the most?
-// - Where would you choose if-init or switch-init in your own code?
-// - What habits would help you avoid branching bugs as code grows?
+// The biggest quality-of-life improvement here is initializer-style branching.
+// if (init; condition) and switch (init; value) keep temporary state near the
+// decision, which makes code easier to trust during review.
+//
+// Range-for is still the clearest loop for straightforward traversal. Once
+// the loop logic becomes complex, it helps to pause and ask whether a named
+// algorithm or a small helper function would explain intent better.
+//
+// constexpr if is the bridge to generic programming without template noise.
+// It keeps type-specific behavior explicit while still letting one function
+// handle multiple categories of input.
 // =========================================
