@@ -1,16 +1,26 @@
 /**
  * coroutines.cpp - C++20 Coroutines
  *
- * Coroutines are functions that can suspend and resume execution.
- * They enable lazy evaluation, generators, and async workflows.
+ * WHY THEY EXIST: Traditional functions run to completion once called.
+ *                 Coroutines can *suspend* execution at well-defined points
+ *                 and be *resumed* later, enabling lazy generators, async I/O,
+ *                 and cooperative multitasking -- all with code that reads
+ *                 like straightforward sequential logic.
  *
- * A function is a coroutine if its body contains:
- *   co_yield  - suspend and produce a value
- *   co_return - complete with a final value
- *   co_await  - suspend until an awaitable completes
+ * WHEN TO USE:    Lazy sequences (generate values on demand), asynchronous
+ *                 pipelines (co_await network/file I/O), and any workflow
+ *                 that benefits from suspend/resume without OS-level threads.
  *
- * The coroutine machinery requires a promise_type and a return object.
- * This file implements a Generator<T> that yields values lazily.
+ * HOW IT WORKS:   A function becomes a coroutine if its body contains
+ *                 co_yield, co_return, or co_await.  The compiler transforms
+ *                 it into a state machine backed by a heap-allocated coroutine
+ *                 frame.  A user-provided promise_type controls how values
+ *                 are produced and how the coroutine lifecycle behaves.
+ *
+ * STANDARD:       C++20  (headers <coroutine>)
+ * PREREQUISITES:  Templates, move semantics, RAII, iterators
+ * REFERENCE:      reference/en/cpp/language/coroutines
+ *                 reference/en/cpp/coroutine
  */
 
 #include <iostream>
@@ -24,6 +34,17 @@
 // -----------------------------------------------
 // 1. Generator<T>: a coroutine that yields values lazily
 //    This is the return type of coroutine functions.
+//
+//    Watch out: C++20 coroutines provide the language
+//    mechanics (co_await, co_yield, co_return) but NOT
+//    a library of coroutine types.  You must write or
+//    import a promise_type yourself (or wait for
+//    std::generator in C++23).
+//
+//    Watch out: a coroutine frame is heap-allocated by
+//    default.  The compiler may optimize this away
+//    (HALO -- Heap Allocation eLision Optimization)
+//    but it is not guaranteed.
 // -----------------------------------------------
 template<typename T>
 class Generator {
@@ -180,6 +201,21 @@ Generator<int> filter_even(Generator<int> source) {
         }
     }
 }
+
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. A coroutine is any function whose body contains co_yield, co_return,
+//    or co_await.  The compiler rewrites it into a resumable state machine.
+// 2. C++20 provides the *language* primitives but no standard coroutine
+//    types.  You must supply a promise_type (or use std::generator in C++23).
+// 3. Coroutine frames are heap-allocated by default.  The compiler may
+//    elide the allocation (HALO) but this is not guaranteed.
+// 4. Generators (co_yield) are the simplest coroutine pattern: produce
+//    values lazily, consumed via range-for or an explicit next() call.
+// 5. Coroutines compose naturally -- a generator can consume another
+//    generator, building lazy processing pipelines.
+// -----------------------------------------------
 
 int main() {
     // ---- Range generator ----

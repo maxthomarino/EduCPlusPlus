@@ -1,6 +1,18 @@
 /**
  * inheritance.cpp - Inheritance in C++
  *
+ * Why it exists:  Inheritance models "is-a" relationships, letting derived
+ *                 classes reuse and extend the behaviour of a base class
+ *                 without duplicating code.  It is also the foundation for
+ *                 runtime polymorphism (virtual dispatch).
+ * When to use:    Use public inheritance when a derived type truly IS-A base
+ *                 type (Liskov Substitution Principle).  Use protected/private
+ *                 inheritance for implementation reuse without exposing the
+ *                 base interface.
+ * Standard:       C++20 (uses std::format)
+ * Prerequisites:  Classes, access specifiers, constructors, virtual functions
+ * Reference:      reference/en/cpp/language/derived_class
+ *
  * Demonstrates: public/protected/private inheritance, base class constructors,
  * method overriding, the 'using' keyword, and multiple inheritance.
  */
@@ -12,6 +24,12 @@
 // -----------------------------------------------
 // 1. Base class
 //    Represents a generic animal with common attributes.
+//
+//    Watch out: If a class will ever be used as a base for
+//    polymorphism, its destructor MUST be virtual. Without it,
+//    deleting a derived object through a base pointer is undefined
+//    behaviour -- the derived destructor never runs, leaking any
+//    resources it owns.
 // -----------------------------------------------
 class Animal {
 protected:                      // Accessible to derived classes
@@ -41,6 +59,12 @@ public:
 // -----------------------------------------------
 // 2. Public inheritance: "is-a" relationship
 //    Dog IS-A Animal.
+//
+//    Watch out: Always mark overriding methods with the override
+//    keyword.  Without it, a small typo in the function signature
+//    (wrong parameter type, missing const) silently creates a NEW
+//    function instead of overriding the base version.  The override
+//    keyword turns that silent bug into a compile-time error.
 // -----------------------------------------------
 class Dog : public Animal {
     std::string breed_;
@@ -89,6 +113,14 @@ public:
 // -----------------------------------------------
 // 4. Multiple inheritance
 //    Combine capabilities from two unrelated bases.
+//
+//    Watch out: When two base classes share a common ancestor you
+//    get the "diamond problem" -- the derived class holds TWO copies
+//    of the shared base, causing ambiguity.  Solve it with virtual
+//    inheritance (class B : virtual public A) so only one shared
+//    base sub-object exists.  Be aware that virtual inheritance adds
+//    a small runtime cost (extra indirection through a vptr) and
+//    complicates constructor ordering.
 // -----------------------------------------------
 class Flyable {
 public:
@@ -141,6 +173,21 @@ public:
         protected_method();  // Accessible because we inherit protected
     }
 };
+
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. Always give polymorphic base classes a virtual destructor;
+//    otherwise deleting through a base pointer is undefined behaviour.
+// 2. Always use the override keyword on every overriding method so
+//    the compiler catches signature mismatches at compile time.
+// 3. Public inheritance means "is-a". Use it only when the derived
+//    class can truly substitute for the base (Liskov Substitution).
+// 4. Prefer composition over inheritance when you only need to reuse
+//    implementation, not model a type relationship.
+// 5. With multiple inheritance, watch for the diamond problem and
+//    apply virtual inheritance when a common base is shared.
+// -----------------------------------------------
 
 int main() {
     std::cout << "--- Single Inheritance ---\n";

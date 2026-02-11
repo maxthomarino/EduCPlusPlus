@@ -1,14 +1,23 @@
 /**
  * move_semantics.cpp - Move Semantics in C++
  *
- * Move semantics (C++11) allow transferring ownership of resources
- * instead of copying them. This avoids expensive deep copies.
+ * WHY IT EXISTS:  Before C++11 every value transfer was a deep copy.  For objects
+ *                 that own heap memory (strings, vectors, buffers) this means
+ *                 allocating fresh memory and copying every byte -- even when the
+ *                 source is a temporary that is about to be destroyed.  Move
+ *                 semantics let you *transfer* (steal) the internal resources of
+ *                 the source instead of duplicating them, turning O(n) copies
+ *                 into O(1) pointer swaps.
  *
- * Key concepts:
- *   - lvalue: has a name, persists (e.g., a variable)
- *   - rvalue: temporary, about to be destroyed (e.g., function return)
- *   - std::move: casts an lvalue to an rvalue reference (&&)
- *   - Move constructor / move assignment: steal resources from rvalue
+ * WHEN TO USE:    Whenever you pass or return resource-owning objects by value.
+ *                 Move constructors / move assignment operators are called
+ *                 automatically for temporaries (rvalues) and explicitly via
+ *                 std::move for named objects (lvalues) you no longer need.
+ *
+ * STANDARD:       C++11  (std::move, rvalue references, move special members)
+ * PREREQUISITES:  Value categories (lvalue vs rvalue), Rule of Five, RAII
+ * REFERENCE:      reference/en/cpp/language/move_constructor
+ *                 reference/en/cpp/utility/move
  */
 
 #include <iostream>
@@ -21,6 +30,10 @@
 // -----------------------------------------------
 // 1. A class that manages a heap-allocated buffer
 //    to demonstrate copy vs move.
+//
+//    Watch out: std::move does NOT move -- it casts
+//    to an rvalue reference.  The actual move happens
+//    in the move constructor / move assignment operator.
 // -----------------------------------------------
 class Buffer {
     char* data_;
@@ -96,6 +109,11 @@ public:
 
 // -----------------------------------------------
 // 2. Functions demonstrating when moves happen
+//
+//    Watch out: do NOT std::move the return value
+//    of a local variable -- it inhibits NRVO (named
+//    return value optimization), making performance
+//    WORSE, not better.
 // -----------------------------------------------
 Buffer create_buffer() {
     Buffer b("factory", 1024);
@@ -110,6 +128,11 @@ void take_ownership(Buffer b) {
 // -----------------------------------------------
 // 3. std::move with STL containers
 //    Moving strings and vectors avoids deep copies.
+//
+//    Watch out: after std::move, the source object
+//    is in a valid-but-unspecified state -- you can
+//    assign to it or destroy it, but do NOT read
+//    from it expecting any particular value.
 // -----------------------------------------------
 void stl_move_demo() {
     std::cout << "\n--- STL Move Semantics ---\n";
@@ -140,6 +163,21 @@ void wrapper(T&& arg) {
     // std::forward<T> passes lvalues as lvalues, rvalues as rvalues
     take_ownership(std::forward<T>(arg));
 }
+
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. Move semantics turn expensive O(n) deep copies into O(1) pointer
+//    swaps for resource-owning types (strings, vectors, buffers).
+// 2. std::move is just a cast to rvalue reference (T&&).  The actual
+//    resource transfer happens inside the move constructor / move
+//    assignment operator.
+// 3. After std::move, the source is in a valid-but-unspecified state.
+//    Only assign to it or destroy it -- do not read its value.
+// 4. Do NOT std::move a local return value -- it prevents NRVO.
+// 5. Mark move constructors and move assignment operators noexcept so
+//    STL containers (e.g. std::vector) can use moves during reallocation.
+// -----------------------------------------------
 
 int main() {
     std::cout << "--- Copy vs Move ---\n";

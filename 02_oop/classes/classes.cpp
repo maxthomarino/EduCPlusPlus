@@ -1,6 +1,17 @@
 /**
  * classes.cpp - Classes and Encapsulation in C++
  *
+ * Why it exists:  Classes bundle data and the operations on that data into
+ *                 a single unit, enforcing invariants through access control.
+ *                 Encapsulation lets you change internal representation without
+ *                 breaking client code.
+ * When to use:    Whenever you need to enforce invariants on a group of related
+ *                 data members, or when the abstraction benefits from hiding its
+ *                 implementation details behind a public interface.
+ * Standard:       C++20 (uses std::format, [[nodiscard]])
+ * Prerequisites:  Basic C++ syntax, functions, references, move semantics
+ * Reference:      reference/en/cpp/language/classes
+ *
  * Demonstrates: constructors, member initializer lists, access specifiers,
  * const methods, static members, operator overloading, and the Rule of Five.
  */
@@ -13,6 +24,11 @@
 // -----------------------------------------------
 // 1. Basic class with encapsulation
 //    Private data + public interface = information hiding.
+//
+//    Watch out: Comparing floating-point values with == is almost always
+//    wrong. Two doubles that "should" be equal after arithmetic often
+//    differ by a tiny rounding error. Prefer an epsilon-based comparison
+//    (std::abs(a - b) < epsilon) for real-world code.
 // -----------------------------------------------
 class Point {
 private:
@@ -50,6 +66,12 @@ public:
 
 // -----------------------------------------------
 // 2. Class with static members and constructor delegation
+//
+//    Watch out: Static members of different translation units have no
+//    guaranteed initialization order (the "static initialization order
+//    fiasco"). If one static depends on another from a different .cpp
+//    file, you may read uninitialized data. Use a function-local static
+//    (Meyers' singleton) or inline variables (C++17) to avoid this.
 // -----------------------------------------------
 class Circle {
     Point center_;
@@ -92,6 +114,13 @@ int Circle::instance_count_ = 0;
 // 3. Rule of Five -- managing resources correctly
 //    If you define any of: destructor, copy ctor, copy assignment,
 //    move ctor, move assignment -- define ALL of them.
+//
+//    Watch out: Prefer the Rule of Zero when possible. If your class
+//    only holds members that already manage themselves (std::string,
+//    std::vector, std::unique_ptr, etc.), the compiler-generated
+//    special members do the right thing and you need write none of
+//    the five. Reserve the Rule of Five for classes that directly
+//    manage a raw resource (raw pointer, file handle, etc.).
 // -----------------------------------------------
 class DynamicArray {
     int* data_;
@@ -144,6 +173,25 @@ public:
     const int& operator[](std::size_t idx) const { return data_[idx]; }
     [[nodiscard]] std::size_t size() const { return size_; }
 };
+
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. Always use member initializer lists -- they initialize directly
+//    instead of default-constructing then assigning, which is both
+//    faster and required for const/reference members.
+// 2. Mark every method that does not modify the object as const;
+//    this enables calling it on const references and communicates
+//    intent.
+// 3. Prefer the Rule of Zero (let smart pointers and containers
+//    manage resources). Fall back to the Rule of Five only when your
+//    class directly owns a raw resource.
+// 4. Static members belong to the class, not to any instance. Define
+//    them in exactly one translation unit to avoid linker errors
+//    (or use inline static in C++17+).
+// 5. Use [[nodiscard]] on getters and pure computations so the
+//    compiler warns if the caller accidentally ignores the result.
+// -----------------------------------------------
 
 int main() {
     // Point class

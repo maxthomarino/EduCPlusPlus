@@ -1,9 +1,19 @@
 /**
  * unordered_containers.cpp - STL Unordered (Hash) Containers
  *
- * Demonstrates: unordered_map, unordered_set, unordered_multimap.
+ * Demonstrates: unordered_map, unordered_set, unordered_multimap,
+ * and how to write custom hash functions for user-defined types.
  * Hash-based containers provide O(1) average lookup/insert/erase.
  * Elements are NOT sorted -- use when you need speed over order.
+ *
+ * When to use: prefer unordered containers as the default for pure
+ * lookup/insert workloads. Switch to ordered map/set only when you
+ * need sorted iteration or range queries ("all keys between X and Y").
+ *
+ * Standard: available since C++11. This file uses C++20 (std::format,
+ *           contains()). Custom hash support available since C++11.
+ * Prerequisites: basic understanding of hash tables, big-O notation.
+ * Reference: reference/en/cpp/container/unordered_map
  */
 
 #include <iostream>
@@ -15,6 +25,10 @@
 // -----------------------------------------------
 // Custom hash function for user-defined types.
 // Required to use your type as a key in unordered containers.
+//
+// Watch out: a bad hash function (e.g., always returns 0) degrades
+// all operations to O(n). Aim for uniform distribution across
+// buckets by combining member hashes properly.
 // -----------------------------------------------
 struct Point {
     int x, y;
@@ -34,10 +48,31 @@ struct PointHash {
     }
 };
 
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. Unordered containers offer O(1) average-case performance,
+//    making them faster than ordered containers for most workloads.
+// 2. Iteration order is non-deterministic and can change after
+//    rehashing -- never write code that depends on element order.
+// 3. For custom key types you must provide both operator== and
+//    a hash function (via a functor, lambda, or std::hash
+//    specialization).
+// 4. Hash quality matters: poor hashes cause collisions, turning
+//    O(1) operations into O(n). Verify with bucket_count() and
+//    load_factor().
+// 5. In practice, unordered containers often outperform ordered
+//    ones due to better cache locality of the bucket array,
+//    despite the O(1)-vs-O(log n) theory already favoring them.
+// -----------------------------------------------
+
 int main() {
     // -----------------------------------------------
     // 1. std::unordered_map -- hash map (O(1) average lookup)
     //    Use instead of std::map when you don't need sorted order.
+    //
+    //    Watch out: iteration order can change after rehashing.
+    //    Never depend on element order.
     // -----------------------------------------------
     std::cout << "--- std::unordered_map ---\n";
     std::unordered_map<std::string, double> prices;
@@ -70,6 +105,11 @@ int main() {
     // -----------------------------------------------
     // 2. std::unordered_set -- hash set (unique elements)
     //    O(1) average membership testing.
+    //
+    //    Watch out: hash quality directly affects performance.
+    //    The standard library provides good hashes for built-in
+    //    types and std::string, but for custom types you must
+    //    supply your own (see PointHash above).
     // -----------------------------------------------
     std::cout << "\n--- std::unordered_set ---\n";
     std::unordered_set<std::string> seen;
@@ -92,6 +132,10 @@ int main() {
     // -----------------------------------------------
     // 3. Using custom types as keys
     //    You must provide a hash function and operator==.
+    //
+    //    Watch out: a bad hash function (e.g., always returns 0)
+    //    degrades all operations to O(n). Test with realistic data
+    //    and check load_factor() to confirm even distribution.
     // -----------------------------------------------
     std::cout << "\n--- Custom Key Type ---\n";
     std::unordered_map<Point, std::string, PointHash> labels;
@@ -125,6 +169,12 @@ int main() {
 
     // -----------------------------------------------
     // 5. Performance comparison note
+    //
+    //    Watch out: unordered containers are often faster in
+    //    practice due to O(1) average operations AND better cache
+    //    locality (the bucket array is a contiguous allocation).
+    //    However, worst-case is O(n) when many keys collide.
+    //    Ordered containers guarantee O(log n) in all cases.
     // -----------------------------------------------
     std::cout << "\n--- When to use what ---\n";
     std::cout << "unordered_map/set: O(1) avg, use when order doesn't matter\n";

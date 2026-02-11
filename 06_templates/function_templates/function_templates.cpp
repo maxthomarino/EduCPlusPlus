@@ -1,8 +1,20 @@
 /**
  * function_templates.cpp - Function Templates in C++
  *
- * Templates let you write type-generic code.
- * The compiler generates a specialized version for each type used.
+ * WHY THEY EXIST: Templates let you write a function once and have the
+ *                 compiler generate a type-specific version for every type
+ *                 you call it with.  Without templates, you would need to
+ *                 duplicate code for each type (or resort to unsafe void*).
+ *
+ * WHEN TO USE:    Whenever the same algorithm or operation applies to multiple
+ *                 types.  Pair templates with concepts (C++20) or SFINAE/
+ *                 enable_if to constrain which types are accepted.
+ *
+ * STANDARD:       Templates exist since C++98.  Significantly improved in
+ *                 C++11 (variadic), C++14 (auto return), C++17 (if constexpr,
+ *                 fold expressions), and C++20 (concepts, abbreviated syntax).
+ * PREREQUISITES:  Overloading, type deduction, header/source split
+ * REFERENCE:      reference/en/cpp/language/function_template
  */
 
 #include <iostream>
@@ -14,6 +26,12 @@
 // -----------------------------------------------
 // 1. Basic function template
 //    T is deduced from the arguments.
+//
+//    Watch out: template code must be in headers
+//    (or the same translation unit) -- the compiler
+//    needs the full definition at each instantiation
+//    site.  Putting the body in a .cpp file causes
+//    linker errors.
 // -----------------------------------------------
 template<typename T>
 T max_of(T a, T b) {
@@ -22,6 +40,11 @@ T max_of(T a, T b) {
 
 // -----------------------------------------------
 // 2. Multiple template parameters
+//
+//    Watch out: template argument deduction can fail
+//    silently if types don't match exactly.  Use
+//    explicit template arguments when in doubt
+//    (e.g., max_of<double>(1, 2.5)).
 // -----------------------------------------------
 template<typename T, typename U>
 auto add(T a, U b) {
@@ -98,6 +121,21 @@ void print_all(Args&&... args) {
     ((std::cout << args << ' '), ...);  // Comma fold
     std::cout << '\n';
 }
+
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. Templates generate type-specific code at compile time -- zero runtime
+//    overhead compared to hand-written per-type functions.
+// 2. Template definitions must be visible at the point of instantiation,
+//    so keep them in header files (or use explicit instantiation).
+// 3. Use if constexpr (C++17) for compile-time branching inside templates
+//    -- unreachable branches are discarded entirely, no SFINAE needed.
+// 4. Fold expressions (C++17) make variadic templates dramatically simpler
+//    by collapsing a parameter pack with a binary operator.
+// 5. Prefer C++20 concepts over SFINAE / enable_if for constraining
+//    template arguments -- they produce much clearer error messages.
+// -----------------------------------------------
 
 int main() {
     // Basic template

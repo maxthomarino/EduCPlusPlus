@@ -1,11 +1,20 @@
 /**
  * futures_promises.cpp - Futures and Promises in C++
  *
- * Futures and promises provide a way to transfer a value
- * between threads without explicit locking.
- *   - std::promise: the "producer" sets a value or exception
- *   - std::future: the "consumer" retrieves the value (blocking)
- *   - std::async: high-level wrapper that returns a future
+ * Why:      Manually managing threads and shared state just to return a value
+ *           from a background task is complex and error-prone. Futures and
+ *           promises provide a clean, one-shot channel for transferring a
+ *           value (or exception) between threads without explicit locking.
+ * When:     Use std::async for simple fire-and-forget async tasks.
+ *           Use std::promise/std::future when a producer thread needs to send
+ *           a result to a consumer at an arbitrary point in time.
+ * Standard: C++11 introduced std::future, std::promise, and std::async.
+ * Prereqs:  std::thread basics, exception handling, move semantics.
+ * Reference: reference/en/cpp/thread/future
+ *            reference/en/cpp/thread/async
+ *            reference/en/cpp/thread/promise
+ *
+ * Compile with: g++ -std=c++20 -pthread futures_promises.cpp
  */
 
 #include <iostream>
@@ -20,8 +29,25 @@
 using namespace std::chrono_literals;
 
 // -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. std::async with launch::async returns a future whose destructor
+//    BLOCKS until the task completes. Discarding the returned future
+//    makes the call effectively synchronous.
+// 2. Calling future::get() more than once is undefined behavior. Use
+//    std::shared_future if multiple consumers need the same result.
+// 3. Exceptions thrown inside an async task or promise are captured and
+//    re-thrown when you call future::get() -- no special handling needed.
+// 4. std::async with launch::deferred runs the task lazily on the first
+//    call to get()/wait() -- it never creates a new thread.
+// -----------------------------------------------
+
+// -----------------------------------------------
 // 1. std::async -- simplest way to run work asynchronously
 //    Returns a future that holds the result.
+// Watch out: std::async with launch::async returns a future whose
+// destructor blocks until the task completes. Discarding the future
+// (e.g., not capturing the return value) makes the call synchronous.
 // -----------------------------------------------
 int compute_sum(int from, int to) {
     int sum = 0;
@@ -31,6 +57,9 @@ int compute_sum(int from, int to) {
 
 // -----------------------------------------------
 // 2. std::promise / std::future -- manual producer/consumer
+// Watch out: calling promise::set_value() more than once, or calling
+// it after set_exception(), throws std::future_error. Each promise
+// can deliver exactly one result.
 // -----------------------------------------------
 void producer(std::promise<std::string> promise) {
     std::this_thread::sleep_for(100ms);  // Simulate work
@@ -52,7 +81,8 @@ int risky_computation(int x) {
 // -----------------------------------------------
 // 4. std::shared_future -- multiple consumers
 //    A regular future can only be .get() once.
-//    shared_future allows multiple threads to read the result.
+// Watch out: calling future::get() more than once is UB. Use
+// shared_future if multiple consumers need the result.
 // -----------------------------------------------
 void wait_and_print(std::shared_future<int> sf, std::string name) {
     int result = sf.get();  // Multiple threads can call .get()

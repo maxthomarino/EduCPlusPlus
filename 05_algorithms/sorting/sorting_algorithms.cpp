@@ -1,8 +1,21 @@
 /**
  * sorting_algorithms.cpp - STL Sorting and Partitioning
  *
- * Demonstrates: sort, stable_sort, partial_sort, nth_element,
- * partition, is_sorted, and custom comparators.
+ * WHY IT EXISTS:  The STL separates algorithms from containers through
+ *                 iterators.  Instead of each container implementing its own
+ *                 sort, a single std::sort works on any random-access range.
+ *                 This design gives you O(n log n) introsort, stable sort,
+ *                 partial sort, and partitioning -- all generic over element
+ *                 type and comparator.
+ *
+ * WHEN TO USE:    Whenever you need to reorder elements.  Choose the right
+ *                 variant: std::sort for general use, std::stable_sort when
+ *                 equal-element order matters, std::partial_sort or
+ *                 std::nth_element when you only need the top-K or the median.
+ *
+ * STANDARD:       C++98 (sort, stable_sort, partition), improved in C++11/17/20
+ * PREREQUISITES:  Iterators, comparators (strict weak ordering), lambdas
+ * REFERENCE:      reference/en/cpp/algorithm/sort
  */
 
 #include <iostream>
@@ -19,10 +32,29 @@ void print(std::string_view label, const std::vector<int>& v) {
     std::cout << '\n';
 }
 
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. std::sort is an introsort (quicksort + heapsort fallback) with
+//    O(n log n) worst-case.  It is NOT stable.
+// 2. The comparator must define a strict weak ordering: comp(a, a) must
+//    return false.  Using <= instead of < causes undefined behavior.
+// 3. std::sort requires random-access iterators.  For std::list, use
+//    the member function list.sort() instead.
+// 4. Use std::partial_sort or std::nth_element when you only need the
+//    top-K or the median -- they are asymptotically faster than a full sort.
+// 5. std::stable_sort preserves the relative order of equal elements,
+//    which matters when sorting by one key while preserving a prior ordering.
+// -----------------------------------------------
+
 int main() {
     // -----------------------------------------------
     // 1. std::sort -- O(n log n) introsort (quicksort + heapsort)
     //    Sorts the range in-place. Not stable.
+    //
+    //    Watch out: std::sort requires random-access
+    //    iterators.  For std::list use the member
+    //    function .sort() instead.
     // -----------------------------------------------
     std::cout << "--- std::sort ---\n";
     std::vector<int> nums = {5, 2, 8, 1, 9, 3, 7, 4, 6};
@@ -34,6 +66,10 @@ int main() {
     print("Descending", nums);
 
     // Custom comparator: sort by absolute distance from 5
+    //
+    // Watch out: the comparator must define a strict
+    // weak ordering -- comp(a,a) must return false.
+    // Using <= instead of < causes undefined behavior.
     std::sort(nums.begin(), nums.end(), [](int a, int b) {
         return std::abs(a - 5) < std::abs(b - 5);
     });

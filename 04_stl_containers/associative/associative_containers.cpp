@@ -1,10 +1,21 @@
 /**
  * associative_containers.cpp - STL Associative Containers
  *
- * Demonstrates: map, multimap, set, multiset.
+ * Demonstrates: map, multimap, set, multiset, and custom comparators.
  * Associative containers store elements in sorted order (by key),
  * implemented as balanced binary search trees (typically red-black trees).
- * All operations are O(log n).
+ * All lookup, insertion, and erasure operations are O(log n).
+ *
+ * When to use: choose an associative container when you need elements
+ * automatically kept in sorted order, or when you need efficient
+ * range queries (e.g., "all keys between X and Y"). If you only need
+ * fast lookup without ordering, prefer unordered_map / unordered_set.
+ *
+ * Standard: map/set since C++98; structured bindings and try_emplace
+ *           require C++17; contains() requires C++20.
+ * Prerequisites: understanding of iterators, comparison operators, big-O.
+ * Reference: reference/en/cpp/container/map
+ *            reference/en/cpp/container/set
  */
 
 #include <iostream>
@@ -13,10 +24,28 @@
 #include <set>
 #include <string>
 
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. Associative containers keep elements sorted at all times;
+//    iteration always visits elements in comparator order.
+// 2. std::map::operator[] silently inserts a default value for
+//    missing keys -- use find() or at() for read-only access.
+// 3. std::set::insert returns pair<iterator, bool> telling you
+//    whether the element was actually added or already existed.
+// 4. Custom comparators must satisfy strict weak ordering:
+//    irreflexive, asymmetric, transitive. Using <= instead of <
+//    is a common bug that leads to undefined behavior.
+// -----------------------------------------------
+
 int main() {
     // -----------------------------------------------
     // 1. std::map -- sorted key-value pairs (unique keys)
     //    Keys are always sorted. Lookup is O(log n).
+    //
+    //    Watch out: operator[] inserts a default-constructed value
+    //    if the key doesn't exist. Use .at() or .find() for
+    //    read-only access.
     // -----------------------------------------------
     std::cout << "--- std::map ---\n";
     std::map<std::string, int> ages;
@@ -51,6 +80,9 @@ int main() {
     // -----------------------------------------------
     // 2. std::multimap -- sorted key-value pairs (duplicate keys)
     //    Same key can appear multiple times.
+    //
+    //    Watch out: multimap has no operator[] -- use insert()
+    //    and equal_range().
     // -----------------------------------------------
     std::cout << "\n--- std::multimap ---\n";
     std::multimap<std::string, std::string> courses;
@@ -74,6 +106,10 @@ int main() {
     // -----------------------------------------------
     // 3. std::set -- sorted unique elements
     //    Like a map with only keys. Useful for membership testing.
+    //
+    //    Watch out: insert() returns a pair<iterator, bool>. The
+    //    bool is false when the element already existed -- always
+    //    check it if duplicate handling matters.
     // -----------------------------------------------
     std::cout << "\n--- std::set ---\n";
     std::set<int> numbers = {5, 3, 8, 1, 3, 5, 9};  // Duplicates removed!
@@ -120,6 +156,11 @@ int main() {
     // -----------------------------------------------
     // 5. Custom comparator
     //    Sort in descending order.
+    //
+    //    Watch out: comparators must satisfy strict weak ordering
+    //    (irreflexive, asymmetric, transitive). Using <= instead
+    //    of < is undefined behavior and can cause crashes or
+    //    infinite loops inside the tree.
     // -----------------------------------------------
     std::cout << "\n--- Custom Comparator ---\n";
     std::set<int, std::greater<>> desc_set = {3, 1, 4, 1, 5, 9};

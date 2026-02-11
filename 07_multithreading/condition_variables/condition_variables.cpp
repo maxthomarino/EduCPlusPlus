@@ -1,12 +1,22 @@
 /**
  * condition_variables.cpp - Condition Variables in C++
  *
- * Condition variables allow threads to wait efficiently until
- * a condition is met. They always work with a mutex.
+ * Why:      Busy-waiting (spin loops) waste CPU cycles. Condition variables
+ *           let a thread sleep efficiently until another thread signals that
+ *           a particular condition has become true.
+ * When:     Use for producer-consumer patterns, thread pools, bounded buffers,
+ *           or any "wait until condition X" scenario where polling would waste
+ *           resources.
+ * Standard: C++11 introduced std::condition_variable. It always works in
+ *           conjunction with a std::mutex (via std::unique_lock).
+ * Prereqs:  std::thread, std::mutex, std::unique_lock, lambda predicates.
+ * Reference: reference/en/cpp/thread/condition_variable
  *
  * Pattern:
- *   Producer: lock mutex, modify data, notify
- *   Consumer: lock mutex, wait for condition, consume data
+ *   Producer: lock mutex -> modify shared data -> unlock -> notify
+ *   Consumer: lock mutex -> wait(lock, predicate) -> consume data
+ *
+ * Compile with: g++ -std=c++20 -pthread condition_variables.cpp
  */
 
 #include <iostream>
@@ -21,7 +31,25 @@
 using namespace std::chrono_literals;
 
 // -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. Always check the condition in a while-loop or use the predicate
+//    overload of wait(). Spurious wakeups can occur -- the thread may
+//    wake without notify being called.
+// 2. You must hold the mutex when modifying the shared state AND when
+//    calling wait(), but you should NOT hold it when calling
+//    notify_one()/notify_all() (for performance).
+// 3. Use notify_one() when only one waiter needs to proceed; use
+//    notify_all() when all waiters should re-check the condition.
+// 4. condition_variable requires std::unique_lock<std::mutex>. If you
+//    need a different lock type, use condition_variable_any.
+// -----------------------------------------------
+
+// -----------------------------------------------
 // 1. Basic producer-consumer with condition variable
+// Watch out: always check the condition in a while loop (or use the
+// predicate overload of wait()). Spurious wakeups can occur -- the
+// thread may wake without notify being called.
 // -----------------------------------------------
 class MessageQueue {
     std::queue<std::string> queue_;
@@ -71,6 +99,9 @@ public:
 // 2. Bounded buffer (blocks producer when full)
 //    Uses two condition variables: one for "not full",
 //    one for "not empty".
+// Watch out: you must hold the mutex when modifying the shared state
+// AND when calling wait(), but you should NOT hold it when calling
+// notify_one()/notify_all() (for performance).
 // -----------------------------------------------
 template<typename T, std::size_t Capacity>
 class BoundedBuffer {
@@ -92,6 +123,7 @@ public:
         tail_ = (tail_ + 1) % Capacity;
         ++count_;
 
+        lock.unlock();
         not_empty_.notify_one();
     }
 
@@ -105,6 +137,7 @@ public:
         head_ = (head_ + 1) % Capacity;
         --count_;
 
+        lock.unlock();
         not_full_.notify_one();
         return item;
     }
@@ -113,6 +146,9 @@ public:
 // -----------------------------------------------
 // 3. One-time event notification (like a gate/barrier)
 //    Threads wait until a signal is given, then all proceed.
+// Watch out: if you notify_all() before any thread calls wait(), the
+// notification is not "saved" -- but the predicate (open_ == true)
+// ensures late-arriving threads see the gate is already open.
 // -----------------------------------------------
 class Gate {
     std::mutex mtx_;

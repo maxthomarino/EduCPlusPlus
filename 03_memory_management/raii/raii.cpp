@@ -1,9 +1,16 @@
 /**
  * raii.cpp - RAII (Resource Acquisition Is Initialization)
  *
- * RAII is the most important C++ idiom for resource management.
- * Core idea: tie the resource lifetime to the object lifetime.
- * Constructor acquires, destructor releases -- no leaks possible.
+ * Why:      Manual new/delete is error-prone: memory leaks on exceptions,
+ *           forgotten deletes, double-frees.  RAII eliminates all of these
+ *           by tying resource lifetime to object lifetime.
+ * When:     Always -- RAII should be the default strategy for managing any
+ *           resource: files, sockets, locks, database handles, heap memory.
+ * Standard: RAII is a C++ idiom since the very beginning of the language,
+ *           but smart pointers (C++11) and std::scoped_lock (C++17) make
+ *           it significantly easier to apply in practice.
+ * Prereqs:  Basic understanding of constructors, destructors, and scope.
+ * Reference: reference/en/cpp/language/raii
  */
 
 #include <iostream>
@@ -18,6 +25,11 @@
 // 1. RAII for file handles
 //    The file closes automatically when the object is destroyed,
 //    even if an exception is thrown.
+//
+//    Watch out: destructors must never throw exceptions.  If the
+//    close operation can fail, handle it inside the destructor or
+//    provide an explicit close() method that the caller can invoke
+//    before destruction.
 // -----------------------------------------------
 class FileWriter {
     std::ofstream file_;
@@ -54,6 +66,12 @@ public:
 // 2. RAII for mutex locks
 //    std::lock_guard and std::scoped_lock are RAII wrappers
 //    around mutex::lock / mutex::unlock.
+//
+//    Watch out: forgetting the variable name creates a temporary
+//    that unlocks immediately:
+//        std::lock_guard{mtx};   // BUG: unlocks right away
+//    Always give the lock_guard a name so it lives until scope end:
+//        std::lock_guard lock{mtx};  // Correct
 // -----------------------------------------------
 class ThreadSafeCounter {
     int value_ = 0;
@@ -145,6 +163,22 @@ void demonstrate_smart_pointer_raii() {
     }
     std::cout << "After scope\n";
 }
+
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. RAII ties resource lifetime to object lifetime: acquire in the
+//    constructor, release in the destructor.  No manual cleanup needed.
+// 2. Exception safety comes for free -- when the stack unwinds, every
+//    local RAII object's destructor runs, releasing its resource.
+// 3. Prefer standard RAII wrappers (unique_ptr, lock_guard, fstream)
+//    over writing your own.  Write custom wrappers only for resources
+//    the standard library does not cover.
+// 4. Destructors must not throw.  If cleanup can fail, provide an
+//    explicit close/release method and swallow errors in the destructor.
+// 5. Always name your RAII objects -- an unnamed temporary is destroyed
+//    at the end of the full-expression, not at the end of the scope.
+// -----------------------------------------------
 
 int main() {
     // 1. File RAII

@@ -1,8 +1,20 @@
 /**
  * class_templates.cpp - Class Templates in C++
  *
- * Demonstrates: basic class template, partial specialization,
- * CTAD (Class Template Argument Deduction), and type traits.
+ * WHY THEY EXIST: Class templates let you write type-generic containers and
+ *                 abstractions once, and the compiler stamps out a concrete
+ *                 class for each combination of template arguments you use.
+ *                 This is how the entire STL (vector, map, unique_ptr, ...)
+ *                 is built.
+ *
+ * WHEN TO USE:    Any time you need a data structure or abstraction that works
+ *                 across multiple types: stacks, matrices, smart pointers,
+ *                 optional wrappers, type traits, etc.
+ *
+ * STANDARD:       C++98 (basic), C++11 (variadic, alias templates),
+ *                 C++17 (CTAD), C++20 (concepts for constraining)
+ * PREREQUISITES:  Function templates, type deduction, RAII
+ * REFERENCE:      reference/en/cpp/language/class_template
  */
 
 #include <iostream>
@@ -15,6 +27,13 @@
 // -----------------------------------------------
 // 1. Basic class template: a type-safe stack
 //    Works with any type T and a compile-time capacity N.
+//
+//    Watch out: CTAD (C++17 Class Template Argument
+//    Deduction) can deduce unexpected types -- e.g.,
+//    std::vector v{1, 2} deduces vector<int> but
+//    std::vector v{"hello"} deduces vector<const char*>,
+//    not vector<string>.  Be explicit when the deduced
+//    type might surprise you.
 // -----------------------------------------------
 template<typename T, std::size_t MaxSize = 10>
 class Stack {
@@ -172,6 +191,23 @@ struct is_string<const char*> : std::true_type {};
 // Helper variable template (C++14 convention)
 template<typename T>
 inline constexpr bool is_string_v = is_string<T>::value;
+
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. Class templates let you write type-generic containers (Stack, Matrix,
+//    Pair) once; the compiler generates a separate class per instantiation.
+// 2. Partial specialization lets you customize behavior for categories of
+//    types (e.g., all pointer types, all arrays) without repeating the
+//    entire class.
+// 3. CTAD (C++17) deduces template arguments from constructor parameters,
+//    but be careful: it can pick surprising types (const char* vs string).
+//    Write explicit deduction guides to steer deduction.
+// 4. Non-type template parameters (like Rows, Cols) move information into
+//    the type system, enabling compile-time dimension checks.
+// 5. Custom type traits (is_string_v) let you query type properties at
+//    compile time and use them in if constexpr or enable_if.
+// -----------------------------------------------
 
 int main() {
     // Stack

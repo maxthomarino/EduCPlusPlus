@@ -1,9 +1,21 @@
 /**
  * ranges_algorithms.cpp - C++20 Ranges and Views
  *
- * Demonstrates: ranges::sort, ranges::find, views::filter,
- * views::transform, views::take, pipe operator, and composability.
- * Ranges make algorithm calls cleaner (no begin/end pairs).
+ * WHY IT EXISTS:  Classic STL algorithms require passing begin/end iterator
+ *                 pairs, which is verbose and error-prone (mismatched
+ *                 iterators).  C++20 Ranges let you pass a container directly,
+ *                 add *projections* (transform the comparison key inline), and
+ *                 compose lazy *views* with the pipe (|) operator -- all with
+ *                 zero runtime overhead.
+ *
+ * WHEN TO USE:    Prefer ranges:: algorithms whenever you target C++20 or
+ *                 later.  Use views to build declarative data-processing
+ *                 pipelines (filter, transform, take, drop) that are evaluated
+ *                 lazily -- no intermediate containers are created.
+ *
+ * STANDARD:       C++20  (headers <algorithm>, <ranges>)
+ * PREREQUISITES:  Iterators, lambdas, STL algorithm basics
+ * REFERENCE:      reference/en/cpp/algorithm/ranges
  */
 
 #include <iostream>
@@ -14,10 +26,29 @@
 #include <ranges>
 #include <numeric>
 
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. std::ranges:: algorithms accept a whole container -- no more
+//    error-prone begin()/end() pairs.
+// 2. Views are lazy, composable range adaptors.  They do not own or copy
+//    data; they evaluate elements on demand.
+// 3. The pipe operator (|) chains views left-to-right, producing a single
+//    lazy pipeline that is only computed when iterated.
+// 4. Projections let you sort/find/compare by a derived key (e.g., string
+//    length) without writing a custom comparator.
+// 5. std::ranges:: and std:: algorithms are different overload sets.
+//    Do not mix their iterator/sentinel types in a single call.
+// -----------------------------------------------
+
 int main() {
     // -----------------------------------------------
     // 1. Range-based algorithms (no begin/end needed!)
     //    std::ranges::sort replaces std::sort(v.begin(), v.end())
+    //
+    //    Watch out: std::ranges:: algorithms and
+    //    std:: algorithms are different overloads.
+    //    Do not mix their iterator types in one call.
     // -----------------------------------------------
     std::cout << "--- Range Algorithms ---\n";
     std::vector<int> nums = {5, 2, 8, 1, 9, 3, 7};
@@ -124,6 +155,11 @@ int main() {
     // -----------------------------------------------
     // 5. Projections: transform the comparison key
     //    Sort strings by length without a custom comparator.
+    //
+    //    Projections are a major ergonomic win over
+    //    classic STL: instead of writing a lambda
+    //    comparator, pass a member pointer or callable
+    //    as the third argument to ranges:: algorithms.
     // -----------------------------------------------
     std::cout << "\n--- Projections ---\n";
     std::vector<std::string> words = {"banana", "fig", "cherry", "apple", "date"};

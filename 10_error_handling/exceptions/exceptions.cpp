@@ -1,9 +1,23 @@
 /**
  * exceptions.cpp - Exception Handling in C++
  *
- * Demonstrates: throw/try/catch, exception hierarchy,
- * custom exceptions, noexcept, exception safety guarantees,
- * and best practices.
+ * WHY IT EXISTS:  Exceptions separate error-handling logic from the normal
+ *                 control flow.  They let an error propagate automatically up
+ *                 the call stack until a handler is found, so intermediate
+ *                 functions do not need to inspect and forward error codes.
+ *                 RAII destructors run during stack unwinding, keeping resource
+ *                 management safe.
+ *
+ * WHEN TO USE:    Use exceptions for *exceptional* conditions -- errors that
+ *                 cannot be handled locally and must be reported to a caller
+ *                 several frames above.  Prefer return values (std::optional,
+ *                 std::expected) for expected failure paths (e.g., "not found").
+ *
+ * STANDARD:       Exceptions exist since C++98.  Modern best practices evolved
+ *                 in C++11 (noexcept, std::current_exception) and C++17
+ *                 (std::uncaught_exceptions).
+ * PREREQUISITES:  RAII, class inheritance, virtual functions
+ * REFERENCE:      reference/en/cpp/error/exception
  */
 
 #include <iostream>
@@ -30,6 +44,12 @@
 // -----------------------------------------------
 // 2. Custom exception class
 //    Inherit from std::exception or its subclasses.
+//
+//    Watch out: catch by const reference
+//    (catch (const std::exception& e)) to avoid
+//    slicing the exception object.  Catching by
+//    value would copy-slice a derived exception
+//    into its base, losing the extra data.
 // -----------------------------------------------
 class DatabaseError : public std::runtime_error {
     int error_code_;
@@ -89,6 +109,11 @@ void run_query(const std::string& sql) {
 // -----------------------------------------------
 // 4. noexcept: promise that a function won't throw
 //    Enables optimizations (move constructors should be noexcept).
+//
+//    Watch out: throwing in a destructor during
+//    stack unwinding calls std::terminate.  Mark
+//    destructors noexcept (they are noexcept by
+//    default since C++11 -- do not change that).
 // -----------------------------------------------
 void safe_function() noexcept {
     // If this throws, std::terminate is called.
@@ -142,6 +167,20 @@ void do_work(bool should_fail) {
 
     txn.commit();  // Only reached on success
 }
+
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. Exceptions separate error handling from normal flow and propagate
+//    errors across arbitrarily many stack frames automatically.
+// 2. Always catch exceptions by const reference to avoid object slicing.
+// 3. Order catch blocks from most-derived to most-base; the first
+//    matching handler wins.
+// 4. Mark move constructors/operators and destructors noexcept.  Throwing
+//    inside a destructor during stack unwinding calls std::terminate.
+// 5. Combine exceptions with RAII: if every resource is owned by an RAII
+//    object, stack unwinding guarantees no leaks.
+// -----------------------------------------------
 
 int main() {
     // ---- Basic try/catch ----

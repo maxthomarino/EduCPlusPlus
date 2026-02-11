@@ -2,8 +2,21 @@
  * sequence_containers.cpp - STL Sequence Containers
  *
  * Demonstrates: vector, array, deque, list, forward_list.
- * Sequence containers store elements in a linear order.
- * Choose based on your access and insertion patterns.
+ * Sequence containers store elements in a linear order where position
+ * matters. Each container offers a different trade-off between random
+ * access speed, insertion/removal efficiency, and memory layout.
+ *
+ * When to use: Start with std::vector by default. Switch to another
+ * sequence container only when profiling shows a specific bottleneck
+ * (e.g., frequent front-insertion -> deque, frequent mid-insertion -> list).
+ *
+ * Standard: C++11 introduced array and forward_list; others available since C++98.
+ *           This file uses C++20 features (std::format, std::erase_if).
+ * Prerequisites: basic understanding of iterators, big-O notation.
+ * Reference: reference/en/cpp/container/vector
+ *            reference/en/cpp/container/array
+ *            reference/en/cpp/container/deque
+ *            reference/en/cpp/container/list
  */
 
 #include <iostream>
@@ -16,12 +29,31 @@
 #include <algorithm>
 #include <numeric>
 
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. std::vector is the default container -- contiguous memory means
+//    excellent cache performance and compatibility with C APIs.
+// 2. Use reserve() on vectors when the final size is known to avoid
+//    costly reallocations and iterator invalidation.
+// 3. std::array is a zero-overhead wrapper around C-style arrays with
+//    STL interface (begin/end/size) and no heap allocation.
+// 4. std::list and std::forward_list trade cache-friendliness for O(1)
+//    insert/erase at any position (given an iterator).
+// 5. Always prefer the member sort() on list/forward_list -- the
+//    free-standing std::sort requires random-access iterators.
+// -----------------------------------------------
+
 int main() {
     // -----------------------------------------------
     // 1. std::vector -- dynamic array (most commonly used)
     //    - Contiguous memory, fast random access O(1)
     //    - Fast push_back (amortized O(1))
     //    - Slow insert/erase in the middle O(n)
+    //
+    //    Watch out: push_back invalidates all iterators and references
+    //    if a reallocation occurs. Always re-obtain iterators after
+    //    insertion.
     // -----------------------------------------------
     std::cout << "--- std::vector ---\n";
     std::vector<int> vec = {5, 3, 8, 1, 9};
@@ -54,6 +86,9 @@ int main() {
     //    - Size known at compile time
     //    - No heap allocation, very fast
     //    - Same interface as vector (begin, end, size, etc.)
+    //
+    //    Watch out: unlike C-style arrays, std::array does
+    //    bounds-checking with .at() but NOT with operator[].
     // -----------------------------------------------
     std::cout << "\n--- std::array ---\n";
     std::array<double, 4> arr = {3.14, 2.72, 1.41, 1.73};
@@ -71,6 +106,9 @@ int main() {
     //    - Fast push/pop at BOTH ends O(1)
     //    - Random access O(1), but not contiguous memory
     //    - Good for queues and sliding windows
+    //
+    //    Watch out: deque elements are NOT contiguous -- you cannot
+    //    pass deque data to C APIs that expect a pointer.
     // -----------------------------------------------
     std::cout << "\n--- std::deque ---\n";
     std::deque<std::string> dq;
@@ -89,6 +127,9 @@ int main() {
     //    - Fast insert/erase anywhere O(1) with iterator
     //    - No random access (must traverse)
     //    - Higher memory overhead (prev/next pointers)
+    //
+    //    Watch out: std::sort does not work on std::list (requires
+    //    random access). Use the member function lst.sort() instead.
     // -----------------------------------------------
     std::cout << "\n--- std::list ---\n";
     std::list<int> lst = {10, 20, 30, 40, 50};
@@ -115,6 +156,9 @@ int main() {
     //    - Minimal memory overhead (no backward pointer)
     //    - Only forward iteration
     //    - Insert/erase after a given position
+    //
+    //    Watch out: forward_list has no size() member (O(n) to
+    //    compute). Use std::distance if needed.
     // -----------------------------------------------
     std::cout << "\n--- std::forward_list ---\n";
     std::forward_list<int> fwd = {1, 2, 3, 4, 5};

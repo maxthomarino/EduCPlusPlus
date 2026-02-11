@@ -1,9 +1,21 @@
 /**
  * concepts_advanced.cpp - Advanced C++20 Concepts
  *
- * Builds on concepts_intro.cpp (in 06_templates/concepts/).
- * Demonstrates: concept composition, requires expressions,
- * nested requirements, subsumption, and real-world patterns.
+ * WHY THIS FILE: Builds on concepts_intro.cpp (in 06_templates/concepts/).
+ *                Covers the deeper mechanics of concepts: requires-expressions
+ *                for testing arbitrary compile-time requirements, concept
+ *                composition via && / ||, and *subsumption* -- the rule the
+ *                compiler uses to pick the "more constrained" overload.
+ *
+ * WHEN TO USE:    When simple concept constraints (std::integral, std::copyable)
+ *                 are not enough and you need to express complex type
+ *                 requirements: "must have a .serialize() returning string",
+ *                 "must be hashable", or "must satisfy concept A AND concept B".
+ *
+ * STANDARD:       C++20  (header <concepts>)
+ * PREREQUISITES:  Function/class templates, concepts_intro.cpp, SFINAE (to
+ *                 appreciate why concepts are better)
+ * REFERENCE:      reference/en/cpp/language/constraints
  */
 
 #include <iostream>
@@ -76,6 +88,12 @@ void print_numeric(T value) {
 // -----------------------------------------------
 // 4. Concept subsumption (overload resolution)
 //    More constrained overloads are preferred.
+//
+//    Watch out: concept subsumption only works when
+//    one concept directly includes another via
+//    conjunction (&&).  Logically equivalent but
+//    structurally different concepts are ambiguous
+//    to the compiler.
 // -----------------------------------------------
 template<typename T>
 concept Animal = requires(T t) {
@@ -139,6 +157,22 @@ auto safe_divide(std::floating_point auto a, std::floating_point auto b) {
     if (b == 0.0) return 0.0;
     return static_cast<double>(a) / static_cast<double>(b);
 }
+
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. requires-expressions let you test arbitrary compile-time properties:
+//    valid expressions, return types, nested constraints, and more.
+// 2. Compose concepts with && (conjunction) and || (disjunction) to build
+//    rich, reusable type predicates.
+// 3. Subsumption: the compiler prefers the more-constrained overload, but
+//    only when one concept structurally includes another via &&.  Logically
+//    equivalent but structurally different concepts cause ambiguity.
+// 4. Abbreviated syntax (std::integral auto x) is the tersest way to
+//    constrain function template parameters in C++20.
+// 5. Concepts replace SFINAE / enable_if with dramatically clearer syntax
+//    and far more readable compiler error messages.
+// -----------------------------------------------
 
 int main() {
     // Printable concept

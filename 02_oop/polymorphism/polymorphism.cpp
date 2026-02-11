@@ -1,6 +1,18 @@
 /**
  * polymorphism.cpp - Polymorphism in C++
  *
+ * Why it exists:  Polymorphism lets you write code that operates on a base
+ *                 type while the correct derived behaviour is selected at
+ *                 runtime (virtual dispatch) or compile time (templates/CRTP).
+ *                 This is the cornerstone of extensible, open/closed designs.
+ * When to use:    Use runtime polymorphism when the concrete type is not known
+ *                 until runtime (e.g., plugin systems, heterogeneous containers).
+ *                 Use CRTP / static polymorphism when all types are known at
+ *                 compile time and you want zero-overhead dispatch.
+ * Standard:       C++20 (uses std::format, std::numbers, <memory>)
+ * Prerequisites:  Classes, inheritance, virtual functions, templates
+ * Reference:      reference/en/cpp/language/virtual
+ *
  * Demonstrates: virtual functions, pure virtual (abstract classes),
  * runtime polymorphism via base pointers, dynamic_cast, and CRTP
  * (Curiously Recurring Template Pattern) for static polymorphism.
@@ -17,6 +29,13 @@
 // 1. Abstract base class (interface)
 //    Pure virtual functions (= 0) make this class abstract.
 //    You cannot instantiate Shape directly.
+//
+//    Watch out: If you declare a pure virtual destructor
+//    (virtual ~Base() = 0;), you still MUST provide a definition
+//    for it (e.g., Base::~Base() = default;) because the derived
+//    class destructor implicitly calls it.  A missing definition
+//    will produce a linker error, not a compiler error, which can
+//    be confusing.
 // -----------------------------------------------
 class Shape {
 public:
@@ -102,6 +121,13 @@ public:
 // -----------------------------------------------
 // 3. Runtime polymorphism in action
 //    A function that works with ANY Shape.
+//
+//    Watch out: Object slicing occurs when you store a derived object
+//    by value in a base-typed variable or container (e.g.,
+//    std::vector<Shape>). The derived part is "sliced off" and only
+//    the base sub-object is copied, silently losing overridden
+//    behaviour. Always use pointers or references (typically
+//    std::unique_ptr<Base>) to preserve polymorphism.
 // -----------------------------------------------
 double total_area(const std::vector<std::unique_ptr<Shape>>& shapes) {
     double sum = 0.0;
@@ -115,6 +141,12 @@ double total_area(const std::vector<std::unique_ptr<Shape>>& shapes) {
 // 4. CRTP - Static (compile-time) polymorphism
 //    No virtual function overhead. The base class
 //    "knows" the derived type at compile time.
+//
+//    Watch out: CRTP can be tricky to read and maintain. In C++23,
+//    "deducing this" (explicit object parameters) provides the same
+//    compile-time dispatch without the template boilerplate:
+//        void print(this const auto& self) { ... }
+//    If targeting C++23 or later, prefer deducing this over CRTP.
 // -----------------------------------------------
 template <typename Derived>
 class Printable {
@@ -148,6 +180,22 @@ public:
     }
 };
 
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. Runtime polymorphism (virtual dispatch) lets you extend a
+//    system without modifying existing code -- the Open/Closed
+//    Principle in action.
+// 2. Always store polymorphic objects through pointers or references
+//    (preferably std::unique_ptr) to prevent object slicing.
+// 3. CRTP gives you polymorphic-style reuse with zero runtime
+//    overhead, but C++23 deducing this is the cleaner successor.
+// 4. Use dynamic_cast sparingly; frequent downcasting often signals
+//    a design that should lean more on virtual methods.  Also note
+//    that dynamic_cast requires RTTI, which some projects disable
+//    for binary size or performance reasons (-fno-rtti).
+// -----------------------------------------------
+
 int main() {
     // ---- Runtime polymorphism ----
     std::cout << "--- Runtime Polymorphism ---\n";
@@ -166,6 +214,9 @@ int main() {
     std::cout << std::format("Total area: {:.2f}\n", total_area(shapes));
 
     // ---- dynamic_cast for safe downcasting ----
+    // Watch out: dynamic_cast relies on RTTI (Run-Time Type Information).
+    // Some codebases compile with -fno-rtti to reduce binary size and
+    // improve performance, which disables dynamic_cast entirely.
     std::cout << "\n--- dynamic_cast ---\n";
     Shape* raw = shapes[0].get();
 

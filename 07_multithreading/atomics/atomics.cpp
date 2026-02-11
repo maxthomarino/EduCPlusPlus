@@ -1,15 +1,27 @@
 /**
  * atomics.cpp - Atomic Operations in C++
  *
- * Atomics provide lock-free thread-safe operations on shared data.
- * They are faster than mutexes for simple operations (increment, CAS, etc.)
- * but only work on trivially copyable types.
+ * Why:      Mutexes are heavyweight for simple operations like incrementing a
+ *           counter or flipping a flag. Atomic operations provide lock-free,
+ *           thread-safe access to individual variables without the overhead of
+ *           a mutex (no OS-level blocking, no context switches).
+ * When:     Use atomics for simple shared counters, flags, and lock-free data
+ *           structures. For complex shared state involving multiple variables,
+ *           prefer mutexes -- atomics only protect one variable at a time.
+ * Standard: C++11 introduced std::atomic and memory ordering.
+ *           C++20 added std::atomic_ref, std::atomic<std::shared_ptr>, and
+ *           wait()/notify_one()/notify_all() on atomics.
+ * Prereqs:  std::thread basics, understanding of data races and UB.
+ * Reference: reference/en/cpp/atomic/atomic
+ *            reference/en/cpp/atomic/memory_order
  *
  * Key memory orders (from relaxed to strict):
  *   - relaxed:  no ordering guarantees (fastest)
  *   - acquire:  no reads/writes move before this load
  *   - release:  no reads/writes move after this store
  *   - seq_cst:  full sequential consistency (default, safest)
+ *
+ * Compile with: g++ -std=c++20 -pthread atomics.cpp
  */
 
 #include <iostream>
@@ -18,6 +30,24 @@
 #include <thread>
 #include <vector>
 #include <cassert>
+
+// -----------------------------------------------
+// Key Takeaways
+// -----------------------------------------------
+// 1. std::atomic<T> guarantees atomicity for loads, stores, and
+//    read-modify-write operations. No mutex needed for single-variable
+//    access.
+// 2. The default memory order is seq_cst (sequentially consistent) --
+//    safest but slowest. Use relaxed only when you need atomicity
+//    without inter-thread ordering, and acquire/release for
+//    producer-consumer synchronization.
+// 3. compare_exchange_weak can fail spuriously (on LL/SC architectures
+//    like ARM). Always use it in a loop. compare_exchange_strong never
+//    fails spuriously but may be slower in a loop.
+// 4. Lock-free data structures are notoriously hard to get right. Simple
+//    CAS-based structures suffer from the ABA problem and memory
+//    reclamation issues. Prefer well-tested libraries in production.
+// -----------------------------------------------
 
 // -----------------------------------------------
 // 1. Basic atomic counter
@@ -48,6 +78,9 @@ void basic_atomic_counter() {
 // 2. Compare-and-swap (CAS)
 //    The fundamental building block of lock-free algorithms.
 //    Atomically: if value == expected, set to desired; else load current.
+// Watch out: compare_exchange_weak can fail spuriously on LL/SC
+// architectures (e.g., ARM). Always use it in a loop.
+// compare_exchange_strong never fails spuriously but may be slower.
 // -----------------------------------------------
 void cas_example() {
     std::cout << "\n--- Compare-and-Swap ---\n";
@@ -68,6 +101,10 @@ void cas_example() {
 // -----------------------------------------------
 // 3. Lock-free stack (using CAS)
 //    A simple lock-free singly-linked stack.
+// Watch out: this simple lock-free stack has the ABA problem -- a
+// real implementation needs hazard pointers or epoch-based
+// reclamation. Also, delete of old_head in pop() is unsafe if another
+// thread still holds a pointer to it.
 // -----------------------------------------------
 template<typename T>
 class LockFreeStack {
@@ -135,6 +172,10 @@ public:
 // -----------------------------------------------
 // 5. Memory ordering demonstration
 //    acquire/release pair ensures proper ordering.
+// Watch out: memory_order_relaxed provides no ordering guarantees
+// between threads. Only use it when you just need atomicity, not
+// synchronization. In the example below, using relaxed instead of
+// acquire/release would make the assertion on data unreliable.
 // -----------------------------------------------
 void memory_ordering_demo() {
     std::cout << "\n--- Memory Ordering ---\n";
