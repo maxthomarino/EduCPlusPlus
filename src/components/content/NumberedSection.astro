@@ -83,18 +83,205 @@ function parseFeatureFields(raw: string): { fields: Partial<FeatureSummary>; cle
   return { fields, cleaned: cleanedLines.join("\n").trim() };
 }
 
-function firstSentence(text: string): string {
-  const normalized = text.replace(/\s+/g, " ").trim();
-  if (!normalized) return "";
-  const m = normalized.match(/^.+?[.!?](?:\s|$)/);
-  return (m ? m[0] : normalized).trim();
+function normalizeText(text: string): string {
+  return text.replace(/\s+/g, " ").trim();
 }
 
-function sentenceContaining(text: string, token: string): string {
-  const normalized = text.replace(/\s+/g, " ").trim();
-  if (!normalized) return "";
-  const sentences = normalized.split(/(?<=[.!?])\s+/);
-  return sentences.find((s) => new RegExp(`\\b${token}\\b`, "i").test(s))?.trim() ?? "";
+function splitSentences(text: string): string[] {
+  const normalized = normalizeText(text);
+  if (!normalized) return [];
+  return normalized.split(/(?<=[.!?])\s+/).map((s) => s.trim()).filter(Boolean);
+}
+
+function firstSentence(text: string): string {
+  const sentences = splitSentences(text);
+  return sentences[0] || "";
+}
+
+function firstMatchingSentence(sentences: string[], patterns: RegExp[]): string {
+  for (const pattern of patterns) {
+    const match = sentences.find((s) => pattern.test(s));
+    if (match) return match;
+  }
+  return "";
+}
+
+function ensureSentence(value: string): string {
+  const text = normalizeText(value);
+  if (!text) return "";
+  return /[.!?]$/.test(text) ? text : `${text}.`;
+}
+
+function shorten(value: string, max = 180): string {
+  const text = normalizeText(value);
+  if (text.length <= max) return text;
+  const cut = text.slice(0, max - 1);
+  const boundary = cut.lastIndexOf(" ");
+  return `${(boundary > 40 ? cut.slice(0, boundary) : cut).trim()}…`;
+}
+
+function firstCodeLine(code: string): string {
+  const lines = code.split("\n");
+  for (const raw of lines) {
+    const line = raw.trim();
+    if (!line) continue;
+    if (line.startsWith("//")) continue;
+    return line;
+  }
+  return "";
+}
+
+interface FeatureTemplate {
+  pattern: RegExp;
+  what?: string;
+  when?: string;
+  why?: string;
+  use?: string;
+  which?: string;
+}
+
+const FEATURE_TEMPLATES: FeatureTemplate[] = [
+  {
+    pattern: /\bauto\b.*deduce/i,
+    what: "auto deduces a variable's type from its initializer expression.",
+    when: "Use it when the initializer already makes the intended type obvious.",
+    why: "It removes redundant type spelling while preserving compile-time type safety.",
+    use: "Write auto value = initializer; and prefer const auto& for non-owning read access.",
+    which: "C++11",
+  },
+  {
+    pattern: /\bstring_view\b/i,
+    what: "std::string_view is a non-owning view over contiguous character data.",
+    when: "Use it for read-only string parameters when ownership does not need to change.",
+    why: "It avoids copies and allocations compared with passing std::string by value.",
+    use: "Use `std::string_view` in APIs and ensure the referenced storage outlives the view.",
+    which: "C++17",
+  },
+  {
+    pattern: /\bstructured bindings?\b/i,
+    what: "Structured bindings unpack tuple-like and aggregate values into named variables.",
+    when: "Use them when you need named parts of a pair, tuple, struct, or array.",
+    why: "They replace boilerplate member access such as `.first` and `.second`.",
+    use: "Write auto [a, b] = value; or auto& [a, b] = value; to avoid copies.",
+    which: "C++17",
+  },
+  {
+    pattern: /\btrailing return type\b|auto\s*->/i,
+    what: "A trailing return type declares the return type after the parameter list.",
+    when: "Use it when the return type is dependent or clearer after the function signature.",
+    why: "It improves readability for templates and dependent return types.",
+    use: "Write auto fn(args) -> ReturnType.",
+    which: "C++11",
+  },
+  {
+    pattern: /\bgeneric lambdas?\b|\bauto parameters\b/i,
+    what: "A generic lambda makes operator() a function template with deduced parameter types.",
+    when: "Use it for short type-generic callbacks without defining separate templates.",
+    why: "It enables reusable inline behavior across multiple argument types.",
+    use: "Use auto in lambda parameters and keep bodies small to limit instantiations.",
+    which: "C++14",
+  },
+  {
+    pattern: /\binit captures?\b/i,
+    what: "Init capture creates a named captured value from an expression in the capture list.",
+    when: "Use it when you need to move ownership or precompute capture state.",
+    why: "It supports move-only types and avoids temporary external variables.",
+    use: "Write [name = expression] in the capture list, for example [p = std::move(ptr)].",
+    which: "C++14",
+  },
+  {
+    pattern: /\bmutable lambdas?\b/i,
+    what: "mutable removes the default const call operator on a lambda.",
+    when: "Use it when you intentionally need to modify by-value captures inside the lambda.",
+    why: "It keeps outside variables unchanged while allowing local stateful behavior.",
+    use: "Add mutable after the parameter list, for example [x]() mutable { ... }.",
+    which: "C++11",
+  },
+  {
+    pattern: /\bstd::function\b/i,
+    what: "std::function is a type-erased wrapper for callables matching one signature.",
+    when: "Use it when callable type must vary at runtime behind a stable interface.",
+    why: "It trades some runtime overhead for flexibility and uniform callable storage.",
+    use: "Declare std::function<R(Args...)> f and assign lambdas/functions with that signature.",
+    which: "C++11",
+  },
+  {
+    pattern: /\bimmediately-invoked lambda\b|\biile\b/i,
+    what: "An immediately-invoked lambda is defined and called in the same expression.",
+    when: "Use it for complex one-time initialization of const values.",
+    why: "It keeps initialization logic local without leaking helper functions.",
+    use: "Wrap logic in []{ ... }() and assign the result.",
+    which: "C++11",
+  },
+  {
+    pattern: /\blambdas? with stl algorithms?\b/i,
+    what: "Lambdas provide inline comparators and predicates for STL algorithms.",
+    when: "Use them when algorithm behavior is local to a single call site.",
+    why: "They reduce ceremony compared with standalone functor classes.",
+    use: "Pass lambdas directly to sort, count_if, for_each, and similar algorithms.",
+    which: "C++11",
+  },
+  {
+    pattern: /\bcapture by value\b|\bcapture by reference\b/i,
+    what: "Captures control whether a lambda stores copies of variables or references to existing variables.",
+    when: "Use value capture for independent snapshots and reference capture for shared mutable state.",
+    why: "Choosing the correct capture mode prevents dangling references and accidental mutation.",
+    use: "Use [x] for value capture, [&x] for reference capture, and combine intentionally.",
+    which: "C++11",
+  },
+  {
+    pattern: /\blambda\b/i,
+    what: "A lambda defines an unnamed callable object directly at the use site.",
+    when: "Use lambdas for short callbacks, predicates, and local behavior.",
+    why: "They keep behavior close to the call site and avoid extra named functor types.",
+    use: "Write [captures](params) { body } and keep captured state explicit.",
+    which: "C++11",
+  },
+  {
+    pattern: /\bconstexpr if\b/i,
+    what: "constexpr if selects branches at compile time based on type/value conditions.",
+    when: "Use it inside templates when behavior depends on compile-time properties.",
+    why: "It removes SFINAE-heavy branching and keeps invalid branches out of compilation.",
+    use: "Write `if constexpr (condition) { ... } else { ... }`.",
+    which: "C++17",
+  },
+  {
+    pattern: /\bconcepts?\b/i,
+    what: "Concepts declare compile-time constraints on template parameters.",
+    when: "Use them to constrain templates to valid operations and types.",
+    why: "They produce clearer diagnostics and cleaner interfaces than ad-hoc SFINAE.",
+    use: "Write `template <typename T> requires Concept<T>` or abbreviated constraints.",
+    which: "C++20",
+  },
+  {
+    pattern: /\branges?\b/i,
+    what: "Ranges compose algorithms and views into lazy, pipeline-style transformations.",
+    when: "Use them for readable data-processing chains over containers and iterables.",
+    why: "They reduce temporary containers and improve expression-level clarity.",
+    use: "Compose with `|` and call range algorithms on views/containers.",
+    which: "C++20",
+  },
+  {
+    pattern: /\bcoroutines?\b/i,
+    what: "Coroutines suspend and resume function execution with compiler-generated state machines.",
+    when: "Use them for async flows, generators, and cooperative scheduling.",
+    why: "They express asynchronous control flow without deeply nested callbacks.",
+    use: "Define promise/awaiter hooks and use `co_await`, `co_yield`, or `co_return`.",
+    which: "C++20",
+  },
+  {
+    pattern: /\bthree-way\b|\bspaceship\b/i,
+    what: "The three-way operator (`<=>`) synthesizes rich comparison results.",
+    when: "Use it when defining ordering/equality for user-defined types.",
+    why: "It centralizes comparison logic and lets the compiler generate relational operators.",
+    use: "Implement `operator<=>` and optionally `operator==`.",
+    which: "C++20",
+  },
+];
+
+function pickTemplate(title: string, description: string): FeatureTemplate | null {
+  const haystack = `${title} ${description}`;
+  return FEATURE_TEMPLATES.find((t) => t.pattern.test(haystack)) ?? null;
 }
 
 function detectVersion(text: string): string {
@@ -129,33 +316,71 @@ function inferVersionFromFeature(text: string): string {
   return "";
 }
 
+function inferWhatFromTitleAndDescription(title: string, sentences: string[]): string {
+  if (/let the compiler deduce the type/i.test(title)) {
+    return "auto deduces a variable's type from its initializer expression.";
+  }
+
+  const split = title.match(/^(.+?)\s+[—-]\s+(.+)$/);
+  if (split?.[2]) return ensureSentence(split[2]);
+
+  const fromSentence = firstMatchingSentence(sentences, [
+    /\b(is|means|represents|provides|lets|allows|gives)\b/i,
+  ]);
+  return fromSentence || ensureSentence(title);
+}
+
+function inferUseFromCodeAndSentences(code: string, sentences: string[]): string {
+  const bySentence = firstMatchingSentence(sentences, [
+    /^Use\b/i,
+    /\bsyntax\b/i,
+    /\bwrite\b/i,
+    /\bpattern\b/i,
+    /\bcall\b/i,
+  ]);
+  if (bySentence) return bySentence;
+
+  const codeLine = firstCodeLine(code);
+  if (codeLine) return `Use it in code like: ${shorten(codeLine, 80)}`;
+
+  return "Follow the code pattern in this section and keep usage explicit.";
+}
+
 function buildFeatureSummary(
   sectionTitle: string,
   rawDescription: string,
   code: string
 ): { summary: FeatureSummary; cleanedDescription: string } {
   const { fields, cleaned } = parseFeatureFields(rawDescription);
-  const compactDescription = cleaned.replace(/\s+/g, " ").trim();
-  const versionFromText = detectVersion(`${sectionTitle} ${cleaned} ${code}`);
-  const inferredVersion = inferVersionFromFeature(`${sectionTitle} ${cleaned}`);
+  const compactDescription = normalizeText(cleaned);
+  const sentences = splitSentences(compactDescription);
+  const featureTemplate = pickTemplate(sectionTitle, compactDescription);
+
+  const whenCandidate = firstMatchingSentence(sentences, [
+    /\bwhen\b/i,
+    /\bif\b/i,
+    /^Use\b/i,
+    /\bprefer\b/i,
+    /\bfor\b/i,
+  ]);
+  const whyCandidate = firstMatchingSentence(sentences, [
+    /\b(because|so that|therefore|reduces?|avoids?|prevents?|improves?|safer|faster|clearer|helps?)\b/i,
+  ]) || firstSentence(compactDescription);
+  const useCandidate = inferUseFromCodeAndSentences(code, sentences);
+
+  const versionFromText = detectVersion(`${sectionTitle} ${compactDescription}`);
+  const inferredVersion = inferVersionFromFeature(`${sectionTitle} ${compactDescription}`);
 
   return {
     summary: {
-      what: fields.what || sectionTitle,
-      when:
-        fields.when ||
-        sentenceContaining(compactDescription, "when") ||
-        "When this feature improves clarity, safety, or correctness for your use case.",
-      why:
-        fields.why ||
-        firstSentence(compactDescription) ||
-        "Why: it makes intent clearer and reduces mistakes.",
-      use:
-        fields.use ||
-        "Use it with the pattern shown in the code example below.",
+      what: shorten(ensureSentence(fields.what || featureTemplate?.what || inferWhatFromTitleAndDescription(sectionTitle, sentences))),
+      when: shorten(ensureSentence(fields.when || featureTemplate?.when || whenCandidate || "Use this when it cleanly solves the problem in front of you.")),
+      why: shorten(ensureSentence(fields.why || featureTemplate?.why || whyCandidate || "It improves correctness, clarity, and maintainability.")),
+      use: shorten(ensureSentence(fields.use || featureTemplate?.use || useCandidate)),
       which:
         fields.which ||
         versionFromText ||
+        featureTemplate?.which ||
         inferredVersion ||
         "Not explicitly specified in this example.",
     },
