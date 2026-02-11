@@ -1,13 +1,12 @@
 /**
  * control_flow.cpp - Control Flow in Modern C++
  *
- * Before C++17, variables declared for use in an if or switch had to live
- * in the surrounding scope, polluting it even when they were only needed
- * inside the branch. C++17 if-init and switch-init confine those variables
- * to the statement itself, and C++20 adds init-statements to range-for.
+ * Control flow is where your program decides what happens next.
+ * Modern C++ keeps the familiar if/switch/loops, but adds features that
+ * reduce scope clutter and make branch intent easier to read.
  *
- * Use these features whenever a variable only matters inside a branch or
- * loop -- it makes intent clearer and prevents accidental reuse.
+ * In this lesson, focus on one habit: keep temporary decision variables
+ * as close as possible to the place where they are used.
  *
  * Standard: C++17 (if-init, constexpr if), C++20 (range-for init)
  * Prerequisites: 01_fundamentals/basics/ (auto, structured bindings)
@@ -20,6 +19,7 @@
 #include <vector>
 #include <map>
 #include <optional>
+#include <type_traits>
 
 // Helper that may or may not return a value
 std::optional<int> find_first_even(const std::vector<int>& nums) {
@@ -31,14 +31,11 @@ std::optional<int> find_first_even(const std::vector<int>& nums) {
 
 // =========================================
 // Key Takeaways:
-//   1. if/switch with initializers (C++17) keep helper variables out of the
-//      surrounding scope -- use them as your default style.
-//   2. Range-for with structured bindings (C++17) replaces iterator boilerplate
-//      for maps and other pair-like containers.
-//   3. constexpr if (C++17) discards the untaken branch at compile time --
-//      essential for writing clean generic (template) code.
-//   4. Prefer range-for over index loops; prefer algorithms over raw loops
-//      when the intent matches a named algorithm.
+//   1. Prefer if/switch initializers when a helper value is only needed in
+//      that statement.
+//   2. Prefer range-for for direct traversal, especially with structured bindings.
+//   3. Use constexpr if in generic code to select behavior at compile time.
+//   4. Choose while/do-while when the number of iterations is condition-driven.
 // =========================================
 
 int main() {
@@ -50,9 +47,9 @@ int main() {
     //    Use: Use the form if (init; condition) { ... } else { ... }.
     //    Which: C++17
     //
-    //    Syntax: if (init; condition) { ... }
-    //    The variable is scoped to the if/else block, so it
-    //    cannot leak into the surrounding scope.
+    //    This pattern reads naturally: "compute value, then branch on it."
+    //    The temporary stays local to the decision itself, which keeps
+    //    surrounding code cleaner.
     //
     //    Watch out: the initializer variable is visible in BOTH
     //    the if-branch and the else-branch, but not after.
@@ -62,7 +59,7 @@ int main() {
     } else {
         std::cout << "No even number found\n";
     }
-    // 'val' is no longer accessible here -- keeps scope clean
+    // 'val' is no longer accessible here -- scope stays tight
 
     // -----------------------------------------------
     // 2. switch with initializer (C++17)
@@ -72,11 +69,11 @@ int main() {
     //    Use: Use the form switch (init; value) { case ... }.
     //    Which: C++17
     //
-    //    Same idea as if-init: declare a variable scoped to the
-    //    switch statement. Eliminates extra braces or outer variables.
+    //    Same idea as if-init, but for multi-way branching:
+    //    compute once, branch many ways, keep temporary local.
     //
-    //    Watch out: don't forget break -- C++ switch cases fall
-    //    through by default. Use [[fallthrough]] when intentional.
+    //    Watch out: switch cases fall through by default.
+    //    Use break (or [[fallthrough]] intentionally).
     // -----------------------------------------------
     enum class Color { Red, Green, Blue };
 
@@ -95,12 +92,11 @@ int main() {
     //    Use: Write for (auto& element : container) { ... } and choose const/reference intentionally.
     //    Which: C++11 (with later enhancements in C++17/C++20)
     //
-    //    Iterate directly over containers and ranges without
-    //    manually managing iterators or indices.
+    //    Range-for keeps loop intent obvious: "visit each element."
+    //    You spend less attention on loop mechanics and more on logic.
     //
-    //    Watch out: modifying the container (insert/erase) during
-    //    a range-for is undefined behavior -- use index loops or
-    //    erase-remove for that.
+    //    Watch out: modifying container shape (insert/erase) during
+    //    a range-for is usually unsafe.
     // -----------------------------------------------
     std::vector<int> numbers = {10, 20, 30, 40, 50};
 
@@ -133,11 +129,10 @@ int main() {
     //    Use: Keep loop conditions explicit and update loop state in a single obvious place.
     //    Which: C++98+
     //
-    //    Classic loop forms still useful when the number of
-    //    iterations is not known ahead of time.
+    //    Use these when you do not know the exact iteration count up front.
+    //    The loop continues until your condition says "stop."
     //
-    //    Watch out: do-while always executes the body at least
-    //    once -- make sure that first iteration is safe.
+    //    Watch out: do-while always executes once.
     // -----------------------------------------------
     // Collatz conjecture: keep going until we reach 1
     int n = 27;
@@ -163,13 +158,12 @@ int main() {
     //    Use: Write if constexpr (condition) { ... } else { ... }.
     //    Which: C++17
     //
-    //    Demonstrated inside a lambda for simplicity.
-    //    The untaken branch is discarded entirely -- it does not
-    //    even need to be valid for the given type.
+    //    Think of this as "type-based branching." The wrong branch
+    //    is removed during compilation, so it does not need to compile
+    //    for that type at all.
     //
-    //    Watch out: constexpr if only works inside templates
-    //    (or generic lambdas). In a non-template function, both
-    //    branches are still compiled and must be well-formed.
+    //    Watch out: constexpr if is meaningful in dependent/generic
+    //    contexts, such as templates and generic lambdas.
     // -----------------------------------------------
     auto describe = [](auto value) {
         if constexpr (std::is_integral_v<decltype(value)>) {

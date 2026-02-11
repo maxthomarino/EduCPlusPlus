@@ -1,13 +1,15 @@
 /**
  * hello_modern.cpp - Modern C++ Hello World
  *
- * In pre-C++11 code, types had to be spelled out explicitly, strings were
- * passed as const char* or heavy std::string copies, and formatted output
- * required printf (unsafe) or iostream manipulators (verbose).
+ * If you learned older C++, this file shows the "new default style" in one
+ * place. Classic code often repeated types everywhere, passed strings in ways
+ * that copied more than needed, and built output with verbose stream chains.
  *
- * Modern C++ introduces auto (C++11), string_view (C++17), structured
- * bindings (C++17), and std::format (C++20) to make everyday code shorter,
- * safer, and more readable. Use these as your default vocabulary.
+ * Modern C++ gives us cleaner tools:
+ * - auto (C++11) to remove obvious type repetition
+ * - std::string_view (C++17) for non-owning string parameters
+ * - structured bindings (C++17) for readable unpacking
+ * - std::format (C++20) for safer, clearer formatting
  *
  * Reference: reference/en/cpp/language/auto.html
  *            reference/en/cpp/string/basic_string_view.html
@@ -20,31 +22,32 @@
 #include <format>
 
 // -----------------------------------------------
-// 1. auto — let the compiler deduce the type
+// 1. auto -- let the compiler deduce the type
 //    What: auto deduces a variable's type from its initializer expression.
 //    When: Use this when the initializer already makes the type clear.
 //    Why: It removes redundant type spelling while preserving static type safety.
 //    Use: Write auto name = initializer; and use const auto& for non-owning reads.
 //    Which: C++11
 //
-//    Reduces verbosity and prevents narrowing bugs from writing
-//    the wrong type. Use auto when the type is obvious from the
-//    right-hand side of the assignment.
+//    Read this left to right: "I need a value here; the initializer
+//    tells the compiler exactly what type it should be." This makes
+//    local code shorter and easier to scan.
 //
 //    Watch out: auto strips top-level const and references.
 //    Use "const auto&" when you need them preserved.
 // -----------------------------------------------
 
 // -----------------------------------------------
-// 2. string_view — a lightweight, non-owning view of a string
+// 2. string_view -- a lightweight, non-owning view of a string
 //    What: std::string_view is a non-owning view over contiguous characters.
 //    When: Use this for read-only string parameters when ownership should not transfer.
 //    Why: It avoids allocations and copies compared with pass-by-value strings.
 //    Use: Take std::string_view in APIs and ensure referenced storage outlives the view.
 //    Which: C++17
 //
-//    Unlike const std::string&, string_view does not allocate
-//    and can bind to string literals, std::string, or substrings.
+//    Think of string_view as a read-only "window" into text that
+//    already exists elsewhere. That makes it a great default for
+//    input parameters that only need to read.
 //
 //    Watch out: the viewed string must outlive the string_view.
 //    Never return a string_view to a local std::string.
@@ -61,24 +64,24 @@ auto greet(std::string_view name) -> std::string {
 //    Use: Write auto fn(args) -> ReturnType.
 //    Which: C++11
 //
-//    Useful when the return type depends on parameters or when
-//    you prefer the function name to appear first for readability.
-//    Required for some template and decltype(auto) patterns.
+//    For simple functions this is mostly a style choice. For templates
+//    and decltype-heavy signatures, it can make declarations much easier
+//    to read because the function name appears earlier.
 // -----------------------------------------------
 auto add(int a, int b) -> int {
     return a + b;
 }
 
 // -----------------------------------------------
-// 4. Structured bindings (C++17) — unpack aggregates
+// 4. Structured bindings (C++17) -- unpack aggregates
 //    What: Structured bindings unpack tuple-like or aggregate values into named variables.
 //    When: Use this when you need readable names for pair/tuple/struct elements.
 //    Why: It removes boilerplate like .first and .second.
 //    Use: Write auto [a, b] = value; or auto& [a, b] = value; to bind by reference.
 //    Which: C++17
 //
-//    Works with pairs, tuples, arrays, and structs with
-//    all-public members. Avoids .first/.second boilerplate.
+//    This is mainly about readability. Instead of "pair.first" and
+//    "pair.second", give values meaningful names right away.
 //
 //    Watch out: structured bindings create copies by default.
 //    Use "auto& [x, y] = ..." to bind by reference.
@@ -86,10 +89,10 @@ auto add(int a, int b) -> int {
 
 // =========================================
 // Key Takeaways:
-//   1. Prefer auto when the type is clear from context; spell it out when not.
-//   2. Use string_view for read-only string parameters — zero copies, zero allocations.
-//   3. Use std::format instead of iostream manipulators or printf for type-safe output.
-//   4. Structured bindings replace tedious .first/.second access on pairs and tuples.
+//   1. Prefer auto when the type is obvious from the initializer.
+//   2. Use string_view for read-only string parameters to avoid copies.
+//   3. Use std::format for clear, type-safe string formatting.
+//   4. Use structured bindings to replace .first/.second boilerplate.
 // =========================================
 
 int main() {
@@ -97,7 +100,7 @@ int main() {
     auto message = greet("World");
     std::cout << message << '\n';
 
-    // Trailing return type — same as writing "int add(int, int)"
+    // Trailing return type -- same result as "int add(int, int)"
     std::cout << std::format("add(3, 4) = {}\n", add(3, 4));
 
     // Structured bindings: unpack a pair without .first/.second
@@ -109,7 +112,7 @@ int main() {
     auto [a, b, c] = arr;
     std::cout << std::format("a = {}, b = {}, c = {}\n", a, b, c);
 
-    // const auto& binding — avoids copying
+    // const auto& binding -- avoids copying
     const auto& [cx, cy] = std::pair{42, 99};
     std::cout << std::format("cx = {}, cy = {}\n", cx, cy);
 

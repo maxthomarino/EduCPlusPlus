@@ -1,15 +1,14 @@
 /**
  * functions.cpp - Functions in Modern C++
  *
- * Classic C++ functions required explicit return types, could not run at
- * compile time, and had no way to accept an arbitrary number of typed
- * arguments without resorting to C-style varargs. Modern standards fix
- * all of this: C++11 added constexpr, trailing returns, default/delete,
- * and variadic templates; C++14 gave us auto return deduction; C++17
- * brought fold expressions and [[nodiscard]].
+ * Functions are where you package behavior and name intent.
+ * Modern C++ improves function design in three important ways:
+ * - clearer declarations (trailing return types, auto return deduction)
+ * - compile-time execution tools (constexpr)
+ * - safer generic interfaces (variadic templates, [[nodiscard]], delete/default)
  *
- * Use these features to write functions that are shorter, safer, and
- * easier for the compiler to optimize.
+ * The goal is not to use every feature everywhere. The goal is to pick the
+ * smallest feature that makes your function easier to read and harder to misuse.
  *
  * Standard: C++11 / C++14 / C++17 (see individual sections)
  * Prerequisites: 01_fundamentals/basics/ (auto, type deduction)
@@ -32,13 +31,12 @@
 //    Use: Write auto fn(args) -> ReturnType.
 //    Which: C++11
 //
-//    Syntax: auto f(params) -> ReturnType { ... }
-//    Useful when the return type depends on parameters or
-//    when you want the function name to appear first for
-//    readability in long declarations.
+//    For everyday functions, this is mostly style.
+//    For templates and decltype-based returns, it can
+//    make long declarations much easier to follow.
 //
 //    Watch out: trailing return types are required for some
-//    decltype expressions; otherwise they are a style choice.
+//    decltype expressions; otherwise they are optional.
 // -----------------------------------------------
 auto multiply(int a, double b) -> double {
     return a * b;
@@ -52,12 +50,11 @@ auto multiply(int a, double b) -> double {
 //    Use: Declare the function with auto and provide return expressions of one consistent type.
 //    Which: C++14
 //
-//    Compiler deduces the return type from the body.
-//    All return statements must deduce to the same type.
+//    This works best when a reader can infer the type quickly.
+//    If the return type is subtle or important to the API contract,
+//    spelling it out is usually clearer.
 //
-//    Watch out: the definition must be visible at the call
-//    site -- you cannot use auto return in a declaration-only
-//    header without providing the body.
+//    Watch out: all return paths must resolve to one type.
 // -----------------------------------------------
 auto make_greeting(std::string_view name) {
     return std::format("Hello, {}!", name);
@@ -71,14 +68,12 @@ auto make_greeting(std::string_view name) {
 //    Use: Mark eligible functions/objects constexpr and keep them valid for constant evaluation.
 //    Which: C++11+ (expanded in later standards)
 //
-//    Evaluated at compile time when called in a constant
-//    expression; otherwise run normally at runtime. C++14
-//    relaxed the "single return" rule; C++20 allows even
-//    more (try/catch, virtual calls, allocations).
+//    A constexpr function can still run at runtime.
+//    It runs at compile time only when the context requires
+//    a constant expression.
 //
-//    Watch out: a constexpr function is not *guaranteed* to
-//    run at compile time -- only when the result is used in
-//    a constexpr context (e.g., constexpr variable, static_assert).
+//    Watch out: "constexpr function" does not mean
+//    "always compile-time execution."
 // -----------------------------------------------
 constexpr int fibonacci(int n) {
     if (n <= 1) return n;
@@ -101,12 +96,10 @@ constexpr bool is_prime(int n) {
 //    Use: Define distinct parameter lists and avoid ambiguous overload sets.
 //    Which: C++98+
 //
-//    Same name, different parameter types. The compiler picks
-//    the best match using overload resolution rules.
+//    Overloads let call sites stay simple:
+//    print(42), print(3.14), print("text") all express the same intent.
 //
-//    Watch out: implicit conversions can cause ambiguous calls
-//    (e.g., passing a float to overloads for int and double).
-//    Use explicit casts or add an exact overload to resolve.
+//    Watch out: implicit conversions can create ambiguity.
 // -----------------------------------------------
 void print(int value) {
     std::cout << std::format("int: {}\n", value);
@@ -128,12 +121,10 @@ void print(std::string_view value) {
 //    Use: Default operations you want and delete operations that must not compile.
 //    Which: C++11
 //
-//    = default tells the compiler to generate the special member.
-//    = delete forbids calling that function (compile-time error).
+//    This makes ownership rules explicit in class definitions,
+//    so readers and compilers both know what is allowed.
 //
-//    Watch out: if you declare ANY constructor, the compiler no
-//    longer generates the default constructor. Use = default to
-//    bring it back explicitly.
+//    Watch out: declaring any constructor suppresses some implicit ones.
 // -----------------------------------------------
 struct NonCopyable {
     NonCopyable() = default;                            // Use compiler-generated default
@@ -151,13 +142,12 @@ struct NonCopyable {
 //    Use: Expand parameter packs directly or with fold expressions.
 //    Which: C++11 (fold expressions in C++17)
 //
-//    Accept any number of arguments with full type safety.
-//    Fold expressions (C++17) eliminate the need for recursive
-//    template expansion in many common cases.
+//    Variadic templates are the type-safe way to say
+//    "this function can accept many arguments."
+//    Fold expressions make common patterns concise.
 //
-//    Watch out: fold over an empty parameter pack is only valid
-//    for &&, ||, and comma. Other operators require at least one
-//    argument or an explicit init value: (args + ... + 0).
+//    Watch out: some fold operators need an explicit identity value
+//    if the pack can be empty.
 // -----------------------------------------------
 template<typename... Args>
 auto sum_all(Args... args) {
@@ -184,12 +174,10 @@ void print_all(First first, Rest... rest) {
 //    Use: Annotate return types or functions with [[nodiscard]].
 //    Which: C++17
 //
-//    Warns if the return value is discarded. Apply it to
-//    functions where ignoring the result is almost certainly
-//    a bug (error codes, computed values, RAII guards).
+//    Use this for "important result" APIs such as error checks,
+//    validation calls, and computed decisions.
 //
-//    Watch out: you can silence the warning with a (void) cast,
-//    but ask yourself whether ignoring the result is intentional.
+//    Watch out: if you ignore the result intentionally, document why.
 // -----------------------------------------------
 [[nodiscard]] int compute_important_value() {
     return 42;
@@ -197,15 +185,11 @@ void print_all(First first, Rest... rest) {
 
 // =========================================
 // Key Takeaways:
-//   1. Use constexpr for any function that CAN be evaluated at compile time --
-//      the compiler will still allow runtime calls when needed.
-//   2. Prefer auto return deduction for short, obvious function bodies;
-//      spell out the return type when it aids readability.
-//   3. Fold expressions (C++17) replace recursive variadic helpers with a
-//      single, readable expression.
-//   4. Mark functions [[nodiscard]] when ignoring the return value is a bug.
-//   5. Use = delete to explicitly forbid unwanted operations (copying,
-//      implicit conversions) rather than leaving them silently available.
+//   1. Use constexpr for pure computations that may benefit from compile-time evaluation.
+//   2. Use auto return deduction when return type is obvious; spell it out when clarity is better.
+//   3. Use overloads to keep call sites readable across related input types.
+//   4. Use fold expressions to simplify variadic template logic.
+//   5. Use [[nodiscard]] and = delete to prevent common misuse at compile time.
 // =========================================
 
 int main() {
@@ -233,8 +217,8 @@ int main() {
     // Print any number of arguments
     print_all(1, "hello", 3.14, 'x');
 
-    // [[nodiscard]] -- uncommenting the line below would cause a compiler warning:
-    // compute_important_value();  // Warning: return value discarded!
+    // [[nodiscard]] -- uncommenting this line would warn:
+    // compute_important_value();
     int val = compute_important_value();
     std::cout << std::format("Important value: {}\n", val);
 
