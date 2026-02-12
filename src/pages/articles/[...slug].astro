@@ -28,6 +28,11 @@ function formatDate(date: Date): string {
 
 <BaseLayout title={entry.data.title} description={entry.data.description}>
   <main class="mx-auto max-w-3xl px-5 py-10 sm:px-7">
+    <nav class="mb-4 flex flex-wrap gap-2">
+      <a href="/articles" class="metric-pill hover-lift">&larr; All Articles</a>
+      <a href="/" class="metric-pill hover-lift">Docs Home</a>
+    </nav>
+
     <article class="surface-card page-reveal p-6 sm:p-8">
       <p class="text-xs font-medium tracking-[0.06em]" style="color: var(--text-muted);">
         {formatDate(entry.data.publishDate)} - {entry.data.author}
