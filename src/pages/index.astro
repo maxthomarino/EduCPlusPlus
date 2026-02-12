@@ -14,6 +14,7 @@ const sidebarData = buildSidebarData(allLessons.map((e) => e.data as unknown as 
 // Total counts
 const totalFiles = allLessons.length;
 const totalModules = sidebarData.length;
+const totalArticles = allArticles.length;
 const latestArticles = allArticles
   .sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime())
   .slice(0, 3);
@@ -57,12 +58,29 @@ function getLevel(order: number): { label: string; tone: string } {
     <div class="mt-5 flex flex-wrap gap-2.5">
       <span class="metric-pill"><strong>{totalFiles}</strong>&nbsp;lessons</span>
       <span class="metric-pill"><strong>{totalModules}</strong>&nbsp;modules</span>
+      <span class="metric-pill"><strong>{totalArticles}</strong>&nbsp;articles</span>
       <span class="metric-pill">C++20-first</span>
       <span class="metric-pill">Runnable examples</span>
     </div>
     <div class="mt-6 flex flex-wrap gap-2">
       <span class="chip">Guided progression</span>
       <span class="chip">Concept clarity</span>
+      <a href="/articles" class="chip hover-lift">Article library -&gt;</a>
+    </div>
+  </section>
+
+  <section class="surface-card-soft page-reveal mb-8 p-5 sm:p-6">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <p class="eyebrow mb-1">Also Available</p>
+        <h2 class="display-font text-xl font-semibold tracking-tight" style="color: var(--text-primary);">
+          Editorial C++ Articles
+        </h2>
+        <p class="mt-1 text-sm sm:text-base" style="color: var(--text-secondary);">
+          Deep dives and practical discussions beyond the lesson path.
+        </p>
+      </div>
+      <a href="/articles" class="metric-pill hover-lift">Browse all articles -&gt;</a>
     </div>
   </section>
 
