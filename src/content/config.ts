@@ -53,4 +53,17 @@ const lessons = defineCollection({
   }),
 });
 
-export const collections = { lessons };
+const articles = defineCollection({
+  type: "content",
+  schema: z.object({
+    title: z.string(),
+    description: z.string(),
+    publishDate: z.coerce.date(),
+    updatedDate: z.coerce.date().optional(),
+    tags: z.array(z.string()).default([]),
+    author: z.string().default("EduC++ Team"),
+    draft: z.boolean().default(false),
+  }),
+});
+
+export const collections = { lessons, articles };

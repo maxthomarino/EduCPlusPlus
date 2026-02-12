@@ -1,0 +1,83 @@
+---
+import { getCollection, render, type CollectionEntry } from "astro:content";
+import BaseLayout from "../../layouts/BaseLayout.astro";
+
+export async function getStaticPaths() {
+  const allArticles = await getCollection(
+    "articles",
+    ({ data }) => import.meta.env.DEV || !data.draft
+  );
+
+  return allArticles.map((entry) => ({
+    params: { slug: entry.slug },
+    props: { entry },
+  }));
+}
+
+const { entry } = Astro.props as { entry: CollectionEntry<"articles"> };
+const { Content } = await render(entry);
+
+function formatDate(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+---
+
+<BaseLayout title={entry.data.title} description={entry.data.description}>
+  <main class="mx-auto max-w-3xl px-5 py-10 sm:px-7">
+    <article class="surface-card page-reveal p-6 sm:p-8">
+      <p class="text-xs font-medium tracking-[0.06em]" style="color: var(--text-muted);">
+        {formatDate(entry.data.publishDate)} - {entry.data.author}
+      </p>
+      <h1 class="display-font mt-2 text-4xl font-semibold tracking-tight" style="color: var(--text-primary);">
+        {entry.data.title}
+      </h1>
+      <p class="mt-3 text-base sm:text-lg" style="color: var(--text-secondary);">
+        {entry.data.description}
+      </p>
+      {entry.data.tags.length > 0 && (
+        <div class="mt-4 flex flex-wrap gap-1.5">
+          {entry.data.tags.map((tag) => (
+            <span class="chip">{tag}</span>
+          ))}
+        </div>
+      )}
+
+      <div class="article-content mt-8 border-t pt-6" style="border-color: var(--border-soft); color: var(--text-secondary);">
+        <Content />
+      </div>
+    </article>
+
+    <nav class="mt-6">
+      <a href="/articles" class="metric-pill hover-lift">All Articles</a>
+      <a href="/" class="metric-pill hover-lift ml-2">Docs Home</a>
+    </nav>
+  </main>
+</BaseLayout>
+
+<style is:global>
+  .article-content h2 {
+    margin-top: 1.4rem;
+    margin-bottom: 0.5rem;
+    font-size: 1.5rem;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+  }
+
+  .article-content p {
+    margin-top: 0.8rem;
+  }
+
+  .article-content ul,
+  .article-content ol {
+    margin-top: 0.7rem;
+    padding-left: 1.2rem;
+  }
+
+  .article-content li {
+    margin-top: 0.4rem;
+  }
+</style>
