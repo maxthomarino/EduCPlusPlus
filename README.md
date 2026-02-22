@@ -1,36 +1,56 @@
-# EduCPlusPlus
+# EduC++
 
-Educational repository for **Modern C++ (C++20)**.
+A modern C++20 learning site with structured lessons, editorial articles, and an interactive quiz.
 
-## Structure
+## What's Inside
 
-| Folder | Topic |
-|--------|-------|
-| `01_fundamentals/` | Basics, control flow, functions |
-| `02_oop/` | Classes, inheritance, polymorphism, constructors |
-| `03_memory_management/` | Smart pointers, RAII |
-| `04_stl_containers/` | Vectors, maps, sets, etc. |
-| `05_algorithms/` | STL algorithms, ranges |
-| `06_templates/` | Function/class templates, concepts |
-| `07_multithreading/` | Threads, mutex, futures, atomics |
-| `08_modern_features/` | Lambdas, move semantics, constexpr |
-| `09_cpp20_features/` | Concepts, ranges, coroutines, spaceship |
-| `10_error_handling/` | Exceptions, optional |
+- **14 lesson modules** — from fundamentals to advanced C++20 features
+- **Editorial articles** — deep dives on move semantics, structured bindings, and more
+- **128-question quiz** — multiple choice across 15 topics (CS fundamentals through advanced C++), three difficulty levels
 
-## Building
+## Tech Stack
 
-All examples use C++20. Compile with:
+- [Astro](https://astro.build/) — static site framework
+- [React](https://react.dev/) — interactive quiz component
+- [Tailwind CSS v4](https://tailwindcss.com/) — styling
+- Custom dark/light theme with CSS custom properties
+
+## Getting Started
 
 ```bash
-g++ -std=c++20 -o example example.cpp -pthread
+npm install
+npm run dev
 ```
 
-Or with MSVC:
+Open `http://localhost:4321`.
 
-```cmd
-cl /std:c++20 /EHsc example.cpp
+## Build
+
+```bash
+npm run build
 ```
+
+Output goes to `dist/`.
+
+## Topics Covered
+
+| Module | Topic |
+|--------|-------|
+| 01 | Fundamentals |
+| 02 | OOP |
+| 03 | Memory Management |
+| 04 | STL Containers |
+| 05 | Algorithms |
+| 06 | Templates |
+| 07 | Multithreading |
+| 08 | Modern C++ (lambdas, move semantics, constexpr) |
+| 09 | C++20 (concepts, ranges, coroutines, spaceship) |
+| 10 | Error Handling |
+| 11 | Type Casting |
+| 12 | I/O & Filesystem |
+| 13 | Build Systems (CMake) |
+| 14 | Variant & Type Traits |
 
 ## License
 
-MIT — use freely for learning!
+MIT
