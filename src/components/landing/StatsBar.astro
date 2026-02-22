@@ -1,0 +1,75 @@
+---
+interface Props {
+  totalLessons: number;
+  totalModules: number;
+  totalQuizQuestions: number;
+  totalTopics: number;
+}
+
+const { totalLessons, totalModules, totalQuizQuestions, totalTopics } = Astro.props;
+
+const stats = [
+  { value: totalLessons, label: "Lessons" },
+  { value: totalModules, label: "Modules" },
+  { value: totalQuizQuestions, label: "Quiz Questions" },
+  { value: totalTopics, label: "C++ Topics" },
+];
+---
+
+<section class="stats-bar page-reveal mb-8 rounded-xl p-5 sm:p-6">
+  <div class="stats-grid">
+    {stats.map((stat, i) => (
+      <div class="stat-item" style={`--delay: ${i * 80}ms`}>
+        <span class="display-font stat-value">{stat.value}</span>
+        <span class="stat-label">{stat.label}</span>
+      </div>
+    ))}
+  </div>
+</section>
+
+<style>
+  .stats-bar {
+    background: linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--accent-soft) 60%, var(--surface-elevated)),
+      color-mix(in srgb, var(--deep-soft) 40%, var(--surface-elevated))
+    );
+    border: 1px solid color-mix(in srgb, var(--accent) 15%, var(--border-soft));
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.25rem;
+  }
+
+  @media (min-width: 640px) {
+    .stats-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .stat-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    animation: counter-reveal 500ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+    animation-delay: var(--delay);
+  }
+
+  .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--accent);
+  }
+
+  .stat-label {
+    margin-top: 0.25rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--text-secondary);
+  }
+</style>
