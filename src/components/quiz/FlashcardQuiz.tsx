@@ -215,6 +215,28 @@ function MenuView({
         </div>
       </div>
 
+      {filteredCount === 0 && (
+        <div
+          class="surface-card p-5 sm:p-6"
+          style={{
+            marginBottom: "1.5rem",
+            textAlign: "center",
+            color: "var(--text-muted)",
+            fontSize: "0.88rem",
+            lineHeight: "1.6",
+          }}
+        >
+          <p style={{ fontWeight: "600", color: "var(--text-secondary)", marginBottom: "0.25rem" }}>
+            No questions selected
+          </p>
+          <p>
+            {selectedTopics.size === 0
+              ? "Select one or more topics above to begin your quiz."
+              : "No questions match your current filters. Try adjusting the difficulty or selecting more topics."}
+          </p>
+        </div>
+      )}
+
       <div
         style={{
           display: "flex",
@@ -252,7 +274,7 @@ function MenuView({
             padding: "0.5rem 1rem",
           }}
         >
-          Start Quiz →
+          {filteredCount === 0 ? "Select topics to start" : "Start Quiz →"}
         </button>
       </div>
     </div>
