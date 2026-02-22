@@ -50,39 +50,39 @@
 }
 
 .dark {
-  --surface-base: #070d1b;
-  --surface-elevated: #0f1729;
-  --surface-muted: #131f36;
-  --surface-glass: rgba(16, 24, 45, 0.72);
-  --surface-overlay: rgba(2, 6, 18, 0.68);
-  --surface-code: #090f1d;
+  --surface-base: #1c1c1c;
+  --surface-elevated: #262626;
+  --surface-muted: #2e2e2e;
+  --surface-glass: rgba(38, 38, 38, 0.75);
+  --surface-overlay: rgba(0, 0, 0, 0.55);
+  --surface-code: #1f1f1f;
 
-  --text-primary: #eaf1ff;
-  --text-secondary: #bdcbeb;
-  --text-muted: #8fa3c7;
-  --text-inverse: #eaf1ff;
+  --text-primary: #e8e8e8;
+  --text-secondary: #a3a3a3;
+  --text-muted: #737373;
+  --text-inverse: #e8e8e8;
 
-  --border-soft: #223453;
-  --border-strong: #2f4671;
+  --border-soft: #383838;
+  --border-strong: #4a4a4a;
 
-  --accent: #74a7ff;
-  --accent-soft: rgba(67, 116, 216, 0.2);
-  --accent-strong: #9cc1ff;
-  --focus-ring: #8ab4ff;
+  --accent: #9a9a9a;
+  --accent-soft: rgba(154, 154, 154, 0.13);
+  --accent-strong: #c4c4c4;
+  --focus-ring: #858585;
 
-  --success: #40c49a;
-  --success-soft: rgba(57, 153, 121, 0.2);
-  --warning: #f0b656;
-  --warning-soft: rgba(173, 123, 48, 0.2);
-  --deep: #9c8aff;
-  --deep-soft: rgba(104, 83, 215, 0.2);
+  --success: #4eca9e;
+  --success-soft: rgba(78, 202, 158, 0.14);
+  --warning: #e8b04a;
+  --warning-soft: rgba(232, 176, 74, 0.14);
+  --deep: #a99cff;
+  --deep-soft: rgba(169, 156, 255, 0.14);
 
-  --shadow-sm: 0 8px 22px -16px rgba(0, 0, 0, 0.65);
-  --shadow-md: 0 16px 36px -26px rgba(0, 0, 0, 0.74);
+  --shadow-sm: 0 8px 22px -16px rgba(0, 0, 0, 0.6);
+  --shadow-md: 0 16px 36px -26px rgba(0, 0, 0, 0.7);
 
-  --hero-grad-a: rgba(87, 135, 255, 0.11);
-  --hero-grad-b: rgba(45, 165, 143, 0.08);
-  --hero-grad-c: rgba(158, 129, 255, 0.08);
+  --hero-grad-a: rgba(130, 130, 130, 0.05);
+  --hero-grad-b: rgba(78, 202, 158, 0.03);
+  --hero-grad-c: rgba(169, 156, 255, 0.03);
 }
 
 html {
@@ -312,7 +312,10 @@ details[open] > summary .chevron {
 }
 
 .gradient-title {
-  color: var(--accent-strong);
+  background: linear-gradient(135deg, var(--accent-strong), var(--deep), var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .copy-button {
@@ -343,6 +346,33 @@ details[open] > summary .chevron {
     transform: translateY(0);
   }
 }
+
+/* Flashcard quiz animations */
+@keyframes card-enter {
+  from { opacity: 0; transform: translateX(24px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes card-exit {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(-24px); }
+}
+
+@keyframes answer-pop {
+  0%   { transform: scale(1); }
+  50%  { transform: scale(1.02); }
+  100% { transform: scale(1); }
+}
+
+@keyframes score-count {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.card-enter { animation: card-enter 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.card-exit  { animation: card-exit 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.answer-pop { animation: answer-pop 300ms ease both; }
+.score-enter { animation: score-count 400ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 
 @media (prefers-reduced-motion: reduce) {
   html {
