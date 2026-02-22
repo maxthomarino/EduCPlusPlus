@@ -6,7 +6,7 @@ A modern C++20 learning site with structured lessons, editorial articles, and an
 
 - **14 lesson modules** — from fundamentals to advanced C++20 features
 - **Editorial articles** — deep dives on move semantics, structured bindings, and more
-- **128-question quiz** — multiple choice across 15 topics (CS fundamentals through advanced C++), three difficulty levels
+- **178-question quiz** — multiple choice across 15 topics (CS fundamentals through advanced C++), three difficulty levels
 
 ## Tech Stack
 
