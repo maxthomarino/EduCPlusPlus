@@ -96,6 +96,7 @@ function MenuView({
   onStart,
   selectAll,
   selectNone,
+  topicCounts,
 }: {
   selectedTopics: Set<string>;
   toggleTopic: (t: string) => void;
@@ -105,6 +106,7 @@ function MenuView({
   onStart: () => void;
   selectAll: () => void;
   selectNone: () => void;
+  topicCounts: Map<string, number>;
 }) {
   const difficulties: Difficulty[] = ["All", "Easy", "Medium", "Hard"];
 
@@ -133,9 +135,10 @@ function MenuView({
             </button>
           </div>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
           {TOPICS.map((t) => {
             const active = selectedTopics.has(t);
+            const count = topicCounts.get(t) ?? 0;
             return (
               <button
                 key={t}
@@ -143,6 +146,11 @@ function MenuView({
                 class="chip"
                 style={{
                   cursor: "pointer",
+                  padding: "0.35rem 0.7rem",
+                  fontSize: "0.78rem",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
                   background: active
                     ? "var(--accent-soft)"
                     : "color-mix(in srgb, var(--surface-elevated) 78%, var(--surface-muted))",
@@ -153,6 +161,21 @@ function MenuView({
                 }}
               >
                 {t}
+                <span
+                  style={{
+                    fontSize: "0.68rem",
+                    fontWeight: "700",
+                    padding: "0.05rem 0.35rem",
+                    borderRadius: "0.35rem",
+                    background: active
+                      ? "color-mix(in srgb, var(--accent) 15%, transparent)"
+                      : "color-mix(in srgb, var(--surface-muted) 80%, transparent)",
+                    color: active ? "var(--accent)" : "var(--text-muted)",
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  {count}
+                </span>
               </button>
             );
           })}
@@ -192,6 +215,28 @@ function MenuView({
         </div>
       </div>
 
+      {filteredCount === 0 && (
+        <div
+          class="surface-card p-5 sm:p-6"
+          style={{
+            marginBottom: "1.5rem",
+            textAlign: "center",
+            color: "var(--text-muted)",
+            fontSize: "0.88rem",
+            lineHeight: "1.6",
+          }}
+        >
+          <p style={{ fontWeight: "600", color: "var(--text-secondary)", marginBottom: "0.25rem" }}>
+            No questions selected
+          </p>
+          <p>
+            {selectedTopics.size === 0
+              ? "Select one or more topics above to begin your quiz."
+              : "No questions match your current filters. Try adjusting the difficulty or selecting more topics."}
+          </p>
+        </div>
+      )}
+
       <div
         style={{
           display: "flex",
@@ -229,7 +274,7 @@ function MenuView({
             padding: "0.5rem 1rem",
           }}
         >
-          Start Quiz →
+          {filteredCount === 0 ? "Select topics to start" : "Start Quiz →"}
         </button>
       </div>
     </div>
@@ -717,7 +762,7 @@ function ResultsView({
 export default function FlashcardQuiz() {
   const [view, setView] = useState<View>("menu");
   const [selectedTopics, setSelectedTopics] = useState<Set<string>>(
-    () => new Set(TOPICS)
+    () => new Set<string>()
   );
   const [difficulty, setDifficulty] = useState<Difficulty>("All");
   const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
@@ -726,6 +771,17 @@ export default function FlashcardQuiz() {
   const [revealed, setRevealed] = useState(false);
   const [answers, setAnswers] = useState<AnswerRecord[]>([]);
   const [animClass, setAnimClass] = useState("card-enter");
+
+  const topicCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const t of TOPICS) counts.set(t, 0);
+    for (const q of allQuestions) {
+      if (difficulty === "All" || q.difficulty === difficulty) {
+        counts.set(q.topic, (counts.get(q.topic) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [difficulty]);
 
   const filteredQuestions = useMemo(() => {
     return allQuestions.filter(
@@ -858,6 +914,7 @@ export default function FlashcardQuiz() {
           onStart={startQuiz}
           selectAll={selectAll}
           selectNone={selectNone}
+          topicCounts={topicCounts}
         />
       )}
 

@@ -1,15 +1,15 @@
 {
   "active": true,
-  "spec": "002-enhance-landing-page-for-c-developers",
-  "state": "complete",
+  "spec": "001-enhance-quiz-topic-list-accessibility-and-ui",
+  "state": "building",
   "subtasks": {
-    "completed": 10,
-    "total": 10,
-    "in_progress": 0,
+    "completed": 5,
+    "total": 6,
+    "in_progress": 1,
     "failed": 0
   },
   "phase": {
-    "current": "Build & Quality Verification",
+    "current": "Testing & Final Verification",
     "id": null,
     "total": 1
   },
@@ -18,8 +18,8 @@
     "max": 1
   },
   "session": {
-    "number": 10,
-    "started_at": "2026-02-22T16:10:44.502495"
+    "number": 6,
+    "started_at": "2026-02-22T16:04:16.418025"
   },
-  "last_update": "2026-02-22T16:24:06.364351"
+  "last_update": "2026-02-22T16:14:11.929099"
 }
