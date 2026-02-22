@@ -717,7 +717,7 @@ function ResultsView({
 export default function FlashcardQuiz() {
   const [view, setView] = useState<View>("menu");
   const [selectedTopics, setSelectedTopics] = useState<Set<string>>(
-    () => new Set(TOPICS)
+    () => new Set<string>()
   );
   const [difficulty, setDifficulty] = useState<Difficulty>("All");
   const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
@@ -726,6 +726,17 @@ export default function FlashcardQuiz() {
   const [revealed, setRevealed] = useState(false);
   const [answers, setAnswers] = useState<AnswerRecord[]>([]);
   const [animClass, setAnimClass] = useState("card-enter");
+
+  const topicCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const t of TOPICS) counts.set(t, 0);
+    for (const q of allQuestions) {
+      if (difficulty === "All" || q.difficulty === difficulty) {
+        counts.set(q.topic, (counts.get(q.topic) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [difficulty]);
 
   const filteredQuestions = useMemo(() => {
     return allQuestions.filter(
