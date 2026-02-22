@@ -1,14 +1,8 @@
----
+﻿---
 import { getCollection } from "astro:content";
 import DocLayout from "../layouts/DocLayout.astro";
 import { buildSidebarData } from "../lib/sidebar-data.js";
 import type { ParsedFile } from "../lib/types.js";
-import HeroSection from "../components/landing/HeroSection.astro";
-import FeatureCards from "../components/landing/FeatureCards.astro";
-import LearningPath from "../components/landing/LearningPath.astro";
-import StatsBar from "../components/landing/StatsBar.astro";
-import CTACard from "../components/landing/CTACard.astro";
-import Footer from "../components/landing/Footer.astro";
 
 const allLessons = await getCollection("lessons");
 const allArticles = await getCollection(
@@ -24,8 +18,6 @@ const totalArticles = allArticles.length;
 const latestArticles = allArticles
   .sort((a, b) => b.data.publishDate.getTime() - a.data.publishDate.getTime())
   .slice(0, 3);
-
-const firstLessonSlug = sidebarData[0]?.subfolders[0]?.files[0]?.slug || "";
 
 function formatDate(date: Date): string {
   return date.toLocaleDateString("en-US", {
@@ -48,28 +40,70 @@ function getLevel(order: number): { label: string; tone: string } {
 
 <DocLayout
   title="EduC++ Documentation"
-  description="Master modern C++20 through structured lessons, runnable examples, and interactive quizzes — a professional learning platform for C++ developers."
+  description="Modern C++ educational documentation"
   sidebarData={sidebarData}
   currentSlug=""
 >
-  <div class="stagger-reveal" style="--stagger-delay: 0ms">
-    <HeroSection
-      totalLessons={totalFiles}
-      totalModules={totalModules}
-      totalArticles={totalArticles}
-      firstLessonSlug={firstLessonSlug}
-    />
-  </div>
+  <section class="page-reveal surface-card mb-8 overflow-hidden p-6 sm:p-8">
+    <p class="eyebrow gradient-title mb-3">Modern C++ Learning Studio</p>
+    <h1 class="display-font text-4xl font-semibold tracking-tight sm:text-5xl">
+      <span style="color: var(--text-primary);">Learn modern </span>
+      <span class="gradient-title">C++20</span>
+      <span style="color: var(--text-primary);"> through practical examples.</span>
+    </h1>
+    <p class="mt-4 max-w-2xl text-base sm:text-lg" style="color: var(--text-secondary);">
+      A structured path from core fundamentals to advanced features, with focused explanations,
+      runnable code, and clear decision-making guidance.
+    </p>
+    <div class="mt-5 flex flex-wrap gap-2.5">
+      <span class="metric-pill"><strong>{totalFiles}</strong>&nbsp;lessons</span>
+      <span class="metric-pill"><strong>{totalModules}</strong>&nbsp;modules</span>
+      <span class="metric-pill"><strong>{totalArticles}</strong>&nbsp;articles</span>
+      <span class="metric-pill">C++20-first</span>
+      <span class="metric-pill">Runnable examples</span>
+    </div>
+    <div class="mt-6 flex flex-wrap gap-2">
+      <span class="chip">Guided progression</span>
+      <span class="chip">Concept clarity</span>
+      <a href="/articles" class="chip hover-lift">Article library</a>
+    </div>
+  </section>
 
-  <div class="stagger-reveal" style="--stagger-delay: 60ms">
-    <FeatureCards />
-  </div>
+  <section class="surface-card-soft page-reveal mb-8 p-5 sm:p-6">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <p class="eyebrow mb-1">Also Available</p>
+        <h2 class="display-font text-xl font-semibold tracking-tight" style="color: var(--text-primary);">
+          Editorial <span class="gradient-title">C++ Articles</span>
+        </h2>
+        <p class="mt-1 text-sm sm:text-base" style="color: var(--text-secondary);">
+          Deep dives and practical discussions beyond the lesson path.
+        </p>
+      </div>
+      <a href="/articles" class="metric-pill hover-lift">Browse all articles</a>
+    </div>
+  </section>
 
-  <div class="stagger-reveal mb-3" style="--stagger-delay: 120ms">
+  <section class="surface-card-soft page-reveal mb-8 p-5 sm:p-6">
+    <div class="flex flex-wrap items-end justify-between gap-3">
+      <div>
+        <p class="eyebrow mb-1">Test Your Knowledge</p>
+        <h2 class="display-font text-xl font-semibold tracking-tight" style="color: var(--text-primary);">
+          <span class="gradient-title">C++ Quiz</span>
+        </h2>
+        <p class="mt-1 text-sm sm:text-base" style="color: var(--text-secondary);">
+          128 multiple choice questions covering all 15 topics, from CS fundamentals to advanced C++20.
+        </p>
+      </div>
+      <a href="/quiz" class="metric-pill hover-lift">Start quiz</a>
+    </div>
+  </section>
+
+  <div class="mb-3">
     <h2 class="display-font text-2xl font-semibold tracking-tight" style="color: var(--text-primary);">Explore <span class="gradient-title">Modules</span></h2>
   </div>
 
-  <div class="stagger-reveal grid gap-4 sm:grid-cols-2" style="--stagger-delay: 180ms">
+  <div class="grid gap-4 sm:grid-cols-2">
     {sidebarData.map((mod) => {
       const firstFile = mod.subfolders[0]?.files[0];
       const fileCount = mod.subfolders.reduce((sum, sub) => sum + sub.files.length, 0);
@@ -109,41 +143,23 @@ function getLevel(order: number): { label: string; tone: string } {
     })}
   </div>
 
-  <div class="stagger-reveal" style="--stagger-delay: 240ms">
-    <LearningPath sidebarData={sidebarData} />
-  </div>
+  <section class="surface-card-soft page-reveal mt-10 p-5 text-sm" style="color: var(--text-secondary);">
+    <p class="display-font text-base font-semibold" style="color: var(--text-primary);">Getting Started</p>
+    <p class="mt-1.5">
+      Pick a module from the sidebar or the cards above. Each lesson contains documented C++ code with
+      explanations, FAQs, common pitfalls, and runnable examples. Start with {" "}
+      <a
+        href={`/${sidebarData[0]?.subfolders[0]?.files[0]?.slug || ""}`}
+        class="font-semibold underline decoration-2 underline-offset-2"
+        style="color: var(--accent);"
+      >
+        Module 1: Fundamentals
+      </a>{" "}
+      if you're new to Modern C++.
+    </p>
+  </section>
 
-  <div class="stagger-reveal" style="--stagger-delay: 300ms">
-    <StatsBar
-      totalLessons={totalFiles}
-      totalModules={totalModules}
-      totalQuizQuestions={128}
-      totalTopics={15}
-    />
-  </div>
-
-  <div class="stagger-reveal" style="--stagger-delay: 360ms">
-    <CTACard
-      eyebrow="Also Available"
-      title="C++ Articles"
-      description="Deep dives and practical discussions beyond the lesson path."
-      linkText="Browse all articles"
-      linkHref="/articles"
-    />
-  </div>
-
-  <div class="stagger-reveal" style="--stagger-delay: 420ms">
-    <CTACard
-      eyebrow="Test Your Knowledge"
-      title="C++ Quiz"
-      description="128 multiple choice questions covering all 15 topics, from CS fundamentals to advanced C++20."
-      linkText="Start quiz"
-      linkHref="/quiz"
-      variant="deep"
-    />
-  </div>
-
-  <section class="stagger-reveal page-reveal mt-10" style="--stagger-delay: 480ms">
+  <section class="page-reveal mt-10">
     <div class="mb-3 flex items-end justify-between gap-3">
       <h2 class="display-font text-2xl font-semibold tracking-tight" style="color: var(--text-primary);">
         <span class="gradient-title">C++ Articles</span>
@@ -172,23 +188,7 @@ function getLevel(order: number): { label: string; tone: string } {
     )}
   </section>
 
-  <section class="stagger-reveal surface-card-soft page-reveal mt-10 p-5 text-sm" style="color: var(--text-secondary); --stagger-delay: 540ms">
-    <p class="display-font text-base font-semibold" style="color: var(--text-primary);">Getting Started</p>
-    <p class="mt-1.5">
-      Pick a module from the sidebar or the cards above. Each lesson contains documented C++ code with
-      explanations, FAQs, common pitfalls, and runnable examples. Start with {" "}
-      <a
-        href={`/${firstLessonSlug}`}
-        class="font-semibold underline decoration-2 underline-offset-2"
-        style="color: var(--accent);"
-      >
-        Module 1: Fundamentals
-      </a>{" "}
-      if you're new to Modern C++.
-    </p>
-  </section>
-
-  <div class="stagger-reveal" style="--stagger-delay: 600ms">
-    <Footer authorName="Max Marino" authorUrl="https://www.maxthomarino.com/" />
-  </div>
+  <footer class="mt-12 mb-6 text-center text-xs" style="color: var(--text-muted);">
+    Built by <a href="https://www.maxthomarino.com/" class="font-semibold underline decoration-1 underline-offset-2" style="color: var(--text-secondary);">Max Marino</a>
+  </footer>
 </DocLayout>
