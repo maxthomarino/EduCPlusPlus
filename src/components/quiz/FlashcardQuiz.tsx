@@ -467,6 +467,25 @@ function QuizView({
             {selected === question.correctIndex ? "Correct!" : "Incorrect"}
           </p>
           <p>{question.explanation}</p>
+          {question.link && (
+            <a
+              href={question.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                display: "inline-flex",
+                alignItems: "center",
+                gap: "0.3rem",
+                marginTop: "0.5rem",
+                fontSize: "0.82rem",
+                color: "var(--accent)",
+                textDecoration: "none",
+                fontWeight: 500,
+              }}
+            >
+              Learn more ↗
+            </a>
+          )}
         </div>
       )}
 
