@@ -1,0 +1,39 @@
+{
+  "sandbox": {
+    "enabled": true,
+    "autoAllowBashIfSandboxed": true
+  },
+  "permissions": {
+    "defaultMode": "acceptEdits",
+    "allow": [
+      "Read(./**)",
+      "Write(./**)",
+      "Edit(./**)",
+      "Glob(./**)",
+      "Grep(./**)",
+      "Read(C:\\Users\\max\\Documents\\MCQ_CPP\\EduCPlusPlus\\.auto-claude\\worktrees\\tasks\\002-enhance-landing-page-for-c-developers/**)",
+      "Write(C:\\Users\\max\\Documents\\MCQ_CPP\\EduCPlusPlus\\.auto-claude\\worktrees\\tasks\\002-enhance-landing-page-for-c-developers/**)",
+      "Edit(C:\\Users\\max\\Documents\\MCQ_CPP\\EduCPlusPlus\\.auto-claude\\worktrees\\tasks\\002-enhance-landing-page-for-c-developers/**)",
+      "Glob(C:\\Users\\max\\Documents\\MCQ_CPP\\EduCPlusPlus\\.auto-claude\\worktrees\\tasks\\002-enhance-landing-page-for-c-developers/**)",
+      "Grep(C:\\Users\\max\\Documents\\MCQ_CPP\\EduCPlusPlus\\.auto-claude\\worktrees\\tasks\\002-enhance-landing-page-for-c-developers/**)",
+      "Read(C:\\Users\\max\\Documents\\MCQ_CPP\\EduCPlusPlus\\.auto-claude\\worktrees\\tasks\\002-enhance-landing-page-for-c-developers\\.auto-claude\\specs\\002-enhance-landing-page-for-c-developers/**)",
+      "Write(C:\\Users\\max\\Documents\\MCQ_CPP\\EduCPlusPlus\\.auto-claude\\worktrees\\tasks\\002-enhance-landing-page-for-c-developers\\.auto-claude\\specs\\002-enhance-landing-page-for-c-developers/**)",
+      "Edit(C:\\Users\\max\\Documents\\MCQ_CPP\\EduCPlusPlus\\.auto-claude\\worktrees\\tasks\\002-enhance-landing-page-for-c-developers\\.auto-claude\\specs\\002-enhance-landing-page-for-c-developers/**)",
+      "Read(C:\\Users\\max\\Documents\\MCQ_CPP\\EduCPlusPlus\\.auto-claude/**)",
+      "Write(C:\\Users\\max\\Documents\\MCQ_CPP\\EduCPlusPlus\\.auto-claude/**)",
+      "Edit(C:\\Users\\max\\Documents\\MCQ_CPP\\EduCPlusPlus\\.auto-claude/**)",
+      "Glob(C:\\Users\\max\\Documents\\MCQ_CPP\\EduCPlusPlus\\.auto-claude/**)",
+      "Grep(C:\\Users\\max\\Documents\\MCQ_CPP\\EduCPlusPlus\\.auto-claude/**)",
+      "Bash(*)",
+      "WebFetch(*)",
+      "WebSearch(*)",
+      "mcp__context7__resolve-library-id(*)",
+      "mcp__context7__query-docs(*)",
+      "mcp__graphiti-memory__search_nodes(*)",
+      "mcp__graphiti-memory__search_facts(*)",
+      "mcp__graphiti-memory__add_episode(*)",
+      "mcp__graphiti-memory__get_episodes(*)",
+      "mcp__graphiti-memory__get_entity_edge(*)"
+    ]
+  }
+}

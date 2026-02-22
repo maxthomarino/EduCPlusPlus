@@ -52,7 +52,7 @@ function getLevel(order: number): { label: string; tone: string } {
   sidebarData={sidebarData}
   currentSlug=""
 >
-  <div style="--stagger: 0">
+  <div class="stagger-reveal" style="--stagger-delay: 0ms">
     <HeroSection
       totalLessons={totalFiles}
       totalModules={totalModules}
@@ -61,15 +61,15 @@ function getLevel(order: number): { label: string; tone: string } {
     />
   </div>
 
-  <div style="--stagger: 1">
+  <div class="stagger-reveal" style="--stagger-delay: 60ms">
     <FeatureCards />
   </div>
 
-  <div class="mb-3" style="--stagger: 2">
+  <div class="stagger-reveal mb-3" style="--stagger-delay: 120ms">
     <h2 class="display-font text-2xl font-semibold tracking-tight" style="color: var(--text-primary);">Explore <span class="gradient-title">Modules</span></h2>
   </div>
 
-  <div class="grid gap-4 sm:grid-cols-2" style="--stagger: 3">
+  <div class="stagger-reveal grid gap-4 sm:grid-cols-2" style="--stagger-delay: 180ms">
     {sidebarData.map((mod) => {
       const firstFile = mod.subfolders[0]?.files[0];
       const fileCount = mod.subfolders.reduce((sum, sub) => sum + sub.files.length, 0);
@@ -109,11 +109,11 @@ function getLevel(order: number): { label: string; tone: string } {
     })}
   </div>
 
-  <div style="--stagger: 4">
+  <div class="stagger-reveal" style="--stagger-delay: 240ms">
     <LearningPath sidebarData={sidebarData} />
   </div>
 
-  <div style="--stagger: 5">
+  <div class="stagger-reveal" style="--stagger-delay: 300ms">
     <StatsBar
       totalLessons={totalFiles}
       totalModules={totalModules}
@@ -122,7 +122,7 @@ function getLevel(order: number): { label: string; tone: string } {
     />
   </div>
 
-  <div style="--stagger: 6">
+  <div class="stagger-reveal" style="--stagger-delay: 360ms">
     <CTACard
       eyebrow="Also Available"
       title="C++ Articles"
@@ -132,7 +132,7 @@ function getLevel(order: number): { label: string; tone: string } {
     />
   </div>
 
-  <div style="--stagger: 7">
+  <div class="stagger-reveal" style="--stagger-delay: 420ms">
     <CTACard
       eyebrow="Test Your Knowledge"
       title="C++ Quiz"
@@ -143,7 +143,7 @@ function getLevel(order: number): { label: string; tone: string } {
     />
   </div>
 
-  <section class="page-reveal mt-10" style="--stagger: 8">
+  <section class="stagger-reveal page-reveal mt-10" style="--stagger-delay: 480ms">
     <div class="mb-3 flex items-end justify-between gap-3">
       <h2 class="display-font text-2xl font-semibold tracking-tight" style="color: var(--text-primary);">
         <span class="gradient-title">C++ Articles</span>
@@ -172,7 +172,7 @@ function getLevel(order: number): { label: string; tone: string } {
     )}
   </section>
 
-  <section class="surface-card-soft page-reveal mt-10 p-5 text-sm" style="color: var(--text-secondary); --stagger: 9">
+  <section class="stagger-reveal surface-card-soft page-reveal mt-10 p-5 text-sm" style="color: var(--text-secondary); --stagger-delay: 540ms">
     <p class="display-font text-base font-semibold" style="color: var(--text-primary);">Getting Started</p>
     <p class="mt-1.5">
       Pick a module from the sidebar or the cards above. Each lesson contains documented C++ code with
@@ -188,7 +188,7 @@ function getLevel(order: number): { label: string; tone: string } {
     </p>
   </section>
 
-  <div style="--stagger: 10">
+  <div class="stagger-reveal" style="--stagger-delay: 600ms">
     <Footer authorName="Max Marino" authorUrl="https://www.maxthomarino.com/" />
   </div>
 </DocLayout>

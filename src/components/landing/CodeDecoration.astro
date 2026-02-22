@@ -10,12 +10,12 @@ const { class: className } = Astro.props;
   class:list={["code-decoration", className]}
   aria-hidden="true"
   set:html={`<span style="color: var(--text-muted);">// C++20 concepts</span>
-<span style="color: var(--accent-primary);">template</span>&lt;<span style="color: var(--accent-primary);">typename</span> T&gt;
-<span style="color: var(--accent-primary);">concept</span> <span style="color: var(--text-primary);">Printable</span> = <span style="color: var(--accent-primary);">requires</span>(T val) {
-  { std::cout &lt;&lt; val } -&gt; std::same_as&lt;<span style="color: var(--accent-primary);">void</span>&gt;;
+<span style="color: var(--accent-strong);">template</span>&lt;<span style="color: var(--accent-strong);">typename</span> T&gt;
+<span style="color: var(--accent-strong);">concept</span> <span style="color: var(--text-primary);">Printable</span> = <span style="color: var(--accent-strong);">requires</span>(T val) {
+  { std::cout &lt;&lt; val } -&gt; std::same_as&lt;<span style="color: var(--accent-strong);">void</span>&gt;;
 };
 
-<span style="color: var(--accent-primary);">auto</span> print(<span style="color: var(--text-primary);">Printable</span> <span style="color: var(--accent-primary);">auto</span> val) {
+<span style="color: var(--accent-strong);">auto</span> print(<span style="color: var(--text-primary);">Printable</span> <span style="color: var(--accent-strong);">auto</span> val) {
   std::cout &lt;&lt; val &lt;&lt; <span style="color: var(--text-muted);">'\\n'</span>;
 }`}
 />
