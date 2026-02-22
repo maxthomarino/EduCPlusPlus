@@ -96,6 +96,7 @@ function MenuView({
   onStart,
   selectAll,
   selectNone,
+  topicCounts,
 }: {
   selectedTopics: Set<string>;
   toggleTopic: (t: string) => void;
@@ -105,6 +106,7 @@ function MenuView({
   onStart: () => void;
   selectAll: () => void;
   selectNone: () => void;
+  topicCounts: Map<string, number>;
 }) {
   const difficulties: Difficulty[] = ["All", "Easy", "Medium", "Hard"];
 
@@ -133,9 +135,10 @@ function MenuView({
             </button>
           </div>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
           {TOPICS.map((t) => {
             const active = selectedTopics.has(t);
+            const count = topicCounts.get(t) ?? 0;
             return (
               <button
                 key={t}
@@ -143,6 +146,11 @@ function MenuView({
                 class="chip"
                 style={{
                   cursor: "pointer",
+                  padding: "0.35rem 0.7rem",
+                  fontSize: "0.78rem",
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "0.35rem",
                   background: active
                     ? "var(--accent-soft)"
                     : "color-mix(in srgb, var(--surface-elevated) 78%, var(--surface-muted))",
@@ -153,6 +161,21 @@ function MenuView({
                 }}
               >
                 {t}
+                <span
+                  style={{
+                    fontSize: "0.68rem",
+                    fontWeight: "700",
+                    padding: "0.05rem 0.35rem",
+                    borderRadius: "0.35rem",
+                    background: active
+                      ? "color-mix(in srgb, var(--accent) 15%, transparent)"
+                      : "color-mix(in srgb, var(--surface-muted) 80%, transparent)",
+                    color: active ? "var(--accent)" : "var(--text-muted)",
+                    transition: "all 0.18s ease",
+                  }}
+                >
+                  {count}
+                </span>
               </button>
             );
           })}
@@ -869,6 +892,7 @@ export default function FlashcardQuiz() {
           onStart={startQuiz}
           selectAll={selectAll}
           selectNone={selectNone}
+          topicCounts={topicCounts}
         />
       )}
 
