@@ -1,0 +1,40 @@
+---
+interface Props {
+  class?: string;
+}
+
+const { class: className } = Astro.props;
+---
+
+<pre
+  class:list={["code-decoration", className]}
+  aria-hidden="true"
+  set:html={`<span style="color: var(--text-muted);">// C++20 concepts</span>
+<span style="color: var(--accent-strong);">template</span>&lt;<span style="color: var(--accent-strong);">typename</span> T&gt;
+<span style="color: var(--accent-strong);">concept</span> <span style="color: var(--text-primary);">Printable</span> = <span style="color: var(--accent-strong);">requires</span>(T val) {
+  { std::cout &lt;&lt; val } -&gt; std::same_as&lt;<span style="color: var(--accent-strong);">void</span>&gt;;
+};
+
+<span style="color: var(--accent-strong);">auto</span> print(<span style="color: var(--text-primary);">Printable</span> <span style="color: var(--accent-strong);">auto</span> val) {
+  std::cout &lt;&lt; val &lt;&lt; <span style="color: var(--text-muted);">'\\n'</span>;
+}`}
+/>
+
+<style>
+  .code-decoration {
+    position: absolute;
+    font-family: var(--font-code);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    opacity: 0.12;
+    pointer-events: none;
+    user-select: none;
+    white-space: pre;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    color: var(--text-secondary);
+    animation: float-decoration 6s ease-in-out infinite;
+  }
+</style>

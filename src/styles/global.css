@@ -47,6 +47,13 @@
   --hero-grad-a: rgba(57, 107, 255, 0.1);
   --hero-grad-b: rgba(47, 190, 165, 0.06);
   --hero-grad-c: rgba(196, 122, 255, 0.04);
+
+  --landing-grad-start: #2f6df6;
+  --landing-grad-mid: #5e49d6;
+  --landing-grad-end: #0f8f67;
+  --landing-decoration: rgba(47, 109, 246, 0.08);
+  --landing-glow: rgba(94, 73, 214, 0.12);
+  --landing-shimmer: rgba(47, 109, 246, 0.18);
 }
 
 .dark {
@@ -83,6 +90,13 @@
   --hero-grad-a: rgba(130, 130, 130, 0.05);
   --hero-grad-b: rgba(78, 202, 158, 0.03);
   --hero-grad-c: rgba(169, 156, 255, 0.03);
+
+  --landing-grad-start: #c4c4c4;
+  --landing-grad-mid: #a99cff;
+  --landing-grad-end: #4eca9e;
+  --landing-decoration: rgba(154, 154, 154, 0.06);
+  --landing-glow: rgba(169, 156, 255, 0.1);
+  --landing-shimmer: rgba(154, 154, 154, 0.14);
 }
 
 html {
@@ -373,6 +387,72 @@ details[open] > summary .chevron {
 .card-exit  { animation: card-exit 200ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 .answer-pop { animation: answer-pop 300ms ease both; }
 .score-enter { animation: score-count 400ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+
+/* Landing page animations */
+@keyframes cascade-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes float-decoration {
+  0%, 100% {
+    transform: translateY(0) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-8px) rotate(1.5deg);
+  }
+}
+
+@keyframes gradient-shimmer {
+  0% {
+    background-position: -200% center;
+  }
+  100% {
+    background-position: 200% center;
+  }
+}
+
+@keyframes counter-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(6px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.stagger-reveal {
+  opacity: 0;
+  animation: cascade-reveal 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  animation-delay: var(--stagger-delay, 0ms);
+}
+
+.landing-section {
+  padding-block: 4.5rem;
+  max-width: 72rem;
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+.icon-card {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 0.75rem;
+  background: var(--accent-soft);
+  color: var(--accent);
+  flex-shrink: 0;
+}
 
 @media (prefers-reduced-motion: reduce) {
   html {

@@ -1,0 +1,84 @@
+---
+interface Props {
+  authorName?: string;
+  authorUrl?: string;
+}
+
+const { authorName = "Max Marino", authorUrl = "https://www.maxthomarino.com/" } = Astro.props;
+---
+
+<footer class="page-reveal mt-12 mb-6" style="border-top: 1px solid var(--border-soft); padding-top: 2rem;">
+  <div class="footer-grid">
+    <!-- Branding -->
+    <div class="footer-brand">
+      <p class="display-font text-base font-semibold" style="color: var(--text-primary);">
+        EduC++
+      </p>
+      <p class="mt-1 text-xs" style="color: var(--text-muted);">
+        Modern C++20 Learning Platform
+      </p>
+    </div>
+
+    <!-- Navigation -->
+    <div class="footer-nav">
+      <div>
+        <p class="text-xs font-semibold tracking-[0.06em]" style="color: var(--text-secondary);">Modules</p>
+        <a href="/" class="footer-link">Browse modules</a>
+      </div>
+      <div>
+        <p class="text-xs font-semibold tracking-[0.06em]" style="color: var(--text-secondary);">Articles</p>
+        <a href="/articles" class="footer-link">Read articles</a>
+      </div>
+      <div>
+        <p class="text-xs font-semibold tracking-[0.06em]" style="color: var(--text-secondary);">Quiz</p>
+        <a href="/quiz" class="footer-link">Take the quiz</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Credit -->
+  <p class="mt-6 text-center text-xs" style="color: var(--text-muted);">
+    Built by <a
+      href={authorUrl}
+      class="font-semibold underline decoration-1 underline-offset-2"
+      style="color: var(--text-secondary);"
+      rel="noopener noreferrer"
+    >{authorName}</a>
+  </p>
+</footer>
+
+<style>
+  .footer-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    align-items: center;
+    text-align: center;
+  }
+
+  .footer-nav {
+    display: flex;
+    gap: 2rem;
+  }
+
+  .footer-link {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-decoration: none;
+  }
+
+  .footer-link:hover {
+    color: var(--text-secondary);
+  }
+
+  @media (min-width: 640px) {
+    .footer-grid {
+      flex-direction: row;
+      justify-content: space-between;
+      align-items: flex-start;
+      text-align: left;
+    }
+  }
+</style>
