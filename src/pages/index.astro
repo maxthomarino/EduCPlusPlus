@@ -1,4 +1,4 @@
-﻿---
+---
 import { getCollection } from "astro:content";
 import DocLayout from "../layouts/DocLayout.astro";
 import { buildSidebarData } from "../lib/sidebar-data.js";
@@ -11,7 +11,6 @@ const allArticles = await getCollection(
 );
 const sidebarData = buildSidebarData(allLessons.map((e) => e.data as unknown as ParsedFile));
 
-// Total counts
 const totalFiles = allLessons.length;
 const totalModules = sidebarData.length;
 const totalArticles = allArticles.length;
@@ -27,14 +26,10 @@ function formatDate(date: Date): string {
   });
 }
 
-function getLevel(order: number): { label: string; tone: string } {
-  if (order <= 4) {
-    return { label: "Beginner", tone: "border: 1px solid color-mix(in srgb, var(--success) 24%, var(--border-soft)); background: color-mix(in srgb, var(--success-soft) 55%, var(--surface-elevated)); color: var(--success);" };
-  }
-  if (order <= 9) {
-    return { label: "Intermediate", tone: "border: 1px solid color-mix(in srgb, var(--warning) 24%, var(--border-soft)); background: color-mix(in srgb, var(--warning-soft) 55%, var(--surface-elevated)); color: var(--warning);" };
-  }
-  return { label: "Advanced", tone: "border: 1px solid color-mix(in srgb, var(--deep) 24%, var(--border-soft)); background: color-mix(in srgb, var(--deep-soft) 55%, var(--surface-elevated)); color: var(--deep);" };
+function getLevel(order: number): { label: string; cssClass: string } {
+  if (order <= 4) return { label: "Beginner", cssClass: "level-beginner" };
+  if (order <= 9) return { label: "Intermediate", cssClass: "level-intermediate" };
+  return { label: "Advanced", cssClass: "level-advanced" };
 }
 ---
 
@@ -44,151 +39,636 @@ function getLevel(order: number): { label: string; tone: string } {
   sidebarData={sidebarData}
   currentSlug=""
 >
-  <section class="page-reveal surface-card mb-8 overflow-hidden p-6 sm:p-8">
-    <p class="eyebrow gradient-title mb-3">Modern C++ Learning Studio</p>
-    <h1 class="display-font text-4xl font-semibold tracking-tight sm:text-5xl">
-      <span style="color: var(--text-primary);">Learn modern </span>
-      <span class="gradient-title">C++20</span>
-      <span style="color: var(--text-primary);"> through practical examples.</span>
+  <!-- Hero -->
+  <section class="lp-hero">
+    <span class="lp-badge" style="animation-delay:60ms">Open-source learning platform</span>
+    <h1 class="lp-title" style="animation-delay:100ms">
+      Master Modern<br />
+      <span class="lp-accent">C++20</span>
     </h1>
-    <p class="mt-4 max-w-2xl text-base sm:text-lg" style="color: var(--text-secondary);">
-      A structured path from core fundamentals to advanced features, with focused explanations,
-      runnable code, and clear decision-making guidance.
+    <p class="lp-desc" style="animation-delay:160ms">
+      A structured path from core fundamentals to advanced features &mdash;
+      focused explanations, runnable code, and clear decision-making guidance.
     </p>
-    <div class="mt-5 flex flex-wrap gap-2.5">
-      <span class="metric-pill"><strong>{totalFiles}</strong>&nbsp;lessons</span>
-      <span class="metric-pill"><strong>{totalModules}</strong>&nbsp;modules</span>
-      <span class="metric-pill"><strong>{totalArticles}</strong>&nbsp;articles</span>
-      <span class="metric-pill">C++20-first</span>
-      <span class="metric-pill">Runnable examples</span>
-    </div>
-    <div class="mt-6 flex flex-wrap gap-2">
-      <span class="chip">Guided progression</span>
-      <span class="chip">Concept clarity</span>
-      <a href="/articles" class="chip hover-lift">Article library</a>
-    </div>
-  </section>
-
-  <section class="surface-card-soft page-reveal mb-8 p-5 sm:p-6">
-    <div class="flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <p class="eyebrow mb-1">Also Available</p>
-        <h2 class="display-font text-xl font-semibold tracking-tight" style="color: var(--text-primary);">
-          Editorial <span class="gradient-title">C++ Articles</span>
-        </h2>
-        <p class="mt-1 text-sm sm:text-base" style="color: var(--text-secondary);">
-          Deep dives and practical discussions beyond the lesson path.
-        </p>
+    <div class="lp-stats">
+      <div class="lp-stat" style="animation-delay:200ms">
+        <span class="lp-stat-num">{totalFiles}</span>
+        <span class="lp-stat-lbl">Lessons</span>
       </div>
-      <a href="/articles" class="metric-pill hover-lift">Browse all articles</a>
-    </div>
-  </section>
-
-  <section class="surface-card-soft page-reveal mb-8 p-5 sm:p-6">
-    <div class="flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <p class="eyebrow mb-1">Test Your Knowledge</p>
-        <h2 class="display-font text-xl font-semibold tracking-tight" style="color: var(--text-primary);">
-          <span class="gradient-title">C++ Quiz</span>
-        </h2>
-        <p class="mt-1 text-sm sm:text-base" style="color: var(--text-secondary);">
-          271 multiple choice questions covering all 17 topics, from CS fundamentals to advanced C++20.
-        </p>
+      <div class="lp-stat" style="animation-delay:260ms">
+        <span class="lp-stat-num">{totalModules}</span>
+        <span class="lp-stat-lbl">Modules</span>
       </div>
-      <a href="/quiz" class="metric-pill hover-lift">Start quiz</a>
+      <div class="lp-stat" style="animation-delay:320ms">
+        <span class="lp-stat-num">{totalArticles}</span>
+        <span class="lp-stat-lbl">Articles</span>
+      </div>
+      <div class="lp-stat" style="animation-delay:380ms">
+        <span class="lp-stat-num">271</span>
+        <span class="lp-stat-lbl">Quiz Qs</span>
+      </div>
+    </div>
+    <div class="lp-actions" style="animation-delay:300ms">
+      <a href={`/${sidebarData[0]?.subfolders[0]?.files[0]?.slug || ""}`} class="lp-btn-pri">
+        Start Learning
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+      </a>
+      <a href="/quiz" class="lp-btn-sec">Take the Quiz</a>
     </div>
   </section>
 
-  <div class="mb-3">
-    <h2 class="display-font text-2xl font-semibold tracking-tight" style="color: var(--text-primary);">Explore <span class="gradient-title">Modules</span></h2>
+  <!-- Quick Access -->
+  <div class="lp-quick" style="animation-delay:360ms">
+    <a href="/articles" class="lp-qcard">
+      <div class="lp-qcard-icon">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/><path d="M8 7h6"/><path d="M8 11h8"/></svg>
+      </div>
+      <div class="min-w-0">
+        <p class="lp-qcard-title">Editorial Articles</p>
+        <p class="lp-qcard-sub">Deep dives beyond the lesson path</p>
+      </div>
+      <span class="lp-qcard-arrow">&rarr;</span>
+    </a>
+    <a href="/quiz" class="lp-qcard">
+      <div class="lp-qcard-icon lp-qcard-icon--quiz">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><path d="M12 17h.01"/></svg>
+      </div>
+      <div class="min-w-0">
+        <p class="lp-qcard-title">C++ Quiz</p>
+        <p class="lp-qcard-sub">271 questions across 17 topics</p>
+      </div>
+      <span class="lp-qcard-arrow">&rarr;</span>
+    </a>
   </div>
 
-  <div class="grid gap-4 sm:grid-cols-2">
-    {sidebarData.map((mod) => {
-      const firstFile = mod.subfolders[0]?.files[0];
-      const fileCount = mod.subfolders.reduce((sum, sub) => sum + sub.files.length, 0);
-      const level = getLevel(mod.order);
-      return (
-        <a href={firstFile ? `/${firstFile.slug}` : "#"} class="surface-card hover-lift group page-reveal block p-5">
-          <div class="mb-3 flex items-center justify-between gap-3">
-            <span
-              class="inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-semibold tracking-[0.04em]"
-              style={level.tone}
-            >
-              {level.label}
-            </span>
-            <span class="text-[11px] font-medium tracking-[0.06em]" style="color: var(--text-muted);">
-              Module {String(mod.order).padStart(2, "0")}
-            </span>
-          </div>
-          <div class="flex items-start gap-3">
-            <span
-              class="display-font flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold"
-              style="background: var(--accent-soft); color: var(--accent);"
-            >
-              {mod.order}
-            </span>
-            <div class="min-w-0">
-              <h3 class="display-font text-lg font-semibold leading-snug tracking-tight" style="color: var(--text-primary);">
-                {mod.title}
-              </h3>
-              <p class="mt-1 text-sm" style="color: var(--text-muted);">
-                {fileCount} {fileCount === 1 ? "lesson" : "lessons"} - {" "}
-                {mod.subfolders.map((s) => s.name.replace(/_/g, " ")).join(", ")}
-              </p>
+  <!-- Modules -->
+  <section class="lp-modules" style="animation-delay:400ms">
+    <div class="lp-sec-hdr">
+      <h2 class="lp-sec-title">Explore Modules</h2>
+      <span class="lp-sec-sub">{totalModules} modules &middot; {totalFiles} lessons</span>
+    </div>
+    <div class="lp-mod-grid">
+      {sidebarData.map((mod, i) => {
+        const firstFile = mod.subfolders[0]?.files[0];
+        const fileCount = mod.subfolders.reduce((sum, sub) => sum + sub.files.length, 0);
+        const level = getLevel(mod.order);
+        return (
+          <a
+            href={firstFile ? `/${firstFile.slug}` : "#"}
+            class={`lp-mod ${level.cssClass}`}
+            style={`animation-delay:${80 + i * 45}ms`}
+          >
+            <div class="lp-mod-top">
+              <span class="lp-mod-num">{String(mod.order).padStart(2, "0")}</span>
+              <span class={`lp-mod-lvl ${level.cssClass}`}>{level.label}</span>
             </div>
-          </div>
-        </a>
-      );
-    })}
-  </div>
-
-  <section class="surface-card-soft page-reveal mt-10 p-5 text-sm" style="color: var(--text-secondary);">
-    <p class="display-font text-base font-semibold" style="color: var(--text-primary);">Getting Started</p>
-    <p class="mt-1.5">
-      Pick a module from the sidebar or the cards above. Each lesson contains documented C++ code with
-      explanations, FAQs, common pitfalls, and runnable examples. Start with {" "}
-      <a
-        href={`/${sidebarData[0]?.subfolders[0]?.files[0]?.slug || ""}`}
-        class="font-semibold underline decoration-2 underline-offset-2"
-        style="color: var(--accent);"
-      >
-        Module 1: Fundamentals
-      </a>{" "}
-      if you're new to Modern C++.
-    </p>
+            <h3 class="lp-mod-name">{mod.title}</h3>
+            <p class="lp-mod-meta">
+              {fileCount} {fileCount === 1 ? "lesson" : "lessons"}<span class="lp-sep">&middot;</span>{mod.subfolders.map((s) => s.name.replace(/_/g, " ")).join(", ")}
+            </p>
+          </a>
+        );
+      })}
+    </div>
   </section>
 
-  <section class="page-reveal mt-10">
-    <div class="mb-3 flex items-end justify-between gap-3">
-      <h2 class="display-font text-2xl font-semibold tracking-tight" style="color: var(--text-primary);">
-        <span class="gradient-title">C++ Articles</span>
-      </h2>
-      <a href="/articles" class="text-sm font-medium" style="color: var(--accent);">View all</a>
+  <!-- Getting Started -->
+  <section class="lp-start" style="animation-delay:480ms">
+    <div class="lp-start-icon" aria-hidden="true">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M13 2 3 14h9l-1 8 10-12h-9l1-8z"/></svg>
     </div>
+    <div>
+      <p class="lp-start-title">New to Modern C++?</p>
+      <p class="lp-start-text">
+        Start with{" "}
+        <a
+          href={`/${sidebarData[0]?.subfolders[0]?.files[0]?.slug || ""}`}
+          class="lp-start-link"
+        >Module 1: Fundamentals</a>{" "}
+        &mdash; each lesson includes documented code, explanations, FAQs,
+        common pitfalls, and runnable examples.
+      </p>
+    </div>
+  </section>
 
-    {latestArticles.length > 0 ? (
-      <div class="grid gap-4">
-        {latestArticles.map((article) => (
-          <a href={`/articles/${article.slug}`} class="surface-card hover-lift block p-5">
-            <p class="text-xs font-medium tracking-[0.06em]" style="color: var(--text-muted);">
-              {formatDate(article.data.publishDate)} · {article.data.author}
-            </p>
-            <h3 class="display-font mt-1 text-xl font-semibold tracking-tight" style="color: var(--text-primary);">
-              {article.data.title}
-            </h3>
-            <p class="mt-2 text-sm" style="color: var(--text-secondary);">{article.data.description}</p>
+  <!-- Latest Articles -->
+  {latestArticles.length > 0 && (
+    <section class="lp-articles" style="animation-delay:520ms">
+      <div class="lp-sec-hdr">
+        <h2 class="lp-sec-title">Latest Articles</h2>
+        <a href="/articles" class="lp-sec-link">View all &rarr;</a>
+      </div>
+      <div class="lp-art-grid">
+        {latestArticles.map((article, i) => (
+          <a
+            href={`/articles/${article.slug}`}
+            class="lp-art"
+            style={`animation-delay:${100 + i * 65}ms`}
+          >
+            <time class="lp-art-date">{formatDate(article.data.publishDate)}</time>
+            <h3 class="lp-art-title">{article.data.title}</h3>
+            <p class="lp-art-desc">{article.data.description}</p>
+            <span class="lp-art-author">{article.data.author}</span>
           </a>
         ))}
       </div>
-    ) : (
-      <div class="surface-card-soft p-5 text-sm" style="color: var(--text-secondary);">
-        No articles yet. Add markdown files in `src/content/articles/` and they will appear here.
-      </div>
-    )}
-  </section>
+    </section>
+  )}
 
-  <footer class="mt-12 mb-6 text-center text-xs" style="color: var(--text-muted);">
-    Built by <a href="https://www.maxthomarino.com/" class="font-semibold underline decoration-1 underline-offset-2" style="color: var(--text-secondary);">Max Marino</a>
+  <footer class="lp-footer">
+    Built by <a href="https://www.maxthomarino.com/" class="lp-footer-link">Max Marino</a>
   </footer>
 </DocLayout>
+
+<style>
+  /* ========== LANDING PAGE ========== */
+
+  /* --- Hero --- */
+  .lp-hero {
+    padding: 1.5rem 0 2.5rem;
+  }
+
+  .lp-badge {
+    display: inline-flex;
+    font-size: 0.7rem;
+    font-weight: 650;
+    letter-spacing: 0.055em;
+    text-transform: uppercase;
+    color: var(--accent);
+    padding: 0.28rem 0.72rem;
+    border-radius: 999px;
+    border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border-soft));
+    background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface-elevated));
+    margin-bottom: 1.4rem;
+    animation: lp-up 420ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
+  }
+
+  .lp-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.6rem, 6vw, 3.8rem);
+    font-weight: 700;
+    line-height: 1.06;
+    letter-spacing: -0.035em;
+    color: var(--text-primary);
+    animation: lp-up 460ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
+  }
+
+  .lp-accent {
+    background: linear-gradient(
+      135deg,
+      var(--accent) 0%,
+      var(--deep) 50%,
+      color-mix(in srgb, var(--accent) 55%, var(--success)) 100%
+    );
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .lp-desc {
+    margin-top: 1.25rem;
+    font-size: 1.06rem;
+    line-height: 1.65;
+    color: var(--text-secondary);
+    max-width: 540px;
+    animation: lp-up 460ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
+  }
+
+  /* Stats row */
+  .lp-stats {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1.6rem;
+    margin-top: 2.2rem;
+  }
+
+  .lp-stat {
+    animation: lp-up 400ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
+  }
+
+  .lp-stat-num {
+    display: block;
+    font-family: var(--font-display);
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    line-height: 1;
+    color: var(--text-primary);
+  }
+
+  .lp-stat-lbl {
+    display: block;
+    margin-top: 0.22rem;
+    font-size: 0.73rem;
+    font-weight: 520;
+    letter-spacing: 0.015em;
+    color: var(--text-muted);
+  }
+
+  /* CTA buttons */
+  .lp-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    margin-top: 2.2rem;
+    animation: lp-up 460ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
+  }
+
+  .lp-btn-pri {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.62rem 1.25rem;
+    font-size: 0.87rem;
+    font-weight: 640;
+    border-radius: 0.6rem;
+    background: var(--accent);
+    color: #fff;
+    box-shadow: 0 2px 14px -4px color-mix(in srgb, var(--accent) 38%, transparent);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+  }
+
+  .lp-btn-pri:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 22px -6px color-mix(in srgb, var(--accent) 50%, transparent);
+    filter: brightness(1.08);
+  }
+
+  .lp-btn-sec {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.62rem 1.25rem;
+    font-size: 0.87rem;
+    font-weight: 640;
+    border-radius: 0.6rem;
+    border: 1px solid var(--border-soft);
+    background: var(--surface-elevated);
+    color: var(--text-primary);
+    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  }
+
+  .lp-btn-sec:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong);
+  }
+
+  /* --- Quick Access --- */
+  .lp-quick {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+    margin-bottom: 2.8rem;
+    animation: lp-up 460ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
+  }
+
+  @media (min-width: 540px) {
+    .lp-quick { grid-template-columns: 1fr 1fr; }
+  }
+
+  .lp-qcard {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.9rem 1.1rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-soft);
+    background: var(--surface-elevated);
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .lp-qcard:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong);
+  }
+
+  .lp-qcard-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 0.55rem;
+    flex-shrink: 0;
+    color: var(--accent);
+    background: var(--accent-soft);
+  }
+
+  .lp-qcard-icon--quiz {
+    color: var(--deep);
+    background: var(--deep-soft);
+  }
+
+  .lp-qcard-title {
+    font-family: var(--font-display);
+    font-size: 0.92rem;
+    font-weight: 650;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  .lp-qcard-sub {
+    font-size: 0.76rem;
+    color: var(--text-muted);
+    margin-top: 0.05rem;
+    line-height: 1.4;
+  }
+
+  .lp-qcard-arrow {
+    margin-left: auto;
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    transition: transform 0.2s ease, color 0.2s ease;
+  }
+
+  .lp-qcard:hover .lp-qcard-arrow {
+    transform: translateX(3px);
+    color: var(--accent);
+  }
+
+  /* --- Modules --- */
+  .lp-modules {
+    margin-bottom: 2.8rem;
+    animation: lp-up 460ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
+  }
+
+  .lp-sec-hdr {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 0.9rem;
+    flex-wrap: wrap;
+  }
+
+  .lp-sec-title {
+    font-family: var(--font-display);
+    font-size: 1.4rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--text-primary);
+  }
+
+  .lp-sec-sub {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .lp-sec-link {
+    font-size: 0.84rem;
+    font-weight: 620;
+    color: var(--accent);
+    transition: opacity 0.15s ease;
+  }
+
+  .lp-sec-link:hover { opacity: 0.75; }
+
+  .lp-mod-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.55rem;
+  }
+
+  @media (min-width: 540px) {
+    .lp-mod-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .lp-mod {
+    display: block;
+    padding: 1rem 1.15rem;
+    border-radius: 0.7rem;
+    border: 1px solid var(--border-soft);
+    background: var(--surface-elevated);
+    position: relative;
+    overflow: hidden;
+    animation: lp-up 380ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  /* Colored left accent bar */
+  .lp-mod::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    border-radius: 0 3px 3px 0;
+    opacity: 0.6;
+    transition: opacity 0.2s ease;
+  }
+
+  .lp-mod.level-beginner::before { background: var(--success); }
+  .lp-mod.level-intermediate::before { background: var(--warning); }
+  .lp-mod.level-advanced::before { background: var(--deep); }
+
+  .lp-mod:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong);
+  }
+
+  .lp-mod:hover::before { opacity: 1; }
+
+  .lp-mod-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.45rem;
+  }
+
+  .lp-mod-num {
+    font-family: var(--font-code);
+    font-size: 0.7rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+  }
+
+  .lp-mod-lvl {
+    font-size: 0.62rem;
+    font-weight: 660;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    padding: 0.12rem 0.48rem;
+    border-radius: 999px;
+  }
+
+  .lp-mod-lvl.level-beginner { color: var(--success); background: var(--success-soft); }
+  .lp-mod-lvl.level-intermediate { color: var(--warning); background: var(--warning-soft); }
+  .lp-mod-lvl.level-advanced { color: var(--deep); background: var(--deep-soft); }
+
+  .lp-mod-name {
+    font-family: var(--font-display);
+    font-size: 1.02rem;
+    font-weight: 660;
+    letter-spacing: -0.015em;
+    color: var(--text-primary);
+    line-height: 1.3;
+  }
+
+  .lp-mod-meta {
+    margin-top: 0.3rem;
+    font-size: 0.74rem;
+    color: var(--text-muted);
+    line-height: 1.4;
+  }
+
+  .lp-sep {
+    margin: 0 0.3rem;
+    opacity: 0.4;
+  }
+
+  /* --- Getting Started --- */
+  .lp-start {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    padding: 1.1rem 1.3rem;
+    border-radius: 0.75rem;
+    background: color-mix(in srgb, var(--accent-soft) 36%, var(--surface-elevated));
+    border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--border-soft));
+    margin-bottom: 2.8rem;
+    animation: lp-up 460ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
+  }
+
+  .lp-start-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 0.5rem;
+    background: var(--accent);
+    color: #fff;
+    flex-shrink: 0;
+    margin-top: 0.05rem;
+  }
+
+  .lp-start-title {
+    font-family: var(--font-display);
+    font-weight: 660;
+    font-size: 0.93rem;
+    color: var(--text-primary);
+    letter-spacing: -0.01em;
+  }
+
+  .lp-start-text {
+    font-size: 0.84rem;
+    color: var(--text-secondary);
+    margin-top: 0.15rem;
+    line-height: 1.55;
+  }
+
+  .lp-start-link {
+    color: var(--accent);
+    font-weight: 650;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1.5px;
+  }
+
+  .lp-start-link:hover { opacity: 0.8; }
+
+  /* --- Articles --- */
+  .lp-articles {
+    margin-bottom: 2.8rem;
+    animation: lp-up 460ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
+  }
+
+  .lp-art-grid {
+    display: grid;
+    gap: 0.55rem;
+  }
+
+  .lp-art {
+    display: block;
+    padding: 1rem 1.2rem;
+    border-radius: 0.7rem;
+    border: 1px solid var(--border-soft);
+    background: var(--surface-elevated);
+    animation: lp-up 380ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  .lp-art:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    border-color: var(--border-strong);
+  }
+
+  .lp-art-date {
+    font-size: 0.7rem;
+    font-weight: 540;
+    letter-spacing: 0.04em;
+    color: var(--text-muted);
+    text-transform: uppercase;
+  }
+
+  .lp-art-title {
+    font-family: var(--font-display);
+    font-size: 1.08rem;
+    font-weight: 660;
+    letter-spacing: -0.015em;
+    color: var(--text-primary);
+    margin-top: 0.3rem;
+    line-height: 1.3;
+  }
+
+  .lp-art-desc {
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    margin-top: 0.35rem;
+    line-height: 1.55;
+  }
+
+  .lp-art-author {
+    display: inline-block;
+    margin-top: 0.5rem;
+    font-size: 0.7rem;
+    font-weight: 620;
+    color: var(--text-muted);
+  }
+
+  /* --- Footer --- */
+  .lp-footer {
+    text-align: center;
+    padding: 2.5rem 0 1rem;
+    font-size: 0.76rem;
+    color: var(--text-muted);
+  }
+
+  .lp-footer-link {
+    font-weight: 650;
+    color: var(--text-secondary);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+    text-decoration-thickness: 1px;
+    transition: color 0.15s ease;
+  }
+
+  .lp-footer-link:hover { color: var(--text-primary); }
+
+  /* --- Entrance animation --- */
+  @keyframes lp-up {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .lp-badge, .lp-title, .lp-desc, .lp-stat, .lp-actions,
+    .lp-quick, .lp-modules, .lp-start, .lp-articles,
+    .lp-mod, .lp-art {
+      animation: none !important;
+    }
+  }
+</style>

@@ -1,4 +1,4 @@
-﻿---
+---
 interface Props {
   content: string;
 }
@@ -6,12 +6,50 @@ interface Props {
 const { content } = Astro.props;
 ---
 
-<div
-  class="page-reveal my-4 rounded-r-2xl border-l-4 px-4 py-3"
-  style="border-color: var(--warning); background: color-mix(in srgb, var(--warning-soft) 78%, var(--surface-elevated));"
->
-  <p class="text-[15px] leading-relaxed" style="color: var(--text-primary);">
-    <span class="font-bold" style="color: var(--warning);">Watch out:</span>{" "}
+<div class="wo">
+  <svg class="wo-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+  <p class="wo-text">
+    <span class="wo-label">Watch out:</span>{" "}
     {content}
   </p>
 </div>
+
+<style>
+  .wo {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    margin: 1rem 0;
+    padding: 0.8rem 1rem;
+    border-radius: 0.65rem;
+    border: 1px solid color-mix(in srgb, var(--warning) 22%, var(--border-soft));
+    background: color-mix(in srgb, var(--warning-soft) 60%, var(--surface-elevated));
+    animation: sec-in 300ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
+  }
+
+  .wo-icon {
+    color: var(--warning);
+    flex-shrink: 0;
+    margin-top: 0.15rem;
+  }
+
+  .wo-text {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+  }
+
+  .wo-label {
+    font-weight: 700;
+    color: var(--warning);
+  }
+
+  @keyframes sec-in {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .wo { animation: none; }
+  }
+</style>

@@ -1,4 +1,4 @@
-﻿---
+---
 interface Props {
   items: string[];
 }
@@ -7,24 +7,74 @@ const { items } = Astro.props;
 ---
 
 {items.length > 0 && (
-  <section
-    id="key-takeaways"
-    class="page-reveal my-8 rounded-2xl border-l-4 p-5"
-    style="border-color: var(--success); background: color-mix(in srgb, var(--success-soft) 70%, var(--surface-elevated));"
-  >
-    <h2 class="callout-title mb-3 flex items-center gap-2 text-lg font-bold" style="color: var(--success);">
-      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-      </svg>
+  <section id="key-takeaways" class="kt scroll-mt-20">
+    <h2 class="kt-heading">
+      <svg class="kt-heading-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
       Key Takeaways
     </h2>
-    <ol class="space-y-1.5 text-[15px] leading-relaxed" style="color: var(--text-primary);">
+    <ol class="kt-list">
       {items.map((item) => (
-        <li class="flex gap-2">
-          <span class="mt-0.5 shrink-0" style="color: var(--success);">&bull;</span>
+        <li class="kt-item">
+          <svg class="kt-check" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
           <span>{item}</span>
         </li>
       ))}
     </ol>
   </section>
 )}
+
+<style>
+  .kt {
+    margin: 2.2rem 0;
+    padding: 1.2rem 1.3rem;
+    border-radius: 0.75rem;
+    border: 1px solid color-mix(in srgb, var(--success) 20%, var(--border-soft));
+    background: color-mix(in srgb, var(--success-soft) 55%, var(--surface-elevated));
+    animation: sec-in 360ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
+  }
+
+  .kt-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--success);
+    margin-bottom: 0.7rem;
+  }
+
+  .kt-heading-icon {
+    flex-shrink: 0;
+  }
+
+  .kt-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.55rem;
+  }
+
+  .kt-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.55rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--text-primary);
+  }
+
+  .kt-check {
+    color: var(--success);
+    flex-shrink: 0;
+    margin-top: 0.25rem;
+  }
+
+  @keyframes sec-in {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kt { animation: none; }
+  }
+</style>

@@ -1,4 +1,4 @@
-﻿---
+---
 interface Props {
   title: string;
   content: string;
@@ -7,16 +7,54 @@ interface Props {
 const { title, content } = Astro.props;
 ---
 
-<section
-  id="decision-guide"
-  class="page-reveal my-8 rounded-2xl border p-5"
-  style="border-color: var(--border-soft); background: color-mix(in srgb, var(--surface-muted) 64%, var(--surface-elevated));"
->
-  <h2 class="callout-title mb-3 flex items-center gap-2 text-lg font-bold" style="color: var(--text-primary);">
-    <svg class="h-5 w-5" style="color: var(--accent);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-    </svg>
+<section id="decision-guide" class="dg scroll-mt-20">
+  <h2 class="dg-heading">
+    <svg class="dg-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>
     {title}
   </h2>
-  <pre class="whitespace-pre-wrap font-sans text-[15px] leading-relaxed" style="color: var(--text-secondary);" set:text={content} />
+  <pre class="dg-content" set:text={content} />
 </section>
+
+<style>
+  .dg {
+    margin: 2.2rem 0;
+    padding: 1.2rem 1.3rem;
+    border-radius: 0.75rem;
+    border: 1px solid var(--border-soft);
+    background: color-mix(in srgb, var(--surface-muted) 55%, var(--surface-elevated));
+    animation: sec-in 360ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
+  }
+
+  .dg-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-family: var(--font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.8rem;
+  }
+
+  .dg-icon {
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+
+  .dg-content {
+    white-space: pre-wrap;
+    font-family: var(--font-body);
+    font-size: 0.9rem;
+    line-height: 1.7;
+    color: var(--text-secondary);
+  }
+
+  @keyframes sec-in {
+    from { opacity: 0; transform: translateY(5px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .dg { animation: none; }
+  }
+</style>
