@@ -86,6 +86,17 @@ function optionStyle(
   return { ...base, opacity: "0.5", cursor: "default" };
 }
 
+// ── Precomputed per-topic counts ──
+const topicCounts = new Map<string, { total: number; easy: number; medium: number; hard: number }>();
+for (const q of allQuestions) {
+  const entry = topicCounts.get(q.topic) || { total: 0, easy: 0, medium: 0, hard: 0 };
+  entry.total++;
+  if (q.difficulty === "Easy") entry.easy++;
+  else if (q.difficulty === "Medium") entry.medium++;
+  else entry.hard++;
+  topicCounts.set(q.topic, entry);
+}
+
 // ── Menu View ──
 function MenuView({
   selectedTopics,
@@ -108,11 +119,31 @@ function MenuView({
 }) {
   const difficulties: Difficulty[] = ["All", "Easy", "Medium", "Hard"];
 
+  // Count questions per difficulty for the selected topics
+  const difficultyCounts = useMemo(() => {
+    let easy = 0, medium = 0, hard = 0;
+    for (const t of selectedTopics) {
+      const c = topicCounts.get(t);
+      if (c) { easy += c.easy; medium += c.medium; hard += c.hard; }
+    }
+    return { All: easy + medium + hard, Easy: easy, Medium: medium, Hard: hard } as Record<Difficulty, number>;
+  }, [selectedTopics]);
+
+  const difficultyColor = (d: Difficulty) => {
+    switch (d) {
+      case "Easy": return "var(--success)";
+      case "Medium": return "var(--warning)";
+      case "Hard": return "var(--deep)";
+      default: return "var(--accent)";
+    }
+  };
+
   return (
     <div class="page-reveal">
+      {/* Topics card */}
       <div
         class="surface-card p-5 sm:p-6"
-        style={{ marginBottom: "1.5rem" }}
+        style={{ marginBottom: "1rem" }}
       >
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
           <p class="eyebrow">Topics</p>
@@ -136,6 +167,7 @@ function MenuView({
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
           {TOPICS.map((t) => {
             const active = selectedTopics.has(t);
+            const count = topicCounts.get(t)?.total || 0;
             return (
               <button
                 key={t}
@@ -150,83 +182,135 @@ function MenuView({
                   borderColor: active ? "var(--accent)" : "var(--border-soft)",
                   fontWeight: active ? "700" : "600",
                   transition: "all 0.18s ease",
+                  gap: "0.25rem",
                 }}
               >
                 {t}
+                <span
+                  style={{
+                    fontSize: "0.62rem",
+                    fontWeight: "700",
+                    opacity: active ? "1" : "0.55",
+                    color: active ? "var(--accent)" : "var(--text-muted)",
+                    background: active
+                      ? "color-mix(in srgb, var(--accent) 12%, transparent)"
+                      : "color-mix(in srgb, var(--text-muted) 10%, transparent)",
+                    borderRadius: "4px",
+                    padding: "0.05rem 0.3rem",
+                    minWidth: "1.2rem",
+                    textAlign: "center",
+                    lineHeight: "1.4",
+                  }}
+                >
+                  {count}
+                </span>
               </button>
             );
           })}
         </div>
       </div>
 
+      {/* Difficulty card */}
       <div
         class="surface-card p-5 sm:p-6"
-        style={{ marginBottom: "1.5rem" }}
+        style={{ marginBottom: "1rem" }}
       >
         <p class="eyebrow" style={{ marginBottom: "0.75rem" }}>
           Difficulty
         </p>
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-          {difficulties.map((d) => (
-            <button
-              key={d}
-              onClick={() => setDifficulty(d)}
-              class="metric-pill"
-              style={{
-                cursor: "pointer",
-                background:
-                  d === difficulty
-                    ? "var(--accent-soft)"
+          {difficulties.map((d) => {
+            const isActive = d === difficulty;
+            const color = difficultyColor(d);
+            const count = difficultyCounts[d];
+            return (
+              <button
+                key={d}
+                onClick={() => setDifficulty(d)}
+                class="metric-pill"
+                style={{
+                  cursor: "pointer",
+                  background: isActive
+                    ? d === "All"
+                      ? "var(--accent-soft)"
+                      : `color-mix(in srgb, ${color} 10%, var(--surface-elevated))`
                     : "color-mix(in srgb, var(--surface-elevated) 82%, var(--surface-muted))",
-                color:
-                  d === difficulty ? "var(--accent)" : "var(--text-secondary)",
-                borderColor:
-                  d === difficulty ? "var(--accent)" : "var(--border-soft)",
-                fontWeight: d === difficulty ? "700" : "400",
-                transition: "all 0.18s ease",
-              }}
-            >
-              {d}
-            </button>
-          ))}
+                  color: isActive ? color : "var(--text-secondary)",
+                  borderColor: isActive ? color : "var(--border-soft)",
+                  fontWeight: isActive ? "700" : "400",
+                  transition: "all 0.18s ease",
+                  gap: "0.35rem",
+                }}
+              >
+                {d}
+                <span
+                  style={{
+                    fontSize: "0.68rem",
+                    fontWeight: "600",
+                    opacity: isActive ? "0.9" : "0.5",
+                    fontFamily: "var(--font-code)",
+                  }}
+                >
+                  {count}
+                </span>
+              </button>
+            );
+          })}
         </div>
       </div>
 
+      {/* Start bar */}
       <div
+        class="surface-card"
         style={{
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: "1rem",
           flexWrap: "wrap",
+          padding: "0.75rem 1.1rem",
         }}
       >
         <p
           class="display-font"
           style={{
-            fontSize: "0.9rem",
+            fontSize: "0.88rem",
             fontWeight: "600",
             color: "var(--text-secondary)",
           }}
         >
-          {filteredCount} question{filteredCount !== 1 ? "s" : ""} selected
+          <span
+            class="display-font"
+            style={{
+              fontWeight: "800",
+              fontSize: "1.05rem",
+              color: filteredCount > 0 ? "var(--text-primary)" : "var(--text-muted)",
+              fontFamily: "var(--font-code)",
+            }}
+          >
+            {filteredCount}
+          </span>
+          {" "}question{filteredCount !== 1 ? "s" : ""} ready
         </p>
         <button
           onClick={onStart}
           disabled={filteredCount === 0}
-          class="metric-pill hover-lift"
+          class="hover-lift"
           style={{
             cursor: filteredCount === 0 ? "not-allowed" : "pointer",
             background:
               filteredCount === 0
                 ? "var(--surface-muted)"
-                : "var(--accent-soft)",
-            color: filteredCount === 0 ? "var(--text-muted)" : "var(--accent)",
-            borderColor:
-              filteredCount === 0 ? "var(--border-soft)" : "var(--accent)",
+                : "var(--accent)",
+            color: filteredCount === 0 ? "var(--text-muted)" : "white",
+            border: "none",
+            borderRadius: "0.6rem",
             fontWeight: "700",
-            fontSize: "0.85rem",
-            padding: "0.5rem 1rem",
+            fontSize: "0.88rem",
+            padding: "0.6rem 1.5rem",
+            fontFamily: "var(--font-display)",
+            letterSpacing: "-0.01em",
+            transition: "all 0.2s ease",
           }}
         >
           Start Quiz →
