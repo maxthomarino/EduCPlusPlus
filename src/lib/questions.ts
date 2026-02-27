@@ -21213,4 +21213,845 @@ int main() {
       "In C++17 and later, noexcept is part of the function type. An overriding virtual function cannot have a looser exception specification than the base. Since Base::process() is noexcept(true), the override must also be noexcept(true). Omitting noexcept makes it noexcept(false), which is looser, causing a compilation error.",
     link: "https://en.cppreference.com/w/cpp/language/noexcept_spec",
   },
+
+  // ── Polymorphism (Q1152--Q1181) ──
+  {
+    id: 1152,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question:
+      "What does the 'final' keyword do when applied to a virtual function in a derived class?",
+    code: `class Base {
+public:
+    virtual void draw() const {}
+};
+class Circle : public Base {
+public:
+    void draw() const override final {}
+};`,
+    options: [
+      "It forces all further derived classes to provide their own implementation",
+      "It removes the function entry from the vtable of the current class",
+      "It converts the function from virtual to non-virtual at compile time",
+      "It prevents any further derived class from overriding that function",
+    ],
+    correctIndex: 3,
+    explanation:
+      "The 'final' specifier on a virtual function prevents any class that inherits from Circle from overriding draw(). If a further derived class attempts to override it, the compiler produces an error. This is useful when you want to lock down a specific implementation in the hierarchy.",
+    link: "https://en.cppreference.com/w/cpp/language/final",
+  },
+  {
+    id: 1153,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question: "What does the 'final' keyword do when applied to a class definition?",
+    code: `class Widget final {
+public:
+    virtual void update() {}
+};`,
+    options: [
+      "It makes all member functions of the class implicitly virtual by default",
+      "It marks every virtual function in the class as pure virtual automatically",
+      "It prevents any other class from inheriting from that class entirely",
+      "It restricts the class so it can only be used as a local stack variable",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Applying 'final' to a class declaration prevents it from being used as a base class. Any attempt to derive from a final class results in a compilation error. This can also help the compiler devirtualize calls since no further overrides are possible.",
+    link: "https://en.cppreference.com/w/cpp/language/final",
+  },
+  {
+    id: 1154,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question:
+      "What happens if a derived class does not override a pure virtual function from its base class?",
+    options: [
+      "The derived class also becomes abstract and cannot be instantiated directly",
+      "The compiler generates a runtime exception when objects of that class are created",
+      "The derived class compiles normally and uses a default empty implementation",
+      "The linker removes the pure virtual function from the final binary output",
+    ],
+    correctIndex: 0,
+    explanation:
+      "If a derived class does not provide an implementation for every pure virtual function it inherits, that derived class is also considered abstract. You cannot create objects of an abstract class directly. Only a class that implements all inherited pure virtual functions can be instantiated.",
+    link: "https://www.learncpp.com/cpp-tutorial/pure-virtual-functions-abstract-base-classes-and-interface-classes/",
+  },
+  {
+    id: 1155,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question: "What does this program print?",
+    code: `class Animal {
+public:
+    void speak() { std::cout << "Animal"; }
+};
+class Cat : public Animal {
+public:
+    void speak() { std::cout << "Meow"; }
+};
+
+Animal* p = new Cat();
+p->speak();`,
+    options: [
+      "Meow, because Cat::speak() hides Animal::speak() for all call sites",
+      "Animal, because speak() is not virtual so static binding is applied",
+      "The program fails to compile because speak() is redefined without override",
+      "The behavior is undefined because the pointer type does not match the object",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Because speak() is not declared virtual in Animal, the call through an Animal pointer uses static binding. The compiler resolves the call based on the pointer type (Animal*), not the actual object type (Cat). To get dynamic dispatch, the base class function must be virtual.",
+    link: "https://www.learncpp.com/cpp-tutorial/virtual-functions/",
+  },
+  {
+    id: 1156,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question:
+      "When calling a virtual function through a base class pointer, how does the program determine which function to invoke at runtime?",
+    options: [
+      "It compares the pointer address against a global registry of all known class type names",
+      "It reads the object's string-based type tag stored as a hidden member variable in memory",
+      "It follows the object's hidden vptr to a vtable that holds the correct function pointer",
+      "It scans the inheritance chain from base to derived until it finds a matching function name",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Most C++ compilers implement dynamic dispatch using a hidden pointer (vptr) in each polymorphic object. This vptr points to a vtable containing function pointers for the virtual functions of that class. At runtime, the program follows the vptr, looks up the function in the vtable, and calls the correct override.",
+    link: "https://en.cppreference.com/w/cpp/language/virtual",
+  },
+  {
+    id: 1157,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question: "What does this program print?",
+    code: `class Shape {
+public:
+    virtual void name() { std::cout << "Shape"; }
+};
+class Square : public Shape {
+public:
+    void name() override { std::cout << "Square"; }
+};
+
+void identify(Shape& s) { s.name(); }
+
+Square sq;
+identify(sq);`,
+    options: [
+      "Shape, because the function parameter is a base class value, not a pointer",
+      "Square, because dynamic dispatch works through references just like pointers",
+      "The program fails to compile because references cannot bind to derived objects",
+      "The output is implementation-defined and varies between different compilers",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Dynamic dispatch in C++ works through both pointers and references. Since identify() takes a Shape& reference and name() is virtual, calling s.name() on a Square object resolves to Square::name() at runtime. The reference preserves the dynamic type of the object.",
+    link: "https://www.learncpp.com/cpp-tutorial/virtual-functions/",
+  },
+  {
+    id: 1158,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question:
+      "What does the 'override' keyword help prevent when writing derived class functions?",
+    code: `class Base {
+public:
+    virtual void process(int x) const;
+};
+class Derived : public Base {
+public:
+    void process(int x) override;  // missing const
+};`,
+    options: [
+      "It prevents accidental signature mismatches that would create a new function",
+      "It prevents the derived class from accessing any private members of the base class",
+      "It prevents the derived function from being inlined by the compiler optimizer stage",
+      "It prevents the base class version from being called inside the derived function body",
+    ],
+    correctIndex: 0,
+    explanation:
+      "In this example, Derived::process is missing the const qualifier, so its signature does not match Base::process. Without 'override', this would silently create a new function instead of overriding the base version. With 'override', the compiler detects the mismatch and reports an error.",
+    link: "https://en.cppreference.com/w/cpp/language/override",
+  },
+  {
+    id: 1159,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question:
+      "What problem occurs when deleting a derived object through a base pointer if the base destructor is not virtual?",
+    code: `class Base {
+public:
+    ~Base() { /* cleanup base */ }
+};
+class Derived : public Base {
+    std::vector<int> data;
+public:
+    ~Derived() { /* cleanup derived */ }
+};
+
+Base* p = new Derived();
+delete p;`,
+    options: [
+      "The program throws a std::bad_alloc exception during the delete operation",
+      "The derived destructor runs first and then the base destructor runs as expected",
+      "The compiler prevents this code from compiling due to a missing virtual keyword",
+      "The behavior is undefined because only the base destructor is called directly",
+    ],
+    correctIndex: 3,
+    explanation:
+      "When the base destructor is not virtual, deleting through a Base* calls only Base::~Base(). The Derived destructor never runs, which is undefined behavior per the C++ standard. The Derived members (like the vector) may never be properly cleaned up. Declaring the base destructor virtual fixes this.",
+    link: "https://www.learncpp.com/cpp-tutorial/virtual-destructors-virtual-assignment-and-overriding-virtualization/",
+  },
+  {
+    id: 1160,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question:
+      "Which of the following correctly describes the relationship between static binding and dynamic binding?",
+    options: [
+      "Static binding resolves the call at compile time based on the declared type",
+      "Static binding resolves the call at runtime by checking the actual object type",
+      "Dynamic binding resolves the call at compile time using template argument deduction",
+      "Dynamic binding resolves the call at link time by matching function name and its arity",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Static binding (early binding) resolves function calls at compile time based on the declared (static) type of the variable or pointer. Dynamic binding (late binding) resolves calls at runtime based on the actual (dynamic) type of the object, using the virtual dispatch mechanism.",
+    link: "https://www.learncpp.com/cpp-tutorial/virtual-functions/",
+  },
+  {
+    id: 1161,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question: "What does this program print?",
+    code: `class Vehicle {
+public:
+    virtual void type() { std::cout << "Vehicle"; }
+};
+class Car : public Vehicle {
+public:
+    void type() override { std::cout << "Car"; }
+};
+class Sedan : public Car {
+public:
+    void type() override { std::cout << "Sedan"; }
+};
+
+Vehicle* v = new Sedan();
+v->type();`,
+    options: [
+      "Vehicle, because the pointer type determines which function is called at runtime",
+      "Car, because dynamic dispatch stops at the first derived class in the hierarchy",
+      "The program fails to compile because multi-level overriding is not allowed in C++",
+      "Sedan, because dynamic dispatch resolves to the most-derived override at runtime",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Dynamic dispatch always resolves to the most-derived override of a virtual function. Since the actual object is a Sedan and Sedan provides its own override of type(), calling v->type() through a Vehicle pointer invokes Sedan::type(), printing \"Sedan\".",
+    link: "https://www.learncpp.com/cpp-tutorial/virtual-functions/",
+  },
+  {
+    id: 1162,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question:
+      "What does this code print when a Derived object is passed by value to process()?",
+    code: `class Base {
+public:
+    virtual std::string who() { return "Base"; }
+};
+class Derived : public Base {
+    int extra = 99;
+public:
+    std::string who() override { return "Derived"; }
+};
+
+void process(Base obj) {
+    std::cout << obj.who();
+}
+
+Derived d;
+process(d);`,
+    options: [
+      "It prints \"Derived\" because the original object is a Derived instance",
+      "It prints \"Derived\" followed by the value 99 stored in the extra member variable",
+      "It fails to compile because a Derived cannot be passed where a Base is expected",
+      "It prints \"Base\" because passing by value slices the object to its Base portion",
+    ],
+    correctIndex: 3,
+    explanation:
+      "When a Derived object is passed by value to a function expecting a Base parameter, the copy constructor of Base is invoked, copying only the Base sub-object. The Derived-specific members and vtable pointer are lost. The resulting object inside process() is a genuine Base, so Base::who() is called. This is called object slicing and is a common pitfall when polymorphic objects are passed by value instead of by pointer or reference.",
+    link: "https://en.cppreference.com/w/cpp/language/object#Object_slicing",
+  },
+  {
+    id: 1163,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question:
+      "What does the Derived::clone() function return in this covariant return type example?",
+    code: `class Base {
+public:
+    virtual Base* clone() const { return new Base(*this); }
+    virtual ~Base() = default;
+};
+
+class Derived : public Base {
+public:
+    Derived* clone() const override { return new Derived(*this); }
+};
+
+Derived d;
+Derived* copy = d.clone();`,
+    options: [
+      "A Derived* directly, since calling d.clone() uses the covariant return type",
+      "A Base* only, because clone() overrides must match the base return type exactly",
+      "A void* that the caller must cast via static_cast to the correct derived type",
+      "A Derived* only if the base clone() is declared as a pure virtual function",
+    ],
+    correctIndex: 0,
+    explanation:
+      "C++ allows a virtual function override to return a pointer or reference to a more-derived type than the base version. This is called a covariant return type. Here, Base::clone() returns Base* while Derived::clone() returns Derived*. When called directly on a Derived object, the compiler knows the static type and returns Derived* without requiring a cast. When called through a Base pointer, the return type is Base*, but the actual object created is still a Derived.",
+    link: "https://en.cppreference.com/w/cpp/language/virtual#Covariant_return_types",
+  },
+  {
+    id: 1164,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question:
+      "What per-object memory overhead does a typical compiler add when a class has virtual functions?",
+    code: `class NoVirtual {
+    int x;
+    int y;
+};
+
+class WithVirtual {
+    int x;
+    int y;
+public:
+    virtual void foo() {}
+    virtual ~WithVirtual() = default;
+};
+
+std::cout << sizeof(NoVirtual) << " "
+          << sizeof(WithVirtual);`,
+    options: [
+      "Both classes are the same size because virtual functions are stored in a separate table",
+      "WithVirtual adds one function pointer per virtual function declared in the class",
+      "WithVirtual is larger by one hidden vptr that points to the class vtable",
+      "WithVirtual doubles in size because each virtual function needs its own dispatch slot",
+    ],
+    correctIndex: 2,
+    explanation:
+      "When a class has at least one virtual function, most compilers add a single hidden pointer (the vptr) to each object instance. This vptr points to the class's vtable, which is a shared per-class array of function pointers. Regardless of how many virtual functions the class declares, only one vptr is added per object. On a 64-bit system, NoVirtual would typically be 8 bytes while WithVirtual would be 16 bytes (8 for the two ints plus 8 for the vptr, with possible padding).",
+    link: "https://en.cppreference.com/w/cpp/language/virtual",
+  },
+  {
+    id: 1165,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question: "What does constructing a Derived object print in this code?",
+    code: `class Base {
+public:
+    Base() { identify(); }
+    virtual void identify() { std::cout << "B"; }
+    virtual ~Base() = default;
+};
+
+class Derived : public Base {
+public:
+    Derived() { identify(); }
+    void identify() override { std::cout << "D"; }
+};
+
+Derived d;`,
+    options: [
+      "It prints \"DD\" because both constructors dispatch to Derived::identify()",
+      "It prints \"BB\" because constructors always resolve to Base::identify()",
+      "It prints \"BD\" because Base's constructor calls Base::identify() first",
+      "It prints \"DB\" because the Derived constructor runs before Base::Base()",
+    ],
+    correctIndex: 2,
+    explanation:
+      "During the execution of Base's constructor, the object's dynamic type is Base because the Derived sub-object has not yet been constructed. Virtual dispatch in a constructor resolves to the version defined in the class currently being constructed. So Base() calls Base::identify() printing \"B\". Then Derived's constructor runs, and at that point the dynamic type is Derived, so identify() resolves to Derived::identify() printing \"D\". The combined output is \"BD\".",
+    link: "https://en.cppreference.com/w/cpp/language/virtual#During_construction_and_destruction",
+  },
+  {
+    id: 1166,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question: "How can the ambiguous call to greet() on object d be resolved?",
+    code: `class A {
+public:
+    void greet() { std::cout << "A"; }
+};
+class B {
+public:
+    void greet() { std::cout << "B"; }
+};
+class D : public A, public B {};
+
+D d;
+d.greet();  // error: ambiguous`,
+    options: [
+      "Change D to inherit virtually from both A and B to merge the two greet() functions",
+      "Add 'using A::greet;' inside class D to select which base version to expose",
+      "Cast d to void* first and then call greet() through the resulting untyped pointer",
+      "Declare greet() as static in both A and B so the linker can pick one automatically",
+    ],
+    correctIndex: 1,
+    explanation:
+      "When D inherits from both A and B, and both provide a function named greet(), calling d.greet() is ambiguous. One fix is to qualify the call explicitly (d.A::greet()). Another is to place a using declaration inside D, such as 'using A::greet;', which brings A's version into D's scope and resolves the ambiguity. Virtual inheritance would not help here since A and B are unrelated classes, not a shared base.",
+    link: "https://en.cppreference.com/w/cpp/language/using_declaration",
+  },
+  {
+    id: 1167,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question:
+      "How does protected inheritance affect access to Base's public members from outside code?",
+    code: `class Base {
+public:
+    void hello() { std::cout << "Hi"; }
+};
+
+class Mid : protected Base {};
+class Child : public Mid {};
+
+Mid m;
+m.hello();  // line X`,
+    options: [
+      "Line X compiles because protected inheritance keeps public members accessible to everyone",
+      "Line X fails because protected inheritance makes Base's public members protected in Mid",
+      "Line X compiles but hello() prints nothing due to the access level being downgraded",
+      "Line X fails because protected inheritance makes Base's public members private in Mid",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Protected inheritance converts all public members of the base class into protected members of the derived class. This means hello() is accessible inside Mid and its subclasses (like Child) but not from outside code. So m.hello() at line X is a compile error. This differs from private inheritance, which would make hello() private in Mid, blocking access even from grandchild classes.",
+    link: "https://en.cppreference.com/w/cpp/language/derived_class#Protected_inheritance",
+  },
+  {
+    id: 1168,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question:
+      "What is the key difference between dynamic_cast and static_cast when downcasting a polymorphic pointer?",
+    code: `class Base {
+public:
+    virtual ~Base() = default;
+};
+class Derived : public Base {
+public:
+    int value = 42;
+};
+
+Base* bp = new Base();
+Derived* dp1 = static_cast<Derived*>(bp);
+Derived* dp2 = dynamic_cast<Derived*>(bp);`,
+    options: [
+      "static_cast succeeds silently but causes undefined behavior; dynamic_cast returns nullptr",
+      "Both casts return nullptr when the actual object type does not match the target downcast type",
+      "dynamic_cast is faster than static_cast because it skips the runtime RTTI type verification",
+      "static_cast performs a runtime type check and throws on failure; dynamic_cast returns nullptr",
+    ],
+    correctIndex: 0,
+    explanation:
+      "static_cast performs no runtime type check. It trusts the programmer and compiles the downcast unconditionally. If the actual object is not a Derived (as here, where bp points to a plain Base), accessing dp1->value is undefined behavior. dynamic_cast uses RTTI to verify the cast at runtime and returns nullptr for pointer casts that fail. This makes dynamic_cast safer but slightly slower due to the runtime type check.",
+    link: "https://en.cppreference.com/w/cpp/language/dynamic_cast",
+  },
+  {
+    id: 1169,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question:
+      "Can a pure virtual function have a default implementation that derived classes can call?",
+    code: `class Base {
+public:
+    virtual void action() = 0;
+    virtual ~Base() = default;
+};
+
+void Base::action() {
+    std::cout << "default ";
+}
+
+class Derived : public Base {
+public:
+    void action() override {
+        Base::action();
+        std::cout << "extended";
+    }
+};
+
+Derived d;
+d.action();`,
+    options: [
+      "It fails to compile because a pure virtual function cannot have any implementation at all",
+      "It prints \"extended\" because the pure virtual base body is ignored during dispatch",
+      "It prints \"default extended\" because derived classes can explicitly call the base body",
+      "It causes undefined behavior because calling a pure virtual function is always illegal",
+    ],
+    correctIndex: 2,
+    explanation:
+      "C++ allows a pure virtual function to have a definition provided outside the class body. The class remains abstract and cannot be instantiated, but derived classes can explicitly call the base implementation using the qualified name Base::action(). In this example, Derived::action() first calls Base::action() which prints \"default \", then prints \"extended\". This pattern is useful for providing a common default that derived classes can optionally invoke.",
+    link: "https://en.cppreference.com/w/cpp/language/abstract_class",
+  },
+  {
+    id: 1170,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question:
+      "What design principle does the Non-Virtual Interface (NVI) pattern apply to virtual functions?",
+    code: `class Widget {
+public:
+    void draw() {          // non-virtual public interface
+        setup();
+        doDraw();
+        cleanup();
+    }
+    virtual ~Widget() = default;
+private:
+    virtual void doDraw() = 0;  // virtual implementation detail
+    void setup()   { /* ... */ }
+    void cleanup() { /* ... */ }
+};`,
+    options: [
+      "The public interface is non-virtual and delegates to a private virtual for customization",
+      "The public interface is virtual and the private helper functions handle all dispatch logic",
+      "The virtual function is made public so derived classes can call it directly without wrappers",
+      "All member functions are declared virtual to let derived classes override the full workflow",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The Non-Virtual Interface pattern separates the public interface from the customization point. The public function draw() is non-virtual and controls the overall workflow (setup, draw, cleanup). The actual drawing is delegated to a private pure virtual function doDraw() that derived classes override. This lets the base class enforce pre-conditions and post-conditions while still allowing polymorphic customization. Derived classes override the private virtual but cannot skip the wrapper.",
+    link: "https://en.cppreference.com/w/cpp/language/virtual",
+  },
+  {
+    id: 1171,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question:
+      "Which version of the default argument is used when show() is called through a Base pointer to a Derived object?",
+    code: `class Base {
+public:
+    virtual void show(int x = 10) {
+        std::cout << "Base:" << x;
+    }
+    virtual ~Base() = default;
+};
+
+class Derived : public Base {
+public:
+    void show(int x = 20) override {
+        std::cout << "Derived:" << x;
+    }
+};
+
+Base* p = new Derived();
+p->show();`,
+    options: [
+      "It prints \"Derived:20\" because the derived default argument matches the derived override",
+      "It prints \"Base:10\" because both the function body and default come from the base class",
+      "It fails to compile because base and derived default arguments must have the same value",
+      "It prints \"Derived:10\" because the body is from Derived but the default is from Base",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Default arguments are resolved statically based on the declared type of the pointer or reference, not the dynamic type of the object. Since p is declared as Base*, the default argument value 10 from Base::show() is used. However, because show() is virtual, the function body called at runtime is Derived::show(). The result is that x receives the value 10 from Base's default, but the Derived body executes, printing \"Derived:10\". This mismatch is a well-known pitfall.",
+    link: "https://en.cppreference.com/w/cpp/language/default_arguments",
+  },
+  {
+    id: 1172,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "In a multiple inheritance layout, what is a 'thunk' used for during virtual dispatch through a secondary base pointer?",
+    code: `struct A { virtual void f(); };
+struct B { virtual void g(); };
+struct C : A, B {
+    void f() override;
+    void g() override;
+};
+
+B* bp = new C;
+bp->g();  // How does dispatch reach C::g?`,
+    options: [
+      "It adjusts the this pointer to the most-derived object before jumping to the override",
+      "It allocates a temporary wrapper object that bridges the secondary base for each virtual call",
+      "It copies the vtable from the primary base into the secondary base at runtime",
+      "It converts the function signature to match the secondary base calling convention",
+    ],
+    correctIndex: 0,
+    explanation:
+      "When a virtual function is called through a secondary base pointer (B* in this case), the this pointer points to the B subobject, not the beginning of C. A thunk is a small compiler-generated code stub that adjusts (subtracts an offset from) the this pointer so it points to the complete C object before jumping to C::g(). Without this adjustment, the override would receive the wrong this pointer and access incorrect memory.",
+    link: "https://en.cppreference.com/w/cpp/language/derived_class",
+  },
+  {
+    id: 1173,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "What does sizeof(D) most likely print on a typical 64-bit implementation, and why?",
+    code: `struct A { virtual void f() {} };
+struct B { virtual void g() {} };
+struct D : A, B { void f() override {} void g() override {} };
+
+std::cout << sizeof(D);`,
+    options: [
+      "8, because the compiler merges both vtables into one shared vptr",
+      "24, because each virtual function adds 8 bytes to the object layout",
+      "32, because each base contributes a vptr and a padding block of 8 bytes",
+      "16, because D contains two vptrs from inheriting two polymorphic bases",
+    ],
+    correctIndex: 3,
+    explanation:
+      "When a class inherits from two separate polymorphic base classes, the most-derived object typically contains one vptr for each polymorphic base. On a 64-bit platform each vptr is 8 bytes. Since D inherits from both A and B, it contains two vptrs totaling 16 bytes. The compiler cannot merge them because each base needs its own vtable pointer so that a pointer to A or B within D points to the correct vtable.",
+    link: "https://en.cppreference.com/w/cpp/language/object#Polymorphic_objects",
+  },
+  {
+    id: 1174,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question: "Why can the compiler devirtualize the call to p->speak() in this code?",
+    code: `#include <iostream>
+struct Animal {
+    virtual void speak() { std::cout << "Animal"; }
+};
+struct Dog : Animal {
+    void speak() override { std::cout << "Woof"; }
+};
+
+void greet() {
+    Dog d;
+    Animal* p = &d;
+    p->speak();
+}`,
+    options: [
+      "The compiler cannot devirtualize here because p is declared as a base class pointer",
+      "The optimizer proves the dynamic type is Dog and emits a direct call",
+      "Devirtualization only applies when the function is marked constexpr",
+      "The override keyword instructs the compiler to skip vtable lookup",
+    ],
+    correctIndex: 1,
+    explanation:
+      "The compiler can see that p is assigned the address of a local Dog object whose dynamic type cannot change. Through escape analysis and type propagation, the optimizer proves that p always points to a Dog, so it replaces the indirect vtable call with a direct call to Dog::speak(). This is called devirtualization. It has nothing to do with constexpr or the override keyword; it is a general optimization that modern compilers perform when they can prove the concrete type at compile time.",
+    link: "https://en.cppreference.com/w/cpp/language/virtual",
+  },
+  {
+    id: 1175,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question: "What does this type erasure implementation print?",
+    code: `#include <iostream>
+#include <memory>
+
+class Drawable {
+    struct Concept {
+        virtual void draw_() const = 0;
+        virtual ~Concept() = default;
+    };
+    template <typename T>
+    struct Model : Concept {
+        T obj;
+        Model(T o) : obj(std::move(o)) {}
+        void draw_() const override { obj.draw(); }
+    };
+    std::unique_ptr<Concept> p_;
+public:
+    template <typename T>
+    Drawable(T x) : p_(std::make_unique<Model<T>>(std::move(x))) {}
+    void draw() const { p_->draw_(); }
+};
+
+struct Circle { void draw() const { std::cout << "O"; } };
+struct Square { void draw() const { std::cout << "[]"; } };
+
+int main() {
+    Drawable a(Circle{});
+    Drawable b(Square{});
+    a.draw();
+    b.draw();
+}`,
+    options: [
+      "Compilation error because Circle and Square do not inherit from the Concept interface",
+      "Undefined behavior because the unique_ptr is moved during constructor initialization",
+      "O[] because each Model wraps its type and delegates via virtual dispatch",
+      "O[] because template argument deduction bypasses the virtual function mechanism",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Type erasure works by wrapping any type T that satisfies a structural requirement (having a draw() method) inside a Model<T> that inherits from a polymorphic Concept base. Circle and Square do not need to inherit from anything; Model<Circle> and Model<Square> inherit from Concept and override draw_(). The Drawable constructor creates the appropriate Model and stores it as a unique_ptr<Concept>. When draw() is called, virtual dispatch on the Concept pointer reaches the correct Model, which calls the stored object's draw(). The output is O followed by [].",
+    link: "https://en.cppreference.com/w/cpp/language/templates",
+  },
+  {
+    id: 1176,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "What key trade-off does std::variant with std::visit have compared to a virtual function hierarchy?",
+    code: `#include <variant>
+#include <iostream>
+
+struct Circle { double r; };
+struct Rect   { double w, h; };
+
+using Shape = std::variant<Circle, Rect>;
+
+double area(const Shape& s) {
+    return std::visit([](auto& sh) -> double {
+        if constexpr (std::is_same_v<std::decay_t<decltype(sh)>, Circle>)
+            return 3.14159 * sh.r * sh.r;
+        else
+            return sh.w * sh.h;
+    }, s);
+}`,
+    options: [
+      "std::visit always performs slower runtime dispatch than a single vtable indirect call",
+      "std::variant cannot hold types larger than 64 bytes due to internal stack size constraints",
+      "std::variant requires all alternative types to share a common base class for dispatch",
+      "Adding a new type requires changing every visit call site instead of adding a subclass",
+    ],
+    correctIndex: 3,
+    explanation:
+      "With virtual functions, adding a new shape only requires creating a new derived class that overrides the virtual methods. Existing code that dispatches through base pointers does not change. With std::variant, adding a new alternative type means the variant type alias changes, and every std::visit call site must handle the new alternative or the code will not compile. This is the classic expression problem: virtual hierarchies make adding types easy but adding operations hard, while variant/visit makes adding operations easy but adding types hard.",
+    link: "https://en.cppreference.com/w/cpp/utility/variant",
+  },
+  {
+    id: 1177,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "Where is the RTTI type_info object for a polymorphic class typically stored relative to the vtable?",
+    code: `struct Base {
+    virtual ~Base() = default;
+};
+struct Derived : Base {};
+
+Base* p = new Derived;
+// typeid(*p) accesses RTTI -- where is that data?`,
+    options: [
+      "Inside each object instance alongside the vptr stored as a second hidden data member",
+      "In a global hash map keyed by the mangled class name and populated at program startup",
+      "At a fixed negative offset from the address that the vptr points to",
+      "In a separate thread-local table that is rebuilt on every dynamic_cast operation",
+    ],
+    correctIndex: 2,
+    explanation:
+      "In common ABI implementations such as the Itanium C++ ABI, the type_info pointer for a polymorphic class is stored at a negative offset (typically slot -1) from the address that the vptr points to. When typeid is applied to a polymorphic expression, the compiler reads the vptr from the object, then fetches the type_info pointer from just before the first vtable entry. This avoids enlarging the object itself and keeps RTTI tightly coupled to the vtable.",
+    link: "https://en.cppreference.com/w/cpp/types/type_info",
+  },
+  {
+    id: 1178,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question: "What does this C++20 code produce, and why is it valid?",
+    code: `#include <iostream>
+
+struct Base {
+    constexpr virtual int value() const { return 1; }
+    constexpr virtual ~Base() = default;
+};
+struct Derived : Base {
+    constexpr int value() const override { return 42; }
+};
+
+consteval int get_val() {
+    Derived d;
+    Base const& ref = d;
+    return ref.value();
+}
+
+int main() {
+    constexpr int v = get_val();
+    std::cout << v;
+}`,
+    options: [
+      "Compilation error because virtual functions cannot be declared constexpr in any standard",
+      "1, because constexpr evaluation always uses the static type for function dispatch",
+      "42, because C++20 allows constexpr virtual calls resolved at compile time",
+      "Undefined behavior because consteval functions cannot invoke virtual dynamic dispatch",
+    ],
+    correctIndex: 2,
+    explanation:
+      "C++20 permits virtual functions to be declared constexpr. During constant evaluation the compiler knows the complete dynamic type of every object, so it can resolve virtual calls without a vtable. In get_val(), d is a Derived object and ref is bound to it. The compiler resolves ref.value() to Derived::value() and returns 42. The result is stored in the constexpr variable v, and the program prints 42.",
+    link: "https://en.cppreference.com/w/cpp/language/constexpr",
+  },
+  {
+    id: 1179,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "Why does a polymorphic base class with virtual functions not benefit from Empty Base Optimization?",
+    code: `struct Empty {};
+struct Poly { virtual void f() {} };
+
+struct A : Empty { int x; };
+struct B : Poly  { int x; };
+
+// sizeof(A) is likely 4, sizeof(B) is likely 16`,
+    options: [
+      "The standard prohibits EBO for any class that uses inheritance with overrides",
+      "Virtual functions require a hidden vptr member so the base is never truly empty",
+      "EBO only works with final classes that the compiler can fully inline at link time",
+      "The polymorphic base stores RTTI strings inline which prevents size optimization",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Empty Base Optimization allows a base class with no non-static data members to occupy zero bytes inside a derived class. However, a class with virtual functions is never empty in practice because the compiler inserts a hidden vptr (virtual table pointer) into every polymorphic object. This vptr is typically 8 bytes on a 64-bit platform. Since the base is no longer truly empty, EBO does not apply and the derived class B has both the vptr from Poly and its own int x member, plus alignment padding.",
+    link: "https://en.cppreference.com/w/cpp/language/ebo",
+  },
+  {
+    id: 1180,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "What advantage does CRTP-based static polymorphism have over virtual dispatch in this benchmark scenario?",
+    code: `template <typename Derived>
+struct Base {
+    void execute() { static_cast<Derived*>(this)->do_work(); }
+};
+struct Fast : Base<Fast> {
+    void do_work() { /* compute */ }
+};
+
+void run(Base<Fast>& obj) {
+    for (int i = 0; i < 1'000'000; ++i)
+        obj.execute();
+}`,
+    options: [
+      "CRTP avoids heap allocation by storing the vtable inside the stack frame",
+      "CRTP calls are resolved at compile time so the optimizer can inline them fully",
+      "CRTP allows multiple return types from the same function signature at runtime",
+      "CRTP skips the destructor chain making cleanup faster in tight loops like this",
+    ],
+    correctIndex: 1,
+    explanation:
+      "CRTP resolves the call target at compile time through the static_cast to Derived*. Because execute() calls Derived::do_work() directly without an indirect vtable lookup, the compiler sees the exact function being called and can inline it completely. In a tight loop of one million iterations this eliminates the branch prediction overhead and memory indirection cost of virtual dispatch. The key benefit is that the compiler can optimize across the call boundary since the callee is known statically.",
+    link: "https://en.cppreference.com/w/cpp/language/crtp",
+  },
+  {
+    id: 1181,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "How does std::pmr::polymorphic_allocator achieve type-erased memory allocation?",
+    code: `#include <memory_resource>
+#include <vector>
+
+std::pmr::monotonic_buffer_resource pool;
+std::pmr::vector<int> v(&pool);
+v.push_back(42);`,
+    options: [
+      "It stores a pointer to a memory_resource base and dispatches via virtual allocate/deallocate",
+      "It uses a std::variant of all standard resource types to select the allocation strategy at compile time",
+      "It embeds a function pointer table directly in the vector object to avoid heap indirection overhead",
+      "It requires the container to be templated on the concrete resource type for each allocation strategy",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::pmr::polymorphic_allocator holds a pointer to std::pmr::memory_resource, which is an abstract base class with virtual functions do_allocate(), do_deallocate(), and do_is_equal(). Any concrete memory resource such as monotonic_buffer_resource or synchronized_pool_resource inherits from memory_resource and overrides these virtual functions. This is classic runtime polymorphism: the allocator does not need to know the concrete resource type, so containers using polymorphic_allocator all share the same type regardless of which memory resource backs them.",
+    link: "https://en.cppreference.com/w/cpp/memory/polymorphic_allocator",
+  },
 ];
