@@ -136,10 +136,10 @@ export const questions: Question[] = [
     question: "What happens on the second line?",
     code: `std::unique_ptr<int> a = std::make_unique<int>(42);\nstd::unique_ptr<int> b = a;`,
     options: [
-      "b points to a copy of the integer 42",
-      "Both a and b point to the same integer",
+      "b gets a copy of 42",
+      "Both share the int",
       "Compilation error",
-      "Runtime error — double ownership",
+      "Runtime double-free",
     ],
     correctIndex: 2,
     explanation:
@@ -262,10 +262,10 @@ export const questions: Question[] = [
     question: "What happens when this code compiles?",
     code: `template<typename T>\nT add(T a, T b) { return a + b; }\n\nauto result = add(1, 2.0);`,
     options: [
-      "Returns 3.0 as a double",
-      "Returns 3 as an int",
+      "Returns 3.0 as a double after implicit conversion",
+      "Returns 3 as an int via truncation of the argument",
       "Compilation error — ambiguous template deduction",
-      "Undefined behavior",
+      "Undefined behavior at runtime due to type mismatch",
     ],
     correctIndex: 2,
     explanation:
@@ -297,10 +297,10 @@ export const questions: Question[] = [
       "What is true about the types of a and b?",
     code: "void process(std::integral auto a, std::integral auto b);",
     options: [
-      "They must be the same type",
+      "They must be the same type in all template instantiations",
       "They can be different integral types (e.g., int and long)",
-      "They must both be int",
-      "This syntax is invalid in C++20",
+      "They must both be int, as specified by the standard",
+      "This syntax is invalid in C++20 and will not compile",
     ],
     correctIndex: 1,
     explanation:
@@ -521,9 +521,9 @@ export const questions: Question[] = [
       "What is required for dynamic_cast to work when downcasting in a class hierarchy?",
     options: [
       "The base class must have at least one virtual function",
-      "The derived class must be declared final",
-      "RTTI must be disabled",
-      "The classes must use multiple inheritance",
+      "The derived class must be declared final to enable RTTI checks",
+      "RTTI must be disabled in the compiler settings for downcasting",
+      "The classes must use multiple inheritance for dynamic_cast",
     ],
     correctIndex: 0,
     explanation:
@@ -859,10 +859,10 @@ export const questions: Question[] = [
     question: "What is the problem?",
     code: `auto makeCounter() {\n    int count = 0;\n    return [&count]() { return ++count; };\n}\n\nauto counter = makeCounter();\ncounter();`,
     options: [
-      "Lambda can't capture local variables",
+      "Lambda cannot capture local variables by reference or by value",
       "Dangling reference — count is destroyed when makeCounter returns",
-      "Compilation error — lambda must be mutable",
-      "No problem — the lambda extends the lifetime of count",
+      "Compilation error — lambda must be declared mutable to modify captures",
+      "No problem — the lambda correctly extends the lifetime of count",
     ],
     correctIndex: 1,
     explanation:
@@ -1254,10 +1254,10 @@ export const questions: Question[] = [
     topic: "CS Fundamentals",
     question: "What does a pointer store?",
     options: [
-      "The value of another variable",
+      "Another variable",
       "A memory address",
-      "The type of another variable",
-      "A copy of another variable",
+      "A type of variable",
+      "A data structure",
     ],
     correctIndex: 1,
     explanation:
@@ -1270,10 +1270,10 @@ export const questions: Question[] = [
     topic: "CS Fundamentals",
     question: "What is an object file?",
     options: [
-      "A file containing C++ class definitions",
-      "A fully linked executable ready to run",
+      "A file containing C++ class definitions and their declarations",
+      "A fully linked executable binary that is ready to be run directly",
       "Machine code from a single translation unit, not yet linked",
-      "A compressed archive of source files",
+      "A compressed archive of multiple source files for distribution",
     ],
     correctIndex: 2,
     explanation:
@@ -1343,10 +1343,10 @@ export const questions: Question[] = [
     question:
       "Why is heap allocation generally slower than stack allocation?",
     options: [
-      "The heap uses slower memory chips located further from the CPU than stack memory",
+      "The heap uses slower memory chips located further from the CPU, increasing access latency compared to the stack",
       "Heap allocation requires finding a free block and maintaining bookkeeping, while the stack just moves a pointer",
-      "The heap is stored on disk and paged into RAM on demand, adding latency to every access",
-      "Heap memory must be initialized to zero by the OS before returning it to the program",
+      "The heap is stored on disk and paged into RAM on demand, adding significant latency to every memory access",
+      "Heap memory must be initialized to zero by the OS before it is returned to the requesting program",
     ],
     correctIndex: 1,
     explanation:
@@ -1359,10 +1359,10 @@ export const questions: Question[] = [
     topic: "CS Fundamentals",
     question: "What causes a stack overflow?",
     options: [
-      "Allocating too much memory with new",
+      "Allocating too much memory on the heap by using new excessively",
       "Unbounded recursion exhausting the fixed-size call stack",
-      "Using too many global variables",
-      "Opening too many files simultaneously",
+      "Using too many global variables in the program's data section",
+      "Opening too many files simultaneously via the file system API",
     ],
     correctIndex: 1,
     explanation:
@@ -1405,10 +1405,10 @@ export const questions: Question[] = [
     question:
       "In a typical process memory layout, which segment stores global and static variables?",
     options: [
-      "Stack segment",
-      "Code (text) segment",
+      "Stack segment, where local variables are allocated",
+      "Code (text) segment, which holds executable code",
       "Data segment (and BSS for uninitialized ones)",
-      "Heap segment",
+      "Heap segment, which stores dynamically allocated",
     ],
     correctIndex: 2,
     explanation:
@@ -1506,10 +1506,10 @@ export const questions: Question[] = [
     question:
       "Why do arrays generally perform better than linked lists for sequential access?",
     options: [
-      "Arrays use less total memory per element because they have no per-node pointer overhead",
+      "Arrays use less total memory per element because they store no per-node pointer overhead unlike linked lists",
       "Arrays store elements contiguously, which is cache-friendly; linked list nodes are scattered, causing cache misses",
-      "Linked lists require virtual function calls to traverse each node in the chain",
-      "Arrays are always allocated on the stack, which is inherently faster than heap-allocated lists",
+      "Linked lists require virtual function calls to traverse each node in the chain, adding dispatch overhead",
+      "Arrays are always allocated on the stack, which provides inherently faster access than heap-allocated linked lists",
     ],
     correctIndex: 1,
     explanation:
@@ -1573,10 +1573,10 @@ export const questions: Question[] = [
     topic: "CS Fundamentals",
     question: "What is an ABI (Application Binary Interface)?",
     options: [
-      "A high-level API for making system calls from user-space programs",
+      "A high-level API for making system calls from user-space programs in a portable way across platforms",
       "A specification defining calling conventions, name mangling, and struct layout at the binary level",
-      "A debugging interface for inspecting the internal state of running processes",
-      "A standard for source code formatting and naming conventions across compilers",
+      "A debugging interface for inspecting the internal state of running processes and their memory layout",
+      "A standard for source code formatting and naming conventions used consistently across C++ compilers",
     ],
     correctIndex: 1,
     explanation:
@@ -1589,10 +1589,10 @@ export const questions: Question[] = [
     topic: "CS Fundamentals",
     question: "What is a translation unit?",
     options: [
-      "A single header file that can be included by multiple source files",
+      "A single header file that can be included by multiple source files during the preprocessing stage",
       "A source file after preprocessing — with all #includes expanded — that the compiler processes",
-      "A compiled object file that has been assembled and is ready for linking",
-      "A module partition in C++20 that replaces the header-include model entirely",
+      "A compiled object file that has been assembled into machine code and is ready for the linking stage",
+      "A module partition in C++20 that replaces the traditional header-include model used in earlier standards",
     ],
     correctIndex: 1,
     explanation:
@@ -1658,10 +1658,10 @@ export const questions: Question[] = [
     question:
       "Two threads in the same process each increment a shared global counter without synchronization. Which statement is true?",
     options: [
-      "Each thread has its own copy of the counter, so no conflict is possible",
+      "Each thread has its own private copy of the counter stored in thread-local storage, so no conflict is possible",
       "Both threads share the same memory space, so the counter may end up with the wrong value due to data races",
-      "The OS guarantees that global variable access is atomic",
-      "This is only a problem on single-core CPUs where threads are time-sliced",
+      "The OS guarantees that global variable access is atomic and serialized across all threads automatically",
+      "This is only a problem on single-core CPUs where threads are time-sliced rather than running in parallel",
     ],
     correctIndex: 1,
     explanation:
@@ -1709,10 +1709,10 @@ export const questions: Question[] = [
     question:
       'Header file "math_utils.h" is included by both "a.cpp" and "b.cpp", and "a.cpp" also includes "b.h" which itself includes "math_utils.h". What do include guards prevent?',
     options: [
-      "The header being used by more than one source file",
+      "The header being included and used by more than one separate source file in the project",
       "The header's contents being pasted multiple times into the same translation unit",
-      "Circular dependencies between source files at link time",
-      "The header from being modified by the preprocessor",
+      "Circular dependencies between the compiled source files at link time causing linker errors",
+      "The header from being modified or transformed by the preprocessor during compilation",
     ],
     correctIndex: 1,
     explanation:
@@ -1726,10 +1726,10 @@ export const questions: Question[] = [
     question: "What is wrong with this code?",
     code: "int* p = new int(42);\ndelete p;\nstd::cout << *p;",
     options: [
-      "Nothing — delete only marks memory as available, the value 42 is still there",
+      "Nothing — delete only marks memory as available; the value 42 may still be readable from the address",
       "Undefined behavior — p is a dangling pointer after delete, and dereferencing it is illegal",
-      "Compilation error — you cannot use cout on a dereferenced pointer",
-      "Memory leak — you should set p = nullptr after delete",
+      "Compilation error — the compiler does not allow using cout on a dereferenced pointer variable",
+      "Memory leak — you should always set p = nullptr after calling delete to avoid future issues",
     ],
     correctIndex: 1,
     explanation:
@@ -1778,10 +1778,10 @@ export const questions: Question[] = [
       "Function foo() allocates an int on the stack and another on the heap. When foo() returns without calling delete, which memory is automatically reclaimed?",
     code: "void foo() {\n    int stackVar = 10;\n    int* heapVar = new int(20);\n    // foo returns without calling delete\n}",
     options: [
-      "Both — the OS reclaims all memory when a function returns",
-      "Neither — all memory in C++ must be manually freed",
+      "Both — the OS reclaims all memory when a function returns its control to the caller",
+      "Neither — all memory allocated in C++ must be manually freed by the programmer",
       "Only stackVar — heap memory requires explicit delete (or a smart pointer)",
-      "Only heapVar — stack memory persists until the program ends",
+      "Only heapVar — stack memory persists until the program ends its main execution",
     ],
     correctIndex: 2,
     explanation:
@@ -1831,10 +1831,10 @@ export const questions: Question[] = [
     question:
       "Adding 1 to the maximum value of an unsigned int is well-defined (it wraps to 0), but adding 1 to the maximum value of a signed int is undefined behavior. Why does the C++ standard treat them differently?",
     options: [
-      "Signed overflow causes a hardware trap on all CPUs, so the standard must leave the behavior undefined to remain portable across platforms",
+      "Signed overflow causes a hardware trap on all CPUs, so the standard must leave the behavior undefined to remain portable across different processor platforms",
       "The standard defines unsigned arithmetic as modular (mod 2^N) to support bit manipulation, but leaves signed overflow undefined so compilers can optimize assuming it never happens",
-      "Signed integers use a different circuit in the ALU that physically cannot handle overflow, unlike the unsigned addition hardware unit",
-      "It's a historical accident from the original C standard — both should be well-defined, and C++23 changes signed overflow to wrap like unsigned",
+      "Signed integers use a different circuit in the ALU that physically cannot handle overflow, unlike the unsigned addition hardware unit which wraps around naturally",
+      "It's a historical accident from the original C standard — both should be well-defined, and C++23 formally changes signed overflow to wrap around like unsigned does",
     ],
     correctIndex: 1,
     explanation:
@@ -1848,10 +1848,10 @@ export const questions: Question[] = [
     question:
       "A modern CPU has L1, L2, and L3 caches. L1 is the fastest but smallest. Why not just make L1 very large?",
     options: [
-      "L1 is volatile and would lose data if made larger",
+      "L1 is volatile and would lose data if made larger, so the hardware designers deliberately keep it small to reduce corruption risk",
       "A larger cache requires more time to search and longer wire distances, increasing latency — which defeats the purpose of L1",
-      "L1 cache memory is a different, more expensive type of silicon that cannot be manufactured in large quantities",
-      "The CPU instruction set only supports addressing a small L1 cache",
+      "L1 cache memory is a different, more expensive type of silicon that cannot be manufactured in large quantities due to yield constraints",
+      "The CPU instruction set only supports addressing a small L1 cache, so enlarging it would require changing the entire ISA",
     ],
     correctIndex: 1,
     explanation:
@@ -2023,10 +2023,10 @@ export const questions: Question[] = [
       "This loop runs significantly faster when the array is sorted versus unsorted, even though the same number of iterations and additions occur. Why?",
     code: "int sum = 0;\nfor (int i = 0; i < size; i++) {\n    if (data[i] >= 128)\n        sum += data[i];\n}",
     options: [
-      "Sorting enables the compiler to auto-vectorize the loop with SIMD instructions, processing multiple qualifying elements per cycle since they are contiguous",
+      "Sorting enables the compiler to auto-vectorize the loop with SIMD instructions, processing multiple qualifying elements per cycle since they are stored contiguously in memory",
       "When sorted, the branch pattern becomes predictable (all-false then all-true), so the CPU's branch predictor guesses correctly almost every time — unsorted data causes frequent mispredictions that flush the pipeline",
-      "Sorted data has dramatically better cache locality because all qualifying elements are grouped together, eliminating cache line misses during summation",
-      "The compiler detects the sorted order at compile time and replaces the conditional loop with a binary search to find the cutoff index directly",
+      "Sorted data has dramatically better cache locality because all qualifying elements are grouped together in adjacent memory locations, effectively eliminating cache line misses during summation",
+      "The compiler detects the sorted order at compile time and replaces the conditional loop with a binary search to find the cutoff index, dramatically reducing the number of iterations required",
     ],
     correctIndex: 1,
     explanation:
@@ -2128,10 +2128,10 @@ export const questions: Question[] = [
     question:
       "Calling strlen() (a library function) is orders of magnitude faster than calling write() (a system call) for a small string. What makes the system call so much more expensive?",
     options: [
-      "write() must encrypt all outgoing data before sending it to the kernel to ensure secure transfer between user space and kernel space",
+      "write() must encrypt all outgoing data before sending it to the kernel to ensure secure transfer between user space and kernel space, adding significant overhead per call",
       "A system call requires a transition from user mode to kernel mode: saving registers, switching privilege levels, executing the kernel handler, and returning — costing hundreds of cycles",
-      "Library functions like strlen() execute on the GPU via compute shaders, while system calls like write() run exclusively on the CPU",
-      "write() must allocate a separate heap buffer in kernel space and copy all user data into it, while strlen() operates entirely on the stack",
+      "Library functions like strlen() execute on the GPU via compute shaders for parallel processing, while system calls like write() run exclusively on the CPU's main execution core",
+      "write() must allocate a separate heap buffer in kernel space and copy all user data into it for processing, while strlen() operates entirely on the stack with no allocation",
     ],
     correctIndex: 1,
     explanation:
@@ -2182,10 +2182,10 @@ export const questions: Question[] = [
     question: "What does v.reserve(1000) do?",
     code: `std::vector<int> v;\nv.reserve(1000);`,
     options: [
-      "Creates 1000 default-initialized integers in v",
+      "Creates 1000 default-initialized integers inside the vector v immediately",
       "Allocates memory for at least 1000 elements without changing v's size",
-      "Sets v's size to 1000 and fills with zeros",
-      "Limits v so it can never hold more than 1000 elements",
+      "Sets v's size to 1000 and fills each element with the value zero",
+      "Limits v so it can never hold more than 1000 elements total",
     ],
     correctIndex: 1,
     explanation:
@@ -2199,10 +2199,10 @@ export const questions: Question[] = [
     question:
       "After pushing 5 elements into a default-constructed std::vector<int>, which statement is guaranteed?",
     options: [
-      "size() == capacity()",
+      "size() is always == capacity()",
       "size() == 5 and capacity() >= 5",
-      "capacity() == 5",
-      "size() > capacity()",
+      "capacity() is exactly == 5",
+      "size() is always > capacity()",
     ],
     correctIndex: 1,
     explanation:
@@ -2253,10 +2253,10 @@ export const questions: Question[] = [
     topic: "STL Containers",
     question: "What is the key difference between v.at(i) and v[i] for std::vector?",
     options: [
-      "at() is faster because it skips bounds checking",
+      "at() is faster because it skips bounds checking entirely for performance",
       "at() throws std::out_of_range if i >= size(); operator[] has undefined behavior",
-      "operator[] returns a copy; at() returns a reference",
-      "There is no difference — they are aliases",
+      "operator[] returns a copy of the element; at() returns a reference to it",
+      "There is no difference — they are interchangeable aliases for the same operation",
     ],
     correctIndex: 1,
     explanation:
@@ -2628,10 +2628,10 @@ export const questions: Question[] = [
     question: "What does v.data() return?",
     code: `std::vector<int> v = {10, 20, 30};`,
     options: [
-      "An iterator to the first element",
+      "An iterator pointing to the first element in the vector",
       "A pointer to the underlying contiguous array of elements",
-      "A copy of the internal data as a std::array",
-      "The total memory used by the vector in bytes",
+      "A copy of the internal data returned as a std::array object",
+      "The total memory used by the vector measured in bytes",
     ],
     correctIndex: 1,
     explanation:
@@ -2763,10 +2763,10 @@ export const questions: Question[] = [
     question:
       "What does std::map::extract(key) (C++17) return, and why is it useful?",
     options: [
-      "A copy of the value — useful for safely reading and removing in one step",
+      "A copy of the value associated with the key — useful for safely reading and removing in one atomic step",
       "A node handle that owns the extracted element — you can modify the key and reinsert without allocation",
-      "An iterator to the next element after the removed one",
-      "A std::optional containing the value, or std::nullopt if the key was not found",
+      "An iterator to the next element in sorted order after the removed one, enabling continued traversal",
+      "A std::optional containing the value, or std::nullopt if the key was not found in the map",
     ],
     correctIndex: 1,
     explanation:
@@ -2847,10 +2847,10 @@ export const questions: Question[] = [
     question:
       "What does the load factor of an std::unordered_map represent, and what happens when it exceeds max_load_factor()?",
     options: [
-      "The ratio of memory used to memory allocated — exceeding it triggers compaction",
+      "The ratio of memory used to memory allocated — exceeding it triggers compaction of the internal storage",
       "The ratio of element count to bucket count — exceeding it triggers rehashing, which increases the number of buckets",
-      "The number of hash collisions per bucket — exceeding it switches to open addressing",
-      "The percentage of empty buckets — exceeding it triggers garbage collection of removed nodes",
+      "The number of hash collisions per bucket — exceeding it switches the container to open addressing mode",
+      "The percentage of empty buckets remaining — exceeding it triggers garbage collection of removed node entries",
     ],
     correctIndex: 1,
     explanation:
@@ -2881,10 +2881,10 @@ export const questions: Question[] = [
     question:
       "In which scenario is std::deque a better choice than std::vector?",
     options: [
-      "When you need guaranteed contiguous memory for C API interop",
+      "When you need guaranteed contiguous memory layout for interoperability with C APIs",
       "When you frequently insert and remove elements at both the front and back",
-      "When you need random access to be faster than O(1)",
-      "When you need iterators that are never invalidated",
+      "When you need random access to elements to be faster than O(1) amortized",
+      "When you need iterators that are never invalidated by insert or erase",
     ],
     correctIndex: 1,
     explanation:
@@ -2915,10 +2915,10 @@ export const questions: Question[] = [
     question:
       "Why is iterating over a std::unordered_map with 10,000 elements typically slower than iterating over a std::vector of the same 10,000 elements?",
     options: [
-      "unordered_map iterators are more complex objects that require more CPU instructions per increment",
+      "unordered_map iterators are more complex objects that require additional CPU instructions per increment during traversal",
       "unordered_map nodes are scattered across the heap, causing frequent cache misses — vector elements are contiguous and cache-friendly",
-      "unordered_map must rehash each element during iteration to verify bucket placement",
-      "unordered_map iteration is O(n log n) while vector iteration is O(n)",
+      "unordered_map must rehash each element during iteration to verify that it is still in the correct bucket placement",
+      "unordered_map iteration has O(n log n) complexity due to bucket traversal, while vector iteration is always O(n)",
     ],
     correctIndex: 1,
     explanation:
@@ -2950,10 +2950,10 @@ export const questions: Question[] = [
     question:
       "std::set::insert() returns a std::pair<iterator, bool>. Why does it return a pair instead of just an iterator?",
     options: [
-      "The bool indicates whether the container was reallocated",
+      "The bool indicates whether the container was reallocated to accommodate the new element being inserted",
       "The bool indicates whether the insertion actually occurred — false means the element was already present",
-      "The iterator is to the previous element; the bool indicates if the set was empty",
-      "The pair format is a legacy design that cannot be changed due to ABI compatibility",
+      "The iterator points to the previous element; the bool indicates if the set was empty before the insert call",
+      "The pair format is a legacy design from early C++ that cannot be changed now due to ABI compatibility rules",
     ],
     correctIndex: 1,
     explanation:
@@ -3120,10 +3120,10 @@ export const questions: Question[] = [
     question:
       "What is the purpose of the exec() family of system calls?",
     options: [
-      "To create a new child process",
+      "To create a new child process by duplicating the parent",
       "To replace the current process image with a new program",
-      "To terminate the current process",
-      "To duplicate a file descriptor",
+      "To terminate the current process and return an exit code",
+      "To duplicate a file descriptor for I/O redirection use",
     ],
     correctIndex: 1,
     explanation:
@@ -3137,10 +3137,10 @@ export const questions: Question[] = [
     question:
       "What is a pipe in the context of inter-process communication?",
     options: [
-      "A shared file on disk that two processes read and write",
+      "A shared file on disk that two processes read and write to for data exchange between them",
       "A unidirectional byte stream connecting the stdout of one process to the stdin of another",
-      "A network socket that connects two processes on different machines",
-      "A block of shared memory mapped into two processes",
+      "A network socket that connects two processes on different machines over TCP for communication",
+      "A block of shared memory mapped into the address spaces of two separate cooperating processes",
     ],
     correctIndex: 1,
     explanation:
@@ -3154,10 +3154,10 @@ export const questions: Question[] = [
     question:
       "What is preemptive multitasking?",
     options: [
-      "The OS allows each process to run until it voluntarily yields the CPU",
+      "The OS allows each process to run until it voluntarily yields the CPU by making a system call",
       "The OS can forcibly interrupt a running process to schedule another, using a timer interrupt",
-      "Multiple processes run simultaneously on a single core",
-      "The programmer manually switches between tasks using coroutines",
+      "Multiple processes run simultaneously on a single core by sharing the execution pipeline",
+      "The programmer manually switches between tasks using coroutines or cooperative scheduling",
     ],
     correctIndex: 1,
     explanation:
@@ -3241,10 +3241,10 @@ export const questions: Question[] = [
     question:
       "A multi-level page table (as used on x86-64) splits the virtual address into multiple indices. What is the primary advantage over a single flat page table?",
     options: [
-      "Faster lookups — fewer memory accesses per translation",
+      "Faster lookups — fewer memory accesses per translation compared to a single-level table approach",
       "Space efficiency — only page table entries for allocated regions need to exist in memory",
-      "It eliminates the need for a TLB",
-      "It allows pages to be larger than 4 KB",
+      "It eliminates the need for a TLB by performing all address translation in software directly",
+      "It allows pages to be larger than 4 KB by combining multiple contiguous entries together",
     ],
     correctIndex: 1,
     explanation:
@@ -3377,10 +3377,10 @@ export const questions: Question[] = [
     question:
       "What does dup2(oldfd, newfd) do?",
     options: [
-      "Creates a new file with the same contents as oldfd",
+      "Creates a new file with the same contents as oldfd, essentially duplicating the file on disk entirely",
       "Makes newfd refer to the same open file description as oldfd, closing newfd first if it was open",
-      "Swaps the file descriptors oldfd and newfd",
-      "Copies the file data from oldfd into the buffer of newfd",
+      "Swaps the file descriptors oldfd and newfd so that each refers to what the other originally pointed to",
+      "Copies the file data from the buffer of oldfd into the buffer of newfd, transferring the actual bytes",
     ],
     correctIndex: 1,
     explanation:
@@ -3394,10 +3394,10 @@ export const questions: Question[] = [
     question:
       "A program calls printf() but the output does not appear immediately. What is the most likely reason?",
     options: [
-      "printf() is a no-op unless you compile with -DPRINTF_ENABLED",
+      "printf() is a no-op unless you compile with -DPRINTF_ENABLED; without that flag, all output calls are silently discarded by the preprocessor",
       "stdout is line-buffered (or fully buffered) by the C library, so output is held in a user-space buffer until a newline, buffer full, or fflush()",
-      "The kernel delays all I/O until the process exits",
-      "The terminal driver discards output that is not followed by a newline",
+      "The kernel delays all I/O until the process exits to batch writes together for efficiency, so nothing appears until the program terminates",
+      "The terminal driver discards output that is not followed by a newline character, so partial lines are never displayed to the user on screen",
     ],
     correctIndex: 1,
     explanation:
@@ -3411,10 +3411,10 @@ export const questions: Question[] = [
     question:
       "What is shared memory as an IPC mechanism?",
     options: [
-      "Two processes reading and writing the same file on disk",
+      "Two processes reading and writing the same file on disk, using file locks to synchronize their access and prevent data corruption",
       "A region of physical memory mapped into the address space of multiple processes, allowing direct read/write access without kernel involvement for each operation",
-      "A kernel buffer that copies data from one process to another",
-      "A network protocol for transferring data between processes on different machines",
+      "A kernel buffer that copies data from one process to another, with the kernel acting as an intermediary to ensure safe communication",
+      "A network protocol for transferring data between processes on different machines, using sockets and TCP/IP for reliable delivery",
     ],
     correctIndex: 1,
     explanation:
@@ -3428,10 +3428,10 @@ export const questions: Question[] = [
     question:
       "What is the page cache (buffer cache)?",
     options: [
-      "A hardware cache inside the CPU for virtual-to-physical translations",
+      "A hardware cache inside the CPU used for virtual-to-physical address translations via the TLB",
       "A region of RAM managed by the kernel that caches recently accessed file data, reducing disk I/O",
-      "A cache of compiled bytecode maintained by the dynamic linker",
-      "A user-space buffer allocated by malloc() for file I/O",
+      "A cache of compiled bytecode maintained by the dynamic linker for faster shared library resolution",
+      "A user-space buffer allocated by malloc() to speed up file I/O operations for the application",
     ],
     correctIndex: 1,
     explanation:
@@ -3445,10 +3445,10 @@ export const questions: Question[] = [
     question:
       "What problem does select()/poll()/epoll() solve?",
     options: [
-      "They encrypt data sent over network sockets",
+      "They encrypt data sent over network sockets to ensure secure communication between processes on the same host or across the network boundary",
       "They allow a single thread to monitor multiple file descriptors for readiness (readable, writable, error) without blocking on each one individually",
-      "They increase the maximum number of open files a process can have",
-      "They replace the need for TCP/IP in network programming",
+      "They increase the maximum number of open files a process can have by dynamically expanding the file descriptor table managed by the kernel",
+      "They replace the need for TCP/IP in network programming by providing a simpler abstraction layer for inter-process communication on the same host",
     ],
     correctIndex: 1,
     explanation:
@@ -3462,10 +3462,10 @@ export const questions: Question[] = [
     question:
       "What is a spinlock, and when is it preferred over a mutex that sleeps?",
     options: [
-      "A spinlock is always faster than a mutex",
+      "A spinlock is always faster than a mutex because it avoids the overhead of context switching by keeping the thread actively running on the CPU core",
       "A spinlock busy-waits in a loop checking the lock; it is preferred when the expected wait time is very short (nanoseconds) and context-switch overhead would dominate",
-      "A spinlock works only in user space; mutexes work only in kernel space",
-      "A spinlock can be held by multiple threads simultaneously",
+      "A spinlock works only in user space and cannot be used in kernel code; mutexes work only in kernel space and require a system call to acquire",
+      "A spinlock can be held by multiple threads simultaneously, making it a form of shared lock rather than an exclusive mutual exclusion primitive",
     ],
     correctIndex: 1,
     explanation:
@@ -3479,10 +3479,10 @@ export const questions: Question[] = [
     question:
       "What is demand paging?",
     options: [
-      "Loading an entire program into RAM before execution begins",
+      "Loading an entire program into RAM before execution begins, ensuring all code and data pages are resident from the start of the process",
       "Loading pages into physical memory only when they are first accessed, triggering a page fault that the OS handles transparently",
-      "Paging out rarely used data to a dedicated partition on an SSD",
-      "Allocating virtual addresses on demand as the program calls malloc()",
+      "Paging out rarely used data to a dedicated partition on an SSD, freeing up physical RAM for more actively accessed memory regions",
+      "Allocating virtual addresses on demand as the program calls malloc(), expanding the virtual address space incrementally as needed",
     ],
     correctIndex: 1,
     explanation:
@@ -3496,10 +3496,10 @@ export const questions: Question[] = [
     question:
       "What is the difference between a voluntary and an involuntary context switch?",
     options: [
-      "Voluntary context switches happen in user space; involuntary ones happen in kernel space",
+      "Voluntary context switches happen in user space code; involuntary ones happen in kernel space code when handling interrupts from hardware devices",
       "A voluntary switch occurs when a process blocks (e.g., on I/O); an involuntary switch occurs when the OS preempts a running process (e.g., its time slice expired)",
-      "Voluntary switches save less state than involuntary ones",
-      "There is no difference — both are triggered by the timer interrupt",
+      "Voluntary switches save less CPU state than involuntary ones because the process has already prepared for the transition by saving its own registers",
+      "There is no real difference — both types are triggered by the timer interrupt and result in the same context-switch overhead for the scheduler",
     ],
     correctIndex: 1,
     explanation:
@@ -3513,10 +3513,10 @@ export const questions: Question[] = [
     question:
       "What is an orphan process, and what happens to it?",
     options: [
-      "It is terminated immediately by the kernel",
+      "It is terminated immediately by the kernel as soon as its parent process exits, freeing all its resources at that point",
       "Its parent has exited, so it is re-parented to init (PID 1), which will call wait() on it when it eventually exits",
-      "It becomes a zombie and can never be cleaned up",
-      "It is moved to a special 'orphan' scheduling queue with lowest priority",
+      "It becomes a zombie process entry in the process table and can never be cleaned up by any mechanism available",
+      "It is moved to a special orphan scheduling queue with the lowest priority, receiving CPU time only when no other process needs it",
     ],
     correctIndex: 1,
     explanation:
@@ -3566,10 +3566,10 @@ export const questions: Question[] = [
     question:
       "A function registered with signal() or sigaction() runs when a signal is delivered. Why is calling printf() or malloc() from a signal handler considered unsafe?",
     options: [
-      "Signal handlers cannot access global variables because the kernel remaps the process's address space to a restricted view during signal delivery",
+      "Signal handlers cannot access global variables because the kernel remaps the process's address space to a restricted view during signal delivery, hiding most of the process memory",
       "printf() and malloc() are not async-signal-safe — they use internal locks and data structures that may be in an inconsistent state if the signal interrupted them mid-operation, risking deadlock or corruption",
-      "The kernel disables all standard library functions during signal delivery by temporarily unmapping the libc text segment from the process's address space",
-      "Signal handlers run in kernel mode where user-space functions like printf() and malloc() are unavailable due to the different privilege level and stack",
+      "The kernel disables all standard library functions during signal delivery by temporarily unmapping the libc text segment from the process's address space, making those functions inaccessible",
+      "Signal handlers run in kernel mode where user-space functions like printf() and malloc() are unavailable due to the different privilege level, stack configuration, and address space layout",
     ],
     correctIndex: 1,
     explanation:
@@ -3617,10 +3617,10 @@ export const questions: Question[] = [
     question:
       "Linux uses an overcommit strategy for memory allocation. What does this mean, and what is a consequence?",
     options: [
-      "The kernel allocates physical memory immediately when malloc() is called, reserving real pages upfront and guaranteeing they are available for use",
+      "The kernel allocates physical memory immediately when malloc() is called, reserving real pages upfront and guaranteeing they are available for use by the process at all times",
       "malloc() can succeed even when there is not enough physical memory to back the allocation; the kernel provides physical pages only on access and may invoke the OOM killer if memory runs out later",
-      "The kernel transparently compresses memory pages in the background to allow more total allocations than the amount of physical RAM installed",
-      "Processes must request memory from a central kernel broker that tracks all allocations system-wide and ensures fair distribution among processes",
+      "The kernel transparently compresses memory pages in the background to allow more total allocations than the amount of physical RAM installed in the machine at that time",
+      "Processes must request memory from a central kernel broker that tracks all allocations system-wide and ensures fair distribution among all running processes on the system",
     ],
     correctIndex: 1,
     explanation:
@@ -3634,10 +3634,10 @@ export const questions: Question[] = [
     question:
       "What is the difference between blocking I/O, non-blocking I/O, and asynchronous I/O?",
     options: [
-      "They are three names for the same underlying mechanism — the kernel handles all I/O identically regardless of which API the program uses",
+      "They are three names for the same underlying mechanism — the kernel handles all I/O identically regardless of which API the program uses to initiate the read or write operation in its application code",
       "Blocking I/O suspends the calling thread until complete; non-blocking I/O returns immediately with EAGAIN if not ready (the program must poll); async I/O initiates the operation and the kernel notifies the program when it completes",
-      "Blocking I/O is designed for regular files on disk; non-blocking I/O is exclusively for network sockets; async I/O is reserved for pipes and FIFOs",
-      "Non-blocking I/O requires spawning multiple threads to poll each descriptor; blocking I/O and async I/O both operate efficiently on a single thread",
+      "Blocking I/O is designed for regular files on disk; non-blocking I/O is exclusively for network sockets; async I/O is reserved for pipes, FIFOs, and other special inter-process communication channels",
+      "Non-blocking I/O requires spawning multiple threads to poll each descriptor for readiness; blocking I/O and async I/O both operate efficiently on a single thread without additional concurrency",
     ],
     correctIndex: 1,
     explanation:
@@ -3685,10 +3685,10 @@ export const questions: Question[] = [
     question:
       "What is a condition variable, and why must it always be used with a mutex?",
     options: [
-      "A condition variable is a boolean flag that threads poll in a busy loop; it does not need a mutex because the flag itself provides synchronization",
+      "A condition variable is a boolean flag that threads poll in a busy loop; it does not need a mutex because the flag itself provides sufficient synchronization between threads",
       "A condition variable allows threads to sleep until a condition is true; the mutex protects the shared state that defines the condition, preventing the race between checking the condition and going to sleep",
-      "A condition variable is a special type of counting semaphore; the mutex is technically optional and used only for performance optimization",
-      "A condition variable signals the kernel to deliver a hardware interrupt to waiting threads; the mutex prevents nested interrupts from corrupting state",
+      "A condition variable is a special type of counting semaphore that tracks how many threads are waiting; the mutex is technically optional and used only for performance optimization",
+      "A condition variable signals the kernel to deliver a hardware interrupt to waiting threads; the mutex prevents nested interrupts from corrupting shared state during the signal delivery",
     ],
     correctIndex: 1,
     explanation:
@@ -3719,10 +3719,10 @@ export const questions: Question[] = [
     question:
       "On Linux, what is the difference between a process's virtual memory size (VIRT/VSZ) and its resident set size (RSS)?",
     options: [
-      "VIRT is the total memory the process has paged out to disk swap; RSS is the portion actively loaded in physical RAM",
+      "VIRT is the total memory the process has paged out to disk swap; RSS is the portion that is actively loaded in physical RAM at the moment",
       "VIRT is the total virtual address space mapped (including unmapped/swapped pages); RSS is the portion actually present in physical RAM right now",
-      "VIRT includes shared library mappings in its count; RSS excludes them to show only private memory usage",
-      "They represent the same measurement reported in different units — VIRT is in bytes while RSS is in kilobytes",
+      "VIRT includes shared library mappings in its count; RSS excludes them to show only private memory usage belonging to the process alone",
+      "They represent the same measurement reported in different units — VIRT is expressed in bytes while RSS is expressed in kilobytes",
     ],
     correctIndex: 1,
     explanation:
@@ -3736,10 +3736,10 @@ export const questions: Question[] = [
     question:
       "Why is livelock considered different from deadlock, and in what situations does it arise?",
     options: [
-      "Livelock is just another name for deadlock that occurs when more than two threads are involved in a circular dependency on shared resources",
+      "Livelock is just another name for deadlock that occurs when more than two threads are involved in a circular wait dependency on shared resources within the system",
       "In livelock, threads are not blocked — they keep running and responding to each other's actions, but none makes progress because they continuously change state in a way that prevents forward movement",
-      "Livelock occurs only in distributed systems across network boundaries; deadlock occurs only on single-machine systems with shared memory",
-      "Livelock is caused by transient hardware faults like bit flips in memory; deadlock is caused by logical bugs in lock ordering within software",
+      "Livelock occurs only in distributed systems across network boundaries where message delays cause retries; deadlock occurs only on single-machine systems with shared memory locks",
+      "Livelock is caused by transient hardware faults like bit flips in memory that corrupt lock state; deadlock is caused by logical bugs in lock ordering within the software itself",
     ],
     correctIndex: 1,
     explanation:
@@ -3771,10 +3771,10 @@ export const questions: Question[] = [
     topic: "Linux Commands",
     question: "What does the `pwd` command do?",
     options: [
-      "Prints the current user's password",
+      "Prints the current user's password from the shadow file",
       "Prints the absolute path of the current working directory",
-      "Changes to the previous working directory",
-      "Lists the contents of the current directory",
+      "Changes to the previous working directory in the shell",
+      "Lists the contents of the current directory recursively",
     ],
     correctIndex: 1,
     explanation:
@@ -3787,10 +3787,10 @@ export const questions: Question[] = [
     topic: "Linux Commands",
     question: "What does `ls -a` show that `ls` alone does not?",
     options: [
-      "File sizes in human-readable format",
+      "File sizes displayed in a human-readable format like KB or MB",
       "Hidden files and directories (those starting with a dot)",
-      "Files sorted by modification time",
-      "Only directories, not regular files",
+      "Files sorted by their most recent modification time first",
+      "Only directories in the listing, excluding regular files",
     ],
     correctIndex: 1,
     explanation:
@@ -3819,10 +3819,10 @@ export const questions: Question[] = [
     topic: "Linux Commands",
     question: "What does the `cat` command do?",
     options: [
-      "Compiles and translates source code",
+      "Compiles and translates source code into machine instructions",
       "Concatenates files and prints their contents to standard output",
-      "Creates a new empty file",
-      "Changes file permissions",
+      "Creates a new empty file at the specified path on disk",
+      "Changes the access and modification permissions on a file",
     ],
     correctIndex: 1,
     explanation:
@@ -3918,10 +3918,10 @@ export const questions: Question[] = [
     topic: "Linux Commands",
     question: "What does the `man` command do?",
     options: [
-      "Manages installed software packages",
+      "Manages installed software packages on the current system",
       "Displays the manual (documentation) page for a given command",
-      "Creates a new user account",
-      "Compiles a C program",
+      "Creates a new user account with default configuration",
+      "Compiles a C program from source into an executable file",
     ],
     correctIndex: 1,
     explanation:
@@ -3935,10 +3935,10 @@ export const questions: Question[] = [
     question:
       "What does `echo $HOME` print?",
     options: [
-      "The literal string '$HOME'",
+      "The literal string '$HOME' without expansion",
       "The path to the current user's home directory",
-      "The hostname of the machine",
-      "The contents of a file named HOME",
+      "The hostname of the machine on the network",
+      "The contents of a file that is named HOME",
     ],
     correctIndex: 1,
     explanation:
@@ -3951,10 +3951,10 @@ export const questions: Question[] = [
     topic: "Linux Commands",
     question: "What does `which python3` output?",
     options: [
-      "The version number of python3",
+      "The version number of the python3 installation",
       "The full path to the python3 executable that would be run",
-      "A list of all files named python3 on the system",
-      "The process ID of a running python3 instance",
+      "A list of all files named python3 found on the system",
+      "The process ID of any currently running python3 instance",
     ],
     correctIndex: 1,
     explanation:
@@ -3985,10 +3985,10 @@ export const questions: Question[] = [
     question:
       "What is the difference between `>` and `>>` when redirecting output?",
     options: [
-      "> appends to a file; >> overwrites the file",
+      "> appends to a file; >> overwrites the file with new content",
       "> overwrites (truncates) the file; >> appends to the end of the file",
-      "> redirects stderr; >> redirects stdout",
-      "There is no difference — they are interchangeable",
+      "> redirects stderr to a file; >> redirects stdout to a file",
+      "There is no difference — they are interchangeable in all contexts",
     ],
     correctIndex: 1,
     explanation:
@@ -4071,10 +4071,10 @@ export const questions: Question[] = [
     question:
       "What does `2>/dev/null` do when appended to a command?",
     options: [
-      "Redirects standard output to /dev/null, suppressing normal output",
+      "Redirects standard output to /dev/null, suppressing all normal program output entirely",
       "Redirects standard error (file descriptor 2) to /dev/null, discarding error messages",
-      "Redirects both stdout and stderr to /dev/null",
-      "Sends the number 2 as input to /dev/null",
+      "Redirects both stdout and stderr together to /dev/null, silencing all output",
+      "Sends the number 2 as input data to /dev/null, which discards it silently",
     ],
     correctIndex: 1,
     explanation:
@@ -4105,10 +4105,10 @@ export const questions: Question[] = [
     question:
       "What does `sort file.txt | uniq` do, and why must the input be sorted first?",
     options: [
-      "Sorts the file alphabetically and then removes all lines from the output, leaving it completely empty",
+      "Sorts the file alphabetically and then removes all lines from the output entirely, leaving it completely empty",
       "Sorts the file alphabetically, then removes adjacent duplicate lines — uniq only detects duplicates that are next to each other",
-      "Removes all duplicate lines from the file without requiring the input to be sorted first",
-      "Sorts the file numerically by treating each line as a number, then prints only unique values",
+      "Removes all duplicate lines from the file without requiring the input to be sorted first, checking the entire file at once",
+      "Sorts the file numerically by treating each line as an integer value, then prints only the unique values found",
     ],
     correctIndex: 1,
     explanation:
@@ -4122,10 +4122,10 @@ export const questions: Question[] = [
     question:
       "What does `cut -d',' -f2 data.csv` do?",
     options: [
-      "Removes the second column from the CSV file",
+      "Removes the second column from the CSV file and prints the remaining data",
       "Extracts the second field from each line, using comma as the delimiter",
-      "Cuts the file into two equal halves",
-      "Replaces all commas with spaces and prints field 2",
+      "Cuts the file into two equal halves and outputs the second part only",
+      "Replaces all commas with spaces in the file and then prints field 2",
     ],
     correctIndex: 1,
     explanation:
@@ -4258,10 +4258,10 @@ export const questions: Question[] = [
     question:
       "What does `export MY_VAR=hello` do, and how does it differ from `MY_VAR=hello`?",
     options: [
-      "They are identical — both set the variable and automatically export it to the environment for all child processes to inherit",
+      "They are identical — both set the variable and automatically export it to the environment for all child processes to inherit without any distinction",
       "export makes the variable available to child processes (subshells, scripts, commands launched from this shell); without export, the variable exists only in the current shell",
-      "export saves the variable persistently to a configuration file; without export, it only exists in memory for the current session",
-      "export makes the variable read-only and immutable; without export, the variable can be freely changed or unset at any time",
+      "export saves the variable persistently to a configuration file on disk; without export, it only exists in memory for the duration of the current session",
+      "export makes the variable read-only and immutable for the shell session; without export, the variable can be freely changed or unset at any time by the user",
     ],
     correctIndex: 1,
     explanation:
@@ -4275,10 +4275,10 @@ export const questions: Question[] = [
     question:
       "What does `curl -o output.html https://example.com` do?",
     options: [
-      "Opens the URL in the default web browser",
+      "Opens the URL in the default web browser and displays the page",
       "Downloads the content at the URL and saves it to a file named output.html",
-      "Uploads output.html to the server at example.com",
-      "Pings the server and prints the response time",
+      "Uploads the local file output.html to the server at example.com",
+      "Pings the server at the URL and prints the round-trip response time",
     ],
     correctIndex: 1,
     explanation:
@@ -4345,10 +4345,10 @@ export const questions: Question[] = [
     question:
       "What does `find . -name '*.tmp' -exec rm {} +` do, and how does `+` differ from `\\;`?",
     options: [
-      "There is no difference between + and \\; — they are interchangeable syntax variants that both execute the command once per matched file",
-      "+ collects matching filenames and passes as many as possible to each rm invocation (batching), while \\; runs rm once per file found — making + significantly faster for many files",
-      "+ runs rm in the background as a detached process for each batch; \\; runs it synchronously in the foreground for each file",
-      "+ only works with the rm command due to its special argument handling; \\; is the general-purpose terminator that works with any command",
+      "There is no difference between + and \\\\; — they are interchangeable syntax variants that both execute the specified command once per matched file found",
+      "+ collects matching filenames and passes as many as possible to each rm invocation (batching), while \\\\; runs rm once per file found — making + significantly faster for many files",
+      "+ runs rm in the background as a detached process for each batch of files; \\\\; runs it synchronously in the foreground, waiting for completion before proceeding to the next",
+      "+ only works with the rm command due to its special argument handling for multiple files; \\\\; is the general-purpose terminator that works universally with any command",
     ],
     correctIndex: 1,
     explanation:
@@ -4362,10 +4362,10 @@ export const questions: Question[] = [
     question:
       "What does `xargs` do, and why is it used with commands like `find`?",
     options: [
-      "It sets extra arguments as environment variables that are visible to the command being executed and all of its child processes",
+      "It sets extra arguments as environment variables that are visible to the command being executed and all of its child processes, persisting across invocations",
       "It reads items from stdin and passes them as arguments to a command, converting a stream of input into command-line arguments — useful because many commands don't read filenames from stdin",
-      "It runs a command in a clean environment with no arguments and no inherited environment variables from the parent shell",
-      "It validates the arguments passed to a command before executing it, checking for correct types and safe values to prevent errors",
+      "It runs a command in a clean environment with no arguments and no inherited environment variables from the parent shell, providing complete process isolation",
+      "It validates the arguments passed to a command before executing it, checking for correct types, proper formatting, and safe values to prevent runtime errors",
     ],
     correctIndex: 1,
     explanation:
@@ -4378,10 +4378,10 @@ export const questions: Question[] = [
     topic: "Linux Commands",
     question: "What does `sed -i 's/foo/bar/g' file.txt` do?",
     options: [
-      "Searches for 'foo' in file.txt and prints matching lines",
+      "Searches for 'foo' in file.txt and prints all the lines that contain a match to stdout",
       "Replaces every occurrence of 'foo' with 'bar' in file.txt, modifying the file in place",
-      "Creates a new file called bar.txt with the contents of foo.txt",
-      "Deletes all lines containing 'foo' from file.txt",
+      "Creates a new file called bar.txt containing the transformed contents of the original foo.txt",
+      "Deletes all lines containing the pattern 'foo' from file.txt and saves the result",
     ],
     correctIndex: 1,
     explanation:
@@ -4395,10 +4395,10 @@ export const questions: Question[] = [
     question:
       "What does `awk '{print $2}' file.txt` do?",
     options: [
-      "Prints the second line of file.txt",
+      "Prints only the second line of file.txt to standard output",
       "Prints the second whitespace-delimited field from each line of file.txt",
-      "Prints every other line of file.txt",
-      "Removes the second column from file.txt",
+      "Prints every other line of file.txt starting from line two",
+      "Removes the second column from file.txt and saves the rest",
     ],
     correctIndex: 1,
     explanation:
@@ -4431,10 +4431,10 @@ export const questions: Question[] = [
       "What does process substitution `<(...)` do in bash?",
     code: "diff <(sort file1.txt) <(sort file2.txt)",
     options: [
-      "It creates a temporary file on disk containing the output of the command, which is automatically deleted when the parent process exits",
+      "It creates a temporary file on disk containing the output of the command, which is automatically deleted when the parent process exits or the shell session ends",
       "It provides the output of a command as if it were a file (via a named pipe or /dev/fd path), allowing commands that require file arguments to read from a command's output",
-      "It redirects the command's standard output directly to the parent shell's stdin, replacing whatever was previously connected to it",
-      "It runs the command in an isolated subshell and silently discards all of its output, effectively acting as a background no-op",
+      "It redirects the command's standard output directly to the parent shell's stdin, replacing whatever input source was previously connected to it and consuming the data",
+      "It runs the command in an isolated subshell and silently discards all of its output, effectively acting as a background no-op that produces no visible results",
     ],
     correctIndex: 1,
     explanation:
@@ -4551,10 +4551,10 @@ export const questions: Question[] = [
     question:
       "What does `set -euo pipefail` at the top of a bash script do?",
     options: [
-      "Enables verbose debugging output for every command, printing each line to stderr before it is executed by the shell",
+      "Enables verbose debugging output for every command in the script, printing each line with its expanded variables to stderr before the shell executes it",
       "Makes the script safer: -e exits on any command failure, -u treats unset variables as errors, -o pipefail makes a pipeline fail if any command in it fails (not just the last one)",
-      "Sets the script's text encoding to UTF-8, ensuring all string operations and file I/O handle Unicode characters correctly",
-      "Prevents the script from being run by non-root users by checking the effective UID and exiting immediately if it is not zero",
+      "Sets the script's text encoding to UTF-8 and configures the locale, ensuring all string operations and file I/O handle Unicode characters correctly throughout execution",
+      "Prevents the script from being run by non-root users by checking the effective UID at startup and exiting immediately with an error message if it is not zero",
     ],
     correctIndex: 1,
     explanation:
@@ -4664,10 +4664,10 @@ export const questions: Question[] = [
     question:
       "Which of the following best describes encapsulation?",
     options: [
-      "Deriving new classes from existing ones",
+      "Deriving new classes from existing ones to form an inheritance hierarchy",
       "Bundling data and methods together and restricting direct access to internal state",
-      "Having multiple functions with the same name but different parameters",
-      "Using base class pointers to call derived class methods",
+      "Having multiple functions with the same name but different parameter lists or types",
+      "Using base class pointers to call derived class methods via dynamic dispatch",
     ],
     correctIndex: 1,
     explanation:
@@ -4682,10 +4682,10 @@ export const questions: Question[] = [
       "A friend function declared inside a class can access which members?",
     code: `class Box {\n    int width;  // private\nprotected:\n    int height;\npublic:\n    int depth;\n    friend void inspect(const Box& b);\n};`,
     options: [
-      "Only public members",
-      "Only public and protected members",
+      "Only public members of the class definition",
+      "Only public and protected members, not private",
       "All members — public, protected, and private",
-      "Only the private members",
+      "Only the private members of the class body",
     ],
     correctIndex: 2,
     explanation:
@@ -4699,10 +4699,10 @@ export const questions: Question[] = [
     question:
       "Can a static member function access non-static member variables of its class?",
     options: [
-      "Yes, always",
+      "Yes, always — static functions can access any member",
       "No — static member functions have no this pointer",
-      "Only if the members are public",
-      "Only if the members are also static",
+      "Only if the non-static members are declared as public",
+      "Only if those members are also declared as static",
     ],
     correctIndex: 1,
     explanation:
@@ -4733,10 +4733,10 @@ export const questions: Question[] = [
     topic: "OOP",
     question: "What is function overloading in C++?",
     options: [
-      "Redefining a base class function in a derived class",
+      "Redefining a base class function in a derived class to change the behavior at runtime via virtual dispatch",
       "Having multiple functions with the same name but different parameter lists in the same scope",
-      "Using the virtual keyword to enable late binding",
-      "Calling a function recursively",
+      "Using the virtual keyword on a base class declaration to enable late binding and dynamic dispatch at runtime",
+      "Calling a function recursively so that it invokes itself repeatedly with different arguments each time",
     ],
     correctIndex: 1,
     explanation:
@@ -4768,10 +4768,10 @@ export const questions: Question[] = [
     question:
       "A protected member of a base class is accessible from where?",
     options: [
-      "Only within the base class itself",
+      "Only within the base class itself, not from derived classes or outside",
       "Within the base class and its derived classes, but not from outside code",
-      "From anywhere, just like public",
-      "Only from friend functions",
+      "From anywhere in the program, just like a public member is accessible",
+      "Only from friend functions explicitly declared inside the base class",
     ],
     correctIndex: 1,
     explanation:
@@ -4802,10 +4802,10 @@ export const questions: Question[] = [
       "What does the explicit keyword do on a single-argument constructor?",
     code: `class Meter {\npublic:\n    explicit Meter(double val);\n};`,
     options: [
-      "Makes the constructor private",
+      "Makes the constructor private so it cannot be called externally",
       "Prevents implicit conversions — the constructor must be called directly",
-      "Makes the constructor constexpr",
-      "Forces the compiler to inline the constructor",
+      "Makes the constructor constexpr for compile-time evaluation",
+      "Forces the compiler to inline the constructor at every call site",
     ],
     correctIndex: 1,
     explanation:
@@ -4818,10 +4818,10 @@ export const questions: Question[] = [
     topic: "OOP",
     question: "Can a class have more than one constructor?",
     options: [
-      "No — a class can only have one constructor",
+      "No — the C++ standard says a class can only have one constructor",
       "Yes — constructors can be overloaded with different parameter lists",
-      "Only if one of them is a copy constructor",
-      "Only if the class is abstract",
+      "Only if one of the constructors for that class is a copy constructor",
+      "Only if the class is declared abstract using a pure virtual function",
     ],
     correctIndex: 1,
     explanation:
@@ -4835,9 +4835,9 @@ export const questions: Question[] = [
     question:
       "What is the only difference between class and struct in C++?",
     options: [
-      "Structs cannot have member functions",
+      "Structs cannot have member functions, only plain data fields and no methods",
       "The default access specifier: private for class, public for struct",
-      "Structs cannot use inheritance",
+      "Structs cannot use inheritance or derive from other types in any way",
       "Classes are allocated on the heap, structs on the stack",
     ],
     correctIndex: 1,
@@ -4869,10 +4869,10 @@ export const questions: Question[] = [
     question: "What does final mean when applied to a virtual function?",
     code: `class Base {\npublic:\n    virtual void draw() const final;\n};`,
     options: [
-      "The function cannot be called",
+      "The function cannot be called by any code at all",
       "No derived class can override this function",
-      "The function must return void",
-      "The function is pure virtual",
+      "The function must return void, no other type",
+      "The function is pure virtual, needing an override",
     ],
     correctIndex: 1,
     explanation:
@@ -4902,10 +4902,10 @@ export const questions: Question[] = [
     question:
       "What is the difference between overriding and overloading?",
     options: [
-      "They are two names for the same concept — both refer to redefining a function's behavior in a subclass",
+      "They are two names for the same concept — both refer to redefining a function’s behavior in a subclass by providing a new implementation body",
       "Overriding replaces a base class virtual function in a derived class; overloading provides multiple functions with the same name but different parameters",
-      "Overloading requires the virtual keyword on the base declaration; overriding does not need any special keyword",
-      "Overriding is resolved at compile time using static type information; overloading is resolved at runtime via the vtable",
+      "Overloading requires the virtual keyword on the base declaration to enable dispatch; overriding does not need any special keyword or annotation at all",
+      "Overriding is resolved at compile time using static type information from the declared variable; overloading is resolved at runtime via the vtable pointer",
     ],
     correctIndex: 1,
     explanation:
@@ -4937,10 +4937,10 @@ export const questions: Question[] = [
       "What does this member initializer list do?",
     code: `class Point {\n    int x, y;\npublic:\n    Point(int a, int b) : x(a), y(b) {}\n};`,
     options: [
-      "Assigns a and b after the object is constructed",
+      "Assigns a and b to x and y after the object is fully constructed",
       "Directly initializes x and y before the constructor body runs",
-      "Creates two separate Point objects",
-      "Declares x and y as static members",
+      "Creates two separate Point objects from the integer arguments",
+      "Declares x and y as static members shared across all instances",
     ],
     correctIndex: 1,
     explanation:
@@ -5023,10 +5023,10 @@ export const questions: Question[] = [
     question: "What is the purpose of getter and setter methods?",
     code: `class Account {\n    double balance;\npublic:\n    double getBalance() const { return balance; }\n    void setBalance(double b) { balance = b; }\n};`,
     options: [
-      "They make member variables static",
+      "They make member variables static so they can be accessed without an object instance at all",
       "They provide controlled access to private data, enabling validation and encapsulation",
-      "They are required for all member variables by the C++ standard",
-      "They automatically synchronize access across threads",
+      "They are required for all member variables by the C++ standard or the code will not compile",
+      "They automatically synchronize access to member variables across multiple threads in a safe manner",
     ],
     correctIndex: 1,
     explanation:
@@ -5052,10 +5052,10 @@ export const questions: Question[] = [
     question: "What is the syntax for multiple inheritance?",
     code: `class Printable {\npublic:\n    virtual void print() = 0;\n};\n\nclass Serializable {\npublic:\n    virtual void serialize() = 0;\n};\n\nclass Document : public Printable, public Serializable {\n    void print() override {}\n    void serialize() override {}\n};`,
     options: [
-      "This is invalid — C++ does not support multiple inheritance",
+      "This is invalid syntax — the C++ language specification does not support multiple inheritance at all",
       "This is valid — a class can inherit from multiple base classes using a comma-separated list",
-      "This only works if both base classes are abstract",
-      "This requires the virtual keyword on the inheritance",
+      "This only works if both base classes are abstract interfaces with no data members defined",
+      "This requires the virtual keyword on each inheritance specifier to resolve ambiguity issues",
     ],
     correctIndex: 1,
     explanation:
@@ -5069,10 +5069,10 @@ export const questions: Question[] = [
     question:
       "What happens if you don't define any constructor in a class?",
     options: [
-      "The class cannot be instantiated",
+      "The class cannot be instantiated without an explicitly defined constructor",
       "The compiler generates a default constructor that default-initializes each member",
-      "All member variables are set to zero",
-      "The class is treated as abstract",
+      "All member variables are automatically set to zero regardless of type",
+      "The class is treated as abstract and cannot be instantiated directly",
     ],
     correctIndex: 1,
     explanation:
@@ -5100,10 +5100,10 @@ export const questions: Question[] = [
     question: "What happens when you call d.show()?",
     code: `class Base {\npublic:\n    void show(int x) { std::cout << "Base:" << x; }\n};\n\nclass Derived : public Base {\npublic:\n    void show(std::string s) { std::cout << "Derived:" << s; }\n};\n\nDerived d;\nd.show(42);`,
     options: [
-      "Prints Base:42",
-      "Prints Derived:42",
+      "Prints Base:42 — the base class show(int) is found through normal lookup",
+      "Prints Derived:42 — the int is implicitly converted to string for dispatch",
       "Compilation error — Base::show(int) is hidden by Derived::show(string)",
-      "Calls both overloads and prints both",
+      "Calls both overloads sequentially, printing both Base:42 and Derived:42",
     ],
     correctIndex: 2,
     explanation:
@@ -5117,10 +5117,10 @@ export const questions: Question[] = [
     question: "What is a covariant return type?",
     code: `class Base {\npublic:\n    virtual Base* clone() const { return new Base(*this); }\n};\n\nclass Derived : public Base {\npublic:\n    Derived* clone() const override { return new Derived(*this); }\n};`,
     options: [
-      "A compilation error — the return types don't match",
+      "A compilation error — the return types of the override and the base function don’t match so it fails to compile",
       "A feature that allows an overriding function to return a pointer/reference to a more derived type",
-      "A deprecated feature removed in C++17",
-      "A template-based return type deduction mechanism",
+      "A deprecated feature that was available in earlier C++ standards but was officially removed in C++17",
+      "A template-based return type deduction mechanism that infers the return type from the derived class",
     ],
     correctIndex: 1,
     explanation:
@@ -5152,9 +5152,9 @@ export const questions: Question[] = [
     code: `class Vec2 {\n    double x, y;\n    friend std::ostream& operator<<(std::ostream& os, const Vec2& v);\n};`,
     options: [
       "Because member operator<< would require ostream to be on the right side: v << std::cout",
-      "Because friend functions are always faster",
-      "Because operator<< cannot be overloaded as a member",
-      "Because friend functions can return references",
+      "Because friend functions are always faster than member functions due to reduced indirection",
+      "Because operator<< cannot be overloaded as a member function under the C++ standard",
+      "Because only friend functions can return ostream references for chaining output calls",
     ],
     correctIndex: 0,
     explanation:
@@ -5168,9 +5168,9 @@ export const questions: Question[] = [
     question: "What is the Rule of Three?",
     options: [
       "If a class defines a destructor, copy constructor, or copy assignment operator, it should define all three",
-      "A class should never have more than three public member functions",
-      "Inheritance hierarchies should not exceed three levels",
-      "A function should take no more than three parameters",
+      "A class should never have more than three public member functions to keep the interface simple and maintainable",
+      "Inheritance hierarchies in C++ should not exceed three levels of depth to avoid excessive coupling and complexity",
+      "A function should take no more than three parameters in its signature to maintain readability and clean design",
     ],
     correctIndex: 0,
     explanation:
@@ -5201,10 +5201,10 @@ export const questions: Question[] = [
     question: "What does this constructor delegation do?",
     code: `class Widget {\n    int id;\n    std::string name;\npublic:\n    Widget(int i, std::string n) : id(i), name(std::move(n)) {}\n    Widget(int i) : Widget(i, "default") {}\n    Widget() : Widget(0) {}\n};`,
     options: [
-      "Creates three separate objects",
+      "Creates three separate objects — one for each constructor that appears in the class body",
       "Each simpler constructor delegates to a more specific one, forming a chain of initialization",
-      "Compilation error — a constructor cannot call another constructor",
-      "The default constructor will recurse infinitely",
+      "Compilation error — a constructor cannot call another constructor of the same class",
+      "The default constructor Widget() will recurse infinitely because of the circular chain",
     ],
     correctIndex: 1,
     explanation:
@@ -5235,9 +5235,9 @@ export const questions: Question[] = [
     question: "What is RAII in C++?",
     options: [
       "A design pattern where resources are acquired in constructors and released in destructors",
-      "A runtime type information system for polymorphic classes",
-      "An optimization technique for reducing virtual function overhead",
-      "A memory allocator that replaces new/delete",
+      "A runtime type information system that provides dynamic_cast and typeid for classes",
+      "An optimization that reduces virtual function overhead through devirtualization at compile time",
+      "A memory allocator replacing new and delete with a custom arena-based allocation strategy",
     ],
     correctIndex: 0,
     explanation:
@@ -5251,10 +5251,10 @@ export const questions: Question[] = [
     question: "What error does this code produce?",
     code: `class A {\npublic:\n    void doWork() { std::cout << "A"; }\n};\n\nclass B {\npublic:\n    void doWork() { std::cout << "B"; }\n};\n\nclass C : public A, public B {};\n\nC c;\nc.doWork();`,
     options: [
-      "Prints A — first base class wins",
-      "Prints B — last base class wins",
+      "Prints A — the first base class wins in resolution",
+      "Prints B — the last base class wins in resolution",
       "Compilation error — ambiguous call to doWork()",
-      "Prints AB",
+      "Prints AB — both versions are called in order",
     ],
     correctIndex: 2,
     explanation:
@@ -5268,10 +5268,10 @@ export const questions: Question[] = [
     question: "What is the problem with this code?",
     code: `class Meter {\npublic:\n    Meter(double v) : val(v) {}\n    double val;\n};\n\nvoid print(Meter m) { std::cout << m.val; }\n\nprint(3.5);  // compiles!`,
     options: [
-      "There is no problem — 3.5 is a valid Meter",
+      "There is no problem — passing 3.5 to a function expecting Meter is perfectly valid and intended behavior in C++",
       "The implicit conversion from double to Meter is potentially confusing; marking the constructor explicit would prevent it",
-      "This is a compilation error — double cannot be converted to Meter",
-      "This causes undefined behavior at runtime",
+      "This is a compilation error — a double value cannot be implicitly or explicitly converted to Meter under any circumstances",
+      "This causes undefined behavior at runtime because the double value 3.5 is reinterpreted as raw memory for the Meter object",
     ],
     correctIndex: 1,
     explanation:
@@ -5285,10 +5285,10 @@ export const questions: Question[] = [
     question: "What does the mutable keyword allow?",
     code: `class Cache {\n    mutable int hits = 0;\npublic:\n    int lookup(int key) const {\n        ++hits;  // OK because hits is mutable\n        return key * 2;\n    }\n};`,
     options: [
-      "It makes the member thread-safe",
+      "It makes the member thread-safe with implicit synchronization",
       "It allows a const member function to modify that specific member",
-      "It makes the member volatile",
-      "It prevents the member from being copied",
+      "It makes the member volatile, preventing register caching",
+      "It prevents the member from being copied during assignment",
     ],
     correctIndex: 1,
     explanation:
@@ -5321,10 +5321,10 @@ export const questions: Question[] = [
       "Can a derived class override a virtual function with a more restrictive access specifier?",
     code: `class Base {\npublic:\n    virtual void doStuff() {}\n};\n\nclass Derived : public Base {\nprivate:\n    void doStuff() override {}\n};`,
     options: [
-      "Compilation error — overrides must match the base access specifier",
+      "Compilation error — overrides must always match the base class access specifier exactly",
       "Legal, but calling base->doStuff() still works because access is checked on the static type",
-      "Legal, and calling base->doStuff() is blocked at runtime",
-      "Legal only if the base function is protected",
+      "Legal, and calling base->doStuff() through a Base pointer is blocked at runtime",
+      "Legal only if the base function is declared protected rather than public in the class",
     ],
     correctIndex: 1,
     explanation:
@@ -5338,10 +5338,10 @@ export const questions: Question[] = [
     question: "What do = default and = delete do for special member functions?",
     code: `class NoCopy {\npublic:\n    NoCopy() = default;\n    NoCopy(const NoCopy&) = delete;\n    NoCopy& operator=(const NoCopy&) = delete;\n};`,
     options: [
-      "= default makes the function abstract; = delete removes it at link time",
+      "= default makes the function abstract and forces derived classes to override it; = delete removes it from the symbol table at link time",
       "= default asks the compiler to generate the default implementation; = delete prevents the function from being called",
-      "= default sets all members to zero; = delete calls the destructor",
-      "Both are no-ops used only for documentation",
+      "= default sets all member variables to zero in the function body; = delete calls the destructor to clean up resources immediately",
+      "Both = default and = delete are no-ops that serve only as documentation hints and have no actual effect on the generated code",
     ],
     correctIndex: 1,
     explanation:
@@ -5356,10 +5356,10 @@ export const questions: Question[] = [
       "If a base class has a static member, how many copies exist when there are multiple derived classes?",
     code: `class Base {\npublic:\n    static int count;\n};\nint Base::count = 0;\n\nclass A : public Base {};\nclass B : public Base {};`,
     options: [
-      "Three — one for Base, one for A, one for B",
+      "Three — one copy for Base, one for A, and one for B",
       "One — static members are shared across the entire hierarchy",
-      "Two — one for each derived class",
-      "Zero — static members are not inherited",
+      "Two — each derived class gets its own copy of the static",
+      "Zero — static members are not inherited by derived classes",
     ],
     correctIndex: 1,
     explanation:
@@ -5373,10 +5373,10 @@ export const questions: Question[] = [
     question: "Can a nested class access the private members of its enclosing class?",
     code: `class Outer {\n    int secret = 42;\n    class Inner {\n        void peek(Outer& o) {\n            std::cout << o.secret;  // Is this legal?\n        }\n    };\n};`,
     options: [
-      "No — Inner has no special access to Outer",
+      "No — Inner has no special access to Outer’s private members without a friend",
       "Yes — since C++11, a nested class is a friend of its enclosing class",
-      "Only if Inner is declared public",
-      "Only if secret is protected",
+      "Only if Inner is declared in the public section of Outer’s definition",
+      "Only if the secret member is declared protected rather than private",
     ],
     correctIndex: 1,
     explanation:
@@ -5408,10 +5408,10 @@ export const questions: Question[] = [
       "What does this code demonstrate?",
     code: `class Widget {\npublic:\n    void process() { std::cout << "non-const"; }\n    void process() const { std::cout << "const"; }\n};\n\nconst Widget cw;\nWidget w;\ncw.process();\nw.process();`,
     options: [
-      "Compilation error — duplicate function definition",
+      "Compilation error — you cannot have two functions with a duplicate definition",
       "const overloading: cw calls the const version, w calls the non-const version",
-      "Both call the non-const version",
-      "Both call the const version",
+      "Both objects call the non-const version of process regardless of qualification",
+      "Both objects call the const version of process regardless of qualification",
     ],
     correctIndex: 1,
     explanation:
@@ -5426,10 +5426,10 @@ export const questions: Question[] = [
     topic: "OOP",
     question: "How does virtual dispatch work internally in most C++ implementations?",
     options: [
-      "The compiler generates if-else chains to check the dynamic type at each call site and dispatches to the matching implementation",
+      "The compiler generates if-else chains to check the dynamic type at each call site and dispatches to the matching implementation based on runtime type comparison",
       "Each polymorphic object contains a vptr (virtual table pointer) pointing to a vtable of function pointers; virtual calls are resolved by an indirect call through the vtable",
-      "The runtime uses string-based function name lookup similar to reflection, searching a hash map of method signatures",
-      "Virtual functions are inlined and resolved entirely at compile time using template-based static dispatch mechanisms",
+      "The runtime uses string-based function name lookup similar to reflection, searching a hash map of method signatures to find the correct implementation at each call",
+      "Virtual functions are inlined and resolved entirely at compile time using template-based static dispatch mechanisms that eliminate all dynamic overhead from the program",
     ],
     correctIndex: 1,
     explanation:
@@ -5479,8 +5479,8 @@ export const questions: Question[] = [
     options: [
       "An anti-pattern that makes virtual functions slower by adding unnecessary indirection layers between the caller and the implementation",
       "A pattern where the public interface is non-virtual, and the customization points are private virtual functions — giving the base class control over pre/post operations",
-      "A technique that eliminates virtual function overhead entirely by converting all virtual calls to direct calls at compile time",
-      "A pattern that replaces virtual functions with function pointers stored as data members to enable runtime polymorphism",
+      "A technique that eliminates virtual function overhead entirely by converting all virtual calls to direct calls at compile time through static analysis",
+      "A pattern that replaces virtual functions with function pointers stored as data members to enable runtime polymorphism without using the vtable mechanism",
     ],
     correctIndex: 1,
     explanation:
@@ -5494,10 +5494,10 @@ export const questions: Question[] = [
     question: "What does this declaration actually do?",
     code: `class Timer {\npublic:\n    Timer(int interval);\n};\n\nTimer t(Timer(10));`,
     options: [
-      "Creates a Timer t by copy-constructing from a temporary Timer(10) using the implicit copy constructor",
+      "Creates a Timer t by copy-constructing from a temporary Timer(10) using the implicit copy constructor generated by the compiler automatically",
       "This is the 'most vexing parse': the compiler interprets it as a function declaration — t is a function taking a Timer parameter and returning a Timer",
-      "Compilation error — Timer cannot be constructed from another Timer without an explicit copy constructor defined",
-      "Creates two Timer objects: one temporary Timer(10) and one named t that is copy-initialized from it",
+      "Compilation error — Timer cannot be constructed from another Timer without an explicit copy constructor defined by the programmer in the class body",
+      "Creates two Timer objects: one temporary Timer(10) and one named t that is copy-initialized from the temporary using the default copy constructor",
     ],
     correctIndex: 1,
     explanation:
@@ -5511,10 +5511,10 @@ export const questions: Question[] = [
     question: "What does this conversion operator do, and what is the risk?",
     code: `class BigInt {\n    long long value;\npublic:\n    BigInt(long long v) : value(v) {}\n    operator bool() const { return value != 0; }\n};\n\nBigInt a(5), b(10);\nstd::cout << (a + b);`,
     options: [
-      "Prints 15 — the addition operates on BigInt values",
-      "Compilation error — BigInt has no operator+",
+      "Prints 15 — the addition operates on the BigInt values directly",
+      "Compilation error — BigInt has no operator+ defined for addition",
       "Prints 2 — both a and b are implicitly converted to bool (true + true = 2)",
-      "Prints 1 — boolean addition saturates at 1",
+      "Prints 1 — boolean addition saturates at 1 because true + true caps",
     ],
     correctIndex: 2,
     explanation:
@@ -5561,10 +5561,10 @@ export const questions: Question[] = [
     question: "What is the syntax for a pointer to member function, and how is it called?",
     code: `class Widget {\npublic:\n    void process(int x) { std::cout << x; }\n};\n\nvoid (Widget::*pmf)(int) = &Widget::process;\nWidget w;\n(w.*pmf)(42);`,
     options: [
-      "This is invalid syntax — C++ does not support pointers to member functions",
+      "This is invalid syntax — the C++ specification does not support pointers to member functions",
       "This is valid: pmf is a pointer to Widget::process, and .* is the pointer-to-member dereference operator",
-      "This creates a regular function pointer and is equivalent to void(*pmf)(int)",
-      "This requires static_cast to work",
+      "This creates a regular function pointer equivalent to void(*pmf)(int) callable without an object",
+      "This requires static_cast to convert the member function address to the correct pointer-to-member type",
     ],
     correctIndex: 1,
     explanation:
@@ -5578,10 +5578,10 @@ export const questions: Question[] = [
     question: "Can a pure virtual function have an implementation?",
     code: `class Base {\npublic:\n    virtual void log() = 0;\n};\n\nvoid Base::log() {\n    std::cout << "Base default log";\n}\n\nclass Derived : public Base {\npublic:\n    void log() override {\n        Base::log();  // call the pure virtual's implementation\n        std::cout << " + Derived";\n    }\n};`,
     options: [
-      "Compilation error — pure virtual functions cannot have a body",
+      "Compilation error — pure virtual functions cannot have a body defined outside or inside the class declaration under any circumstances",
       "Legal — the class is still abstract, but derived classes can explicitly call the base implementation via Base::log()",
-      "Legal only if the function is protected",
-      "Legal, but it makes the class no longer abstract",
+      "Legal only if the pure virtual function is declared as protected in the base class, not as public or private",
+      "Legal, but providing a body for the pure virtual function makes the class no longer abstract and allows direct instantiation",
     ],
     correctIndex: 1,
     explanation:
@@ -5595,10 +5595,10 @@ export const questions: Question[] = [
     question: "What is the problem with this code?",
     code: `class Animal {\npublic:\n    virtual std::string speak() { return "..."; }\n    virtual ~Animal() = default;\n};\nclass Cat : public Animal {\npublic:\n    std::string speak() override { return "Meow"; }\n};\n\nstd::vector<Animal> zoo;\nzoo.push_back(Cat());\nstd::cout << zoo[0].speak();`,
     options: [
-      "Prints Meow — polymorphism works correctly",
+      "Prints Meow — polymorphism works correctly because the vtable is preserved when copying by value",
       "Object slicing: the Cat is copied into a vector of Animal by value, losing the Cat part. Prints '...'",
-      "Compilation error — cannot push Cat into vector<Animal>",
-      "Undefined behavior — dangling reference",
+      "Compilation error — you cannot push a Cat into vector<Animal> because the types are incompatible",
+      "Undefined behavior — the Cat creates a dangling reference in the vector due to an incompatible layout",
     ],
     correctIndex: 1,
     explanation:
@@ -5612,10 +5612,10 @@ export const questions: Question[] = [
     question: "In virtual inheritance, which class is responsible for constructing the virtual base?",
     code: `struct Base { Base(int x) { std::cout << x; } };\nstruct Left : virtual Base { Left() : Base(1) {} };\nstruct Right : virtual Base { Right() : Base(2) {} };\nstruct Diamond : Left, Right { Diamond() : Base(3), Left(), Right() {} };\n\nDiamond d;`,
     options: [
-      "Left constructs Base with 1",
-      "Right constructs Base with 2",
+      "Left constructs Base with 1 because it is first in the inheritance list order",
+      "Right constructs Base with 2 because it is last in the inheritance declaration",
       "Diamond constructs Base with 3 — the most-derived class always constructs virtual bases",
-      "Base is constructed three times with 1, 2, and 3",
+      "Base is constructed three times with 1, 2, and 3 — once for each class in the hierarchy",
     ],
     correctIndex: 2,
     explanation:
@@ -5628,10 +5628,10 @@ export const questions: Question[] = [
     topic: "OOP",
     question: "What is the overhead of RTTI (Runtime Type Information)?",
     options: [
-      "Zero cost — RTTI is resolved entirely at compile time using template-based type deduction with no runtime data structures",
+      "Zero cost — RTTI is resolved entirely at compile time using template-based type deduction with no runtime data structures, meaning there is no memory or performance overhead for polymorphic classes",
       "Each polymorphic class stores a type_info object (accessed via the vtable), adding a small per-class (not per-object) cost; dynamic_cast and typeid have a runtime cost proportional to hierarchy depth",
-      "Each object stores a full copy of its class name and hierarchy as a string, adding significant per-object memory overhead",
-      "RTTI doubles the size of every vtable by adding a mirrored set of entries that encode type metadata for each virtual function",
+      "Each object stores a full copy of its class name and hierarchy as a string in its memory layout, adding significant per-object memory overhead that scales linearly with hierarchy depth",
+      "RTTI doubles the size of every vtable by adding a mirrored set of entries that encode type metadata for each virtual function, significantly increasing the memory footprint of polymorphic types",
     ],
     correctIndex: 1,
     explanation:
@@ -5645,10 +5645,10 @@ export const questions: Question[] = [
     question: "What problem does a delegating constructor have with member initializer lists?",
     code: `class Config {\n    int timeout;\n    std::string name;\npublic:\n    Config(int t, std::string n) : timeout(t), name(std::move(n)) {}\n    Config() : Config(30, "default"), timeout(60) {}  // ERROR\n};`,
     options: [
-      "This compiles — timeout ends up as 60",
+      "This compiles successfully — timeout ends up as 60 because the direct initializer overrides the delegated constructor’s value",
       "Compilation error — when delegating, you cannot also initialize other members in the same initializer list",
-      "This compiles but timeout is undefined",
-      "Compilation error — constructors cannot delegate and have a body",
+      "This compiles but timeout has an undefined value because the delegation and direct initialization conflict at runtime",
+      "Compilation error — constructors cannot delegate to another constructor and also have a body with executable statements",
     ],
     correctIndex: 1,
     explanation:
@@ -5697,9 +5697,9 @@ export const questions: Question[] = [
     code: `class Base {\npublic:\n    bool operator==(const Base& other) const {\n        return true;  // simplified\n    }\n};\n\nclass Derived : public Base {\n    int extra = 5;\npublic:\n    bool operator==(const Derived& other) const {\n        return Base::operator==(other) && extra == other.extra;\n    }\n};\n\nDerived d1, d2;\nd2.extra = 99;\nBase& ref1 = d1;\nBase& ref2 = d2;\nassert(ref1 == ref2);  // calls Base::operator==, returns true!`,
     options: [
       "Because operator== is not virtual, so the call resolves to Base::operator== which ignores extra",
-      "Because d2.extra is private and cannot be accessed",
-      "Because references cannot be compared with ==",
-      "The assertion actually passes, which is correct behavior",
+      "Because d2.extra is private in Derived and cannot be accessed from Base::operator==",
+      "Because references cannot be compared with == without an explicit overload for reference types",
+      "The assertion actually passes, which is the correct and intended behavior for these objects",
     ],
     correctIndex: 0,
     explanation:
@@ -5730,10 +5730,10 @@ export const questions: Question[] = [
     question: "What is wrong with this code?",
     code: `class Base {\npublic:\n    virtual std::unique_ptr<Base> clone() const {\n        return std::make_unique<Base>(*this);\n    }\n    virtual ~Base() = default;\n};\n\nclass Derived : public Base {\npublic:\n    std::unique_ptr<Derived> clone() const override {\n        return std::make_unique<Derived>(*this);\n    }\n};`,
     options: [
-      "Nothing — covariant return types work with smart pointers",
+      "Nothing is wrong — covariant return types work seamlessly with smart pointers like unique_ptr the same way they work with raw pointers",
       "Compilation error — covariant return types only work with raw pointers and references, not smart pointers like unique_ptr",
-      "Runtime error — the unique_ptr is double-freed",
-      "The Derived version shadows but does not override the Base version",
+      "Runtime error — the unique_ptr managing the Derived object is double-freed because the virtual dispatch creates a duplicate ownership path",
+      "The Derived version of clone shadows but does not override the Base version, causing unexpected static dispatch instead of virtual dispatch",
     ],
     correctIndex: 1,
     explanation:
@@ -5747,10 +5747,10 @@ export const questions: Question[] = [
     question: "What subtle difference exists between these two lines?",
     code: `Widget w1 = Widget(42);  // Line A: copy initialization\nWidget w2(42);           // Line B: direct initialization`,
     options: [
-      "They are always identical — the compiler treats them the same regardless of which constructors are available or deleted",
+      "They are always identical in every respect — the compiler treats them exactly the same regardless of which constructors are available, deleted, or explicitly declared",
       "Line A requires an accessible copy/move constructor (even if elided), while Line B only requires the matching constructor. If the copy/move constructor is deleted, Line A fails and Line B succeeds",
-      "Line A creates a temporary and then copies it into w1; Line B does not create a temporary — there is always a measurable performance difference",
-      "Line A calls operator= to assign from the temporary while Line B directly invokes the constructor, following different overload resolution paths",
+      "Line A creates a temporary Widget and then copies it into w1 by invoking the copy constructor; Line B does not create a temporary — there is always a measurable performance cost",
+      "Line A calls operator= to assign from the temporary value while Line B directly invokes the constructor, and these follow two entirely different overload resolution paths in the compiler",
     ],
     correctIndex: 1,
     explanation:
@@ -5782,10 +5782,10 @@ export const questions: Question[] = [
     question: "When is a local variable with automatic storage duration destroyed?",
     code: `void f() {\n    std::string s = "hello";\n    // ...\n}  // What happens to s here?`,
     options: [
-      "When the garbage collector runs",
+      "When the garbage collector runs and determines the object is unreachable",
       "When the function returns — s goes out of scope and its destructor is called",
-      "Only when the program exits",
-      "It is never destroyed — it leaks",
+      "Only when the program exits, because locals persist until termination",
+      "It is never destroyed — the string leaks because C++ has no auto-free",
     ],
     correctIndex: 1,
     explanation:
@@ -5799,10 +5799,10 @@ export const questions: Question[] = [
     question: "What is the storage duration of a global variable?",
     code: `int globalCount = 0;  // defined at namespace scope\n\nint main() {\n    ++globalCount;\n}`,
     options: [
-      "Automatic — destroyed when main() returns",
+      "Automatic — destroyed when main() returns and the stack unwinds",
       "Static — exists for the entire duration of the program",
-      "Dynamic — allocated on the heap",
-      "Thread — one copy per thread",
+      "Dynamic — allocated on the heap and must be freed manually",
+      "Thread — one copy is created for each thread in the process",
     ],
     correctIndex: 1,
     explanation:
@@ -5816,10 +5816,10 @@ export const questions: Question[] = [
     question: "What is special about a static local variable?",
     code: `int nextId() {\n    static int counter = 0;\n    return ++counter;\n}`,
     options: [
-      "It is re-initialized to 0 every time the function is called",
+      "It is re-initialized to its original value of 0 every time the function is called, resetting on each invocation",
       "It is initialized once (on the first call) and persists across all subsequent calls to the function",
-      "It is shared between all threads without synchronization",
-      "It is allocated on the heap",
+      "It is shared between all threads without any synchronization, leading to potential data races on concurrent access",
+      "It is allocated on the heap using dynamic memory allocation and must be manually freed to avoid a memory leak",
     ],
     correctIndex: 1,
     explanation:
@@ -5849,10 +5849,10 @@ export const questions: Question[] = [
     topic: "Lifetime & Storage",
     question: "What is the difference between scope and lifetime?",
     options: [
-      "They are the same concept — different names for the same thing",
+      "They are the same concept with different names — both describe how long an object is accessible in the program",
       "Scope is where a name is visible in source code; lifetime is how long the object exists in memory at runtime",
-      "Scope is a runtime concept; lifetime is a compile-time concept",
-      "Scope applies only to functions; lifetime applies only to variables",
+      "Scope is a runtime concept determined by the call stack; lifetime is a compile-time concept determined by type analysis",
+      "Scope applies only to functions and their parameters; lifetime applies only to variables and allocated objects",
     ],
     correctIndex: 1,
     explanation:
@@ -5866,10 +5866,10 @@ export const questions: Question[] = [
     question: "What does thread_local do?",
     code: `thread_local int requestCount = 0;`,
     options: [
-      "Makes the variable immutable within a thread",
+      "Makes the variable immutable within each thread so that no write operations can modify its value",
       "Creates a separate copy of the variable for each thread, each with its own lifetime tied to its thread",
-      "Makes access to the variable atomic",
-      "Restricts the variable to the main thread only",
+      "Makes every access to the variable atomic, ensuring thread-safe reads and writes without synchronization",
+      "Restricts the variable to the main thread only, preventing other threads from reading or modifying it",
     ],
     correctIndex: 1,
     explanation:
@@ -5918,8 +5918,8 @@ export const questions: Question[] = [
     options: [
       "The memory is automatically freed when p is reassigned",
       "The memory is leaked — it remains allocated with no way to free it",
-      "The garbage collector will reclaim it",
-      "The memory is freed when the function returns",
+      "The garbage collector will eventually reclaim it automatically",
+      "The memory is freed when the function returns and the stack unwinds",
     ],
     correctIndex: 1,
     explanation:
@@ -5933,10 +5933,10 @@ export const questions: Question[] = [
     question: "What is wrong with this function?",
     code: `int& getLocal() {\n    int x = 42;\n    return x;\n}`,
     options: [
-      "Nothing — returning a reference to a local is fine",
+      "Nothing is wrong — returning a reference to a local variable is valid and safe in C++",
       "Undefined behavior — the reference dangles because x is destroyed when the function returns",
-      "Compilation error — you cannot return a reference",
-      "It returns a copy of x, not a reference",
+      "Compilation error — the C++ language does not allow functions to return a reference",
+      "It returns a copy of x rather than a reference, so the value 42 is preserved for the caller",
     ],
     correctIndex: 1,
     explanation:
@@ -5986,10 +5986,10 @@ export const questions: Question[] = [
     question: "What does this code demonstrate?",
     code: `const std::string& extend() {\n    return "temporary";\n}\n\nconst std::string& ref = extend();\nstd::cout << ref;  // safe?`,
     options: [
-      "Safe — the const reference extends the temporary's lifetime to match the scope of the calling function",
+      "Safe — the const reference extends the temporary’s lifetime to match the scope of the calling function, so the string remains valid for as long as the reference exists",
       "Dangling reference — the temporary string created from the literal is destroyed when extend() returns; binding a reference to a function's return value does not extend lifetime",
-      "Compilation error — cannot bind a const reference to a string literal because their types are incompatible",
-      "Safe — string literals have static storage duration, so the temporary std::string inherits that lifetime",
+      "Compilation error — cannot bind a const reference to a string literal because their types are incompatible, and no implicit conversion from const char* to std::string& is allowed",
+      "Safe — string literals have static storage duration, so the temporary std::string constructed from the literal inherits that same lifetime and persists throughout the program",
     ],
     correctIndex: 1,
     explanation:
@@ -6020,10 +6020,10 @@ export const questions: Question[] = [
     question: "What is the 'static initialization order fiasco'?",
     code: `// file_a.cpp\nextern int b;\nint a = b + 1;  // depends on b\n\n// file_b.cpp\nextern int a;\nint b = a + 1;  // depends on a`,
     options: [
-      "A linker error — circular dependencies between files are forbidden and detected during the symbol resolution phase",
+      "A linker error — circular dependencies between translation unit files are forbidden and detected during the symbol resolution phase of the linking process",
       "The initialization order of static variables across translation units is unspecified, so a and b may read uninitialized (zero) values depending on which file is initialized first",
-      "Both a and b will be 1 because static variables are always zero-initialized first, and the dynamic initializers run in definition order",
-      "The compiler detects the cycle and produces a compilation error because cross-translation-unit dependencies are statically analyzed",
+      "Both a and b will be 1 because all static variables are always zero-initialized first in the data segment, and then the dynamic initializers run in the order they appear in the source",
+      "The compiler detects the circular dependency cycle and produces a compilation error because cross-translation-unit static variable dependencies are statically analyzed during compilation",
     ],
     correctIndex: 1,
     explanation:
@@ -6037,10 +6037,10 @@ export const questions: Question[] = [
     question: "How does the 'construct on first use' idiom solve the static initialization order fiasco?",
     code: `int& getA() {\n    static int a = getB() + 1;\n    return a;\n}\n\nint& getB() {\n    static int b = 42;\n    return b;\n}`,
     options: [
-      "It doesn't — this still has the same problem",
+      "It doesn’t solve anything — this code still has the same static initialization order problem",
       "Function-local statics are initialized on first call, guaranteeing that b is initialized before a uses it",
-      "The static keyword makes both variables thread-local",
-      "The functions force the linker to resolve the initialization order",
+      "The static keyword makes both variables thread-local so they avoid shared initialization ordering",
+      "The functions force the linker to resolve the initialization order by analyzing the dependency graph",
     ],
     correctIndex: 1,
     explanation:
@@ -6054,10 +6054,10 @@ export const questions: Question[] = [
     question: "What happens to the string inside this optional?",
     code: `std::optional<std::string> opt = "hello";\nopt.reset();\n// Is the string destroyed?`,
     options: [
-      "No — the string persists until opt goes out of scope",
+      "No — the string persists inside the optional’s storage until opt goes completely out of scope",
       "Yes — reset() destroys the contained object immediately, calling its destructor",
-      "The string is moved out but not destroyed",
-      "reset() only marks it as empty — the destructor runs later",
+      "The string is moved out of the optional into a temporary but its destructor is not called yet",
+      "reset() only marks the optional as empty — the string’s destructor runs later at scope exit",
     ],
     correctIndex: 1,
     explanation:
@@ -6071,10 +6071,10 @@ export const questions: Question[] = [
     question: "What is the lifetime of the temporary in this expression?",
     code: `const char* p = std::string("temp").c_str();\nstd::cout << p;  // safe?`,
     options: [
-      "Safe — the const pointer extends the temporary's lifetime to match the scope of the pointer variable p",
+      "Safe — the const pointer p extends the temporary’s lifetime to match the scope of the pointer variable, keeping the string data valid throughout",
       "Dangling pointer — the temporary std::string is destroyed at the end of the full expression (the semicolon), leaving p pointing to freed memory",
-      "Safe — c_str() returns a pointer to static memory that persists independently of the string object's lifetime",
-      "Compilation error — c_str() on a temporary is not permitted because the temporary is an rvalue expression",
+      "Safe — c_str() returns a pointer to static memory that persists independently of the string object’s lifetime, so the pointer remains valid after destruction",
+      "Compilation error — calling c_str() on a temporary is not permitted because the temporary is an rvalue expression and c_str() requires an lvalue",
     ],
     correctIndex: 1,
     explanation:
@@ -6087,10 +6087,10 @@ export const questions: Question[] = [
     topic: "Lifetime & Storage",
     question: "When are global objects destroyed relative to each other?",
     options: [
-      "In alphabetical order",
+      "In alphabetical order based on the identifier names of the global objects",
       "In reverse order of construction — objects constructed last are destroyed first",
-      "In the order they were constructed",
-      "All at once, simultaneously",
+      "In the same order in which they were originally constructed at startup",
+      "All at once, simultaneously, when the program terminates and exits main",
     ],
     correctIndex: 1,
     explanation:
@@ -6104,10 +6104,10 @@ export const questions: Question[] = [
     question: "What happens when you use std::move on a local variable and then access it?",
     code: `std::string name = "Alice";\nstd::string other = std::move(name);\nstd::cout << name.size();  // safe?`,
     options: [
-      "Undefined behavior — name is destroyed after the move",
+      "Undefined behavior — the name string is destroyed after the move and cannot be accessed at all",
       "Safe — name is in a valid but unspecified state; calling size() is fine, but the value is unspecified",
-      "Always prints 5 — move doesn't actually move anything",
-      "Compilation error — moved-from objects cannot be used",
+      "Always prints 5 — std::move doesn’t actually move anything, it only casts to an rvalue reference",
+      "Compilation error — moved-from objects cannot be used in subsequent expressions per the C++ standard",
     ],
     correctIndex: 1,
     explanation:
@@ -6121,10 +6121,10 @@ export const questions: Question[] = [
     question: "What storage duration do lambda captures have?",
     code: `auto makeLambda() {\n    int local = 42;\n    return [local]() { return local; };\n}\n\nauto fn = makeLambda();\nstd::cout << fn();  // safe?`,
     options: [
-      "Dangling — local is destroyed when makeLambda() returns, so the captured value becomes invalid",
+      "Dangling reference — the local variable is destroyed when makeLambda() returns, so the captured value inside the closure becomes invalid and unusable",
       "Safe — capturing by value copies local into the lambda's closure object, which has its own storage duration independent of the original",
-      "Safe only if the lambda is called in the same scope as the captured variable, otherwise it dangles",
-      "The capture has static storage duration because lambda closures are implicitly stored as static objects",
+      "Safe only if the lambda is called in the same scope as the captured variable was originally declared; otherwise the captured reference dangles on access",
+      "The capture has static storage duration because lambda closures are implicitly stored as static objects in the data segment by the compiler",
     ],
     correctIndex: 1,
     explanation:
@@ -6138,10 +6138,10 @@ export const questions: Question[] = [
     question: "What is the risk of returning a lambda that captures by reference?",
     code: `auto make() {\n    int x = 10;\n    return [&x]() { return x; };\n}\n\nauto fn = make();\nstd::cout << fn();`,
     options: [
-      "Safe — the reference keeps x alive",
+      "Safe — the reference capture keeps x alive for as long as the lambda object exists in the calling scope",
       "Undefined behavior — x is destroyed when make() returns, and the lambda holds a dangling reference to it",
-      "Compilation error — lambdas cannot capture by reference",
-      "Prints 0 — x is zero-initialized after the function returns",
+      "Compilation error — lambdas cannot capture local variables by reference because lifetime safety cannot be verified",
+      "Prints 0 — x is zero-initialized after the function returns because the reference is reset to its default value",
     ],
     correctIndex: 1,
     explanation:
@@ -6155,10 +6155,10 @@ export const questions: Question[] = [
     question: "What is the lifetime of a string literal?",
     code: `const char* getMessage() {\n    return "hello world";\n}\n\nconst char* p = getMessage();\nstd::cout << p;  // safe?`,
     options: [
-      "Dangling — the literal is destroyed when the function returns",
+      "Dangling — the literal is destroyed when the function returns and the stack unwinds",
       "Safe — string literals have static storage duration and exist for the entire program",
-      "Safe only if the caller copies the string immediately",
-      "Implementation-defined — depends on the compiler",
+      "Safe only if the caller copies the string immediately into a local buffer before use",
+      "Implementation-defined — depends on the compiler and how it stores string literals",
     ],
     correctIndex: 1,
     explanation:
@@ -6172,10 +6172,10 @@ export const questions: Question[] = [
     question: "What storage duration does this constexpr variable have?",
     code: `void f() {\n    constexpr int N = 100;\n}`,
     options: [
-      "Compile-time only — it doesn't exist at runtime",
+      "Compile-time only — it doesn’t exist at runtime and has no storage at all",
       "Automatic — like any local variable, but the value is computed at compile time",
-      "Static — constexpr always implies static",
-      "Dynamic — constexpr variables are heap-allocated",
+      "Static — constexpr always implies static storage duration for all variables",
+      "Dynamic — constexpr variables are heap-allocated and freed at scope end",
     ],
     correctIndex: 1,
     explanation:
@@ -6206,10 +6206,10 @@ export const questions: Question[] = [
     question: "How does std::unique_ptr tie into storage duration?",
     code: `void f() {\n    auto p = std::make_unique<Widget>();\n    // use *p ...\n}  // What happens here?`,
     options: [
-      "The Widget leaks — unique_ptr doesn't call delete",
+      "The Widget leaks — unique_ptr doesn’t call delete on the managed object because it relies on the programmer to manually free the allocated memory",
       "The unique_ptr (automatic duration) is destroyed at end of scope, and its destructor calls delete on the managed Widget (dynamic duration), ending both lifetimes",
-      "The Widget has automatic duration because it's managed by a local variable",
-      "The Widget is destroyed only when the program exits",
+      "The Widget has automatic storage duration because it is managed by a local unique_ptr variable, so it is stored on the stack rather than the heap",
+      "The Widget is not destroyed when f() returns — it persists until the program exits because unique_ptr defers cleanup to program termination",
     ],
     correctIndex: 1,
     explanation:
@@ -6225,10 +6225,10 @@ export const questions: Question[] = [
     question: "What does placement new do to object lifetime?",
     code: `alignas(Widget) unsigned char buf[sizeof(Widget)];\nWidget* w = new (buf) Widget();  // placement new\nw->doWork();\nw->~Widget();  // manual destructor call`,
     options: [
-      "Undefined behavior — you can't construct objects in raw memory because the alignment is never guaranteed",
+      "Undefined behavior — you can’t construct objects in raw memory because the alignment is never guaranteed to be sufficient, even when using alignas directives on the buffer",
       "Creates a Widget in pre-allocated storage; the object's lifetime begins at placement new and ends at the explicit destructor call — delete must NOT be used",
-      "Same as regular new but faster because it skips allocation — the object is still freed automatically at scope end",
-      "The object's lifetime is tied to buf's scope regardless of the destructor call, ending when buf is deallocated",
+      "Same as regular new but faster because it skips allocation — the object is still freed automatically at scope end when the enclosing buffer variable is destroyed by the compiler",
+      "The object’s lifetime is tied to buf’s scope regardless of when the explicit destructor call occurs, and it ends automatically when buf is deallocated at scope exit",
     ],
     correctIndex: 1,
     explanation:
@@ -6242,10 +6242,10 @@ export const questions: Question[] = [
     question: "What is the problem with reusing storage after placement new?",
     code: `alignas(A) unsigned char buf[sizeof(A)];\nA* a = new (buf) A();\na->~A();\nB* b = new (buf) B();  // reuse same storage\n// Is it safe to use 'a' pointer for anything?`,
     options: [
-      "Safe — a still points to valid memory because the underlying buffer was not deallocated or moved to a different address",
+      "Safe — the old pointer a still points to valid memory because the underlying buffer was not deallocated or moved to a different address, so dereferencing it always produces defined behavior regardless of what was constructed there",
       "Undefined behavior in general: after A is destroyed and B is constructed, using the old pointer a may violate strict aliasing and object lifetime rules. In C++17, std::launder may be needed even for the new pointer if types differ",
-      "Safe as long as sizeof(B) <= sizeof(A) and both types have the same alignment requirement so the buffer is compatible",
-      "The compiler automatically updates a to point to the new B object through an implicit pointer-rebinding mechanism in the language",
+      "Safe as long as sizeof(B) <= sizeof(A) and both types have the same alignment requirement so the buffer is compatible; the C++ standard guarantees that pointer reuse across types is always valid when these size and alignment conditions are met",
+      "The compiler automatically updates the old pointer a to point to the new B object through an implicit pointer-rebinding mechanism in the language specification, so using a after constructing B in the same storage is well-defined behavior",
     ],
     correctIndex: 1,
     explanation:
@@ -6259,10 +6259,10 @@ export const questions: Question[] = [
     question: "What does [[no_unique_address]] do to a member's storage?",
     code: `struct Empty {};\n\nstruct S {\n    [[no_unique_address]] Empty e;\n    int x;\n};\n\nstatic_assert(sizeof(S) == sizeof(int));  // likely passes`,
     options: [
-      "Deletes the member — it no longer exists",
+      "Deletes the member from the class entirely — it no longer exists as a field and cannot be accessed by any member function or external code at all",
       "Allows the compiler to give an empty member zero size (overlapping with other members), similar to the Empty Base Optimization but for data members",
-      "Makes the member thread_local",
-      "Makes the member constexpr",
+      "Makes the member thread_local so that each thread gets its own independent copy of the empty object, preventing data races between concurrent accesses",
+      "Makes the member constexpr so that it is evaluated entirely at compile time and does not occupy any storage in the runtime object layout of the class",
     ],
     correctIndex: 1,
     explanation:
@@ -6275,10 +6275,10 @@ export const questions: Question[] = [
     topic: "Lifetime & Storage",
     question: "What happens during the two phases of static variable initialization?",
     options: [
-      "Phase 1 allocates memory in the data segment for all statics, Phase 2 calls constructors and evaluates initializer expressions",
+      "Phase 1 allocates memory in the data segment for all static and global variables, and Phase 2 calls their constructors and evaluates each initializer expression in the order they appear in the source code of each translation unit",
       "Phase 1 is zero/constant initialization (compile time); Phase 2 is dynamic initialization (runtime). All static variables are zero-initialized first, then those with constant initializers are set, then runtime constructors run",
-      "Phase 1 initializes globals at namespace scope in definition order, Phase 2 initializes function-local static variables on first use",
-      "Phase 1 runs before main() and handles all constexpr initializers, Phase 2 runs during main() for everything else",
+      "Phase 1 initializes globals declared at namespace scope in definition order within each translation unit, and Phase 2 initializes all function-local static variables on first use when their enclosing function is called during program execution",
+      "Phase 1 runs before main() begins and handles all constexpr initializers that can be evaluated at compile time, and Phase 2 runs during main() execution for everything else that requires dynamic evaluation at runtime",
     ],
     correctIndex: 1,
     explanation:
@@ -6292,10 +6292,10 @@ export const questions: Question[] = [
     question: "What does std::atexit control about object lifetime?",
     code: `void cleanup() { std::cout << "cleanup "; }\n\nstruct Global {\n    ~Global() { std::cout << "~Global "; }\n} g;\n\nint main() {\n    std::atexit(cleanup);\n}`,
     options: [
-      "cleanup runs first, then ~Global — atexit handlers always run before destructors",
-      "~Global runs first, then cleanup — atexit handlers run after all destructors",
+      "cleanup runs first, then ~Global is called — atexit handlers always run before any static object destructors by specification",
+      "~Global runs first, then cleanup is called — atexit handlers always run after all static object destructors are completed",
       "cleanup runs, then ~Global — atexit handlers and static destructors are interleaved in reverse registration order",
-      "The order is implementation-defined",
+      "The order between atexit handlers and static destructors is implementation-defined and varies across compilers and platforms",
     ],
     correctIndex: 2,
     explanation:
@@ -6309,10 +6309,10 @@ export const questions: Question[] = [
     question: "What is the lifetime issue with this code?",
     code: `struct S {\n    const std::string& name;\n};\n\nS makeS() {\n    std::string str = "hello";\n    return S{str};\n}`,
     options: [
-      "Safe — the struct copies the string because aggregate initialization performs an implicit copy of each initializer",
+      "Safe — the struct copies the string because aggregate initialization performs an implicit copy of each initializer value into the corresponding member, creating an independent copy",
       "Dangling reference — S holds a reference to str, which is destroyed when makeS() returns. The lifetime of str is NOT extended because it's bound through aggregate initialization",
-      "Compilation error — aggregates can't hold references because reference members violate trivial copyability requirements",
-      "Safe — return value optimization extends the lifetime of str to match the lifetime of the returned S object",
+      "Compilation error — aggregates can’t hold reference members because reference members violate trivial copyability requirements that the standard imposes on all aggregate types",
+      "Safe — return value optimization extends the lifetime of the local string str to match the lifetime of the returned S object, keeping the reference valid at the call site",
     ],
     correctIndex: 1,
     explanation:
@@ -6326,10 +6326,10 @@ export const questions: Question[] = [
     question: "What happens when you access a union member that was not the last one written?",
     code: `union Data {\n    int i;\n    float f;\n};\n\nData d;\nd.f = 3.14f;\nstd::cout << d.i;  // type punning`,
     options: [
-      "Well-defined — always prints the integer representation of 3.14f because unions allow type punning in both C and C++",
+      "Well-defined — always prints the integer representation of 3.14f because unions explicitly allow type punning between all member types in both C and C++ language standards",
       "In C, this is well-defined (type punning via unions). In C++, reading an inactive union member is technically undefined behavior — only the active member (last written) has a lifetime",
-      "Compilation error — unions can't be read after writing a different member because the compiler tracks the active member",
-      "Defined only for trivially copyable types because the compiler can safely reinterpret their underlying byte representation",
+      "Compilation error — the compiler tracks the active union member and prevents you from reading a different member than the one that was last written to in the source code",
+      "Defined only for trivially copyable types because the compiler can safely reinterpret their underlying byte representation without violating strict aliasing or object lifetime rules",
     ],
     correctIndex: 1,
     explanation:
@@ -6343,10 +6343,10 @@ export const questions: Question[] = [
     question: "What is the 'static local variable destruction' problem shown here?",
     code: `class Logger {\npublic:\n    void log(const std::string& msg) { /* write to file */ }\n    ~Logger() { /* close file */ }\n};\n\nLogger& getLogger() {\n    static Logger instance;\n    return instance;\n}\n\nclass Widget {\npublic:\n    ~Widget() { getLogger().log("Widget destroyed"); }\n};\n\nstatic Widget w;`,
     options: [
-      "No problem — static locals are always destroyed last",
+      "No problem — static local variables like the Logger instance are always destroyed last during program shutdown, after all other static objects",
       "If w is constructed before the Logger, it is destroyed after the Logger — Widget's destructor calls log() on an already-destroyed Logger",
-      "Thread safety issue — static initialization is not thread-safe",
-      "Compilation error — you can't call functions in a destructor",
+      "Thread safety issue — static local variable initialization in C++ is not guaranteed to be thread-safe, so the Logger may be constructed multiple times concurrently",
+      "Compilation error — you cannot call functions from within a destructor body because destructors are restricted to simple cleanup operations only",
     ],
     correctIndex: 1,
     explanation:
@@ -6360,10 +6360,10 @@ export const questions: Question[] = [
     question: "Does guaranteed copy elision (C++17) affect object lifetime?",
     code: `Widget createWidget() {\n    return Widget(42);  // prvalue\n}\n\nWidget w = createWidget();`,
     options: [
-      "Two Widgets are created and one is moved — the function constructs a temporary, then move-constructs w from it",
-      "One Widget is created inside createWidget and then moved into w when the function returns by value",
+      "Two Widgets are created and one is moved — the function constructs a temporary Widget inside createWidget, then move-constructs w from it when the function returns by value",
+      "One Widget is created inside createWidget and then moved into w when the function returns by value, requiring an accessible move constructor to transfer ownership of the object",
       "Exactly one Widget is ever created — the prvalue directly initializes w. No temporary object ever exists, so there is no lifetime to extend or copy/move constructor to call",
-      "The compiler may or may not elide — the behavior is unspecified and depends on optimization level and platform ABI",
+      "The compiler may or may not elide the copy — the behavior is unspecified and depends on the optimization level, platform ABI, and compiler implementation choices at build time",
     ],
     correctIndex: 2,
     explanation:
@@ -6394,10 +6394,10 @@ export const questions: Question[] = [
     question: "What is the lifetime of a temporary bound to an rvalue reference parameter inside a function?",
     code: `void process(std::string&& s) {\n    // Is s valid for the entire function body?\n    std::cout << s;\n}\n\nprocess("temporary");`,
     options: [
-      "The temporary dies before process executes",
+      "The temporary string is destroyed before process begins executing, because temporaries are always destroyed at the point where they are created in the calling expression",
       "The temporary's lifetime extends until process returns — function parameter binding extends the temporary to the full expression including the function call",
-      "The temporary is moved, so s is empty inside process",
-      "Undefined — rvalue references do not extend lifetimes",
+      "The temporary is automatically moved into the rvalue reference parameter, so s is empty and contains no data inside the function body when it is accessed",
+      "Undefined behavior — rvalue references do not extend the lifetime of temporaries in any context, so accessing s inside the function body is always invalid",
     ],
     correctIndex: 1,
     explanation:
@@ -6411,10 +6411,10 @@ export const questions: Question[] = [
     question: "What subtle issue does this range-based for loop have?",
     code: `class Matrix {\npublic:\n    std::vector<int> getRow(int i) const;\n};\n\nMatrix m;\nfor (auto& val : m.getRow(0)) {\n    std::cout << val;\n}`,
     options: [
-      "No issue — the vector is valid for the loop's duration because range-for always copies the range expression into a local variable",
+      "No issue — the vector is valid for the entire loop’s duration because range-for always copies the range expression into a hidden local variable, ensuring the temporary vector persists throughout all iterations",
       "The vector returned by getRow() is a temporary that is destroyed before the loop body executes, leaving a dangling reference. Range-for stores the range as auto&& __range = expr, but the sub-expression temporary dies at the semicolon",
-      "Compilation error — can't range-for over a function return value because the compiler requires a named range variable",
-      "Performance issue only — a new vector is allocated per iteration, but the references remain valid throughout the loop body",
+      "Compilation error — you can’t use range-for over a function return value because the compiler requires a named range variable with an explicit type declaration to bind the iteration range",
+      "Performance issue only — a new vector is allocated on every iteration of the loop, but each temporary vector and its references remain valid throughout the loop body until the next iteration begins",
     ],
     correctIndex: 1,
     explanation:
@@ -6428,10 +6428,10 @@ export const questions: Question[] = [
     question: "What is the result of calling std::exit() regarding local object lifetimes?",
     code: `void f() {\n    std::string local = "important";\n    std::exit(0);  // called deep in the call stack\n}`,
     options: [
-      "local's destructor runs before the program exits because std::exit triggers normal stack unwinding first",
+      "local's destructor runs before the program exits because std::exit triggers normal stack unwinding first, just like a regular return from the function would do in standard execution flow",
       "std::exit() does NOT unwind the stack — local variables with automatic storage duration are NOT destroyed. Only static objects and atexit handlers are cleaned up",
-      "std::exit() throws a special exception that unwinds the stack normally, calling all destructors along the way",
-      "All objects in all scopes are destroyed in reverse order of construction, identical to returning from main()",
+      "std::exit() throws a special exception that unwinds the stack normally, calling all destructors along the way, similar to how a regular unhandled exception propagates",
+      "All objects in all scopes are destroyed in reverse order of construction, identical to returning from main(), including both automatic and static storage duration objects in every frame",
     ],
     correctIndex: 1,
     explanation:
@@ -6446,10 +6446,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "What is a vtable (virtual table)?",
     options: [
-      "A hash table that maps class names to objects at runtime for dynamic method resolution",
+      "A hash table that maps class names to objects at runtime for dynamic method resolution, using string-based lookup of function signatures",
       "A per-class array of function pointers — one entry for each virtual function — used to resolve virtual calls at runtime",
-      "A table of all variables defined in a class, storing their offsets and types for runtime access",
-      "A memory allocation table managed by new/delete that tracks heap-allocated objects per class",
+      "A table of all variables defined in a class, storing their memory offsets, types, and sizes for runtime access and reflection purposes",
+      "A memory allocation table managed by new/delete that tracks heap-allocated objects per class, including allocation size and alignment data",
     ],
     correctIndex: 1,
     explanation:
@@ -6463,10 +6463,10 @@ export const questions: Question[] = [
     question: "Where is the vptr (virtual table pointer) stored?",
     code: `class Animal {\npublic:\n    virtual void speak() {}\n};\n\nsizeof(Animal);  // larger than expected?`,
     options: [
-      "In a separate global table, not in the object",
+      "In a separate global table, not in the object — the runtime maintains a registry of all vptrs indexed by class type, accessed through a global hash map during dispatch",
       "As a hidden pointer inside each object, typically at the beginning — this is why polymorphic objects are larger than their data members alone",
-      "In the stack frame of the calling function",
-      "In the vtable itself",
+      "In the stack frame of the calling function, stored alongside local variables — the compiler places the vptr near each pointer-to-base used in the call",
+      "In the vtable itself as an embedded self-referencing pointer — the vtable stores a back-pointer to each object that references it, forming a bidirectional link",
     ],
     correctIndex: 1,
     explanation:
@@ -6512,10 +6512,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "What is the control block in std::shared_ptr?",
     options: [
-      "The pointed-to object itself, which contains embedded reference count fields added by the compiler",
+      "The pointed-to object itself, which contains embedded reference count fields added by the compiler automatically at compile time for all shared_ptr-managed types",
       "A heap-allocated block that stores the strong reference count, weak reference count, deleter, and (with make_shared) the managed object itself",
-      "A stack-allocated counter that tracks copies of the shared_ptr and is destroyed when the last copy goes out of scope",
-      "A mutex that protects the shared pointer from data races by synchronizing all reference count operations",
+      "A stack-allocated counter that tracks copies of the shared_ptr and is destroyed when the last copy goes out of scope, without any heap allocation overhead involved",
+      "A mutex that protects the shared pointer from data races by synchronizing all reference count operations, using a kernel lock for every increment and decrement",
     ],
     correctIndex: 1,
     explanation:
@@ -6528,10 +6528,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "What data structure does std::map use internally?",
     options: [
-      "A hash table",
+      "A hash table that maps keys to values using a hash function for O(1) average-case lookup with collision chaining",
       "A red-black tree (self-balancing binary search tree), giving O(log n) lookup, insertion, and deletion",
-      "A sorted array with binary search",
-      "A skip list",
+      "A sorted array with binary search for O(log n) reads, but requiring O(n) shifts for each insertion or deletion",
+      "A skip list with multiple linked layers, offering probabilistic O(log n) search via express lanes over the base list",
     ],
     correctIndex: 1,
     explanation:
@@ -6544,10 +6544,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "What data structure does std::unordered_map use internally?",
     options: [
-      "A red-black tree",
+      "A red-black tree that keeps keys sorted for O(log n) lookup, insertion, and deletion",
       "A hash table with separate chaining (buckets of linked lists), giving average O(1) lookup",
-      "A sorted array",
-      "A trie (prefix tree)",
+      "A sorted array using binary search for O(log n) reads, but O(n) shifts on each insertion",
+      "A trie (prefix tree) with one node per key character, giving lookup time proportional to key length",
     ],
     correctIndex: 1,
     explanation:
@@ -6578,10 +6578,10 @@ export const questions: Question[] = [
     question: "Why does sizeof on an empty class return 1, not 0?",
     code: `class Empty {};\nstatic_assert(sizeof(Empty) == 1);`,
     options: [
-      "Because the class contains a hidden default constructor",
+      "Because the class contains a hidden default constructor the compiler inserts, and that body needs at least one byte",
       "So that every object has a unique address — two distinct objects must not occupy the same memory location",
-      "Because the compiler always adds padding to a minimum of 1 byte",
-      "Because the vtable pointer takes 1 byte",
+      "Because the compiler always adds padding to a minimum of 1 byte for alignment, regardless of the class contents",
+      "Because the vtable pointer takes 1 byte inside the object, even when the class has no virtual functions at all",
     ],
     correctIndex: 1,
     explanation:
@@ -6595,10 +6595,10 @@ export const questions: Question[] = [
     question: "What is struct padding and why does it exist?",
     code: `struct S {\n    char a;   // 1 byte\n    int b;    // 4 bytes\n};\n// sizeof(S) is typically 8, not 5. Why?`,
     options: [
-      "The compiler adds extra bytes as a security feature to prevent buffer overflow between adjacent struct members",
+      "The compiler adds extra bytes as a security feature to prevent buffer overflow between adjacent struct members, inserting guard bytes that are checked at runtime to detect corruption",
       "The compiler inserts padding bytes so that each member is aligned to its natural alignment boundary, which is required for efficient (or correct) CPU memory access",
-      "The extra bytes store metadata about the struct, such as the member count and their types for runtime reflection",
-      "Padding is a bug in the compiler — it should be 5 bytes, which is the sum of sizeof(char) and sizeof(int)",
+      "The extra bytes store metadata about the struct, such as the member count and their types for runtime reflection, allowing dynamic introspection of the struct layout at runtime",
+      "Padding is a bug in the compiler — it should be 5 bytes, which is the sum of sizeof(char) and sizeof(int), and future compiler versions are expected to fix this discrepancy",
     ],
     correctIndex: 1,
     explanation:
@@ -6628,10 +6628,10 @@ export const questions: Question[] = [
     question: "How does std::array differ from a C-style array internally?",
     code: `std::array<int, 5> arr = {1, 2, 3, 4, 5};\nint carr[5] = {1, 2, 3, 4, 5};`,
     options: [
-      "std::array is heap-allocated while C arrays are stack-allocated, so std::array has dynamic allocation overhead",
+      "std::array is heap-allocated while C arrays are stack-allocated, so std::array has dynamic allocation overhead and pointer indirection on every element access compared to a raw array",
       "Internally identical — std::array is a thin struct wrapper around a C array, stored inline with no extra overhead, but it adds bounds-checked access (.at()) and knows its own size",
-      "std::array uses a linked list internally so that elements can be inserted and removed efficiently at any position",
-      "std::array stores elements on the heap with a pointer, like vector, but has a fixed capacity set at compile time",
+      "std::array uses a linked list internally so that elements can be inserted and removed efficiently at any position, unlike a C array which requires shifting elements on insertion",
+      "std::array stores elements on the heap with a pointer, like vector, but has a fixed capacity set at compile time that cannot be changed after construction of the container",
     ],
     correctIndex: 1,
     explanation:
@@ -6644,10 +6644,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "How does std::unique_ptr compare to a raw pointer in terms of size and overhead?",
     options: [
-      "unique_ptr is twice the size due to the reference counter it maintains alongside the stored pointer",
+      "unique_ptr is twice the size of a raw pointer due to the reference counter it maintains alongside the stored pointer, adding overhead for ownership tracking on every copy",
       "unique_ptr with the default deleter is typically the same size as a raw pointer (one pointer) and has zero runtime overhead — it's a compile-time abstraction",
-      "unique_ptr is always 16 bytes due to the type erasure mechanism it uses to store the deleter at runtime",
-      "unique_ptr uses an extra heap allocation for bookkeeping, storing a control block similar to shared_ptr",
+      "unique_ptr is always 16 bytes due to the type erasure mechanism it uses to store the deleter at runtime, requiring an additional pointer-sized field beyond the managed object pointer",
+      "unique_ptr uses an extra heap allocation for bookkeeping, storing a control block similar to shared_ptr that tracks ownership state and the custom deleter function pointer",
     ],
     correctIndex: 1,
     explanation:
@@ -6663,10 +6663,10 @@ export const questions: Question[] = [
     question: "Walk through a virtual function call: what steps does the CPU execute?",
     code: `Base* p = new Derived();\np->speak();  // virtual call`,
     options: [
-      "The compiler directly calls Derived::speak() since it knows the type from the new expression at compile time",
+      "The compiler directly calls Derived::speak() since it knows the type from the new expression at compile time, so no vtable indirection is needed and the call is resolved statically",
       "1) Load the vptr from the object p points to, 2) Index into the vtable at the slot for speak(), 3) Call the function pointer found there — this is two pointer indirections",
-      "The runtime searches a hash map of function names, matching the method signature against registered implementations",
-      "The compiler generates a switch statement over all possible derived types and dispatches to the correct override",
+      "The runtime searches a hash map of function names, matching the method signature string against registered implementations in a global dispatch table maintained by the C++ runtime",
+      "The compiler generates a switch statement over all possible derived types and dispatches to the correct override based on a hidden type ID integer stored in each polymorphic object",
     ],
     correctIndex: 1,
     explanation:
@@ -6680,10 +6680,10 @@ export const questions: Question[] = [
     question: "What happens to the vptr during object construction?",
     code: `class Base {\npublic:\n    Base() { /* vptr points to Base's vtable here */ }\n    virtual void f() {}\n};\n\nclass Derived : public Base {\npublic:\n    Derived() { /* vptr now points to Derived's vtable */ }\n    void f() override {}\n};`,
     options: [
-      "The vptr is set once during the most-derived class constructor and never changes after that point",
+      "The vptr is set once during the most-derived class constructor and never changes after that point, meaning virtual calls in the base constructor dispatch to the final overrider",
       "The vptr is updated at each construction stage: set to Base's vtable during Base(), then updated to Derived's vtable when Derived's constructor begins",
-      "The vptr is only set after all constructors finish, ensuring virtual dispatch is never used during construction",
-      "The vptr is set randomly and resolved at the first virtual call through a lazy initialization mechanism",
+      "The vptr is only set after all constructors finish running completely, ensuring that virtual dispatch is never used during construction of any part of the object hierarchy",
+      "The vptr is set randomly and resolved at the first virtual call through a lazy initialization mechanism, with the runtime caching the result for subsequent dispatch operations",
     ],
     correctIndex: 1,
     explanation:
@@ -6697,10 +6697,10 @@ export const questions: Question[] = [
     question: "What does the memory layout of an object with multiple inheritance look like?",
     code: `class A { int a; virtual void fa(); };\nclass B { int b; virtual void fb(); };\nclass C : public A, public B { int c; };`,
     options: [
-      "One contiguous block: [vptr, a, b, c]",
+      "One contiguous block: [vptr, a, b, c] — the compiler merges all base data into a single region with one shared vptr for dispatch to both A and B",
       "Two sub-objects laid out sequentially: [A's vptr, a] [B's vptr, b] [c] — the object contains two vptrs, one for each polymorphic base",
-      "Three separate heap allocations, one per base",
-      "One vptr shared between A and B, followed by a, b, c",
+      "Three separate heap allocations, one per base — each sub-object is allocated independently and connected through internal pointers in the derived class",
+      "One vptr shared between A and B, followed by a, b, c — the compiler merges both vtables into a single combined table to reduce indirection",
     ],
     correctIndex: 1,
     explanation:
@@ -6714,10 +6714,10 @@ export const questions: Question[] = [
     question: "Why does casting a pointer from a derived class to a second base class sometimes change the pointer value?",
     code: `class A { virtual void f(); int a; };\nclass B { virtual void g(); int b; };\nclass C : public A, public B {};\n\nC c;\nA* pa = &c;  // points to start of c\nB* pb = &c;  // different address!`,
     options: [
-      "It doesn't — all base class pointers point to the same address",
+      "It doesn't change — all base class pointers always point to the same address regardless of inheritance order, because sub-objects share offset zero",
       "The compiler adjusts the pointer by an offset because B's sub-object is not at the start of C — it comes after A's sub-object",
-      "The pointer changes because B is heap-allocated separately",
-      "This is a compiler bug",
+      "The pointer changes because B is heap-allocated separately from the rest of the object, with a dedicated allocation for each base sub-object",
+      "This is a compiler bug that violates the standard — the pointer value should remain identical for all casts, and correct compilers preserve it",
     ],
     correctIndex: 1,
     explanation:
@@ -6747,10 +6747,10 @@ export const questions: Question[] = [
     question: "How does std::variant store its data internally?",
     code: `std::variant<int, double, std::string> v = 42;`,
     options: [
-      "It heap-allocates the active type",
+      "It heap-allocates the active type using new and stores a pointer to the allocation, with automatic cleanup when the variant is reassigned or goes out of scope",
       "A union-like storage (sized to the largest alternative, properly aligned) plus a small index/tag indicating which type is currently active",
-      "It stores all three types simultaneously",
-      "It uses a std::any internally",
+      "It stores all three types simultaneously in separate memory regions, maintaining valid objects for every alternative even when only one is logically active at a time",
+      "It uses a std::any internally to perform type erasure, wrapping the stored value in a polymorphic container that handles construction and destruction",
     ],
     correctIndex: 1,
     explanation:
@@ -6764,10 +6764,10 @@ export const questions: Question[] = [
     question: "How does std::optional avoid heap allocation?",
     code: `std::optional<Widget> opt = Widget(42);`,
     options: [
-      "It uses std::shared_ptr internally",
+      "It uses std::shared_ptr internally to manage the optional value, reference-counting the contained object so multiple optional instances can share the same underlying data efficiently",
       "It stores the object in an aligned internal buffer (same size as the contained type) plus a bool flag indicating whether a value is present — everything is inline",
-      "It heap-allocates the Widget and stores a pointer",
-      "It uses placement new into a global memory pool",
+      "It heap-allocates the Widget using new and stores a pointer to the allocation, then calls delete on the pointer when the optional is reset or destroyed to free the memory",
+      "It uses placement new into a global memory pool maintained by the runtime, allocating from a pre-reserved arena that avoids per-object heap calls but still uses indirection for access",
     ],
     correctIndex: 1,
     explanation:
@@ -6780,10 +6780,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "How does std::deque work internally? It provides O(1) push_front AND push_back.",
     options: [
-      "A single contiguous array like vector",
+      "A single contiguous array like vector, with elements stored sequentially in one heap allocation that is reallocated whenever capacity is exceeded",
       "An array of pointers to fixed-size chunks (blocks) of contiguous memory, allowing growth at both ends without moving existing elements",
-      "A doubly-linked list",
-      "Two vectors placed back-to-back",
+      "A doubly-linked list where each node holds one element, with prev and next pointers enabling O(1) insertion at both ends but poor cache locality",
+      "Two vectors placed back-to-back, one growing leftward for push_front and the other rightward for push_back, reallocating independently",
     ],
     correctIndex: 1,
     explanation:
@@ -6797,10 +6797,10 @@ export const questions: Question[] = [
     question: "What does sizeof return for a class with one virtual function and one int member on a 64-bit system?",
     code: `class Widget {\n    int x;  // 4 bytes\npublic:\n    virtual void f();\n};`,
     options: [
-      "4 — only the int counts",
-      "8 — the int plus 4 bytes of padding",
+      "4 — only the int counts; virtual functions live in the vtable, not in the object",
+      "8 — the int plus 4 bytes of padding for alignment; the vptr is stored separately",
       "16 — the hidden vptr (8 bytes) + int (4 bytes) + 4 bytes padding for alignment",
-      "12 — the vptr (8 bytes) + int (4 bytes) with no padding",
+      "12 — the vptr (8 bytes) + int (4 bytes) with no padding needed for this layout",
     ],
     correctIndex: 2,
     explanation:
@@ -6813,10 +6813,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "How does dynamic_cast determine if a cast is valid at runtime?",
     options: [
-      "It compares pointer values against a table of known valid addresses for each class in the hierarchy",
+      "It compares pointer values against a table of known valid addresses for each class in the hierarchy, checking whether the address falls within a registered object range for the target type",
       "It traverses RTTI (Run-Time Type Information) data — starting from the object's vtable, it reaches the type_info and walks the inheritance graph to check if the target type is a base or derived class of the actual type",
-      "It reinterprets the bits and checks if the first bytes match the target class's expected vtable signature pattern",
-      "It uses a hash table of all created objects, keyed by address, to look up the actual dynamic type at runtime",
+      "It reinterprets the bits and checks if the first bytes match the target class's expected vtable signature pattern, using a magic number embedded by the compiler at the start of every vtable",
+      "It uses a hash table of all created objects, keyed by their memory address, to look up the actual dynamic type at runtime and verify it against the target type in the cast expression",
     ],
     correctIndex: 1,
     explanation:
@@ -6829,10 +6829,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "How does std::shared_ptr handle thread-safe reference counting without a mutex on the whole object?",
     options: [
-      "It doesn't — shared_ptr is not thread-safe at all and requires external synchronization for all operations",
+      "It doesn't handle thread safety at all — shared_ptr is not thread-safe and requires external synchronization such as a mutex for all copy, reset, and destruction operations",
       "The reference counts in the control block are updated using atomic operations (e.g., atomic increment/decrement), which are lock-free on modern CPUs",
-      "Each thread has its own copy of the count, merged on destruction using a thread-local accumulation strategy",
-      "It uses a global lock for all shared_ptr instances, serializing all reference count modifications across threads",
+      "Each thread has its own copy of the count, merged on destruction using a thread-local accumulation strategy that reconciles all partial counts when the last thread finishes",
+      "It uses a global lock for all shared_ptr instances across the process, serializing all reference count modifications across threads using a single kernel-level mutex",
     ],
     correctIndex: 1,
     explanation:
@@ -6863,10 +6863,10 @@ export const questions: Question[] = [
     question: "How can you minimize struct padding to reduce memory usage?",
     code: `struct Bad {\n    char a;    // 1 byte + 7 padding\n    double b;  // 8 bytes\n    char c;    // 1 byte + 7 padding\n};  // sizeof = 24\n\nstruct Good {\n    double b;  // 8 bytes\n    char a;    // 1 byte\n    char c;    // 1 byte + 6 padding\n};  // sizeof = 16`,
     options: [
-      "Always use #pragma pack(1) to eliminate padding",
+      "Always use #pragma pack(1) to eliminate all padding — this forces the compiler to remove every padding byte, giving the smallest struct at the cost of alignment",
       "Order members from largest alignment to smallest — this minimizes internal padding by ensuring smaller members can pack into the tail padding",
-      "Use bitfields for all members",
-      "Padding cannot be controlled — it is always random",
+      "Use bitfields for all members to control the exact number of bits each field occupies, since bitfields eliminate padding by specifying precise bit widths",
+      "Padding cannot be controlled by the programmer — it is always determined by the compiler's internal heuristics and varies randomly between builds",
     ],
     correctIndex: 1,
     explanation:
@@ -6879,10 +6879,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "How does static_cast differ from dynamic_cast at the machine code level?",
     options: [
-      "They generate identical code",
+      "They generate identical machine code — both produce the same pointer adjustment instructions, and the only difference is that dynamic_cast requires a polymorphic type while static_cast does not",
       "static_cast applies a compile-time offset (or no code at all) — it trusts the programmer. dynamic_cast generates runtime code that checks RTTI and may return nullptr or throw if the cast is invalid",
-      "static_cast is slower because it adds bounds checking",
-      "dynamic_cast is a compile-time operation; static_cast is runtime",
+      "static_cast is slower because it adds bounds checking and validates the pointer against the object's actual type at runtime, whereas dynamic_cast skips these checks for faster execution",
+      "dynamic_cast is a compile-time operation resolved entirely by the compiler during type checking; static_cast is resolved at runtime using type metadata embedded in the vtable structure",
     ],
     correctIndex: 1,
     explanation:
@@ -6898,10 +6898,10 @@ export const questions: Question[] = [
     question: "What is a thunk in the context of multiple inheritance virtual dispatch?",
     code: `class A { virtual void f(); };\nclass B { virtual void g(); };\nclass C : public A, public B {\n    void g() override;  // overrides B::g\n};`,
     options: [
-      "A compiler-generated error handler for failed casts that throws std::bad_cast when dynamic_cast detects an invalid conversion",
+      "A compiler-generated error handler for failed casts that throws std::bad_cast when dynamic_cast detects an invalid conversion, serving as a safety mechanism in the runtime type-checking infrastructure",
       "A small code stub that adjusts the this pointer by an offset before jumping to the actual function — needed because B's sub-object is not at the start of C, so calling C::g() through a B* requires a this-pointer correction",
-      "A hash table entry in the vtable that maps a function signature string to the corresponding implementation address",
-      "A placeholder for unresolved virtual functions that triggers a linker error if the function is called without being overridden",
+      "A hash table entry in the vtable that maps a function signature string to the corresponding implementation address, using runtime string comparison to resolve overloaded virtual methods across the hierarchy",
+      "A placeholder for unresolved virtual functions that triggers a linker error if the function is called without being overridden, acting as a compile-time guard against incomplete implementations in the derived class",
     ],
     correctIndex: 1,
     explanation:
@@ -6915,10 +6915,10 @@ export const questions: Question[] = [
     question: "How does virtual inheritance affect the internal object layout?",
     code: `class A { int a; };\nclass B : virtual public A { int b; };\nclass C : virtual public A { int c; };\nclass D : public B, public C { int d; };`,
     options: [
-      "A appears twice in D, just like non-virtual inheritance — one copy inside B's sub-object and another inside C's sub-object",
+      "A appears twice in D, just like non-virtual inheritance — one copy inside B's sub-object and another inside C's sub-object, resulting in ambiguous access that can only be resolved with explicit scope qualification",
       "A appears once, placed at a dynamic offset. B and C each contain a vbase pointer (or vtable offset) that stores the offset to the shared A sub-object, because its position relative to B or C varies depending on the most-derived class",
-      "A is heap-allocated separately and pointed to by B and C through shared pointers, forming a reference-counted virtual base",
-      "The compiler duplicates A but merges them at link time by combining identical symbols from B's and C's translation units",
+      "A is heap-allocated separately and pointed to by B and C through shared pointers, forming a reference-counted virtual base that is automatically destroyed when both B and C release their references during destruction",
+      "The compiler duplicates A but merges them at link time by combining identical symbols from B's and C's translation units, using linker-level deduplication similar to how COMDAT sections handle template instantiations",
     ],
     correctIndex: 1,
     explanation:
@@ -6931,10 +6931,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "How does the 'zero-cost exception' model work behind the scenes?",
     options: [
-      "Exceptions are implemented as global error codes checked after every function call, with each call site testing a thread-local flag before proceeding",
+      "Exceptions are implemented as global error codes checked after every function call, with each call site testing a thread-local flag before proceeding — this adds a branch instruction after every call but ensures immediate detection of pending exceptions",
       "The compiler generates side tables (not inline code) that map program counter ranges to cleanup actions. When an exception is thrown, the runtime walks the call stack, consulting these tables to find handlers and run destructors — there is zero overhead on the non-throwing path",
-      "try/catch blocks use setjmp/longjmp on all platforms, saving and restoring the register state at each try entry point and catch handler",
-      "Exceptions are syntactic sugar for return codes — the compiler transforms them at compile time into std::expected-style return values with error propagation",
+      "try/catch blocks use setjmp/longjmp on all platforms, saving and restoring the register state at each try entry point and catch handler — this approach adds overhead at every try block entry because the full CPU register file must be saved",
+      "Exceptions are syntactic sugar for return codes — the compiler transforms them at compile time into std::expected-style return values with error propagation, converting throw statements into return statements and catch blocks into conditional checks",
     ],
     correctIndex: 1,
     explanation:
@@ -6948,10 +6948,10 @@ export const questions: Question[] = [
     question: "What does the vtable look like for a class with virtual inheritance?",
     code: `class Base { virtual void f(); };\nclass Derived : virtual public Base {\n    void f() override;\n    virtual void g();\n};`,
     options: [
-      "Same as non-virtual inheritance — just function pointers arranged in a flat array indexed by the virtual function slot number",
+      "Same as non-virtual inheritance — just function pointers arranged in a flat array indexed by the virtual function slot number, with no extra metadata needed because virtual bases are resolved at compile time through static offsets",
       "The vtable includes additional entries: a vbase offset (distance from the derived sub-object to the virtual base), a top offset (distance to the most-derived object), and RTTI pointer, in addition to the normal virtual function pointers",
-      "Two separate vtables that are merged at runtime into a single dispatch table when the most-derived object is constructed",
-      "No vtable is needed — virtual inheritance uses dynamic lookup through RTTI to resolve both base offsets and virtual calls",
+      "Two separate vtables that are merged at runtime into a single dispatch table when the most-derived object is constructed, with the runtime concatenating entries from both tables and updating all vptrs to point to the merged result",
+      "No vtable is needed — virtual inheritance uses dynamic lookup through RTTI to resolve both base offsets and virtual calls at runtime, consulting the type_info hierarchy on every access to compute the correct pointer adjustment",
     ],
     correctIndex: 1,
     explanation:
@@ -6964,10 +6964,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "How does std::function's small buffer optimization (SBO) work?",
     options: [
-      "std::function always heap-allocates the stored callable, wrapping it in a polymorphic container managed by new/delete",
+      "std::function always heap-allocates the stored callable, wrapping it in a polymorphic container managed by new/delete — every assignment or copy triggers a dynamic memory allocation regardless of the callable's size",
       "std::function contains a small inline buffer (typically 16-32 bytes). If the callable fits (e.g., a function pointer or small lambda), it is stored directly in the buffer. Larger callables trigger a heap allocation",
-      "std::function uses a global callable pool that caches previously allocated wrappers and reuses them for new assignments",
-      "The callable is always stored on the stack of the caller, using alloca-style allocation that grows the current stack frame",
+      "std::function uses a global callable pool that caches previously allocated wrappers and reuses them for new assignments, amortizing the cost of heap allocation across the program's lifetime by recycling freed entries",
+      "The callable is always stored on the stack of the caller, using alloca-style allocation that grows the current stack frame dynamically, meaning the std::function object becomes invalid once the creating function returns",
     ],
     correctIndex: 1,
     explanation:
@@ -6981,10 +6981,10 @@ export const questions: Question[] = [
     question: "What is devirtualization and when can the compiler apply it?",
     code: `class Dog : public Animal {\npublic:\n    void speak() override { std::cout << "Woof"; }\n};\n\nDog d;\nd.speak();  // can the compiler skip the vtable?`,
     options: [
-      "Never — virtual calls always go through the vtable regardless of how much type information the compiler has available",
+      "Never — virtual calls always go through the vtable regardless of how much type information the compiler has available at compile time, because the standard mandates vtable-based dispatch for every call to a virtual function in the hierarchy",
       "When the compiler can prove the exact dynamic type at compile time (e.g., calling on a local value, not a pointer/reference), it replaces the virtual call with a direct call or even inlines the function — eliminating the vtable indirection entirely",
-      "Only when the function is marked final — the compiler cannot devirtualize in any other situation due to ABI constraints",
-      "Only with link-time optimization enabled, because the compiler needs visibility across all translation units to prove the type",
+      "Only when the function is marked final — the compiler cannot devirtualize in any other situation due to ABI constraints that require all virtual calls to use the vtable, even when the exact dynamic type is known from context",
+      "Only with link-time optimization enabled, because the compiler needs visibility across all translation units to prove the type is not overridden elsewhere — without LTO, it must conservatively assume any class could override",
     ],
     correctIndex: 1,
     explanation:
@@ -6997,10 +6997,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "Why can virtual dispatch cause performance problems beyond the extra indirection?",
     options: [
-      "Virtual functions use more registers because the this pointer and vtable index must be loaded before the call can be dispatched",
+      "Virtual functions use more registers because the this pointer and vtable index must be loaded before the call can be dispatched, and the extra register pressure may cause additional stack spills in tight loops",
       "The indirect call through a vtable is hard for the CPU's branch predictor to speculate on, and calling functions scattered across memory causes instruction cache misses — both degrade performance on hot paths",
-      "Virtual functions disable all compiler optimizations on the call site, preventing inlining, constant propagation, and dead code elimination",
-      "The vtable is locked with a mutex during dispatch to prevent data races when multiple threads call the same virtual function",
+      "Virtual functions disable all compiler optimizations on the call site, preventing inlining, constant propagation, and dead code elimination — the optimizer treats every virtual call as a black box with arbitrary side effects",
+      "The vtable is locked with a mutex during dispatch to prevent data races when multiple threads call the same virtual function concurrently, adding synchronization overhead that serializes all virtual calls on the same object",
     ],
     correctIndex: 1,
     explanation:
@@ -7013,10 +7013,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "How does std::tuple typically store its elements internally?",
     options: [
-      "In a flat struct with named members, where the compiler generates a unique field name for each tuple element based on its index",
+      "In a flat struct with named members, where the compiler generates a unique field name for each tuple element based on its index position, similar to how anonymous structs name their fields internally",
       "Using recursive inheritance or recursive composition — each Tuple<T, Rest...> inherits from (or contains) Tuple<Rest...> and adds one member of type T, using the Empty Base Optimization to minimize size",
-      "In a std::array of std::any objects, where each element uses type erasure to store its value and type information at runtime",
-      "In a hash map indexed by type, mapping each element's std::type_info to a type-erased storage slot in the tuple",
+      "In a std::array of std::any objects, where each element uses type erasure to store its value and type information at runtime, with any_cast required to retrieve elements by their original type",
+      "In a hash map indexed by type, mapping each element's std::type_info to a type-erased storage slot in the tuple, with runtime lookup required for every std::get call on the tuple object",
     ],
     correctIndex: 1,
     explanation:
@@ -7029,10 +7029,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "How does thread_local storage (TLS) work at the system level?",
     options: [
-      "Each thread gets a completely separate copy of the program's memory, including code, stack, and global data segments",
+      "Each thread gets a completely separate copy of the program's entire memory space, including code, stack, and global data segments — the OS duplicates the full address space when a new thread is created, similar to fork()",
       "The OS/runtime maintains a per-thread data block (typically accessed via a dedicated register like %fs/%gs on x86). Each thread_local variable is at a fixed offset within this block, giving O(1) access per thread",
-      "thread_local variables are stored in shared memory protected by mutexes that are acquired on each access to prevent data races",
-      "The compiler transforms thread_local into a std::map<thread_id, value> that is locked and searched on every variable access",
+      "thread_local variables are stored in shared memory protected by mutexes that are acquired on each access to prevent data races between threads, adding synchronization overhead proportional to the number of concurrent threads",
+      "The compiler transforms thread_local declarations into a std::map<thread_id, value> that is locked with a global mutex and searched on every variable access, making thread_local semantically equivalent to a guarded map",
     ],
     correctIndex: 1,
     explanation:
@@ -7045,10 +7045,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "How does std::any implement type erasure differently from std::function?",
     options: [
-      "They are implemented identically — both use a virtual base class with an internal polymorphic wrapper to store and invoke the erased object",
+      "They are implemented identically — both use a virtual base class with an internal polymorphic wrapper to store and invoke the erased object, and the only difference is that std::any can hold any type while std::function is restricted to callable types with a specific signature. Both always heap-allocate",
       "std::any stores a type_info pointer (for type checking) plus either an inline buffer (SBO for small types) or a heap pointer. It uses virtual-like dispatch (internal function pointers or vtable) for copy, move, and destroy operations — but unlike std::function, it has no operator() and must know the exact type to extract the value",
-      "std::any uses templates only, with no runtime overhead — the type is resolved at compile time through template specialization of the any_cast function",
-      "std::any stores values as void* with no type information, relying on the caller to cast back to the correct type without any safety checks",
+      "std::any uses templates only, with no runtime overhead — the type is resolved at compile time through template specialization of the any_cast function, making std::any a zero-cost abstraction that generates type-specific code for every stored type. Unlike std::function, it never uses virtual dispatch",
+      "std::any stores values as void* with no type information, relying on the caller to cast back to the correct type without any safety checks — a bad_any_cast exception is never thrown because the implementation cannot detect type mismatches. This makes std::any fundamentally unsafe compared to std::function",
     ],
     correctIndex: 1,
     explanation:
@@ -7061,10 +7061,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "How does a C++20 coroutine work internally?",
     options: [
-      "The compiler transforms it into a regular function with callbacks, splitting the body at each co_await into separate continuation functions that are chained together",
+      "The compiler transforms it into a regular function with callbacks, splitting the body at each co_await into separate continuation functions that are chained together — each continuation captures the local variables by value and is heap-allocated as a separate callable object, creating a linked chain of completions",
       "The compiler creates a coroutine frame (heap-allocated by default) containing the function's local variables, parameters, suspend point index, and the promise object. At each co_await/co_yield, the state is saved and control returns to the caller. Resumption restores the frame and jumps to the saved suspend point",
-      "Coroutines use OS threads under the hood — each co_await spawns a new kernel thread that runs the continuation, then rejoins on co_return",
-      "Coroutines use setjmp/longjmp for context switching, saving the full register state and stack pointer at each suspend point for later restoration",
+      "Coroutines use OS threads under the hood — each co_await spawns a new kernel thread that runs the continuation, then rejoins the calling thread on co_return using a synchronization barrier. This makes coroutines a lightweight syntax for thread-based concurrency with automatic join semantics",
+      "Coroutines use setjmp/longjmp for context switching, saving the full register state and stack pointer at each suspend point for later restoration — this mechanism is identical to how user-space threading libraries implement fibers, with each coroutine maintaining its own jmp_buf and alternate stack",
     ],
     correctIndex: 1,
     explanation:
@@ -7077,10 +7077,10 @@ export const questions: Question[] = [
     topic: "Under the Hood",
     question: "How does the free store (heap) allocator typically manage memory behind new/delete?",
     options: [
-      "It calls the OS for every single allocation and deallocation, issuing a system call such as mmap or sbrk each time new or delete is invoked",
+      "It calls the OS for every single allocation and deallocation, issuing a system call such as mmap or sbrk each time new or delete is invoked — there is no user-space caching, so every allocation crosses the kernel boundary and incurs the full cost of a context switch and page table update",
       "The allocator maintains a data structure (often free lists, buddy systems, or slab allocators) in user-space memory obtained from the OS in large chunks. new searches for a suitable free block; delete returns it to the free list. OS calls (like sbrk/mmap) happen only when the pool is exhausted",
-      "All heap memory is pre-allocated at program start and never grows — the runtime reserves a fixed-size arena that new subdivides until it runs out",
-      "new/delete are implemented as no-ops on modern systems because the OS reclaims all process memory on exit, making explicit deallocation unnecessary",
+      "All heap memory is pre-allocated at program start and never grows — the runtime reserves a fixed-size arena that new subdivides until it runs out, at which point std::bad_alloc is thrown because no mechanism exists to request additional memory from the operating system",
+      "new/delete are implemented as no-ops on modern systems because the OS reclaims all process memory on exit, making explicit deallocation unnecessary — the runtime simply advances a pointer for each allocation and never frees individual blocks, relying on process termination for cleanup",
     ],
     correctIndex: 1,
     explanation:
@@ -7094,10 +7094,10 @@ export const questions: Question[] = [
     question: "What does the 'offset-to-top' value in a vtable entry enable?",
     code: `class A { virtual void f(); };\nclass B { virtual void g(); };\nclass C : public A, public B { void f() override; void g() override; };`,
     options: [
-      "It stores the total size of the object so the runtime can compute how much memory to deallocate when delete is called",
+      "It stores the total size of the object so the runtime can compute how much memory to deallocate when delete is called, allowing the allocator to free the correct number of bytes for polymorphic objects",
       "It stores the displacement from the current sub-object to the beginning of the most-derived object — this is essential for dynamic_cast to find the complete object from any base sub-object pointer",
-      "It stores the number of virtual functions in the class, allowing the runtime to bounds-check vtable indices during dispatch",
-      "It stores the offset from the vtable to the RTTI data so that typeid can locate the type_info structure from any vtable pointer",
+      "It stores the number of virtual functions in the class, allowing the runtime to bounds-check vtable indices during dispatch and detect out-of-range slot access that would otherwise cause undefined behavior",
+      "It stores the offset from the vtable to the RTTI data so that typeid can locate the type_info structure from any vtable pointer, enabling runtime type identification without requiring a separate RTTI lookup table",
     ],
     correctIndex: 1,
     explanation:
@@ -7141,10 +7141,10 @@ export const questions: Question[] = [
     question: "What does the const qualifier mean when applied to a variable?",
     code: `const int MAX = 100;\nMAX = 200;  // What happens?`,
     options: [
-      "The variable can only be modified inside a function",
+      "The variable can only be modified inside the function that declares it, but not outside that scope",
       "The variable cannot be modified after initialization — the assignment is a compilation error",
-      "The variable is stored in read-only memory at runtime",
-      "The variable becomes a preprocessor macro",
+      "The variable is stored in read-only memory at runtime, so modification causes a segfault instead",
+      "The variable becomes a preprocessor macro, expanded and replaced with its literal value at each use",
     ],
     correctIndex: 1,
     explanation:
@@ -7157,10 +7157,10 @@ export const questions: Question[] = [
     topic: "Fundamentals",
     question: "What is the difference between ++i (pre-increment) and i++ (post-increment)?",
     options: [
-      "No difference — they always produce the same result",
+      "No difference — they always produce the same result and compilers optimize both to identical code",
       "++i increments and returns the new value; i++ returns the old value and then increments",
-      "++i is faster because it skips the increment",
-      "i++ increments by 2; ++i increments by 1",
+      "++i is faster because it skips the actual increment and returns the original value unmodified",
+      "i++ increments by 2; ++i increments by 1, so they produce different values after repeated use",
     ],
     correctIndex: 1,
     explanation:
@@ -7189,10 +7189,10 @@ export const questions: Question[] = [
     topic: "Fundamentals",
     question: "What is the difference between a pointer and a reference in C++?",
     options: [
-      "They are interchangeable — just different syntax",
+      "They are interchangeable — just different syntax for the same mechanism, and the compiler generates identical machine code for both",
       "A pointer holds an address and can be null or reassigned; a reference is an alias that must be initialized and cannot be reseated",
-      "References are always faster than pointers",
-      "Pointers are used for stack variables; references for heap variables",
+      "References are always faster than pointers because the compiler resolves them at compile time, eliminating all runtime indirection",
+      "Pointers are used for stack variables; references are used exclusively for heap variables that require indirection through the allocator",
     ],
     correctIndex: 1,
     explanation:
@@ -7303,10 +7303,10 @@ export const questions: Question[] = [
     topic: "Fundamentals",
     question: "What is undefined behavior (UB) in C++ and why is it dangerous?",
     options: [
-      "Code that produces a compiler warning but works correctly at runtime — the warning is purely advisory and the program behavior is guaranteed to be correct",
+      "Code that produces a compiler warning but works correctly at runtime — the warning is purely advisory and the program behavior is guaranteed to be correct in all cases regardless of the warning severity",
       "Code that violates the language rules — the compiler may do anything: crash, produce wrong results, appear to work, or optimize away entire code paths. The program has no guaranteed behavior",
-      "Code that throws an exception at runtime, which can be caught with a try/catch block to recover gracefully from the error",
-      "Code that produces implementation-defined results across compilers — each compiler may yield different output but the behavior is documented and consistent",
+      "Code that throws an exception at runtime, which can be caught with a try/catch block to recover gracefully from the error — undefined behavior always manifests as a catchable exception before damage",
+      "Code that produces implementation-defined results across compilers — each compiler may yield different output but the behavior is documented by each vendor and remains consistent within a platform",
     ],
     correctIndex: 1,
     explanation:
@@ -7336,10 +7336,10 @@ export const questions: Question[] = [
     topic: "Fundamentals",
     question: "What is the One Definition Rule (ODR)?",
     options: [
-      "Each function can only have one return statement — multiple return paths violate structured programming rules enforced by the standard",
+      "Each function can only have one return statement — multiple return paths violate structured programming rules enforced by the standard, and the compiler rejects functions with more than one return statement as a diagnostic error",
       "Every entity (variable, function, class) must have exactly one definition in the entire program. Multiple definitions cause linker errors. Inline functions and templates are exceptions (definitions must be identical)",
-      "Each source file can only define one class, and that class name must match the filename, similar to Java's file-naming convention",
-      "Each class can only have one constructor — overloading constructors requires using the factory pattern or a builder class instead",
+      "Each source file can only define one class, and that class name must match the filename, similar to Java's file-naming convention — defining multiple classes in a single source file causes a compilation error in C++",
+      "Each class can only have one constructor — overloading constructors requires using the factory pattern or a builder class instead, because the standard prohibits multiple constructor definitions within a single class",
     ],
     correctIndex: 1,
     explanation:
@@ -7370,10 +7370,10 @@ export const questions: Question[] = [
     question: "What is the difference between a C-style array and a pointer to its first element?",
     code: `int arr[5] = {1, 2, 3, 4, 5};\nint* p = arr;\n\nstd::cout << sizeof(arr) << " " << sizeof(p);`,
     options: [
-      "Both print the same value because an array decays to a pointer, so sizeof always returns the pointer size for both",
+      "Both print the same value because an array decays to a pointer, so sizeof always returns the pointer size for both expressions regardless of the original declaration",
       "sizeof(arr) is 20 (5 ints × 4 bytes) but sizeof(p) is 8 (pointer size on 64-bit) — the array knows its full size; the pointer only knows it's a pointer",
-      "sizeof(arr) is 5 (the element count) and sizeof(p) is 1 (a single byte for the pointer tag used by the runtime)",
-      "Compilation error — you can't take sizeof an array because arrays are incomplete types that lack a compile-time size",
+      "sizeof(arr) is 5 (the element count) and sizeof(p) is 1 (a single byte for the pointer tag used by the runtime to distinguish typed pointers from raw addresses)",
+      "Compilation error — you can't take sizeof an array because arrays are incomplete types that lack a compile-time size, and the sizeof operator requires a complete type",
     ],
     correctIndex: 1,
     explanation:
@@ -7386,10 +7386,10 @@ export const questions: Question[] = [
     topic: "Fundamentals",
     question: "What are lvalues and rvalues in C++?",
     options: [
-      "lvalues are variables that appear on the left side of an assignment; rvalues are constants or literals that can only appear on the right side of an assignment",
+      "lvalues are variables that appear on the left side of an assignment; rvalues are constants or literals that can only appear on the right side — this naming convention reflects their typical position in assignment expressions",
       "An lvalue identifies a persistent object with an address (e.g., a variable). An rvalue is a temporary value that does not persist beyond the expression (e.g., a literal or the return value of a function returning by value)",
-      "lvalues are local variables allocated on the stack frame; rvalues are remote variables stored on the heap and accessed through indirection",
-      "lvalues are values computed at compile time by constexpr evaluation; rvalues are values computed at runtime during program execution",
+      "lvalues are local variables allocated on the stack frame; rvalues are remote variables stored on the heap and accessed through indirection — the distinction determines where in memory the object resides during execution",
+      "lvalues are values computed at compile time by constexpr evaluation; rvalues are values computed at runtime during program execution — this distinction determines whether the value exists in the binary or is calculated dynamically",
     ],
     correctIndex: 1,
     explanation:
@@ -7439,10 +7439,10 @@ export const questions: Question[] = [
     question: "What does the strict aliasing rule prohibit, and why?",
     code: `float f = 3.14f;\nint* p = reinterpret_cast<int*>(&f);\nstd::cout << *p;  // UB?`,
     options: [
-      "Legal — reinterpret_cast makes it safe to read through any pointer type by instructing the compiler to bypass all type-checking rules for that access",
+      "Legal — reinterpret_cast makes it safe to read through any pointer type by instructing the compiler to bypass all type-checking rules for that access, producing well-defined results that correspond to the raw bit pattern",
       "Undefined behavior — accessing an object through a pointer to an incompatible type violates strict aliasing. The compiler may assume int* and float* never alias the same memory, enabling aggressive optimizations",
-      "Defined behavior — the bits are just reinterpreted, and the resulting int value represents the IEEE 754 bit pattern of the float",
-      "Compilation error — reinterpret_cast cannot cast between float* and int* because they are fundamentally incompatible pointer types",
+      "Defined behavior — the bits are just reinterpreted, and the resulting int value represents the IEEE 754 bit pattern of the float, which is guaranteed by the standard to be a portable and well-defined operation",
+      "Compilation error — reinterpret_cast cannot cast between float* and int* because they are fundamentally incompatible pointer types that the type system prohibits from interconverting under any circumstances",
     ],
     correctIndex: 1,
     explanation:
@@ -7455,10 +7455,10 @@ export const questions: Question[] = [
     topic: "Fundamentals",
     question: "What is the difference between implementation-defined behavior and undefined behavior?",
     options: [
-      "They are the same — both mean unpredictable results that vary between compilers and platforms with no reliable way to determine the outcome",
+      "They are the same — both mean unpredictable results that vary between compilers and platforms with no reliable way to determine the outcome, and the standard uses the two terms interchangeably throughout the text",
       "Implementation-defined: the compiler must choose a consistent behavior and document it (e.g., size of int). Undefined behavior: the standard imposes no requirements — anything can happen (e.g., signed overflow)",
-      "Implementation-defined applies to hardware-level details like register sizes; undefined applies to software-level mistakes like logic errors in code",
-      "Undefined behavior always crashes the program immediately; implementation-defined behavior never crashes but may produce different outputs",
+      "Implementation-defined applies to hardware-level details like register sizes and word widths; undefined applies to software-level mistakes like logic errors in code, such as incorrect loop conditions or wrong assignments",
+      "Undefined behavior always crashes the program immediately with a diagnostic message; implementation-defined behavior never crashes but may produce different outputs depending on the compiler vendor's documented choices",
     ],
     correctIndex: 1,
     explanation:
@@ -7489,10 +7489,10 @@ export const questions: Question[] = [
     question: "What is the purpose of std::forward and when do you use it?",
     code: `template<typename T>\nvoid wrapper(T&& arg) {\n    target(std::forward<T>(arg));\n}`,
     options: [
-      "It always moves the argument into the target function, exactly like std::move, converting every argument to an rvalue reference",
+      "It always moves the argument into the target function, exactly like std::move, converting every argument to an rvalue reference regardless of its original value category in the calling context",
       "It preserves the value category (lvalue or rvalue) of the original argument — forwarding lvalues as lvalues and rvalues as rvalues. This is called perfect forwarding",
-      "It casts the argument to const& so the called function receives a read-only reference regardless of the original value category",
-      "It creates a deep copy of the argument to ensure the original caller's data is never modified by the target function",
+      "It casts the argument to const& so the called function receives a read-only reference regardless of the original value category, preventing modifications inside the target",
+      "It creates a deep copy of the argument to ensure the original caller's data is never modified by the target function, preserving value semantics across the forwarding boundary at the cost of a copy",
     ],
     correctIndex: 1,
     explanation:
@@ -7505,10 +7505,10 @@ export const questions: Question[] = [
     topic: "Fundamentals",
     question: "What is the difference between a translation unit and a source file?",
     options: [
-      "They are the same thing — the standard uses both terms interchangeably to refer to a single .cpp file on disk",
+      "They are the same thing — the standard uses both terms interchangeably to refer to a single .cpp file on disk, and no distinction is made between the raw source and the preprocessed output by the standard",
       "A translation unit is a source file (.cpp) AFTER all #include directives and macros have been expanded — it's what the compiler actually compiles. It may contain thousands of lines from many headers",
-      "A source file compiles into multiple translation units, one for each function defined in the file, each compiled independently",
-      "A translation unit is a compiled object file (.o) containing machine code and symbol tables, produced after the compilation phase",
+      "A source file compiles into multiple translation units, one for each function defined in the file, each compiled independently — the compiler splits the file at function boundaries and processes each piece separately",
+      "A translation unit is a compiled object file (.o) containing machine code and symbol tables, produced after the compilation phase completes — it is the output of the compiler, not the input, unlike a source file",
     ],
     correctIndex: 1,
     explanation:
@@ -7522,10 +7522,10 @@ export const questions: Question[] = [
     question: "What does this structured binding do and how does it work?",
     code: `std::map<std::string, int> scores = {{\"Alice\", 90}, {\"Bob\", 85}};\nfor (const auto& [name, score] : scores) {\n    std::cout << name << ": " << score << "\\n";\n}`,
     options: [
-      "Compilation error — you can't destructure map entries because std::pair is not an aggregate type and lacks the required get<> specialization",
+      "Compilation error — you can't destructure map entries because std::pair is not an aggregate type and lacks the required get<> specialization, so structured bindings cannot decompose pair objects in range-based for loops",
       "The structured binding [name, score] decomposes each std::pair<const string, int> into its two members. The compiler creates hidden references to .first and .second — no copies are made because of const auto&",
-      "name and score are copies of the pair elements, allocated on the stack each iteration, because structured bindings always copy by default",
-      "This only works with tuples, not pairs — std::pair does not support structured bindings because it predates the C++17 standard",
+      "name and score are copies of the pair elements, allocated on the stack each iteration, because structured bindings always copy by default — you need to use std::ref() to create references instead of copies in the binding",
+      "This only works with tuples, not pairs — std::pair does not support structured bindings because it predates the C++17 standard and was never updated with the required decomposition interface for binding support",
     ],
     correctIndex: 1,
     explanation:
@@ -7538,10 +7538,10 @@ export const questions: Question[] = [
     topic: "Fundamentals",
     question: "What is the difference between linkage types: no linkage, internal linkage, and external linkage?",
     options: [
-      "They control whether a variable is on the stack, heap, or static memory — each linkage type maps directly to a specific storage region",
+      "They control whether a variable is on the stack, heap, or static memory — each linkage type maps directly to a specific storage region in the process address space, with no linkage for stack, internal for static, and external for heap allocations",
       "No linkage: the name is only visible in its scope (local variables). Internal linkage: visible within the translation unit only (static globals, anonymous namespaces). External linkage: visible across translation units (non-static functions, extern variables)",
-      "Internal linkage means the function is inline and expanded at every call site; external linkage means it uses a regular function call",
-      "Linkage only applies to functions, not variables — variables are always visible across all translation units through the global symbol table",
+      "Internal linkage means the function is inline and expanded at every call site without generating a standalone symbol; external linkage means it uses a regular function call through the linker with a global symbol visible to all object files",
+      "Linkage only applies to functions, not variables — variables are always visible across all translation units through the global symbol table, and the static keyword applied to a variable only affects its storage duration, not its visibility",
     ],
     correctIndex: 1,
     explanation:
@@ -7555,10 +7555,10 @@ export const questions: Question[] = [
     question: "What does this code output, and what rule governs the evaluation?",
     code: `int i = 0;\nstd::cout << i << " " << ++i << " " << ++i;`,
     options: [
-      "0 1 2 — the << operator always evaluates its operands strictly left to right in every version of the C++ standard",
+      "0 1 2 — the << operator always evaluates its operands strictly left to right in every version of the C++ standard, because operator overloads follow the same fixed sequencing rules as built-in operators",
       "Unspecified — the order of evaluation of function arguments (including chained << operators) is unspecified before C++17. In C++17, << is left-to-right sequenced, so the output is 0 1 2",
-      "2 2 2 — all increments happen before any output because the compiler evaluates all side effects before executing the << chain",
-      "Undefined behavior regardless of standard version — modifying a variable while reading it in the same expression is always UB",
+      "2 2 2 — all increments happen before any output because the compiler evaluates all side effects before executing the << chain, as side effects are always fully resolved before expression evaluation begins",
+      "Undefined behavior regardless of standard version — modifying a variable while reading it in the same expression is always UB according to the sequencing rules, and no version of the standard makes this valid",
     ],
     correctIndex: 1,
     explanation:
@@ -7572,10 +7572,10 @@ export const questions: Question[] = [
     question: "What is the difference between narrowing and non-narrowing conversions?",
     code: `int x = 3.14;          // narrowing: double to int (OK in C++, warns)\nint y{3.14};           // narrowing: PROHIBITED by brace initialization\nint z{42};             // non-narrowing: OK`,
     options: [
-      "No difference — all conversions are allowed in all contexts, and the compiler applies implicit casts automatically regardless of initialization syntax",
+      "No difference — all conversions are allowed in all contexts, and the compiler applies implicit casts automatically regardless of initialization syntax, with brace and equals initialization following identical type-checking rules",
       "A narrowing conversion loses information (e.g., double to int, int to char when value doesn't fit). Brace initialization {} prohibits narrowing conversions at compile time, while = initialization only warns",
-      "Narrowing only applies to pointer conversions, such as casting a derived pointer to a base pointer where the vtable layout changes",
-      "Brace initialization and = initialization follow the same conversion rules — braces are purely stylistic and have no effect on type checking",
+      "Narrowing only applies to pointer conversions, such as casting a derived pointer to a base pointer where the vtable layout changes, not to arithmetic conversions between numeric types like int and double which are always safe",
+      "Brace initialization and = initialization follow the same conversion rules — braces are purely stylistic and have no effect on type checking or narrowing detection, as both forms permit all implicit conversions equally",
     ],
     correctIndex: 1,
     explanation:
@@ -7588,10 +7588,10 @@ export const questions: Question[] = [
     topic: "Fundamentals",
     question: "What is the difference between constexpr, consteval, and constinit?",
     options: [
-      "They are all synonyms for compile-time constants — the three keywords exist only for backward compatibility with different standard versions",
+      "They are all synonyms for compile-time constants — the three keywords exist only for backward compatibility with different standard versions, and modern compilers treat constexpr, consteval, and constinit as identical in all contexts",
       "constexpr: can be evaluated at compile time OR runtime. consteval (C++20): MUST be evaluated at compile time (immediate function). constinit (C++20): guarantees compile-time initialization of a static/thread_local variable but does NOT make it const",
-      "constexpr is for functions that return values; consteval is for variables that hold compile-time data; constinit is for class types that need static storage",
-      "constinit and consteval are deprecated aliases for constexpr, kept only for backward compatibility and scheduled for removal in C++26",
+      "constexpr is for functions that return compile-time values; consteval is for variables that hold compile-time data with immutable storage; constinit is for class types that need static storage duration with guaranteed constant initialization",
+      "constinit and consteval are deprecated aliases for constexpr, kept only for backward compatibility with early C++20 drafts and scheduled for removal in C++26 — new code should exclusively use constexpr for all compile-time needs",
     ],
     correctIndex: 1,
     explanation:
@@ -7622,10 +7622,10 @@ export const questions: Question[] = [
     topic: "Build Systems",
     question: "What is an object file (.o / .obj)?",
     options: [
-      "A file containing C++ source code",
+      "A file containing C++ source code in plain text form, ready to be parsed by the preprocessor and compiled into machine code by the compiler frontend",
       "The compiled machine code for a single translation unit, with unresolved references to external symbols that the linker will fill in",
-      "A file that stores runtime objects serialized to disk",
-      "A file containing only header declarations",
+      "A file that stores runtime objects serialized to disk in binary form, allowing the program to persist its in-memory state between executions",
+      "A file containing only header declarations and forward references, with no executable code — it serves as an interface description for other translation units",
     ],
     correctIndex: 1,
     explanation:
@@ -7638,10 +7638,10 @@ export const questions: Question[] = [
     topic: "Build Systems",
     question: "What is the difference between a static library (.a / .lib) and a dynamic/shared library (.so / .dll)?",
     options: [
-      "Static libraries can only contain C code; dynamic libraries can contain C++",
+      "Static libraries can only contain C code compiled with a C compiler; dynamic libraries can contain C++ code with classes, templates, and exceptions using full C++ features",
       "A static library is copied into the executable at link time. A dynamic library is loaded at runtime, shared across processes, and can be updated without recompiling",
-      "Static libraries are faster; dynamic libraries are more secure",
-      "There is no difference — they are interchangeable formats",
+      "Static libraries are faster at runtime because they avoid all indirection; dynamic libraries are more secure because they support address space layout randomization and code signing",
+      "There is no meaningful difference — they are interchangeable formats that contain the same machine code, and the linker can use either type in any context without behavioral changes",
     ],
     correctIndex: 1,
     explanation:
@@ -7690,10 +7690,10 @@ export const questions: Question[] = [
     question: "What does this linker error typically mean?",
     code: `undefined reference to 'MyClass::doWork()'`,
     options: [
-      "The function has a syntax error in its body that prevents the compiler from generating valid machine code for it",
+      "The function has a syntax error in its body that prevents the compiler from generating valid machine code for it, so the object file contains no symbol entry for the function definition",
       "The function was declared (in a header) but never defined — either the .cpp file is missing from the build, the definition has a signature mismatch, or the library is not linked",
-      "The function is private and cannot be accessed from outside the class, so the linker rejects the cross-module reference",
-      "The function was defined but uses an unsupported CPU instruction that the target architecture does not recognize",
+      "The function is private and cannot be accessed from outside the class, so the linker rejects the cross-module reference because access control is enforced at link time in addition to compile time",
+      "The function was defined but uses an unsupported CPU instruction that the target architecture does not recognize, causing the assembler to reject the generated machine code during the build",
     ],
     correctIndex: 1,
     explanation:
@@ -7706,10 +7706,10 @@ export const questions: Question[] = [
     topic: "Build Systems",
     question: "What is the difference between Debug and Release build configurations?",
     options: [
-      "Debug uses C; Release uses C++ — the debug configuration disables C++ features for faster compilation during development",
+      "Debug uses C; Release uses C++ — the debug configuration disables C++ features like templates and exceptions for faster compilation during development, then re-enables them for the optimized release build",
       "Debug disables optimizations and includes debug symbols (-O0 -g) for debugging. Release enables optimizations (-O2 or -O3) and strips debug info for performance. Some bugs only appear in Release due to optimizer assumptions",
-      "Debug builds are interpreted by a built-in runtime interpreter; Release builds are compiled to native machine code for production use",
-      "There is no difference — they produce identical binaries, and the configuration names are purely organizational labels in the build system",
+      "Debug builds are interpreted by a built-in runtime interpreter that executes the source code line by line for easier debugging; Release builds are compiled to native machine code by the full compiler backend for production use",
+      "There is no difference between Debug and Release — they produce identical binaries with the same optimizations, and the configuration names are purely organizational labels in the build system with no effect on code generation",
     ],
     correctIndex: 1,
     explanation:
@@ -7756,10 +7756,10 @@ export const questions: Question[] = [
     question: "What is the purpose of target_link_libraries in CMake?",
     code: `find_package(Threads REQUIRED)\nadd_executable(myapp main.cpp)\ntarget_link_libraries(myapp PRIVATE Threads::Threads)`,
     options: [
-      "It copies the library source code into your project directory and recompiles it as part of your build each time",
+      "It copies the library source code into your project directory and recompiles it as part of your build each time, effectively vendoring the dependency into your source tree for maximum reproducibility",
       "It tells the linker to link the specified libraries to your target, and propagates include paths and compile flags from the library's CMake target. PRIVATE/PUBLIC/INTERFACE control propagation",
-      "It downloads the library from the internet using an embedded package manager and caches it in the build directory",
-      "It creates a new library from the listed source files and registers it as a target in the current CMake build graph",
+      "It downloads the library from the internet using an embedded package manager built into CMake and caches it in the build directory, similar to how pip or npm fetch dependencies from a remote registry",
+      "It creates a new library target from the listed source files and registers it as a build artifact in the current CMake build graph, making it available for other targets to depend on in the project",
     ],
     correctIndex: 1,
     explanation:
@@ -7774,10 +7774,10 @@ export const questions: Question[] = [
     topic: "Build Systems",
     question: "What is the difference between #pragma once and traditional header guards?",
     options: [
-      "They are identical in all respects — the preprocessor treats them as equivalent directives and generates the same output",
+      "They are identical in all respects — the preprocessor treats them as equivalent directives and generates the same output, with both approaches providing exactly the same level of include protection across all compilers, platforms, and file system configurations",
       "#pragma once is simpler (one line, no macro names) and can be faster (compiler can skip re-opening the file). But it's non-standard (though universally supported) and can fail with symlinks or copies of the same file. Header guards are standard and always correct",
-      "#pragma once is part of the C++11 standard; header guards are a pre-standard technique that is now deprecated and scheduled for removal",
-      "#pragma once only works on Windows with MSVC — GCC and Clang on Linux and macOS silently ignore the directive",
+      "#pragma once is part of the C++11 standard; header guards are a pre-standard technique that is now deprecated and scheduled for removal — modern code should use #pragma once since it is shorter and guaranteed to be supported by conforming compilers",
+      "#pragma once only works on Windows with MSVC — GCC and Clang on Linux and macOS silently ignore the directive, making it unreliable for cross-platform projects that need to build with multiple compiler toolchains across different operating systems",
     ],
     correctIndex: 1,
     explanation:
@@ -7808,10 +7808,10 @@ export const questions: Question[] = [
     question: "What causes the 'multiple definition' linker error and how do you fix it?",
     code: `// helper.h\nint globalVar = 42;  // definition in a header\n\n// a.cpp\n#include "helper.h"\n\n// b.cpp\n#include "helper.h"\n// Linker error: multiple definition of 'globalVar'`,
     options: [
-      "Header guards prevent this — they ensure each symbol is defined at most once across the entire program, not just within a single file",
+      "Header guards prevent this — they ensure each symbol is defined at most once across the entire program, not just within a single file, by tracking which headers have been processed across all translation units during the build process",
       "Each .cpp that includes the header gets its own definition of globalVar. The linker sees two definitions and reports an error. Fix: use inline (C++17), extern with a separate definition, or constexpr/const at namespace scope (which implies internal linkage)",
-      "This is a compiler error, not a linker error — the compiler detects the duplicate definition when it parses the second .cpp file",
-      "The fix is to remove the header guards, which are preventing the compiler from merging the two definitions into a single symbol",
+      "This is a compiler error, not a linker error — the compiler detects the duplicate definition when it parses the second .cpp file because it maintains a global symbol table shared across all translation units during the compilation phase",
+      "The fix is to remove the header guards, which are preventing the compiler from merging the two definitions into a single symbol — without guards, the compiler can detect and deduplicate the repeated definitions automatically during preprocessing",
     ],
     correctIndex: 1,
     explanation:
@@ -7824,10 +7824,10 @@ export const questions: Question[] = [
     topic: "Build Systems",
     question: "What is link-time optimization (LTO) and what does it enable?",
     options: [
-      "An optimization that removes unused #include directives from each translation unit, reducing compilation time and header dependency chains",
+      "An optimization that removes unused #include directives from each translation unit, reducing compilation time and header dependency chains — the linker analyzes which headers were actually needed and reports unnecessary includes",
       "LTO defers optimization until link time, when the linker has visibility across ALL translation units. This enables cross-TU inlining, dead code elimination, and devirtualization that are impossible with per-file compilation",
-      "LTO optimizes the order of linker sections for faster startup, rearranging code and data segments to minimize page faults during process initialization",
-      "LTO compresses the final binary for smaller file size by applying LZMA compression to the executable's code and data sections",
+      "LTO optimizes the order of linker sections for faster startup, rearranging code and data segments to minimize page faults during process initialization — this changes the binary layout without altering observable behavior",
+      "LTO compresses the final binary for smaller file size by applying LZMA compression to the executable's code and data sections, reducing disk usage and download size at the cost of a decompression step during loading",
     ],
     correctIndex: 1,
     explanation:
@@ -7840,10 +7840,10 @@ export const questions: Question[] = [
     topic: "Build Systems",
     question: "What does the compilation flag -fPIC do and when is it required?",
     options: [
-      "It enables profile-guided optimizations that instrument the binary to collect runtime data and feed it back into the next compilation pass",
+      "It enables profile-guided optimizations that instrument the binary to collect runtime data and feed it back into the next compilation pass, allowing the compiler to make informed decisions about branch prediction and function layout",
       "It generates Position-Independent Code — machine code that works regardless of where it's loaded in memory. Required for shared libraries (.so) because they may be mapped to different addresses in different processes",
-      "It enables PIC (Preprocessor Inline Checking) for macro safety, verifying that all macros expand to valid expressions before compilation",
-      "It forces all pointers to be 64-bit wide regardless of the target architecture, ensuring uniform pointer sizes across platforms",
+      "It enables PIC (Preprocessor Inline Checking) for macro safety, verifying that all macros expand to valid expressions before compilation proceeds — this catches common macro pitfalls like missing parentheses and double evaluation",
+      "It forces all pointers to be 64-bit wide regardless of the target architecture, ensuring uniform pointer sizes across 32-bit and 64-bit platforms for maximum binary portability between different hardware configurations",
     ],
     correctIndex: 1,
     explanation:
@@ -7876,10 +7876,10 @@ export const questions: Question[] = [
     question: "How do you write to and read from a file using streams?",
     code: `std::ofstream out("data.txt");\nout << "hello" << 42;\nout.close();\n\nstd::ifstream in("data.txt");\nstd::string s;\nin >> s;`,
     options: [
-      "You must use C-style fopen/fclose — C++ streams cannot access files directly and are limited to console I/O through cin and cout",
+      "You must use C-style fopen/fclose — C++ streams cannot access files directly and are limited to console I/O through cin and cout, because the stream library was designed only for terminal interaction",
       "std::ofstream opens a file for writing, std::ifstream for reading. They use the same << and >> operators as cout/cin. The file is automatically closed when the stream object is destroyed",
-      "File streams require calling open() before any I/O — the constructor only allocates the stream object without opening any file",
-      "You must use std::filesystem to read/write files — fstream classes are deprecated and only provided for backward compatibility with legacy code",
+      "File streams require calling open() before any I/O — the constructor only allocates the stream object without opening any file, so an explicit open() call is mandatory before read or write operations",
+      "You must use std::filesystem to read/write files — fstream classes are deprecated in modern C++ and only provided for backward compatibility with legacy code that predates the C++17 filesystem library",
     ],
     correctIndex: 1,
     explanation:
@@ -7909,10 +7909,10 @@ export const questions: Question[] = [
     topic: "I/O & Filesystem",
     question: "What does std::endl do compared to '\\n'?",
     options: [
-      "They are identical — both insert a newline character and flush the buffer; the two forms are purely stylistic alternatives",
-      "Both insert a newline, but std::endl also flushes the output buffer. Flushing forces the data to be written immediately, which is slower than just writing '\\n'",
-      "std::endl inserts two newlines (a blank line) to visually separate output sections, while '\\n' inserts just one",
-      "'\\n' only works on Linux and macOS; std::endl is the cross-platform way to insert a newline that handles \\r\\n on Windows",
+      "They are identical — both insert a newline character and flush the buffer simultaneously; the two forms are purely stylistic alternatives with no behavioral difference whatsoever",
+      "Both insert a newline, but std::endl also flushes the output buffer. Flushing forces the data to be written immediately, which is slower than just writing '\\\\n'",
+      "std::endl inserts two newlines (a blank line) to visually separate output sections, while '\\\\n' inserts just one — this is why endl is preferred for creating readable multi-section output",
+      "'\\\\n' only works on Linux and macOS systems; std::endl is the cross-platform way to insert a newline that correctly handles \\\\r\\\\n line endings on Windows operating systems",
     ],
     correctIndex: 1,
     explanation:
@@ -7945,10 +7945,10 @@ export const questions: Question[] = [
     question: "What is the difference between text mode and binary mode when opening a file?",
     code: `std::ofstream text("a.txt");                       // text mode\nstd::ofstream bin("b.dat", std::ios::binary);      // binary mode`,
     options: [
-      "No difference on any platform — the std::ios::binary flag is a no-op that exists only for backward compatibility with C",
-      "Text mode may translate newlines (e.g., \\n ↔ \\r\\n on Windows). Binary mode writes/reads bytes exactly as-is with no translation. Use binary mode for non-text data (images, structs)",
-      "Binary mode is faster because it bypasses the format parser, but it can't handle strings or any human-readable text data",
-      "Text mode adds encryption to the file stream so the data is protected at rest; binary mode writes unencrypted raw bytes",
+      "No difference on any platform — the std::ios::binary flag is a no-op that exists only for backward compatibility with C, and modern operating systems treat all files identically regardless of mode",
+      "Text mode may translate newlines (e.g., \\\\n ↔ \\\\r\\\\n on Windows). Binary mode writes/reads bytes exactly as-is with no translation. Use binary mode for non-text data (images, structs)",
+      "Binary mode is faster because it bypasses the format parser, but it can't handle strings or any human-readable text data — attempting to write strings in binary mode produces corrupted output",
+      "Text mode adds encryption to the file stream so the data is protected at rest with OS-level encryption; binary mode writes unencrypted raw bytes directly to disk without any security transformation",
     ],
     correctIndex: 1,
     explanation:
@@ -7962,10 +7962,10 @@ export const questions: Question[] = [
     question: "How do you read an entire file into a string efficiently?",
     code: `std::ifstream file("data.txt");\nstd::string content(\n    (std::istreambuf_iterator<char>(file)),\n    std::istreambuf_iterator<char>()\n);`,
     options: [
-      "This is invalid — you must read line by line using std::getline in a loop because the standard does not support bulk file reads",
+      "This is invalid — you must read line by line using std::getline in a loop because the standard library does not support bulk file reads, and istreambuf_iterator is only intended for reading single characters",
       "istreambuf_iterator reads raw characters from the stream buffer without formatting. Constructing a string from begin/end iterators reads the entire file in one pass, typically faster than repeated getline calls",
-      "This only works for files smaller than 1KB because istreambuf_iterator uses a fixed internal buffer that cannot be resized",
-      "This reads the file backwards from the end to the beginning, because istreambuf_iterator traverses the buffer in reverse order by default",
+      "This only works for files smaller than 1KB because istreambuf_iterator uses a fixed internal buffer that cannot be resized, and larger files cause a buffer overflow that silently truncates content",
+      "This reads the file backwards from the end to the beginning, because istreambuf_iterator traverses the stream buffer in reverse order by default — you need to call std::reverse on the resulting string",
     ],
     correctIndex: 1,
     explanation:
@@ -7979,10 +7979,10 @@ export const questions: Question[] = [
     question: "What stream state flags exist and what do they mean?",
     code: `std::cin >> x;\nif (std::cin.fail())  { /* ... */ }\nif (std::cin.eof())   { /* ... */ }\nif (std::cin.bad())   { /* ... */ }`,
     options: [
-      "There is only one flag: good or bad — the stream is either in a working state or a failed state with no further distinction",
+      "There is only one flag: good or bad — the stream is either in a working state or a failed state with no further distinction, and all error conditions are reported through a single boolean check using the stream's operator bool()",
       "goodbit: no errors. failbit: a logical error (e.g., reading int but got text). eofbit: end of input reached. badbit: an irrecoverable I/O error (e.g., disk failure). fail() returns true if failbit or badbit is set",
-      "eof means the file was deleted during reading — the OS signals file removal through the eofbit flag on the stream",
-      "These flags are automatically cleared after each read operation, so you never need to call stream.clear() manually",
+      "eof means the file was deleted during reading — the OS signals file removal through the eofbit flag on the stream, and you must reopen the file to continue reading if it was recreated between read operations",
+      "These flags are automatically cleared after each read operation, so you never need to call stream.clear() manually — the runtime resets all flags to goodbit before every new extraction, making error checking unnecessary",
     ],
     correctIndex: 1,
     explanation:
@@ -7996,10 +7996,10 @@ export const questions: Question[] = [
     question: "How does std::filesystem::path handle cross-platform paths?",
     code: `namespace fs = std::filesystem;\nfs::path p = fs::path("/usr") / "local" / "bin";\nstd::cout << p;`,
     options: [
-      "It always uses forward slashes regardless of platform — std::filesystem::path normalizes all separators to / on every operating system",
-      "path::operator/ joins path segments using the platform's native separator. path provides methods like stem(), extension(), parent_path() that work cross-platform, abstracting away / vs \\\\ differences",
-      "It only works on Linux paths — on Windows you must use std::wstring and manual backslash concatenation for path handling",
-      "The / operator performs division on path sizes, returning the ratio of the left path's byte length to the right path's byte length",
+      "It always uses forward slashes regardless of platform — std::filesystem::path normalizes all separators to / on every operating system, so Windows backslashes are never produced in the output path string",
+      "path::operator/ joins path segments using the platform's native separator. path provides methods like stem(), extension(), parent_path() that work cross-platform, abstracting away / vs \\\\\\\\ differences",
+      "It only works on Linux and POSIX paths — on Windows you must use std::wstring and manual backslash concatenation for path handling, because std::filesystem::path does not support the Windows format",
+      "The / operator performs division on path sizes, returning the ratio of the left path's byte length to the right path's byte length — it does not concatenate paths, which requires using the append() method",
     ],
     correctIndex: 1,
     explanation:
@@ -8012,10 +8012,10 @@ export const questions: Question[] = [
     topic: "I/O & Filesystem",
     question: "Why is printf sometimes preferred over std::cout for performance-critical output?",
     options: [
-      "printf is always faster in every scenario because it is implemented in hand-tuned assembly and bypasses the C++ runtime entirely",
+      "printf is always faster in every scenario because it is implemented in hand-tuned assembly and bypasses the C++ runtime entirely — there is no configuration that can make cout match printf's throughput on any platform",
       "printf formats into a buffer and writes in one system call. cout's operator<< chain may cause multiple virtual calls and buffer flushes. However, with std::ios_base::sync_with_stdio(false), cout can be comparably fast",
-      "printf supports more format specifiers than cout, including specifiers for wide strings, complex numbers, and binary output",
-      "cout is deprecated in modern C++ — the standard committee recommends using std::format or printf for all new output code",
+      "printf supports more format specifiers than cout, including specifiers for wide strings, complex numbers, binary output, and custom user-defined types — this richer formatting vocabulary is why developers prefer printf",
+      "cout is deprecated in modern C++ — the standard committee recommends using std::format or printf for all new output code, and cout will be removed from the standard library in a future version of the C++ standard",
     ],
     correctIndex: 1,
     explanation:
@@ -8030,10 +8030,10 @@ export const questions: Question[] = [
     topic: "I/O & Filesystem",
     question: "How does I/O buffering work and what are the three buffering modes?",
     options: [
-      "I/O is always unbuffered — data is sent to the OS immediately on every write call, and the kernel handles all batching internally",
+      "I/O is always unbuffered — data is sent to the OS immediately on every write call, and the kernel handles all batching internally through its own I/O scheduler, so user-space buffering is unnecessary and the three modes are obsolete",
       "Fully buffered: data is written when the buffer is full (files). Line buffered: data is written when a newline is encountered (interactive terminals). Unbuffered: data is written immediately (stderr). Buffering reduces system calls by batching writes",
-      "Buffering only applies to input streams, not output streams — output data is always written directly to the destination without delay",
-      "The buffer is always exactly 4096 bytes (one memory page), and this size cannot be changed by the application or the runtime",
+      "Buffering only applies to input streams, not output streams — output data is always written directly to the destination without delay, because the OS handles output batching at the kernel level using write-back caching on the filesystem",
+      "The buffer is always exactly 4096 bytes (one memory page), and this size cannot be changed by the application or the runtime — the operating system enforces this fixed buffer size to align with virtual memory page granularity",
     ],
     correctIndex: 1,
     explanation:
@@ -8047,10 +8047,10 @@ export const questions: Question[] = [
     question: "How do you safely write a struct to a binary file and read it back?",
     code: `struct Record {\n    int id;\n    double value;\n};\n\nRecord r{1, 3.14};\nstd::ofstream out("data.bin", std::ios::binary);\nout.write(reinterpret_cast<const char*>(&r), sizeof(r));`,
     options: [
-      "This is always safe for any struct, including those with pointers, virtual functions, and std::string members — write() serializes all bytes faithfully",
+      "This is always safe for any struct, including those with pointers, virtual functions, and std::string members — write() serializes all bytes faithfully, and the data can be read back on any platform regardless of architecture",
       "This works for trivially copyable types with no pointers, but is fragile: padding, endianness, and sizeof may differ between compilers/platforms. Portable serialization requires explicit field-by-field writing or a serialization library",
-      "reinterpret_cast is undefined behavior here because casting a struct pointer to const char* violates the strict aliasing rule in all cases",
-      "You must use text mode for struct I/O because binary mode does not support structured data — it can only read and write raw character streams",
+      "reinterpret_cast is undefined behavior here because casting a struct pointer to const char* violates the strict aliasing rule in all cases — the standard requires using std::bit_cast instead for safe type punning",
+      "You must use text mode for struct I/O because binary mode does not support structured data — it can only read and write raw character streams, and writing non-character types in binary mode causes undefined behavior",
     ],
     correctIndex: 1,
     explanation:
@@ -8063,10 +8063,10 @@ export const questions: Question[] = [
     topic: "I/O & Filesystem",
     question: "What is memory-mapped I/O and when would you use it instead of streams?",
     options: [
-      "It's the same as reading a file into a std::string — both load the entire file contents into user-space memory in a single operation",
+      "It's the same as reading a file into a std::string -- both load the entire file contents into user-space memory in a single operation. The OS buffers the data in the page cache either way, so there is no difference in how the kernel handles the I/O",
       "Memory-mapped I/O (mmap/MapViewOfFile) maps a file directly into the process's virtual address space, letting you access file contents via pointers as if they were in memory. The OS handles paging. It's faster for large files and random access patterns",
-      "It's only available on embedded systems that have direct physical memory access and no virtual memory translation layer",
-      "It requires custom kernel drivers to be installed, because standard operating systems do not expose memory mapping to user-space programs",
+      "It's only available on embedded systems that have direct physical memory access and no virtual memory translation layer. Desktop and server operating systems like Linux and Windows lack the hardware support to map files into process address space",
+      "It requires custom kernel drivers to be installed, because standard operating systems do not expose memory mapping to user-space programs. Without these drivers, the virtual memory subsystem has no mechanism to fault in file-backed pages on demand",
     ],
     correctIndex: 1,
     explanation:
@@ -8080,10 +8080,10 @@ export const questions: Question[] = [
     question: "What does std::filesystem::recursive_directory_iterator do and what pitfalls should you watch for?",
     code: `namespace fs = std::filesystem;\nfor (const auto& entry : fs::recursive_directory_iterator("/project")) {\n    if (entry.is_regular_file())\n        std::cout << entry.path() << " " << entry.file_size() << "\\n";\n}`,
     options: [
-      "It only lists files in the top-level directory — you must call it once for each subdirectory to manually recurse deeper into the tree",
+      "It only lists files in the top-level directory -- you must call it once for each subdirectory to manually recurse deeper into the tree. The iterator has no built-in mechanism to descend into nested directories automatically, so full traversal requires a custom BFS or DFS loop",
       "It recursively traverses all subdirectories. Pitfalls: symlink loops (can cause infinite recursion — use directory_options::follow_directory_symlink cautiously), permission errors (wrap in try/catch or use the error_code overload), and modifying the directory during iteration",
-      "It reads the contents of all files recursively, loading each file's data into memory so you can process them without separate open calls",
-      "It's only available on Linux — Windows and macOS lack the POSIX directory traversal APIs that std::filesystem requires",
+      "It reads the contents of all files recursively, loading each file's data into memory so you can process them without separate open calls. This is how large-scale file search tools work: they read every file into a buffer and then scan the buffer for pattern matches",
+      "It's only available on Linux -- Windows and macOS lack the POSIX directory traversal APIs that std::filesystem requires. On those platforms you must use platform-specific APIs like FindFirstFile on Windows or NSFileManager on macOS to traverse directory trees",
     ],
     correctIndex: 1,
     explanation:
@@ -8097,10 +8097,10 @@ export const questions: Question[] = [
     question: "How do you create a custom stream manipulator?",
     code: `std::ostream& comma(std::ostream& os) {\n    return os << ", ";\n}\n\nstd::cout << "a" << comma << "b" << comma << "c";`,
     options: [
-      "This is invalid — manipulators must be objects, not functions, because operator<< only accepts class types with a defined insertion operator",
+      "This is invalid -- manipulators must be objects, not functions, because operator<< only accepts class types with a defined insertion operator overload that the stream can invoke",
       "A function taking and returning an ostream& can be used directly as a manipulator because operator<< has an overload for function pointers of that signature. This prints 'a, b, c'",
-      "Manipulators require a special REGISTER_MANIP macro to register themselves with the stream's internal dispatch table before use",
-      "Only the standard library can define manipulators — user-defined manipulators are prohibited because they could corrupt the stream's format state",
+      "Manipulators require a special REGISTER_MANIP macro to register themselves with the stream's internal dispatch table before use. Without registration, the stream has no way to look up the function",
+      "Only the standard library can define manipulators -- user-defined manipulators are prohibited because they could corrupt the stream's format state and lead to undefined behavior in subsequent output",
     ],
     correctIndex: 1,
     explanation:
@@ -8116,10 +8116,10 @@ export const questions: Question[] = [
     question: "What is the basic syntax for throwing and catching an exception in C++?",
     code: `try {\n    throw std::runtime_error("something failed");\n} catch (const std::exception& e) {\n    std::cerr << e.what();\n}`,
     options: [
-      "throw sends a signal to the OS like SIGABRT; catch registers a signal handler that intercepts it before the process terminates",
+      "throw sends a signal to the OS like SIGABRT; catch registers a signal handler that intercepts it before the process terminates. The runtime forwards the signal through the kernel's signal dispatch mechanism",
       "throw creates an exception object and immediately unwinds the stack until a matching catch block is found. catch receives the exception by (typically const) reference and handles it",
-      "try/catch is syntactic sugar for if/else error checking — the compiler transforms them into conditional branches with no runtime overhead",
-      "throw terminates the program immediately; catch restarts execution from the beginning of main() with the error stored in a global variable",
+      "try/catch is syntactic sugar for if/else error checking -- the compiler transforms them into conditional branches with no runtime overhead. Under the hood, the generated code is identical to checking return values",
+      "throw terminates the program immediately; catch restarts execution from the beginning of main() with the error stored in a global variable. This is how the C++ runtime implements structured error recovery",
     ],
     correctIndex: 1,
     explanation:
@@ -8132,10 +8132,10 @@ export const questions: Question[] = [
     topic: "Error Handling",
     question: "What is the standard exception hierarchy in C++?",
     options: [
-      "All exceptions inherit from std::error, which provides the error_code() and error_message() virtual methods for all derived types",
+      "All exceptions inherit from std::error, which provides the error_code() and error_message() virtual methods for all derived types. This base class lives in the <system_error> header and was introduced in C++11",
       "std::exception is the base. Key derived classes: std::runtime_error (runtime failures), std::logic_error (programming mistakes), std::bad_alloc (allocation failure), std::bad_cast (failed dynamic_cast)",
-      "There is no hierarchy — all exceptions are independent types with no common base, so you must catch each type individually",
-      "std::string is the base exception class — all standard exceptions inherit from it and store their message as a string member",
+      "There is no hierarchy -- all exceptions are independent types with no common base, so you must catch each type individually. The standard provides no polymorphic base class for exceptions in the language",
+      "std::string is the base exception class -- all standard exceptions inherit from it and store their message as a string member. Calling what() simply returns the underlying c_str() of the stored string object",
     ],
     correctIndex: 1,
     explanation:
@@ -8166,10 +8166,10 @@ export const questions: Question[] = [
     question: "Why should you catch exceptions by const reference?",
     code: `catch (const std::exception& e)  // good\ncatch (std::exception e)         // bad`,
     options: [
-      "It's just a style preference — no technical reason, because the compiler generates identical code for both catch-by-value and catch-by-reference",
+      "It's just a style preference -- no technical reason, because the compiler generates identical code for both catch-by-value and catch-by-reference. The generated exception handling tables are the same in both forms",
       "Catching by value copies the exception and causes object slicing (losing derived class data). Catching by const reference avoids the copy and preserves the full derived type, including its what() message",
-      "You can't modify the exception either way, so const makes no difference — references are always implicitly const in catch blocks",
-      "Catching by value is faster because it avoids the indirection overhead of a reference and keeps the exception data in a register",
+      "You can't modify the exception either way, so const makes no difference -- references are always implicitly const in catch blocks. The compiler enforces read-only access to the exception object regardless of the qualifier",
+      "Catching by value is faster because it avoids the indirection overhead of a reference and keeps the exception data in a register. The copy constructor is optimized out by the compiler through copy elision",
     ],
     correctIndex: 1,
     explanation:
@@ -8201,10 +8201,10 @@ export const questions: Question[] = [
     topic: "Error Handling",
     question: "What are the three exception safety guarantees?",
     options: [
-      "Fast, slow, and none — fast guarantees O(1) cleanup, slow guarantees O(n) cleanup, and none provides no cleanup at all",
+      "Fast, slow, and none -- fast guarantees O(1) cleanup, slow guarantees O(n) cleanup, and none provides no cleanup at all. These levels are defined in the ISO C++ standard annex on exception safety",
       "No-throw (operation never fails), strong (if it fails, state rolls back as if nothing happened), basic (if it fails, no resources leak and invariants are maintained, but state may have changed)",
-      "Compile-time safety (type errors caught at build), link-time safety (symbol mismatches caught by the linker), and run-time safety (bounds checks at execution)",
-      "Memory safety (no leaks or dangling pointers), thread safety (no data races), and type safety (no invalid casts) — together forming the three pillars of C++ safety",
+      "Compile-time safety (type errors caught at build), link-time safety (symbol mismatches caught by the linker), and run-time safety (bounds checks at execution). These three phases each guard against a different category of defect",
+      "Memory safety (no leaks or dangling pointers), thread safety (no data races), and type safety (no invalid casts) -- together forming the three pillars of C++ safety. These properties are orthogonal to exception handling",
     ],
     correctIndex: 1,
     explanation:
@@ -8217,10 +8217,10 @@ export const questions: Question[] = [
     topic: "Error Handling",
     question: "Why should destructors never throw exceptions?",
     options: [
-      "It's a style guideline with no technical reason — throwing from a destructor works correctly and is safely caught by the enclosing try/catch block",
+      "It's a style guideline with no technical reason -- throwing from a destructor works correctly and is safely caught by the enclosing try/catch block. The runtime handles destructor exceptions just like any other thrown exception",
       "During stack unwinding (from another exception), if a destructor throws, std::terminate() is called because C++ cannot handle two exceptions simultaneously. Destructors are implicitly noexcept since C++11",
-      "Destructors cannot contain throw statements — the compiler treats throw inside a destructor body as a syntax error and rejects it",
-      "Throwing in a destructor is caught by the nearest catch block normally — the runtime handles it identically to exceptions thrown from regular functions",
+      "Destructors cannot contain throw statements -- the compiler treats throw inside a destructor body as a syntax error and rejects it. This restriction is enforced during parsing before any code generation or optimization takes place",
+      "Throwing in a destructor is caught by the nearest catch block normally -- the runtime handles it identically to exceptions thrown from regular functions. The unwinding mechanism does not distinguish destructor throws",
     ],
     correctIndex: 1,
     explanation:
@@ -8234,10 +8234,10 @@ export const questions: Question[] = [
     question: "How does RAII provide exception safety?",
     code: `void process() {\n    auto file = std::make_unique<File>("data.txt");\n    auto lock = std::lock_guard(mutex);\n    doWork();  // may throw\n}  // file and lock are cleaned up even if doWork() throws`,
     options: [
-      "RAII catches exceptions automatically by wrapping every resource acquisition in an implicit try/catch block managed by the compiler",
+      "RAII catches exceptions automatically by wrapping every resource acquisition in an implicit try/catch block managed by the compiler. The compiler inserts hidden catch handlers around each resource allocation to ensure the exception is intercepted",
       "RAII objects (smart pointers, lock guards) acquire resources in constructors and release them in destructors. During stack unwinding, destructors run for all fully-constructed local objects, guaranteeing cleanup even when exceptions are thrown",
-      "RAII prevents exceptions from being thrown by pre-validating all operations at construction time and guaranteeing that no errors can occur later",
-      "RAII is unrelated to exception safety — it is a memory management pattern that only addresses resource leaks, not exception propagation",
+      "RAII prevents exceptions from being thrown by pre-validating all operations at construction time and guaranteeing that no errors can occur later. The constructor checks every precondition so that subsequent member function calls never encounter failure conditions",
+      "RAII is unrelated to exception safety -- it is a memory management pattern that only addresses resource leaks, not exception propagation. Exception safety requires separate mechanisms like explicit try/catch blocks and manual rollback of state changes",
     ],
     correctIndex: 1,
     explanation:
@@ -8267,10 +8267,10 @@ export const questions: Question[] = [
     topic: "Error Handling",
     question: "What is std::error_code and when would you use it instead of exceptions?",
     options: [
-      "std::error_code is a deprecated C feature carried over from <errno.h> for backward compatibility and should not be used in modern C++ code",
+      "std::error_code is a deprecated C feature carried over from <errno.h> for backward compatibility and should not be used in modern C++ code. The committee has marked it for removal in a future revision of the standard to simplify the error handling model",
       "std::error_code holds an integer error code + a category, providing a structured alternative to exceptions for expected failures. Use error codes for anticipated errors (file not found) in performance-sensitive paths; use exceptions for truly exceptional situations",
-      "std::error_code automatically throws exceptions when a non-zero error code is set, acting as a wrapper that converts C-style errors into C++ exceptions",
-      "std::error_code is only used with std::filesystem and cannot be used with any other part of the standard library or user-defined code",
+      "std::error_code automatically throws exceptions when a non-zero error code is set, acting as a wrapper that converts C-style errors into C++ exceptions. It monitors the stored value and invokes throw whenever the code transitions from zero to a non-zero value",
+      "std::error_code is only used with std::filesystem and cannot be used with any other part of the standard library or user-defined code. The filesystem library has exclusive ownership of error_code and its associated category infrastructure in the standard",
     ],
     correctIndex: 1,
     explanation:
@@ -8286,10 +8286,10 @@ export const questions: Question[] = [
     question: "What does std::exception_ptr enable?",
     code: `std::exception_ptr eptr;\ntry {\n    throw std::runtime_error("oops");\n} catch (...) {\n    eptr = std::current_exception();\n}\n// Later, possibly in another thread:\nif (eptr) std::rethrow_exception(eptr);`,
     options: [
-      "It converts exceptions to error codes by extracting the what() message and mapping it to a numeric std::error_code value",
+      "It converts exceptions to error codes by extracting the what() message and mapping it to a numeric std::error_code value. The mapping is performed through a lookup table maintained by the standard library's error category system",
       "It captures an exception and allows it to be stored, transported (e.g., across threads), and rethrown later. This is how std::future propagates exceptions from worker threads back to the calling thread",
-      "It prevents exceptions from propagating by catching them at the point of origin and silently discarding them to avoid stack unwinding",
-      "It's an alias for std::exception* — a raw pointer to the exception object on the stack, valid only within the current catch block",
+      "It prevents exceptions from propagating by catching them at the point of origin and silently discarding them to avoid stack unwinding. The runtime intercepts the throw and destroys the exception object before it can reach a catch block",
+      "It's an alias for std::exception* -- a raw pointer to the exception object on the stack, valid only within the current catch block. Once the catch block exits, the pointer becomes dangling and dereferencing it is undefined behavior",
     ],
     correctIndex: 1,
     explanation:
@@ -8303,10 +8303,10 @@ export const questions: Question[] = [
     question: "What is the difference between noexcept(true) and noexcept(expr)?",
     code: `template<typename T>\nvoid swap(T& a, T& b) noexcept(noexcept(T(std::move(a)))) {\n    T temp = std::move(a);\n    a = std::move(b);\n    b = std::move(temp);\n}`,
     options: [
-      "noexcept(expr) evaluates expr at runtime to decide whether to throw — if the expression returns false, the function enables exception handling dynamically",
+      "noexcept(expr) evaluates expr at runtime to decide whether to throw -- if the expression returns false, the function enables exception handling dynamically. The runtime checks the result and installs or removes exception tables accordingly",
       "noexcept(expr) is a compile-time conditional: if expr is true (i.e., the expression inside doesn't throw), the function is noexcept. This enables generic code to propagate noexcept guarantees from its type parameters",
-      "They are identical — noexcept always means no-throw, and the expression inside the parentheses is ignored by the compiler entirely",
-      "noexcept(expr) disables exceptions for the expression by wrapping it in a try/catch block that calls std::terminate if an exception escapes",
+      "They are identical -- noexcept always means no-throw, and the expression inside the parentheses is ignored by the compiler entirely. The parenthesized form exists only for syntactic consistency with other specifiers in the language",
+      "noexcept(expr) disables exceptions for the expression by wrapping it in a try/catch block that calls std::terminate if an exception escapes. The compiler generates a hidden handler that intercepts any throw and immediately aborts",
     ],
     correctIndex: 1,
     explanation:
@@ -8320,10 +8320,10 @@ export const questions: Question[] = [
     question: "How does the copy-and-swap idiom provide the strong exception guarantee for assignment?",
     code: `Widget& Widget::operator=(Widget other) {\n    swap(*this, other);\n    return *this;\n}`,
     options: [
-      "It doesn't — assignment can never be strongly exception-safe because modifying an object always involves intermediate states that could be observed",
+      "It doesn't -- assignment can never be strongly exception-safe because modifying an object always involves intermediate states that could be observed. Once you begin writing to a member variable, any exception leaves the object in a partially updated, inconsistent state",
       "The parameter is taken by value (copy happens BEFORE the body). If the copy throws, *this is untouched. swap is noexcept, so it can't fail. The old state is destroyed in other's destructor. If anything throws, it happens during the copy — before any modification",
-      "swap can throw because it performs three move operations, so this idiom is only basically exception-safe with no rollback guarantee",
-      "The strong guarantee comes from catching exceptions inside operator= and manually restoring the previous state from a saved backup copy",
+      "swap can throw because it performs three move operations, so this idiom is only basically exception-safe with no rollback guarantee. Each move may allocate memory or acquire resources that could fail, leaving the object in a partially swapped state",
+      "The strong guarantee comes from catching exceptions inside operator= and manually restoring the previous state from a saved backup copy. The implementation creates a deep copy of the original state before modification and restores it in the catch block",
     ],
     correctIndex: 1,
     explanation:
@@ -8337,10 +8337,10 @@ export const questions: Question[] = [
     question: "What is std::nested_exception and when would you use it?",
     code: `try {\n    try {\n        throw std::runtime_error("low-level I/O error");\n    } catch (...) {\n        std::throw_with_nested(std::runtime_error("failed to load config"));\n    }\n} catch (const std::exception& e) {\n    // How to access the nested exception?\n}`,
     options: [
-      "It replaces the original exception with a new one — the old exception is discarded and only the new outer exception is propagated up the call stack",
+      "It replaces the original exception with a new one -- the old exception is discarded and only the new outer exception is propagated up the call stack. The runtime destroys the original exception object and substitutes the replacement before unwinding continues",
       "throw_with_nested creates an exception that wraps the current exception inside it. You can retrieve the inner exception with dynamic_cast<const std::nested_exception&>(e).rethrow_nested(), enabling exception chaining without losing the original cause",
-      "Nested exceptions are automatically printed by what() — calling what() on the outer exception returns a concatenated string of all nested messages",
-      "std::nested_exception is deprecated in C++20 and replaced by std::expected, which provides a more ergonomic way to chain error information",
+      "Nested exceptions are automatically printed by what() -- calling what() on the outer exception returns a concatenated string of all nested messages. The runtime walks the nesting chain and joins each what() result with a separator to build a combined error string",
+      "std::nested_exception is deprecated in C++20 and replaced by std::expected, which provides a more ergonomic way to chain error information. The committee voted to remove nested_exception because its usage was confusing and dynamic_cast hurt performance",
     ],
     correctIndex: 1,
     explanation:
@@ -8353,10 +8353,10 @@ export const questions: Question[] = [
     topic: "Error Handling",
     question: "What is std::expected (C++23) and how does it compare to exceptions?",
     options: [
-      "It's a replacement for try/catch with identical behavior — the compiler transforms std::expected into try/catch blocks during code generation",
+      "It's a replacement for try/catch with identical behavior -- the compiler transforms std::expected into try/catch blocks during code generation. Under the hood, the generated machine code is the same as if you had written explicit exception handling with throw and catch",
       "std::expected<T, E> holds either a value of type T (success) or an error of type E (failure), similar to Rust's Result<T,E>. It makes error paths explicit in the return type, avoids the overhead of stack unwinding, and forces callers to handle errors — but adds verbosity",
-      "It's a type alias for std::optional<T> that adds a convenience has_error() method but otherwise behaves identically to optional",
-      "It automatically throws the error as an exception if the caller accesses the value without checking, similar to unchecked exceptions in Java",
+      "It's a type alias for std::optional<T> that adds a convenience has_error() method but otherwise behaves identically to optional. The error state is represented by std::nullopt, and there is no separate error type parameter because the absence of a value signals failure",
+      "It automatically throws the error as an exception if the caller accesses the value without checking, similar to unchecked exceptions in Java. The value() accessor inspects the stored state and invokes throw with the error object if no valid value is present",
     ],
     correctIndex: 1,
     explanation:
@@ -8388,10 +8388,10 @@ export const questions: Question[] = [
     question: "When do you use static_cast?",
     code: `double pi = 3.14159;\nint truncated = static_cast<int>(pi);  // 3`,
     options: [
-      "Only for pointer casts between related types in an inheritance hierarchy, not for any numeric or value conversions",
+      "Only for pointer casts between related types in an inheritance hierarchy, not for any numeric or value conversions. It checks the relationship at compile time using RTTI metadata embedded in the vtable of polymorphic classes",
       "For well-defined conversions the compiler can verify at compile time: numeric type conversions, upcasts (derived to base), void* to typed pointer, and explicit conversions that would otherwise be implicit",
-      "For casting away const or volatile qualifiers from a pointer or reference — this is its primary purpose",
-      "For casting between unrelated pointer types such as int* to double* or Base* to an unrelated OtherClass*",
+      "For casting away const or volatile qualifiers from a pointer or reference -- this is its primary purpose. It strips the cv-qualification from the pointed-to type while preserving the underlying address and alignment",
+      "For casting between unrelated pointer types such as int* to double* or Base* to an unrelated OtherClass*. It performs a bitwise reinterpretation of the pointer value without validating type compatibility at compile time",
     ],
     correctIndex: 1,
     explanation:
@@ -8405,10 +8405,10 @@ export const questions: Question[] = [
     question: "What does const_cast do?",
     code: `void legacyApi(char* str);\n\nconst char* msg = "hello";\nlegacyApi(const_cast<char*>(msg));`,
     options: [
-      "Creates a const copy of the variable and returns it by value, leaving the original object unchanged and fully mutable",
+      "Creates a const copy of the variable and returns it by value, leaving the original object unchanged and fully mutable. The copy is constructed using the type's copy constructor",
       "Adds or removes const (or volatile) from a type. It does NOT change the underlying object — modifying a truly const object through const_cast is undefined behavior",
-      "Converts between integer types such as int to long or unsigned to signed, performing sign extension or truncation as needed",
-      "Casts the pointer to a different unrelated type, reinterpreting the bit pattern of the address to match the target pointer type",
+      "Converts between integer types such as int to long or unsigned to signed, performing sign extension or truncation as needed. It handles widening and narrowing of integral values at compile time",
+      "Casts the pointer to a different unrelated type, reinterpreting the bit pattern of the address to match the target pointer type. This bypasses all compile-time type checks and aliasing rules",
     ],
     correctIndex: 1,
     explanation:
@@ -8422,10 +8422,10 @@ export const questions: Question[] = [
     question: "Why are C-style casts like (int)x discouraged in C++?",
     code: `double d = 3.14;\nint x = (int)d;  // C-style cast`,
     options: [
-      "They don't work in C++ — only in C, because the C++ standard requires the use of named cast operators for all type conversions",
+      "They don't work in C++ -- only in C, because the C++ standard requires the use of named cast operators for all type conversions. The compiler rejects C-style cast syntax and emits a diagnostic error during parsing",
       "C-style casts try static_cast, const_cast, and reinterpret_cast in sequence, picking the first that works. This makes them dangerous — they may silently perform a reinterpret_cast when you intended a static_cast, hiding bugs",
-      "They are slower at runtime because the C-style cast inserts a type-checking branch that validates the conversion dynamically",
-      "They cause compilation warnings on all compilers and are treated as errors when compiling with -Wall -Werror or /W4 /WX flags",
+      "They are slower at runtime because the C-style cast inserts a type-checking branch that validates the conversion dynamically. The runtime inspects the object's RTTI metadata to confirm the cast is safe before returning the result",
+      "They cause compilation warnings on all compilers and are treated as errors when compiling with -Wall -Werror or /W4 /WX flags. The standard mandates that implementations emit at least one diagnostic for every C-style cast expression",
     ],
     correctIndex: 1,
     explanation:
@@ -8439,10 +8439,10 @@ export const questions: Question[] = [
     question: "What does dynamic_cast return when a pointer downcast fails?",
     code: `Base* b = new Base();\nDerived* d = dynamic_cast<Derived*>(b);`,
     options: [
-      "A pointer to a default-constructed Derived object that the runtime creates automatically to satisfy the cast request",
+      "A pointer to a default-constructed Derived created automatically by the runtime",
       "nullptr — the cast fails because b does not actually point to a Derived object",
-      "Throws std::bad_cast — pointer downcasts always throw an exception on failure rather than returning a null value",
-      "Undefined behavior — the result of a failed dynamic_cast on a pointer is unspecified and may corrupt the program state",
+      "Throws std::bad_cast — pointer downcasts always throw on a failed cast",
+      "Undefined behavior — a failed pointer dynamic_cast has an unspecified result",
     ],
     correctIndex: 1,
     explanation:
@@ -8457,10 +8457,10 @@ export const questions: Question[] = [
     topic: "Type Casting",
     question: "When is reinterpret_cast appropriate to use?",
     options: [
-      "For all numeric conversions such as int to double, float to int, and unsigned to signed — it handles both widening and narrowing",
+      "For all numeric conversions such as int to double, float to int, and unsigned to signed -- it handles both widening and narrowing conversions. The compiler generates the appropriate truncation or extension instructions for each numeric type pair",
       "For low-level bit reinterpretations: pointer↔integer, pointer↔pointer of unrelated types (e.g., passing to a C API). The result is implementation-defined and bypasses the type system — use only when you truly need to treat memory as a different type",
-      "For upcasting in class hierarchies, converting a derived class pointer to a base class pointer with full runtime type checking",
-      "For converting strings to numbers, parsing the character data and producing the equivalent integer or floating-point value",
+      "For upcasting in class hierarchies, converting a derived class pointer to a base class pointer with full runtime type checking. The cast queries the vtable at runtime to verify the relationship between the source and target types before adjusting the pointer",
+      "For converting strings to numbers, parsing the character data and producing the equivalent integer or floating-point value. The cast lexically analyzes the character sequence and constructs the numeric result using the standard decimal-to-binary conversion algorithm",
     ],
     correctIndex: 1,
     explanation:
@@ -8474,10 +8474,10 @@ export const questions: Question[] = [
     question: "What is an implicit conversion sequence and when does it happen?",
     code: `void print(double x) { std::cout << x; }\nprint(42);  // int → double implicit conversion`,
     options: [
-      "Implicit conversions never happen — all conversions must be explicit",
+      "Implicit conversions never happen in C++ -- all conversions must be explicit. The compiler rejects any expression where the source and destination types differ, requiring the programmer to insert a cast operator at every conversion point in the code",
       "The compiler automatically applies conversions (integral promotions, numeric conversions, user-defined conversions) when the types don't match. Up to one user-defined conversion is allowed in a chain. These are silent and can cause surprising behavior",
-      "Implicit conversions only happen with pointers",
-      "Implicit conversions always lose data",
+      "Implicit conversions only happen with pointers, not with numeric types or user-defined types. The compiler applies pointer decay and base-class conversions automatically but requires explicit casts for all arithmetic promotions and narrowing conversions",
+      "Implicit conversions always lose data -- they truncate the source value to fit the destination type. Every implicit conversion discards bits that cannot be represented in the target type, which is why the compiler emits warnings for all implicit conversions",
     ],
     correctIndex: 1,
     explanation:
@@ -8491,10 +8491,10 @@ export const questions: Question[] = [
     question: "What is a cross-cast and which cast operator can perform it?",
     code: `class A { virtual ~A() {} };\nclass B { virtual ~B() {} };\nclass C : public A, public B {};\n\nA* a = new C();\nB* b = dynamic_cast<B*>(a);  // cross-cast`,
     options: [
-      "Cross-casts are impossible in C++ — you must upcast to the common derived class first and then downcast to the target base class manually",
+      "Cross-casts are impossible in C++ -- you must upcast to the common derived class first and then downcast to the target base class manually. The type system provides no mechanism to traverse sideways in the class hierarchy",
       "A cross-cast converts between two sibling base classes (A* → B*) through the most-derived type (C). Only dynamic_cast can do this because it uses RTTI to find the full object and navigate to the other base sub-object",
-      "static_cast can perform cross-casts because it computes the pointer offset between sibling bases at compile time using class layout information",
-      "Cross-casts require reinterpret_cast because the compiler cannot determine the relationship between unrelated base classes at compile time",
+      "static_cast can perform cross-casts because it computes the pointer offset between sibling bases at compile time using class layout information. The compiler calculates the exact byte offset between the two base sub-objects during compilation",
+      "Cross-casts require reinterpret_cast because the compiler cannot determine the relationship between unrelated base classes at compile time. The cast blindly reinterprets the pointer bits without adjusting for sub-object offsets within the derived class",
     ],
     correctIndex: 1,
     explanation:
@@ -8508,10 +8508,10 @@ export const questions: Question[] = [
     question: "What does static_cast do when downcasting, and why is it dangerous?",
     code: `Base* b = getObject();  // might be Base or Derived\nDerived* d = static_cast<Derived*>(b);  // no runtime check`,
     options: [
-      "It performs a runtime check like dynamic_cast",
+      "It performs a runtime check like dynamic_cast, querying the object's RTTI metadata through the vtable to verify the actual derived type before allowing the downcast. If the check fails, it returns nullptr",
       "It trusts the programmer and adjusts the pointer at compile time with no runtime check. If b doesn't actually point to a Derived, the cast succeeds but using d is undefined behavior",
-      "It returns nullptr if the cast is invalid",
-      "It always throws on invalid downcasts",
+      "It returns nullptr if the cast is invalid, providing a safe way to attempt a downcast without risking undefined behavior. The caller must check the return value before dereferencing the resulting pointer",
+      "It always throws std::bad_cast on invalid downcasts, ensuring that incorrect type conversions are caught at runtime. The exception carries a message describing the source and target types to aid debugging",
     ],
     correctIndex: 1,
     explanation:
@@ -8525,10 +8525,10 @@ export const questions: Question[] = [
     question: "What is std::bit_cast (C++20) and how does it differ from reinterpret_cast?",
     code: `float f = 1.0f;\nuint32_t bits = std::bit_cast<uint32_t>(f);  // 0x3F800000`,
     options: [
-      "They are identical — bit_cast is simply a more readable alias for reinterpret_cast that was introduced for stylistic consistency in C++20",
+      "They are identical -- bit_cast is simply a more readable alias for reinterpret_cast that was introduced for stylistic consistency in C++20. The compiler generates exactly the same machine code for both, and the only difference is the syntax used to invoke them",
       "bit_cast copies the bytes from one type into another, producing a well-defined result when both types are the same size and trivially copyable. Unlike reinterpret_cast (which violates strict aliasing), bit_cast is safe, constexpr-compatible, and the recommended way to do type punning",
-      "bit_cast is slower because it copies memory byte-by-byte using memcpy, while reinterpret_cast is zero-cost since it only changes the pointer type",
-      "reinterpret_cast is safer because it's an older, battle-tested feature with well-defined semantics that have been stable since C++98",
+      "bit_cast is slower because it copies memory byte-by-byte using memcpy, while reinterpret_cast is zero-cost since it only changes the pointer type. The runtime overhead of the byte copy makes bit_cast unsuitable for hot loops where performance matters",
+      "reinterpret_cast is safer because it's an older, battle-tested feature with well-defined semantics that have been stable since C++98. Two decades of compiler optimizations have made reinterpret_cast's behavior fully predictable, whereas bit_cast is too new to trust",
     ],
     correctIndex: 1,
     explanation:
@@ -8544,10 +8544,10 @@ export const questions: Question[] = [
     question: "What does static_cast do to a void* and why must you be careful?",
     code: `Derived d;\nBase* bp = &d;\nvoid* vp = bp;                             // points to Base sub-object\nDerived* dp = static_cast<Derived*>(vp);   // WRONG?`,
     options: [
-      "This is always safe — void* preserves the full type information, and static_cast automatically applies any necessary pointer adjustments",
+      "This is always safe -- void* preserves the full type information, and static_cast automatically applies any necessary pointer adjustments. The compiler records the original type in hidden metadata alongside the void pointer so it can reconstruct the correct address",
       "static_cast<Derived*>(vp) interprets the void* as pointing to a Derived without adjusting the pointer. But vp holds Base*'s address, which may differ from Derived*'s if there's an offset (e.g., virtual inheritance). You must cast back to the exact same type that was cast to void*",
-      "void* cannot be cast to a typed pointer — the only way to recover the original type from a void* is to use dynamic_cast with RTTI",
-      "This crashes at runtime because static_cast on void* triggers an access violation when the runtime validates the pointer type",
+      "void* cannot be cast to a typed pointer -- the only way to recover the original type from a void* is to use dynamic_cast with RTTI. The runtime queries the type metadata stored in the vtable to determine the correct target type and pointer offset for the conversion",
+      "This crashes at runtime because static_cast on void* triggers an access violation when the runtime validates the pointer type. The operating system's memory protection detects the invalid cast and raises a segmentation fault before the pointer can be dereferenced",
     ],
     correctIndex: 1,
     explanation:
@@ -8561,10 +8561,10 @@ export const questions: Question[] = [
     question: "Is it legal to modify a const-qualified object through const_cast?",
     code: `const int x = 10;\nint* p = const_cast<int*>(&x);\n*p = 20;\nstd::cout << x;`,
     options: [
-      "Prints 20 — const_cast makes the modification safe by telling the compiler to treat the memory as writable for this operation",
+      "Prints 20 -- const_cast makes the modification safe by telling the compiler to treat the memory as writable for this operation. The cast removes the read-only protection and allows subsequent stores to succeed without undefined behavior",
       "Undefined behavior — x was declared const, so modifying it (even through a cast pointer) is UB. The compiler may have placed x in read-only memory or substituted 10 everywhere. The output could be 10, 20, or a crash",
-      "Compilation error — const_cast cannot be used on variables declared with top-level const, only on references and pointers to const data",
-      "Always prints 10 but the modification is silently ignored — the runtime discards writes to const objects and preserves the original value",
+      "Compilation error -- const_cast cannot be used on variables declared with top-level const, only on references and pointers to const data. The compiler rejects the cast during semantic analysis because top-level const forbids address-taking",
+      "Always prints 10 but the modification is silently ignored -- the runtime discards writes to const objects and preserves the original value. The memory controller intercepts the store instruction and redirects it to a discard buffer",
     ],
     correctIndex: 1,
     explanation:
@@ -8578,10 +8578,10 @@ export const questions: Question[] = [
     question: "What does the noexcept operator have to do with type traits and casting decisions?",
     code: `template<typename T>\nvoid moveOrCopy(T& dest, T& src) {\n    if constexpr (std::is_nothrow_move_constructible_v<T>) {\n        dest = std::move(src);  // safe to move\n    } else {\n        dest = src;  // fallback to copy\n    }\n}`,
     options: [
-      "noexcept has nothing to do with casting or type traits — it is purely a runtime directive that disables exception unwinding tables for a function",
+      "noexcept has nothing to do with casting or type traits -- it is purely a runtime directive that disables exception unwinding tables for a function. The linker strips the unwinding metadata from the binary when this directive is present, saving space",
       "Type traits like is_nothrow_move_constructible query noexcept specifications at compile time, enabling generic code to choose between move (efficient but only safe if noexcept) and copy (safe but slower). This is how std::vector decides whether to move or copy during reallocation",
-      "noexcept automatically adds static_cast to all move operations, wrapping each move constructor call in a static_cast to the target type",
-      "Type traits only work with dynamic_cast — they query the runtime type information to determine which cast overload should be selected",
+      "noexcept automatically adds static_cast to all move operations, wrapping each move constructor call in a static_cast to the target type. This ensures that move semantics preserve the exact type through the cast, preventing implicit conversions during moves",
+      "Type traits only work with dynamic_cast -- they query the runtime type information to determine which cast overload should be selected. The traits inspect the vtable at compile time to extract RTTI metadata and choose between static_cast and reinterpret_cast",
     ],
     correctIndex: 1,
     explanation:
@@ -8595,10 +8595,10 @@ export const questions: Question[] = [
     question: "What is the safe way to cast a pointer to an integer and back?",
     code: `int* p = &someInt;\nuintptr_t addr = reinterpret_cast<uintptr_t>(p);\nint* q = reinterpret_cast<int*>(addr);`,
     options: [
-      "Use static_cast for pointer-to-integer and integer-to-pointer conversions, because static_cast validates that the integer type is large enough at compile time",
+      "Use static_cast for pointer-to-integer and integer-to-pointer conversions, because static_cast validates that the integer type is large enough at compile time. The compiler checks sizeof(uintptr_t) against sizeof(void*) and rejects the cast if it would truncate",
       "reinterpret_cast to/from uintptr_t (or intptr_t) is the correct way. uintptr_t is guaranteed to be large enough to hold any pointer. The roundtrip is implementation-defined but works on all mainstream platforms. Avoid using int or long — they may be too small on 64-bit systems",
-      "Use std::bit_cast for pointer-to-integer and integer-to-pointer conversions, because bit_cast provides well-defined byte-level copying for all type pairs",
-      "Pointer-to-integer conversion is always undefined behavior — the standard provides no mechanism to store a pointer value in any integer type",
+      "Use std::bit_cast for pointer-to-integer and integer-to-pointer conversions, because bit_cast provides well-defined byte-level copying for all type pairs. It copies the raw pointer bytes into the integer representation and back, guaranteeing a lossless roundtrip",
+      "Pointer-to-integer conversion is always undefined behavior -- the standard provides no mechanism to store a pointer value in any integer type. The abstract machine treats pointers and integers as fundamentally incompatible categories with no defined mapping between them",
     ],
     correctIndex: 1,
     explanation:
@@ -8612,10 +8612,10 @@ export const questions: Question[] = [
     question: "What happens with implicit conversions in overload resolution?",
     code: `void f(int x)    { std::cout << "int"; }\nvoid f(double x) { std::cout << "double"; }\nvoid f(long x)   { std::cout << "long"; }\n\nf(3.14f);  // float argument`,
     options: [
-      "Ambiguous — multiple conversions are equally good, so the compiler reports an error because float→double and float→int have the same rank",
+      "Ambiguous -- multiple conversions are equally good, so the compiler reports an error because float-to-double and float-to-int have the same rank. Both are classified as standard conversions in the overload resolution ranking and neither is preferred",
       "Calls f(double) — float→double is a promotion (preferred), while float→int and float→long are conversions (lower priority). The overload resolution ranking is: exact match > promotion > conversion > user-defined conversion",
-      "Calls f(int) — float always converts to int first because integer types have higher priority than floating-point types in overload resolution",
-      "Compilation error — no overload takes float, and implicit conversions are not considered during overload resolution in C++",
+      "Calls f(int) -- float always converts to int first because integer types have higher priority than floating-point types in overload resolution. The standard ranks integral destinations above floating-point destinations when the source is floating-point",
+      "Compilation error -- no overload takes float, and implicit conversions are not considered during overload resolution in C++. The compiler requires an exact type match for all function parameters and does not apply any automatic type promotion",
     ],
     correctIndex: 1,
     explanation:
@@ -8698,10 +8698,10 @@ export const questions: Question[] = [
     question: "What does std::accumulate do?",
     code: `std::vector<int> v = {1, 2, 3, 4, 5};\nint sum = std::accumulate(v.begin(), v.end(), 0);  // 15`,
     options: [
-      "Finds the maximum element in the range by comparing each element against a running maximum value starting from the initial argument",
+      "Finds the maximum element in the range by comparing each element against a running maximum value starting from the initial argument. It returns the largest value found in the sequence",
       "Folds/reduces the range into a single value by repeatedly applying a binary operation (+ by default) with an initial value. Like 'reduce' or 'fold' in functional programming",
-      "Counts the number of elements in the range that are greater than the initial value passed as the third argument",
-      "Accumulates elements into a new container by appending each element from the source range to a dynamically growing output sequence",
+      "Counts the number of elements in the range that are greater than the initial value passed as the third argument. It increments an internal counter for each qualifying element in the range",
+      "Accumulates elements into a new container by appending each element from the source range to a dynamically growing output sequence. It returns the fully populated container by value",
     ],
     correctIndex: 1,
     explanation:
@@ -8717,10 +8717,10 @@ export const questions: Question[] = [
     question: "What is the difference between std::remove and actually erasing elements?",
     code: `std::vector<int> v = {1, 2, 3, 2, 4};\nauto newEnd = std::remove(v.begin(), v.end(), 2);\n// v is now {1, 3, 4, ?, ?} with newEnd pointing past 4\nv.erase(newEnd, v.end());  // actually shrinks: {1, 3, 4}`,
     options: [
-      "std::remove deletes elements from the container, freeing their memory and reducing the container's size in a single operation",
+      "std::remove deletes elements from the container, freeing their memory and reducing the container's size in a single operation. It calls the destructor for each removed element and updates the internal bookkeeping to reflect the smaller size",
       "std::remove only shifts non-removed elements forward and returns a new logical end — it doesn't change the container's size. You must call erase() to actually remove the tail elements. This is the erase-remove idiom",
-      "std::remove and erase are identical — they both physically delete matching elements from the container and update its size",
-      "std::remove sorts the elements first to group matching elements at the end, and then truncates the container to remove them",
+      "std::remove and erase are identical -- they both physically delete matching elements from the container and update its size. The standard library provides two names for the same operation purely for historical backward compatibility reasons",
+      "std::remove sorts the elements first to group matching elements at the end, and then truncates the container to remove them. The algorithm uses a modified quicksort partition to cluster matched elements contiguously for efficient batch deletion",
     ],
     correctIndex: 1,
     explanation:
@@ -8751,10 +8751,10 @@ export const questions: Question[] = [
     question: "How do you sort with a custom comparator?",
     code: `struct Student { std::string name; int grade; };\nstd::vector<Student> students;\nstd::sort(students.begin(), students.end(),\n    [](const Student& a, const Student& b) {\n        return a.grade > b.grade;  // descending\n    });`,
     options: [
-      "The lambda must return an int like strcmp — negative for less-than, zero for equal, and positive for greater-than",
+      "The lambda must return an int like strcmp -- negative for less-than, zero for equal, and positive for greater-than. The sort algorithm interprets the numeric return value to determine the ordering of each pair of elements",
       "The comparator is a binary predicate that returns true if the first argument should come before the second in the sorted order. It must define a strict weak ordering (irreflexive, asymmetric, transitive)",
-      "The comparator takes one argument and returns a sort key — std::sort extracts keys and sorts them rather than comparing elements directly",
-      "Custom sorting requires overloading operator< on the element type — you cannot pass a lambda or function object to std::sort",
+      "The comparator takes one argument and returns a sort key -- std::sort extracts keys and sorts them rather than comparing elements directly. This key-based approach avoids redundant field accesses by computing each sort key once",
+      "Custom sorting requires overloading operator< on the element type -- you cannot pass a lambda or function object to std::sort. The algorithm relies exclusively on the less-than operator defined as a member or friend of the element class",
     ],
     correctIndex: 1,
     explanation:
@@ -8768,10 +8768,10 @@ export const questions: Question[] = [
     question: "What does std::partition do and what is its time complexity?",
     code: `std::vector<int> v = {1, 7, 3, 8, 2, 9, 4};\nauto pivot = std::partition(v.begin(), v.end(),\n    [](int x) { return x < 5; });\n// v: {1, 4, 3, 2, | 8, 9, 7}  (partition point at |)`,
     options: [
-      "Sorts the range into two sorted halves — one containing elements less than the pivot and the other containing elements greater than it",
+      "Sorts the range into two sorted halves -- one containing elements less than the pivot and the other containing elements greater than it. Both halves are individually sorted in ascending order after the partition completes",
       "Rearranges elements so that all elements satisfying the predicate come before those that don't. Returns an iterator to the partition point. O(n) time, no extra memory. Elements within each partition are not sorted",
-      "Divides the range into two equal halves by count, placing the smaller half before the larger half regardless of element values",
-      "Removes elements that don't satisfy the predicate from the container and reduces the container's size to include only matching elements",
+      "Divides the range into two equal halves by count, placing the smaller half before the larger half regardless of element values. The algorithm splits the range at the midpoint index to ensure both partitions have the same number of elements",
+      "Removes elements that don't satisfy the predicate from the container and reduces the container's size to include only matching elements. Non-matching elements are destroyed and their memory is returned to the allocator during the operation",
     ],
     correctIndex: 1,
     explanation:
@@ -8785,10 +8785,10 @@ export const questions: Question[] = [
     question: "What is the difference between std::for_each and a range-based for loop?",
     code: `std::for_each(v.begin(), v.end(), [](int& x) { x *= 2; });\n// vs\nfor (auto& x : v) { x *= 2; }`,
     options: [
-      "for_each is always faster because it uses compiler intrinsics to unroll the loop and apply SIMD vectorization automatically",
+      "for_each is always faster because it uses compiler intrinsics to unroll the loop and apply SIMD vectorization automatically. The standard mandates that implementations exploit hardware vector units when the element type supports parallel operations",
       "Functionally similar, but std::for_each works with any iterator pair (including sub-ranges), can be passed to higher-order functions, and returns the function object (useful for stateful functors). Range-for is simpler syntax but always iterates the entire container",
-      "Range-for can't modify elements — auto& is not supported in range-based for loops, so you must use std::for_each for mutations",
-      "for_each requires random access iterators, while range-for works with any iterable type including forward and input iterators",
+      "Range-for can't modify elements -- auto& is not supported in range-based for loops, so you must use std::for_each for mutations. The range-based for syntax only binds to const references, preventing write access to the container's elements",
+      "for_each requires random access iterators, while range-for works with any iterable type including forward and input iterators. The for_each implementation internally uses iterator arithmetic (it + n) to skip elements, demanding random access",
     ],
     correctIndex: 1,
     explanation:
@@ -8804,10 +8804,10 @@ export const questions: Question[] = [
     question: "What does std::nth_element guarantee and what is its complexity?",
     code: `std::vector<int> v = {5, 1, 9, 3, 7, 2, 8};\nstd::nth_element(v.begin(), v.begin() + 3, v.end());\n// v[3] == 5 (the 4th smallest), elements before it are <=5, after are >=5`,
     options: [
-      "It fully sorts the range in O(n log n) using quicksort, despite its name suggesting it only operates on the nth element",
+      "It fully sorts the range in O(n log n) using quicksort, despite its name suggesting it only operates on the nth element. The algorithm recursively partitions the array until every element is in its final sorted position",
       "It places the nth element in its sorted position with smaller elements before and larger after, but neither side is sorted. Average O(n) — much faster than full sort when you only need the median or top-k",
-      "It finds the nth element without modifying the range, returning an iterator to the nth smallest element while leaving all elements in place",
-      "It's equivalent to partial_sort — both algorithms sort only the first n elements and leave the rest of the range unordered",
+      "It finds the nth element without modifying the range, returning an iterator to the nth smallest element while leaving all elements in place. The algorithm reads but never writes, preserving the original element order",
+      "It's equivalent to partial_sort -- both algorithms sort only the first n elements and leave the rest of the range unordered. The two functions produce identical output and have the same O(n log n) time complexity for top-k",
     ],
     correctIndex: 1,
     explanation:
@@ -8821,10 +8821,10 @@ export const questions: Question[] = [
     question: "How do execution policies (C++17) parallelize algorithms?",
     code: `#include <execution>\nstd::sort(std::execution::par, v.begin(), v.end());`,
     options: [
-      "They have no effect — parallelism is automatic, and the standard library always uses all available CPU cores regardless of the policy specified",
+      "They have no effect -- parallelism is automatic, and the standard library always uses all available CPU cores regardless of the policy specified. The runtime spawns a thread pool at startup and distributes algorithm work across cores automatically",
       "Execution policies tell the algorithm HOW to execute: seq (sequential), par (parallel across threads), par_unseq (parallel + vectorized). The implementation may use a thread pool. Element access must be data-race-free; exceptions during parallel execution call std::terminate",
-      "They only work with std::for_each — all other algorithms ignore the execution policy and always run sequentially on a single thread",
-      "They require OpenMP to be installed as a system-level dependency, because the C++ standard library delegates all parallelism to the OpenMP runtime",
+      "They only work with std::for_each -- all other algorithms ignore the execution policy and always run sequentially on a single thread. The parallel implementation was only completed for for_each, and extending it to sort and transform is planned for later",
+      "They require OpenMP to be installed as a system-level dependency, because the C++ standard library delegates all parallelism to the OpenMP runtime. The execution policy tag is translated into an OpenMP pragma that the compiler processes during parallel lowering",
     ],
     correctIndex: 1,
     explanation:
@@ -8837,10 +8837,10 @@ export const questions: Question[] = [
     topic: "Algorithms",
     question: "Why is std::stable_sort slower than std::sort, and when should you use it?",
     options: [
-      "stable_sort is always faster because the merge sort algorithm it uses has better cache locality and fewer comparisons than introsort",
+      "stable_sort is always faster because the merge sort algorithm it uses has better cache locality and fewer comparisons than introsort. The sequential access pattern of merge sort exploits hardware prefetchers more effectively, resulting in fewer cache misses on large arrays",
       "stable_sort preserves the relative order of equivalent elements (stability) but typically uses merge sort (O(n log n) time, O(n) extra space) vs sort's introsort (O(n log n) time, O(1) space). Use stable_sort when relative order matters (e.g., sorting by name after sorting by grade)",
-      "stable_sort has O(n²) complexity because it uses insertion sort internally, trading speed for guaranteed stability of equal elements",
-      "stable_sort only works on linked lists — for random access containers like vector, you must use std::sort or std::partial_sort instead",
+      "stable_sort has O(n squared) complexity because it uses insertion sort internally, trading speed for guaranteed stability of equal elements. The algorithm compares and shifts each element into its correct position one at a time, resulting in quadratic behavior on random input",
+      "stable_sort only works on linked lists -- for random access containers like vector, you must use std::sort or std::partial_sort instead. The merge-based implementation requires node-based storage to splice elements without copying, which only linked lists provide",
     ],
     correctIndex: 1,
     explanation:
@@ -8854,10 +8854,10 @@ export const questions: Question[] = [
     question: "What is the algorithmic difference between std::set_intersection and a manual nested loop approach?",
     code: `std::vector<int> a = {1, 2, 3, 4, 5};\nstd::vector<int> b = {3, 4, 5, 6, 7};\nstd::vector<int> result;\nstd::set_intersection(a.begin(), a.end(),\n    b.begin(), b.end(),\n    std::back_inserter(result));  // {3, 4, 5}`,
     options: [
-      "Both are O(n²) — set_intersection uses the same nested loop approach but wraps it in a cleaner interface for convenience",
+      "Both are O(n squared) -- set_intersection uses the same nested loop approach but wraps it in a cleaner interface for convenience. The algorithm iterates over every element of the first range and checks membership in the second range with a linear scan",
       "set_intersection uses a merge-like two-pointer technique on sorted ranges giving O(n + m) time, while a naive nested loop is O(n × m). Both ranges must be sorted. The algorithm advances both iterators simultaneously",
-      "set_intersection uses hashing for O(1) lookup by building a temporary hash table from the first range and probing it with the second",
-      "There is no difference — the algorithm uses nested loops internally, iterating over every pair of elements from both ranges",
+      "set_intersection uses hashing for O(1) lookup by building a temporary hash table from the first range and probing it with the second. The algorithm allocates a hash set proportional to the smaller range to accelerate membership queries",
+      "There is no difference -- the algorithm uses nested loops internally, iterating over every pair of elements from both ranges. The standard library implementation visits all n times m combinations to find matching values in the two input sequences",
     ],
     correctIndex: 1,
     explanation:
@@ -8871,10 +8871,10 @@ export const questions: Question[] = [
     question: "How does std::make_heap / std::priority_queue work internally?",
     code: `std::vector<int> v = {3, 1, 4, 1, 5};\nstd::make_heap(v.begin(), v.end());\n// v is now a max-heap: {5, 3, 4, 1, 1}`,
     options: [
-      "It sorts the array in descending order and renames it a heap — the sorted order is what gives the heap its max-element-first property",
+      "It sorts the array in descending order and renames it a heap -- the sorted order is what gives the heap its max-element-first property. The algorithm is equivalent to calling std::sort with a reverse comparator and then labeling the result a binary heap",
       "It rearranges the array into a binary max-heap stored in array form: element i's children are at 2i+1 and 2i+2. make_heap runs in O(n) via bottom-up heapification. push_heap and pop_heap are O(log n). priority_queue wraps this with a clean API",
-      "It creates a separate tree data structure on the heap (dynamic memory), with each node containing a value and pointers to its children",
-      "It uses a hash table internally, mapping element values to their priority scores for O(1) access to the highest-priority element",
+      "It creates a separate tree data structure on the heap (dynamic memory), with each node containing a value and pointers to its children. The algorithm allocates a node for every element and links them into a pointer-based binary tree using new for each allocation",
+      "It uses a hash table internally, mapping element values to their priority scores for O(1) access to the highest-priority element. The implementation maintains a hash map from values to priority indices that supports constant-time max extraction",
     ],
     correctIndex: 1,
     explanation:
@@ -8958,10 +8958,10 @@ export const questions: Question[] = [
     question: "What does the [[likely]] and [[unlikely]] attribute do?",
     code: `if (errorCode == 0) [[likely]] {\n    processNormally();\n} else [[unlikely]] {\n    handleError();\n}`,
     options: [
-      "They force the compiler to execute that branch",
+      "They force the compiler to execute that branch unconditionally, bypassing the condition check and always running the annotated block. The compiler removes the conditional test and generates straight-line code for the marked path",
       "They hint to the compiler which branch is more probable, allowing it to optimize instruction layout (e.g., placing the likely path in the fall-through position for better branch prediction and cache usage)",
-      "They cause a compilation error if the wrong branch is taken",
-      "They have no effect — they are purely documentation",
+      "They cause a compilation error if the wrong branch is taken at runtime, acting as a runtime assertion that validates control flow. The compiler inserts a trap instruction in the unlikely path that aborts if reached",
+      "They have no effect -- they are purely documentation comments that the compiler and optimizer ignore entirely. The C++ standard defines these attributes as optional annotations with no observable impact on code generation or execution behavior",
     ],
     correctIndex: 1,
     explanation:
@@ -8977,10 +8977,10 @@ export const questions: Question[] = [
     question: "How do C++20 ranges differ from the traditional iterator-pair algorithm style?",
     code: `// Traditional\nstd::sort(v.begin(), v.end());\n\n// Ranges\nstd::ranges::sort(v);\n\n// Composable views\nauto result = v | std::views::filter([](int x) { return x > 0; })\n               | std::views::transform([](int x) { return x * x; });`,
     options: [
-      "Ranges are slower because they add abstraction layers",
+      "Ranges are slower because they add abstraction layers that introduce function-call overhead at every pipeline stage. Each view adapter wraps the underlying iterator in a proxy that adds an extra indirection on every access",
       "Ranges accept containers directly (not just iterator pairs), enable lazy composable pipelines with the | operator, provide better error messages via concepts, and add projections for member access",
-      "Ranges replace all STL containers",
-      "Ranges only work with std::vector",
+      "Ranges replace all STL containers with a new set of range-based container types that use lazy evaluation internally. The standard deprecated vector, map, and all other containers in favor of range-based equivalents",
+      "Ranges only work with std::vector -- other containers like std::list, std::deque, and std::map are not supported by the ranges library. The range concepts require random access iterators, which only vector provides",
     ],
     correctIndex: 1,
     explanation:
@@ -8994,10 +8994,10 @@ export const questions: Question[] = [
     question: "What is a requires clause and how does it constrain templates?",
     code: `template<typename T>\nrequires std::integral<T> || std::floating_point<T>\nT clamp(T val, T lo, T hi) {\n    return (val < lo) ? lo : (val > hi) ? hi : val;\n}`,
     options: [
-      "requires is a runtime assertion like assert()",
+      "requires is a runtime assertion like assert() that evaluates its boolean argument during execution and calls std::terminate if false. It inserts a check at the function entry point that validates the constraint before proceeding",
       "A requires clause is a compile-time constraint that rejects template instantiations when the boolean concept expression is false. The compiler produces a clear error instead of a wall of template errors",
-      "requires generates runtime type checks",
-      "requires is only for variable declarations",
+      "requires generates runtime type checks that inspect the argument's dynamic type via RTTI before dispatching to the function body. The compiler emits code that queries the vtable to verify it satisfies the concept at call time",
+      "requires is only for variable declarations -- it constrains the types that a variable can hold but cannot be applied to function templates. The specifier restricts assignment and initialization to types matching the concept",
     ],
     correctIndex: 1,
     explanation:
@@ -9027,10 +9027,10 @@ export const questions: Question[] = [
     question: "What are C++20 modules and what problem do they solve?",
     code: `// math.cppm\nexport module math;\nexport int add(int a, int b) { return a + b; }\n\n// main.cpp\nimport math;\nint main() { return add(1, 2); }`,
     options: [
-      "Modules are the same as namespaces",
+      "Modules are the same as namespaces -- they group related declarations under a common prefix but provide no compilation benefits. The import keyword is syntactic sugar for a using-directive that pulls all names into the current scope",
       "Modules replace #include with a compile-once binary interface. They eliminate redundant reparsing of headers, prevent macro leakage, and enforce explicit export of public API. Build times can improve dramatically for large projects",
-      "Modules are only available on Linux",
-      "Modules require a special runtime to work",
+      "Modules are only available on Linux because the module binary format (.cppm) uses ELF-specific sections that Windows PE and macOS Mach-O cannot represent. Cross-platform module support requires a binary interface not yet standardized",
+      "Modules require a special runtime to work because the import statement triggers dynamic loading of module binaries at program startup. The runtime locates the compiled module file on disk and resolves all exported symbols before main()",
     ],
     correctIndex: 1,
     explanation:
@@ -9063,10 +9063,10 @@ export const questions: Question[] = [
     question: "How do requires expressions test type capabilities at compile time?",
     code: `template<typename T>\nconcept Printable = requires(T t, std::ostream& os) {\n    { os << t } -> std::convertible_to<std::ostream&>;\n    { t.toString() } -> std::same_as<std::string>;\n    typename T::value_type;\n};`,
     options: [
-      "requires expressions run the code and check for runtime errors",
+      "requires expressions run the code and check for runtime errors by executing each sub-expression in a sandboxed context. The runtime evaluates every expression inside the requires block and catches any exceptions to determine whether the type satisfies the constraint",
       "A requires expression is an unevaluated compile-time check. It verifies: simple requirements (expressions must be valid), compound requirements ({expr} -> concept checks the return type), type requirements (typename T::X checks the type exists), and nested requirements (requires bool_expr)",
-      "requires expressions only check for function existence",
-      "requires expressions generate SFINAE fallback implementations",
+      "requires expressions only check for function existence by looking up the name in the overload set. They do not verify return types, argument counts, or noexcept specs -- only that a function with the given name is declared in the visible scope of the template",
+      "requires expressions generate SFINAE fallback implementations that the linker selects when the primary template fails. Each sub-expression in the requires block corresponds to an alternative function body that is instantiated only when the primary overload is not viable",
     ],
     correctIndex: 1,
     explanation:
@@ -9080,10 +9080,10 @@ export const questions: Question[] = [
     question: "How do coroutines work at the language level in C++20?",
     code: `generator<int> fibonacci() {\n    int a = 0, b = 1;\n    while (true) {\n        co_yield a;\n        auto next = a + b;\n        a = b;\n        b = next;\n    }\n}`,
     options: [
-      "co_yield creates a new OS thread for each yielded value, scheduling them through the kernel\u2019s thread pool so that multiple values can be produced and consumed concurrently across CPU cores",
+      "co_yield creates a new OS thread for each yielded value, scheduling them through the kernel's thread pool so that multiple values can be produced and consumed concurrently across CPU cores. The runtime uses the OS scheduler to manage coroutine lifetimes",
       "A function becomes a coroutine when it uses co_yield, co_await, or co_return. The compiler transforms it into a state machine with a heap-allocated frame. co_yield suspends execution and returns a value; the caller can resume to get the next value. The promise_type customizes behavior",
-      "Coroutines are syntactic sugar for callback chains \u2014 the compiler rewrites each co_await into a nested lambda callback, passing the continuation to the awaited operation with no state machine or frame allocation",
-      "co_yield terminates the function permanently and deallocates its coroutine frame, returning the final value to the caller. To produce another value you must call the coroutine function again from the beginning",
+      "Coroutines are syntactic sugar for callback chains -- the compiler rewrites each co_await into a nested lambda callback, passing the continuation to the awaited operation with no state machine or frame allocation involved in the transformation process at all",
+      "co_yield terminates the function permanently and deallocates its coroutine frame, returning the final value to the caller. To produce another value you must call the coroutine function again from the beginning, reconstructing the frame and re-executing all statements",
     ],
     correctIndex: 1,
     explanation:
@@ -9097,10 +9097,10 @@ export const questions: Question[] = [
     question: "How does concept subsumption affect overload resolution?",
     code: `template<typename T>\nconcept Drawable = requires(T t) { t.draw(); };\n\ntemplate<typename T>\nconcept ColorDrawable = Drawable<T> && requires(T t) { t.setColor(0); };\n\nvoid render(Drawable auto& obj)      { /* basic */ }\nvoid render(ColorDrawable auto& obj) { /* with color */ }`,
     options: [
-      "Ambiguous — both overloads match a ColorDrawable type",
+      "Ambiguous -- both overloads match a ColorDrawable type, so the compiler reports a hard error because overload resolution cannot distinguish between two equally viable candidates. You must use an explicit cast or tag dispatch to select the overload",
       "The compiler selects the most constrained overload. Because ColorDrawable subsumes Drawable (it includes all of Drawable's requirements plus more), the ColorDrawable overload is preferred for types that satisfy both — no ambiguity",
-      "The first overload always wins because it was declared first",
-      "This is a compilation error — you can't overload on concepts",
+      "The first overload always wins because it was declared first in the translation unit. When multiple overloads match, the compiler uses declaration order as a tiebreaker, selecting the earliest viable candidate and ignoring subsequent matches",
+      "This is a compilation error -- you can't overload on concepts because concept-constrained functions are not considered distinct overloads. The standard treats templates with different concept constraints as redeclarations of the same function",
     ],
     correctIndex: 1,
     explanation:
@@ -9114,10 +9114,10 @@ export const questions: Question[] = [
     question: "What is std::ranges::views::zip (C++23) and how do lazy views compose?",
     code: `std::vector<std::string> names = {"Alice", "Bob"};\nstd::vector<int> scores = {95, 87};\n\nfor (auto [name, score] : std::views::zip(names, scores)) {\n    std::cout << name << ": " << score << "\\n";\n}`,
     options: [
-      "zip eagerly copies both containers into a new std::vector of std::pair objects, allocating memory proportional to the combined input sizes and requiring both ranges to have matching element types",
+      "zip eagerly copies both containers into a new std::vector of std::pair objects, allocating memory proportional to the combined input sizes and requiring both ranges to have matching element types. The resulting vector owns copies of every element from both sources",
       "zip creates a lazy view that produces tuples by combining elements from multiple ranges in lockstep. No data is copied — each element is computed on demand. Views compose with | to build pipelines (filter | transform | zip) that process one element at a time with no intermediate allocations",
-      "zip only works when all input containers share the exact same element type, because the resulting tuples must be homogeneous — mixing int and string ranges is a compilation error",
-      "zip requires all input ranges to have exactly the same size and throws std::length_error at runtime if a size mismatch is detected during iteration, to prevent out-of-bounds access",
+      "zip only works when all input containers share the exact same element type, because the resulting tuples must be homogeneous -- mixing int and string ranges is a compilation error. The concept constraint on zip requires identical value types for tuple construction",
+      "zip requires all input ranges to have exactly the same size and throws std::length_error at runtime if a size mismatch is detected during iteration, to prevent out-of-bounds access. The iterator checks bounds on every increment and terminates with an exception on overflow",
     ],
     correctIndex: 1,
     explanation:
@@ -9131,10 +9131,10 @@ export const questions: Question[] = [
     question: "How does constexpr allocation (C++20) work, and what are its limits?",
     code: `constexpr auto makeVector() {\n    std::vector<int> v = {1, 2, 3};\n    return v.size();  // OK: vector used at compile time\n}\nstatic_assert(makeVector() == 3);`,
     options: [
-      "std::vector cannot be used in constexpr contexts",
+      "std::vector cannot be used in constexpr contexts because it relies on dynamic memory allocation which the compile-time evaluator does not support. The constexpr interpreter lacks a heap, so new/delete and any container that uses them are rejected during constant evaluation",
       "C++20 allows dynamic memory allocation during constant evaluation — new/delete and std::vector work at compile time. The constraint: all dynamically allocated memory must be freed before the constant evaluation ends (transient allocation). You cannot 'leak' compile-time data into runtime",
-      "constexpr allocation uses a special compile-time heap that persists at runtime",
-      "Only fixed-size arrays work in constexpr",
+      "constexpr allocation uses a special compile-time heap that persists at runtime, allowing data created during compilation to be accessed by the running program. The compiler embeds the heap contents into the data segment so allocated objects survive past constant evaluation",
+      "Only fixed-size arrays work in constexpr functions because the compiler requires all memory sizes to be known statically. Dynamic containers like vector, string, and list are excluded because their size varies and the evaluator cannot model variable-length storage",
     ],
     correctIndex: 1,
     explanation:
@@ -9150,10 +9150,10 @@ export const questions: Question[] = [
     question: "How do you create and run a thread in C++?",
     code: `void work() { std::cout << "Hello from thread\\n"; }\n\nstd::thread t(work);\nt.join();  // wait for it to finish`,
     options: [
-      "You must use OS-specific APIs like pthread_create",
+      "You must use OS-specific APIs like pthread_create on Linux or CreateThread on Windows, because the C++ standard library provides no portable threading abstraction",
       "std::thread takes a callable (function, lambda, functor) and starts executing it immediately in a new thread. join() blocks until the thread completes",
-      "std::thread only works with lambdas",
-      "Threads are started by calling t.start()",
+      "std::thread only works with lambdas -- it cannot accept function pointers, member function pointers, or functor objects as the callable argument for the new thread",
+      "Threads are started by calling t.start() after constructing the thread object. The constructor only allocates the thread handle but does not begin execution until start is invoked",
     ],
     correctIndex: 1,
     explanation:
@@ -9167,10 +9167,10 @@ export const questions: Question[] = [
     question: "What is a data race?",
     code: `int counter = 0;\n\nvoid increment() {\n    for (int i = 0; i < 1000; ++i)\n        ++counter;  // unsynchronized!\n}\n\nstd::thread t1(increment), t2(increment);\nt1.join(); t2.join();\n// counter may NOT be 2000`,
     options: [
-      "When two threads run at different speeds",
+      "When two threads run at different speeds due to differences in their workload or CPU scheduling priority. This speed mismatch is harmless and does not cause incorrect behavior",
       "When two or more threads access the same memory location concurrently, at least one is a write, and there is no synchronization — the result is undefined behavior",
-      "When a thread reads data before it's initialized",
-      "When two threads try to create the same file",
+      "When a thread reads data before it's initialized by the creating thread. This only happens with global and static variables, not with stack-allocated locals passed by reference",
+      "When two threads try to create the same file on disk simultaneously. The filesystem serializes the creates, so one succeeds and the other fails with an error code from the OS",
     ],
     correctIndex: 1,
     explanation:
@@ -9184,10 +9184,10 @@ export const questions: Question[] = [
     question: "What does std::mutex do?",
     code: `std::mutex mtx;\nint shared = 0;\n\nvoid safeIncrement() {\n    mtx.lock();\n    ++shared;\n    mtx.unlock();\n}`,
     options: [
-      "It makes a variable atomic",
+      "It makes a variable atomic by applying hardware-level locking to every read and write operation on that variable, ensuring indivisible access from any thread",
       "It provides mutual exclusion — only one thread can hold the lock at a time. Other threads calling lock() will block until the mutex is released",
-      "It creates a copy of the data for each thread",
-      "It prevents threads from being created",
+      "It creates a copy of the data for each thread that accesses the mutex, giving every thread its own private replica of the shared state to work with independently",
+      "It prevents threads from being created by locking a global thread-creation semaphore, ensuring only the main thread runs until the mutex is explicitly released",
     ],
     correctIndex: 1,
     explanation:
@@ -9201,10 +9201,10 @@ export const questions: Question[] = [
     question: "Why should you use std::lock_guard instead of manually calling lock()/unlock()?",
     code: `std::mutex mtx;\n\nvoid safe() {\n    std::lock_guard<std::mutex> guard(mtx);\n    // mtx is locked here\n    doWork();  // even if this throws...\n}  // guard's destructor unlocks mtx`,
     options: [
-      "lock_guard is faster than manual locking",
+      "lock_guard is faster than manual locking because the compiler optimizes the RAII wrapper into a single atomic instruction that acquires and releases the mutex with no overhead",
       "lock_guard uses RAII — it locks in the constructor and unlocks in the destructor, guaranteeing the mutex is released even if an exception is thrown or the function returns early",
-      "lock_guard allows multiple threads to hold the lock",
-      "There is no difference — it's just convenience syntax",
+      "lock_guard allows multiple threads to hold the lock simultaneously by internally tracking a reference count. Each constructor call increments the count and each destructor decrements it",
+      "There is no difference -- it's just convenience syntax that the compiler transforms into explicit lock() and unlock() calls. The generated code is identical with no additional safety",
     ],
     correctIndex: 1,
     explanation:
@@ -9217,10 +9217,10 @@ export const questions: Question[] = [
     topic: "Multithreading",
     question: "What does thread::join() vs thread::detach() do?",
     options: [
-      "join() kills the thread; detach() pauses it",
+      "join() kills the thread immediately by sending it a termination signal and releasing all resources. The calling thread resumes execution as soon as the signal is delivered to the target thread",
       "join() blocks until the thread finishes, then cleans up. detach() lets the thread run independently — it will clean up itself when done, but you lose the ability to wait for it or check if it succeeded",
-      "Both do the same thing but at different times",
-      "detach() is deprecated in C++20",
+      "Both do the same thing but at different times -- join waits five seconds before cleaning up the thread, while detach cleans it up immediately. The only difference is the delay before resource cleanup begins",
+      "detach() is deprecated in C++20 and replaced by std::jthread, which automatically joins on destruction. Using detach triggers a compiler warning on conforming implementations because it is scheduled for removal",
     ],
     correctIndex: 1,
     explanation:
@@ -9236,10 +9236,10 @@ export const questions: Question[] = [
     question: "What does std::condition_variable do and why does it need a mutex?",
     code: `std::mutex mtx;\nstd::condition_variable cv;\nbool ready = false;\n\n// Consumer\nstd::unique_lock<std::mutex> lock(mtx);\ncv.wait(lock, [&]{ return ready; });\n// proceed...\n\n// Producer\n{\n    std::lock_guard<std::mutex> g(mtx);\n    ready = true;\n}\ncv.notify_one();`,
     options: [
-      "It replaces the mutex entirely",
+      "It replaces the mutex entirely by providing a lock-free synchronization mechanism based on atomic spinning. Threads busy-wait on an atomic flag instead of blocking, which avoids the overhead of kernel transitions",
       "It allows a thread to sleep until notified by another thread. It needs a mutex to protect the shared predicate (ready) from data races and to handle spurious wakeups via the predicate lambda",
-      "It's a timer that wakes threads at intervals",
-      "It locks two mutexes simultaneously",
+      "It's a timer that wakes threads at intervals specified by a duration argument. The condition variable fires periodic signals to sleeping threads based on the configured timeout, enabling regular polling of shared state",
+      "It locks two mutexes simultaneously using a deadlock-avoidance algorithm that acquires both locks in a consistent global order. The condition variable internally manages the lock ordering to prevent circular wait conditions",
     ],
     correctIndex: 1,
     explanation:
@@ -9253,10 +9253,10 @@ export const questions: Question[] = [
     question: "What is std::async and how does it relate to std::future?",
     code: `auto fut = std::async(std::launch::async, []() {\n    return expensiveComputation();\n});\n// ... do other work ...\nint result = fut.get();  // blocks until ready`,
     options: [
-      "async is an alias for std::thread",
+      "async is an alias for std::thread -- both create a new OS thread and begin executing the callable immediately. The only difference is that async returns void while thread returns a joinable handle",
       "std::async runs a callable potentially in a new thread and returns a std::future that holds the result. fut.get() blocks until the result is available. If the callable threw, get() rethrows the exception",
-      "std::async always runs synchronously",
-      "std::future is a thread-safe container like vector",
+      "std::async always runs synchronously in the calling thread, executing the callable inline before returning the future. The function blocks until the computation completes and stores the result in the returned future",
+      "std::future is a thread-safe container like vector that stores multiple values pushed by producer threads. Consumers pop values from the front while producers append to the back, forming a concurrent queue",
     ],
     correctIndex: 1,
     explanation:
@@ -9270,10 +9270,10 @@ export const questions: Question[] = [
     question: "What is a deadlock and how does this code cause one?",
     code: `std::mutex m1, m2;\n\n// Thread A\nm1.lock();\nm2.lock();  // waits for m2\n\n// Thread B\nm2.lock();\nm1.lock();  // waits for m1`,
     options: [
-      "This doesn't cause a deadlock — mutexes are reentrant",
+      "This doesn't cause a deadlock -- mutexes are reentrant by default in C++, allowing the same thread to lock a mutex it already owns. Recursive locking increments an internal counter that is decremented on each unlock",
       "Both threads are waiting for the other's mutex, and neither can make progress — they are permanently blocked. The fix: always lock mutexes in the same order, or use std::scoped_lock(m1, m2) which avoids deadlock",
-      "Only one thread will deadlock; the other will proceed",
-      "The OS automatically detects and resolves this",
+      "Only one thread will deadlock; the other will proceed normally because the OS scheduler detects the conflict and preempts the blocked thread. The surviving thread runs to completion and releases both mutexes, unblocking the other",
+      "The OS automatically detects and resolves this by breaking the deadlock cycle and forcing one thread to release its mutex. The kernel's deadlock detector runs periodically and selects a victim thread to abort when a cycle is found",
     ],
     correctIndex: 1,
     explanation:
@@ -9287,10 +9287,10 @@ export const questions: Question[] = [
     question: "What does std::atomic provide over a regular variable?",
     code: `std::atomic<int> counter{0};\n\nvoid increment() {\n    for (int i = 0; i < 1000; ++i)\n        ++counter;  // atomic read-modify-write\n}`,
     options: [
-      "Atomic variables are just faster than regular variables",
+      "Atomic variables are just faster than regular variables because the compiler aligns them to cache-line boundaries and uses hardware prefetch hints to minimize memory latency on read-heavy workloads",
       "Atomic operations are guaranteed to be indivisible — no other thread can see a half-written state. They also establish synchronization (memory ordering) between threads without needing a mutex",
-      "Atomic variables prevent deadlocks",
-      "Atomic variables are allocated in special hardware memory",
+      "Atomic variables prevent deadlocks by eliminating the need for mutexes entirely. Any shared data declared atomic is guaranteed to be free from deadlock, livelock, and priority inversion conditions",
+      "Atomic variables are allocated in special hardware memory regions that support lock-free concurrent access. The runtime maps atomic objects into dedicated SRAM banks on the CPU die for faster access",
     ],
     correctIndex: 1,
     explanation:
@@ -9303,10 +9303,10 @@ export const questions: Question[] = [
     topic: "Multithreading",
     question: "What is the difference between std::unique_lock and std::lock_guard?",
     options: [
-      "They are identical in functionality and performance — unique_lock is simply the C++17 rename of lock_guard, kept for backward compatibility with no behavioral differences",
+      "They are identical in functionality and performance -- unique_lock is simply the C++17 rename of lock_guard, kept for backward compatibility. The committee introduced the new name for consistency with unique_ptr naming conventions",
       "lock_guard is simpler — locks in constructor, unlocks in destructor, non-movable. unique_lock is more flexible — it can be deferred, manually unlocked/relocked, moved between scopes, and is required by condition_variable::wait()",
-      "unique_lock is faster because it replaces the mutex's kernel-level synchronization with lock-free atomic operations internally, avoiding system calls on the fast path",
-      "lock_guard can lock multiple mutexes simultaneously using a deadlock-avoidance algorithm; unique_lock is limited to a single mutex and must be used with std::lock() for multi-mutex scenarios",
+      "unique_lock is faster because it replaces the mutex's kernel-level synchronization with lock-free atomic operations internally, avoiding system calls on the fast path. The implementation uses a compare-and-swap loop instead of a kernel futex",
+      "lock_guard can lock multiple mutexes simultaneously using a deadlock-avoidance algorithm; unique_lock is limited to a single mutex and must be used with std::lock() for multi-mutex scenarios. scoped_lock was added to bring multi-lock support to RAII",
     ],
     correctIndex: 1,
     explanation:
@@ -9322,10 +9322,10 @@ export const questions: Question[] = [
     question: "What are memory orderings and why does std::memory_order_relaxed exist?",
     code: `std::atomic<bool> flag{false};\nstd::atomic<int> data{0};\n\n// Thread A\ndata.store(42, std::memory_order_relaxed);\nflag.store(true, std::memory_order_release);\n\n// Thread B\nwhile (!flag.load(std::memory_order_acquire));\nint value = data.load(std::memory_order_relaxed);  // guaranteed 42`,
     options: [
-      "Memory orderings are irrelevant on modern CPUs because all mainstream architectures (x86, ARM, RISC-V) guarantee sequential consistency by default at the hardware level, making software fences redundant",
+      "Memory orderings are irrelevant on modern CPUs because all mainstream architectures (x86, ARM, RISC-V) guarantee sequential consistency by default at the hardware level, making software fences redundant. The hardware memory model prevents all reordering",
       "Memory orderings control how atomic operations synchronize with other memory accesses. relaxed: only atomicity, no ordering. acquire/release: one-directional fence (release publishes, acquire observes). seq_cst (default): total global order. Weaker orderings give better performance on ARM/POWER",
-      "relaxed means the atomic operation may not complete if the cache line is contended \u2014 the store can be silently dropped by the hardware, requiring the caller to retry in a loop until it succeeds",
-      "All orderings produce identical machine code on every architecture because the compiler always emits the strongest fence instructions regardless of the ordering parameter you specify",
+      "relaxed means the atomic operation may not complete if the cache line is contended -- the store can be silently dropped by the hardware, requiring the caller to retry in a loop until it succeeds. This makes relaxed operations unreliable under high contention from multiple cores",
+      "All orderings produce identical machine code on every architecture because the compiler always emits the strongest fence instructions regardless of the ordering parameter you specify. The memory order enum exists only for documentation purposes and has no effect on code",
     ],
     correctIndex: 1,
     explanation:
@@ -9339,10 +9339,10 @@ export const questions: Question[] = [
     question: "What is false sharing and how does it hurt performance?",
     code: `struct Counters {\n    alignas(64) int countA = 0;  // fixed\n    alignas(64) int countB = 0;  // fixed\n};`,
     options: [
-      "When two threads share data that should be kept private to each thread \u2014 the solution is to mark the variables thread_local so each thread gets its own independent copy stored in thread-local storage",
+      "When two threads share data that should be kept private to each thread -- the solution is to mark the variables thread_local so each thread gets its own independent copy stored in thread-local storage. This eliminates contention by removing the sharing from the design",
       "When two threads modify different variables that happen to be on the same CPU cache line (typically 64 bytes). Each write invalidates the entire cache line for the other core, causing constant cache-line bouncing despite no actual data sharing. Fix: align to cache-line boundaries with alignas(64)",
-      "When two threads perform concurrent reads on the same shared data structure \u2014 even though no writes occur, the read-side locking overhead causes contention that degrades throughput linearly with the number of readers",
-      "When a thread reads stale data from a CPU register because the compiler cached a shared variable in a register instead of reloading it from memory \u2014 the fix is to declare the variable volatile",
+      "When two threads perform concurrent reads on the same shared data structure -- even though no writes occur, the read-side locking overhead causes contention that degrades throughput linearly with the number of readers. The mutex serializes readers unnecessarily, wasting CPU cycles",
+      "When a thread reads stale data from a CPU register because the compiler cached a shared variable in a register instead of reloading it from memory -- the fix is to declare the variable volatile. The volatile qualifier forces every read to go through the memory hierarchy",
     ],
     correctIndex: 1,
     explanation:
@@ -9356,10 +9356,10 @@ export const questions: Question[] = [
     question: "What is std::atomic::compare_exchange_weak and why is there a 'weak' version?",
     code: `std::atomic<int> val{0};\nint expected = 0;\nval.compare_exchange_weak(expected, 1);`,
     options: [
-      "weak is deprecated since C++20 because modern hardware provides native CAS instructions on all major architectures, making the spurious-failure distinction unnecessary — always use strong instead",
+      "weak is deprecated since C++20 because modern hardware provides native CAS instructions on all major architectures, making the spurious-failure distinction unnecessary -- always use strong instead. The committee voted to mark weak as deprecated pending removal in C++26",
       "compare_exchange_weak may spuriously fail (return false even when val == expected) on architectures with LL/SC (like ARM). It's meant for loops where you retry anyway. compare_exchange_strong guarantees no spurious failure but may be slower on those architectures",
-      "weak skips the comparison step entirely and performs an unconditional store, making it faster than strong but only correct when you don't care about the previous value",
-      "weak only works with integral types (int, long, char) because it relies on hardware CAS instructions that operate on register-sized values, while strong also supports pointer and floating-point types",
+      "weak skips the comparison step entirely and performs an unconditional store, making it faster than strong but only correct when you don't care about the previous value. The operation writes the desired value without reading or comparing the current value in the atomic",
+      "weak only works with integral types (int, long, char) because it relies on hardware CAS instructions that operate on register-sized values, while strong also supports pointer and floating-point types by emulating compare-exchange with a mutex-protected load-store sequence",
     ],
     correctIndex: 1,
     explanation:
@@ -9373,10 +9373,10 @@ export const questions: Question[] = [
     question: "What is the difference between std::shared_mutex and std::mutex?",
     code: `std::shared_mutex rw;\n\nvoid reader() {\n    std::shared_lock lock(rw);  // multiple readers OK\n    readData();\n}\n\nvoid writer() {\n    std::unique_lock lock(rw);  // exclusive access\n    writeData();\n}`,
     options: [
-      "shared_mutex allows multiple threads to hold the lock simultaneously",
+      "shared_mutex allows multiple threads to hold the lock simultaneously without distinguishing between read and write access. All threads acquire the same lock type, and the mutex simply counts the number of holders to enforce a configurable concurrency limit",
       "shared_mutex supports two lock modes: shared (read) and exclusive (write). Multiple readers can hold shared locks concurrently, but a writer needs exclusive access — blocking all readers and other writers. This is a readers-writer lock",
-      "shared_mutex is a mutex shared across processes",
-      "shared_mutex is faster than mutex in all cases",
+      "shared_mutex is a mutex shared across processes via a memory-mapped region in the operating system's shared memory segment. It enables inter-process synchronization by mapping the mutex state into a page visible to all participating processes on the machine",
+      "shared_mutex is faster than mutex in all cases because it uses atomic spinlocks internally instead of kernel-level synchronization. The shared variant avoids system calls by spinning in user space, reducing latency for both shared and exclusive lock acquisitions",
     ],
     correctIndex: 1,
     explanation:
@@ -9390,10 +9390,10 @@ export const questions: Question[] = [
     question: "What problem does std::call_once solve?",
     code: `std::once_flag initFlag;\nConnection* conn = nullptr;\n\nvoid ensureConnected() {\n    std::call_once(initFlag, []() {\n        conn = new Connection("db://localhost");\n    });\n    conn->query(...);\n}`,
     options: [
-      "It calls a function exactly once per thread",
+      "It calls a function exactly once per thread by associating the once_flag with the calling thread's ID. Each thread maintains its own flag state, so the callable executes independently in every thread that invokes call_once",
       "It guarantees that the callable executes exactly once across all threads, even under concurrent calls. All other threads block until the initialization completes. If the callable throws, another thread gets to retry",
-      "It's a faster version of std::async",
-      "It registers a callback for program exit",
+      "It's a faster version of std::async that skips the overhead of creating a std::future object. The call_once mechanism launches the callable on a background thread without returning a handle, reducing synchronization costs compared to async",
+      "It registers a callback for program exit by appending the callable to the global atexit handler list. The once_flag ensures the callback is registered only once, and the callable executes during static object destruction at program termination",
     ],
     correctIndex: 1,
     explanation:
@@ -9409,10 +9409,10 @@ export const questions: Question[] = [
     question: "What is a function template?",
     code: `template<typename T>\nT maximum(T a, T b) {\n    return (a > b) ? a : b;\n}\n\nmaximum(3, 7);       // T = int\nmaximum(3.5, 1.2);  // T = double`,
     options: [
-      "A function that takes any argument without type checking",
+      "A function that takes any argument without type checking, similar to a void* parameter that accepts all types. The compiler bypasses all type validation and generates a single function body that operates on raw memory",
       "A blueprint that the compiler uses to generate type-specific functions on demand. The compiler deduces T from the arguments and creates a concrete function for each distinct type used",
-      "A macro that performs text substitution",
-      "A virtual function that adapts to its argument types at runtime",
+      "A macro that performs text substitution at the preprocessor stage, expanding the template body inline at every call site. The preprocessor replaces each occurrence of T with the actual type name",
+      "A virtual function that adapts to its argument types at runtime by dispatching through a vtable lookup. The runtime selects the appropriate function body from a table of type-specific implementations",
     ],
     correctIndex: 1,
     explanation:
@@ -9426,10 +9426,10 @@ export const questions: Question[] = [
     question: "What is a class template?",
     code: `template<typename T>\nclass Stack {\n    std::vector<T> data;\npublic:\n    void push(const T& val) { data.push_back(val); }\n    T pop() { T v = data.back(); data.pop_back(); return v; }\n};\n\nStack<int> intStack;\nStack<std::string> strStack;`,
     options: [
-      "A class that uses void* to store any type",
+      "A class that uses void* to store any type, erasing the type information and casting back to the original type when elements are retrieved. There is no compile-time type checking",
       "A blueprint for generating classes parameterized by types. Stack<int> and Stack<string> are completely separate classes generated by the compiler from the same template",
-      "A class that inherits from all standard types",
-      "A class that can only hold primitive types",
+      "A class that inherits from all standard types in the library, gaining the interface of every container and algorithm through multiple inheritance. It acts as a universal base for polymorphic storage",
+      "A class that can only hold primitive types like int, double, char, and bool -- it cannot store user-defined classes or structs. The compiler restricts template parameters to built-in arithmetic types",
     ],
     correctIndex: 1,
     explanation:
@@ -9443,10 +9443,10 @@ export const questions: Question[] = [
     question: "What is template argument deduction?",
     code: `template<typename T>\nvoid print(const T& val) { std::cout << val; }\n\nprint(42);       // T deduced as int\nprint("hello");  // T deduced as const char*`,
     options: [
-      "The programmer must always specify template arguments explicitly",
+      "The programmer must always specify template arguments explicitly by writing the type in angle brackets at every call site. The compiler provides no mechanism to infer template parameters from the arguments",
       "The compiler automatically determines template parameters from the function arguments — you don't need to write print<int>(42) because the compiler deduces T = int from the argument type",
-      "Template arguments are resolved at runtime",
-      "Deduction only works with fundamental types",
+      "Template arguments are resolved at runtime by inspecting the dynamic type of each argument passed to the function. The runtime queries RTTI metadata to determine the correct template instantiation to dispatch to",
+      "Deduction only works with fundamental types like int, double, and char -- user-defined classes and structs require explicit template argument specification at the call site",
     ],
     correctIndex: 1,
     explanation:
@@ -9460,10 +9460,10 @@ export const questions: Question[] = [
     question: "What is a non-type template parameter?",
     code: `template<typename T, int N>\nclass FixedArray {\n    T data[N];\npublic:\n    int size() const { return N; }\n};\n\nFixedArray<double, 10> arr;`,
     options: [
-      "A parameter that can only be a type",
+      "A parameter that can only be a type, not a value -- template parameters are restricted to type names and cannot accept integers, enums, or pointers as compile-time arguments",
       "A template parameter that is a value (like an integer) rather than a type. The value must be a compile-time constant. std::array<T, N> uses this pattern",
-      "A parameter that disables type checking",
-      "A parameter that is evaluated at runtime",
+      "A parameter that disables type checking for the template, allowing any expression to be used in place of the parameter without compile-time validation",
+      "A parameter that is evaluated at runtime by inspecting the function arguments. The template stores the value in a hidden variable initialized when the function is first called",
     ],
     correctIndex: 1,
     explanation:
@@ -9476,10 +9476,10 @@ export const questions: Question[] = [
     topic: "Templates",
     question: "Why must template definitions typically be in header files?",
     options: [
-      "Templates don't work in .cpp files — it's a compiler limitation",
+      "Templates don't work in .cpp files -- it's a compiler limitation that prevents template definitions from appearing outside header files. The parser rejects template syntax in implementation files and emits a diagnostic about the restricted context",
       "The compiler needs to see the full template definition at the point of instantiation (the call site) to generate code. If the definition is in a .cpp file, other translation units can't see it and instantiation fails with a linker error",
-      "Header files are faster to compile",
-      "Templates are always inlined, and inline functions must be in headers",
+      "Header files are faster to compile because the preprocessor caches their contents after the first inclusion. Subsequent includes reuse the cached parse tree, skipping lexing and parsing entirely for significant build-time savings",
+      "Templates are always inlined, and inline functions must be in headers to satisfy the one-definition rule. The compiler expands every template call inline at the call site, so the full definition must be visible in every translation unit that uses it",
     ],
     correctIndex: 1,
     explanation:
@@ -9495,10 +9495,10 @@ export const questions: Question[] = [
     question: "What is template specialization?",
     code: `template<typename T>\nstd::string typeName() { return "unknown"; }\n\ntemplate<>\nstd::string typeName<int>() { return "int"; }\n\ntemplate<>\nstd::string typeName<double>() { return "double"; }`,
     options: [
-      "An error — you can't define a template function twice",
+      "An error -- you can't define a template function twice with different bodies. The compiler treats the specialized version as a redefinition and rejects it",
       "A way to provide a custom implementation for a specific type. When typeName<int>() is called, the specialized version is used instead of the generic template",
-      "A way to restrict which types a template accepts",
-      "A template that automatically selects the best type",
+      "A way to restrict which types a template accepts by listing the allowed types explicitly. All other types are rejected at compile time with a clear diagnostic",
+      "A template that automatically selects the best type by analyzing the call site arguments. The compiler evaluates all candidate types and picks the most efficient one",
     ],
     correctIndex: 1,
     explanation:
@@ -9512,10 +9512,10 @@ export const questions: Question[] = [
     question: "What is partial specialization and what can it apply to?",
     code: `// Primary template\ntemplate<typename T>\nclass Container { /* generic */ };\n\n// Partial specialization for pointers\ntemplate<typename T>\nclass Container<T*> { /* special handling for pointer types */ };`,
     options: [
-      "It works for both functions and classes",
+      "It works for both function templates and class templates equally — the compiler allows partial specialization syntax for any template declaration, regardless of whether it is a class or a function",
       "Partial specialization provides a custom implementation for a subset of types matching a pattern (like all pointer types). It only works for class templates — function templates use overloading instead",
-      "It's an incomplete specialization that must be finished later",
-      "It partially implements the template, leaving some methods undefined",
+      "It's an incomplete specialization that must be finished later by providing the remaining template parameters in a separate translation unit, similar to how forward declarations work for classes",
+      "It partially implements the template body, leaving some methods undefined so that derived classes can fill in the missing pieces — similar to the abstract base class pattern with pure virtual functions",
     ],
     correctIndex: 1,
     explanation:
@@ -9529,10 +9529,10 @@ export const questions: Question[] = [
     question: "What are variadic templates?",
     code: `template<typename... Args>\nvoid print(Args... args) {\n    (std::cout << ... << args) << "\\n";\n}`,
     options: [
-      "Templates that accept a variable number of arguments at runtime",
+      "Templates that accept a variable number of arguments at runtime, using an internal std::vector to store each argument passed to the function and iterating over them during execution",
       "Templates that accept zero or more template parameters. The parameter pack Args... captures all types, and fold expressions (C++17) or recursive expansion process them at compile time",
-      "Templates that generate different numbers of class members",
-      "Templates with optional parameters that have defaults",
+      "Templates that generate different numbers of class members depending on how many type parameters are supplied, adding one data member of each specified type to the class body at compile time",
+      "Templates with optional parameters that have default values, allowing the caller to omit trailing arguments just like default function parameters — unspecified types default to void",
     ],
     correctIndex: 1,
     explanation:
@@ -9546,10 +9546,10 @@ export const questions: Question[] = [
     question: "What is a fold expression (C++17)?",
     code: `template<typename... Args>\nauto sum(Args... args) {\n    return (args + ...);  // right fold\n}\n\nsum(1, 2, 3, 4);  // 10`,
     options: [
-      "A loop that folds a container into a single value",
+      "A runtime loop construct that iterates over a container and folds all elements into a single accumulated value, similar to std::accumulate but with a more concise syntax introduced in C++17",
       "A compile-time expansion that applies a binary operator across all elements of a parameter pack. (args + ...) expands to (1 + (2 + (3 + 4))). Four forms: unary/binary left/right folds",
-      "A function that reduces a std::vector",
-      "A shorthand for std::accumulate",
+      "A standard library function in <numeric> that reduces a std::vector into a single value by applying a binary operation, essentially an alias for std::reduce with parallel execution policy",
+      "A shorthand alias for std::accumulate that was introduced in C++17 to simplify reduction operations — it infers the binary operator from the element type and always uses left-to-right evaluation",
     ],
     correctIndex: 1,
     explanation:
@@ -9582,10 +9582,10 @@ export const questions: Question[] = [
     question: "What is SFINAE and how does it affect overload resolution?",
     code: `template<typename T>\nauto serialize(const T& obj) -> decltype(obj.toString(), std::string())\n{\n    return obj.toString();\n}\n\ntemplate<typename T>\nstd::string serialize(const T& obj) {\n    return std::to_string(obj);\n}`,
     options: [
-      "SFINAE causes a hard compilation error when substitution fails, halting the build and reporting every candidate that was considered — this is why template errors produce long diagnostic messages",
+      "SFINAE causes a hard compilation error when template argument substitution fails, immediately halting the build process and reporting every candidate overload that was considered during resolution — this is the primary reason why template-related error messages tend to produce extremely long diagnostic output in compilers like GCC and Clang",
       "Substitution Failure Is Not An Error: if substituting template arguments makes a declaration invalid (e.g., obj.toString() doesn't exist), the template is silently removed from the overload set instead of causing a compilation error. This enables compile-time function selection based on type capabilities",
-      "SFINAE was formally deprecated by C++20 concepts and is now removed from the standard — any code relying on substitution failure must be rewritten using requires clauses or concept constraints",
-      "SFINAE only applies to return types specified in trailing-return-type syntax (-> decltype(...)), not to function parameters, template parameters, or any other part of the declaration",
+      "SFINAE was formally deprecated by the C++20 concepts proposal and has been removed from the standard as of C++20 — any existing code that relies on substitution failure for overload selection must now be rewritten using requires clauses, concept constraints, or constrained auto parameters to remain conforming",
+      "SFINAE only applies to return types that are specified using the trailing-return-type syntax with -> decltype(...), and it does not affect function parameters, default template arguments, or any other part of the function declaration — substitution failures in those locations always produce hard errors",
     ],
     correctIndex: 1,
     explanation:
@@ -9599,10 +9599,10 @@ export const questions: Question[] = [
     question: "How does std::enable_if work?",
     code: `template<typename T, typename = std::enable_if_t<std::is_integral_v<T>>>\nT doubleIt(T val) {\n    return val * 2;\n}\n\ndoubleIt(5);     // OK: int is integral\ndoubleIt(3.14);  // error: double is not integral`,
     options: [
-      "enable_if evaluates its boolean condition at runtime using RTTI and throws std::bad_typeid if the condition is false, preventing the function from executing with an unsupported type",
+      "enable_if evaluates its boolean condition at runtime using RTTI (Run-Time Type Information) and throws std::bad_typeid if the condition evaluates to false, preventing the function from executing with an unsupported type — this check happens during program execution, not at compile time",
       "enable_if<condition> defines a type member 'type' only when the condition is true. When false, the type doesn't exist, causing a substitution failure (SFINAE) that removes the overload from consideration. enable_if_t is a shorthand for typename enable_if<...>::type",
-      "enable_if disables exception propagation for the function by wrapping the body in a try-catch block that converts all exceptions to std::error_code return values",
-      "enable_if promotes the function to constexpr by verifying at compile time that all operations within the body are constant expressions, emitting a static_assert on failure",
+      "enable_if disables exception propagation for the function it guards by wrapping the entire function body in a try-catch block that silently converts all thrown exceptions into std::error_code return values, effectively making the function noexcept without the keyword",
+      "enable_if promotes the function to constexpr status by verifying at compile time that every operation within the function body is a valid constant expression, and it emits a static_assert failure if any operation cannot be evaluated at compile time",
     ],
     correctIndex: 1,
     explanation:
@@ -9616,10 +9616,10 @@ export const questions: Question[] = [
     question: "What is the 'dependent name' problem and when do you need typename?",
     code: `template<typename T>\nvoid print(const T& container) {\n    typename T::const_iterator it = container.begin();\n    // Without 'typename', the compiler doesn't know\n    // T::const_iterator is a type (vs a static member)\n}`,
     options: [
-      "typename is only needed for template parameters",
+      "The typename keyword is only needed when declaring template parameters in the template parameter list — it serves no purpose inside the template body and cannot be used to qualify nested names or disambiguate between types and values",
       "Inside a template, names that depend on a template parameter are ambiguous — the compiler can't tell if T::const_iterator is a type or a value until T is known. You must add typename to tell the compiler it's a type. Without it, the code won't compile",
-      "typename is optional — it's just for documentation",
-      "This only applies to iterators, not other nested types",
+      "The typename keyword is entirely optional in all contexts — it serves only as documentation to indicate the programmer's intent that a name refers to a type, but the compiler can always deduce this information on its own without assistance",
+      "This disambiguation issue only applies to iterator types obtained from standard library containers — user-defined nested types in class templates do not require the typename keyword because the compiler handles them through a separate lookup mechanism",
     ],
     correctIndex: 1,
     explanation:
@@ -9633,10 +9633,10 @@ export const questions: Question[] = [
     question: "What is void_t and how is it used for type detection?",
     code: `template<typename, typename = void>\nstruct has_toString : std::false_type {};\n\ntemplate<typename T>\nstruct has_toString<T, std::void_t<decltype(std::declval<T>().toString())>>\n    : std::true_type {};`,
     options: [
-      "void_t converts any type to a void* pointer at runtime using reinterpret_cast, providing a type-erased handle that can be stored in a generic container and cast back to the original type when needed",
+      "void_t converts any type argument to a void* pointer at runtime using reinterpret_cast, providing a type-erased handle that can be stored in a generic heterogeneous container and later cast back to the original type when the actual type is needed for processing — similar to how Java's Object erasure works",
       "void_t<Args...> maps any valid type arguments to void. In the partial specialization, if T.toString() is a valid expression, void_t succeeds and the specialization (true_type) is selected. If T.toString() is invalid, SFINAE removes the specialization and the primary template (false_type) is selected",
-      "void_t is a placeholder return type for functions returning void, used in trailing return type syntax to explicitly indicate no return value when the function signature would otherwise be ambiguous",
-      "void_t only works with pointer types because the underlying implementation uses reinterpret_cast<void*> to normalize the argument, which is only well-defined for pointer and nullptr_t operands",
+      "void_t is a placeholder return type for functions that return void, used exclusively in trailing return type syntax (-> void_t) to explicitly indicate that the function produces no return value when the function signature would otherwise be syntactically ambiguous to the parser",
+      "void_t only works correctly with pointer types and nullptr_t because the underlying implementation uses reinterpret_cast<void*> to normalize the template argument, and this cast is only well-defined for pointer types according to the standard — passing non-pointer types is undefined behavior",
     ],
     correctIndex: 1,
     explanation:
@@ -9650,10 +9650,10 @@ export const questions: Question[] = [
     question: "What is a template template parameter?",
     code: `template<template<typename> class Container, typename T>\nclass Wrapper {\n    Container<T> data;\npublic:\n    void add(const T& val) { data.push_back(val); }\n};\n\nWrapper<std::vector, int> w;`,
     options: [
-      "A syntax error — the template keyword can only appear once per declaration, so writing template<template<...>> is ill-formed and rejected by all conforming compilers",
+      "A syntax error — the template keyword can only appear once per declaration according to the grammar rules, so writing template<template<...>> is ill-formed and will be rejected by all conforming compilers with a parse error diagnostic",
       "A template parameter that is itself a template. Container is not a type — it's a template that takes one type parameter. This lets you parameterize over the container shape itself (vector vs deque vs list) separately from the element type",
-      "A nested template defined inside the body of another template class, where the inner template has access to the outer template's parameters through implicit capture",
-      "A template that inherits from another template using the CRTP pattern, where the derived class passes itself as the base's template argument to enable static polymorphism",
+      "A nested template that is defined inside the body of another template class, where the inner template can access all of the outer template's type parameters through implicit capture — similar to how lambdas capture variables",
+      "A template that inherits from another template using the Curiously Recurring Template Pattern (CRTP), where the derived class passes itself as the base class's template argument to enable static polymorphism without virtual dispatch overhead",
     ],
     correctIndex: 1,
     explanation:
@@ -9686,10 +9686,10 @@ export const questions: Question[] = [
     question: "How do you check which type a variant currently holds?",
     code: `std::variant<int, std::string> v = "hello";\n\nif (std::holds_alternative<std::string>(v)) {\n    std::cout << std::get<std::string>(v);\n}`,
     options: [
-      "Use dynamic_cast on the variant",
+      "Use dynamic_cast on the variant to determine its active type, since variant uses a virtual function table internally to track which alternative is currently stored",
       "std::holds_alternative<T>(v) returns true if v currently holds type T. You can also use v.index() to get the zero-based index of the active type",
-      "Variants always hold all types at once",
-      "Use typeid() on the variant",
+      "Variants always hold all their listed types simultaneously in a union-like structure, so there is no need to check which one is active",
+      "Use typeid() on the variant object and compare the returned std::type_info against each alternative type to determine which one is currently active in the variant",
     ],
     correctIndex: 1,
     explanation:
@@ -9703,10 +9703,10 @@ export const questions: Question[] = [
     question: "What is std::visit and why is it useful with variant?",
     code: `std::variant<int, double, std::string> v = 3.14;\n\nstd::visit([](auto&& val) {\n    std::cout << val;\n}, v);`,
     options: [
-      "visit iterates over all types in the variant",
+      "visit iterates over all types stored in the variant simultaneously and invokes the callable once for each type in the variant's type list, regardless of which alternative is currently active",
       "std::visit calls a callable (visitor) with the currently active value. Using a generic lambda (auto&&), one handler works for all types. The compiler generates a dispatch table — no if/else chain needed",
-      "visit converts the variant to a string",
-      "visit changes which type the variant holds",
+      "visit converts the variant's currently held value to a std::string representation by calling the appropriate to_string overload, making it primarily useful for serialization and logging purposes",
+      "visit replaces the currently held value in the variant with a new value of a different type, effectively changing which alternative is active — it returns the old value before replacement",
     ],
     correctIndex: 1,
     explanation:
@@ -9755,10 +9755,10 @@ export const questions: Question[] = [
     question: "What is the 'overload pattern' for visiting variants?",
     code: `template<class... Ts>\nstruct overloaded : Ts... { using Ts::operator()...; };\n\nstd::variant<int, std::string> v = "hello";\nstd::visit(overloaded{\n    [](int i)               { std::cout << "int: " << i; },\n    [](const std::string& s) { std::cout << "str: " << s; },\n}, v);`,
     options: [
-      "A way to overload virtual functions",
+      "A way to overload virtual functions in a class hierarchy, allowing derived classes to provide type-specific behavior that is dispatched dynamically through the vtable at runtime based on the object's type",
       "A utility that inherits from multiple lambdas and exposes all their operator() overloads. Combined with std::visit, it lets you handle each variant type with a separate lambda — pattern matching style",
-      "A design pattern for managing global state",
-      "A way to overload the assignment operator",
+      "A design pattern for managing global state across multiple modules by providing a single overloaded accessor function that returns different static variables depending on the template argument type",
+      "A way to overload the assignment operator for multiple types simultaneously by using a variadic template that generates one operator= overload for each type specified in the parameter pack",
     ],
     correctIndex: 1,
     explanation:
@@ -9772,10 +9772,10 @@ export const questions: Question[] = [
     question: "What does std::decay do?",
     code: `std::decay_t<int&>        // → int\nstd::decay_t<const int&>  // → int\nstd::decay_t<int[5]>      // → int*\nstd::decay_t<int(double)> // → int(*)(double)`,
     options: [
-      "Removes all qualifiers, making any type volatile",
+      "Removes all qualifiers from a type and makes the resulting type volatile, which is primarily used to prevent the compiler from optimizing away accesses to hardware-mapped memory regions",
       "Applies the same transformations as passing by value: removes references, removes top-level const/volatile, decays arrays to pointers, and decays functions to function pointers",
-      "Converts any type to void",
-      "Removes all template parameters from a type",
+      "Converts any type to void, effectively erasing all type information — this is primarily used in template metaprogramming to discard the result type of an expression when only side effects matter",
+      "Removes all template parameters from a specialized type, converting it back to the primary unspecialized template — for example, std::vector<int> becomes std::vector without any element type",
     ],
     correctIndex: 1,
     explanation:
@@ -9806,10 +9806,10 @@ export const questions: Question[] = [
     question: "How do you use std::conditional to select a type at compile time?",
     code: `template<bool is64bit>\nstruct Platform {\n    using IntType = std::conditional_t<is64bit, int64_t, int32_t>;\n    IntType value;\n};`,
     options: [
-      "conditional selects a value at runtime",
+      "conditional selects between two values at runtime by evaluating a boolean expression and returning the first value if true or the second if false, similar to the ternary operator but for template contexts",
       "std::conditional<condition, TrueType, FalseType>::type evaluates to TrueType if condition is true, FalseType otherwise. It's a compile-time ternary for types — used to adapt data structures based on platform traits or compile-time flags",
-      "conditional works like a switch statement for types",
-      "conditional creates a variant of both types",
+      "conditional works exactly like a switch statement for types — it accepts an arbitrary number of type cases and selects the matching one, defaulting to void if no case applies to the given condition",
+      "conditional creates a variant containing both the true-type and false-type alternatives, with the runtime boolean condition determining which alternative is initially active when the variant is constructed",
     ],
     correctIndex: 1,
     explanation:
@@ -9822,10 +9822,10 @@ export const questions: Question[] = [
     topic: "Variant & Type Traits",
     question: "What does std::is_trivially_copyable tell you and why does it matter?",
     options: [
-      "It checks whether a type can be copied at all — returning true if any copy constructor (user-defined or implicit) is accessible, regardless of whether the copy involves deep allocation or non-trivial logic",
+      "It checks whether a type can be copied at all — returning true if any copy constructor (user-defined or compiler-generated implicit) is accessible, regardless of whether the actual copy involves deep heap allocation or non-trivial side-effect logic",
       "It's true when a type can be safely copied with memcpy — no custom copy constructor, no virtual functions, no non-trivial members. This matters for serialization, networking, and performance: memcpy is much faster than element-wise copying",
-      "It checks whether a type is small enough to fit in a single CPU register, which determines if the compiler can pass it by value in a register rather than on the stack",
-      "It checks whether a type has an explicitly declared copy constructor, distinguishing user-provided copy logic from the compiler-generated default memberwise copy",
+      "It checks whether a type is small enough to fit in a single CPU register (typically 8 bytes on a 64-bit platform), which determines whether the compiler can pass it by value inside a register rather than through the stack during function calls",
+      "It checks whether a type has an explicitly user-declared copy constructor as opposed to the compiler-generated default, distinguishing user-provided custom copy logic from the implicit memberwise copy that the compiler synthesizes automatically",
     ],
     correctIndex: 1,
     explanation:
@@ -9841,10 +9841,10 @@ export const questions: Question[] = [
     question: "What is the 'valueless by exception' state of std::variant?",
     code: `struct Evil {\n    Evil(int) {}\n    Evil(Evil&&) { throw std::runtime_error("oops"); }\n};\n\nstd::variant<std::string, Evil> v = "hello";\ntry {\n    v.emplace<Evil>(42);  // construction succeeds, but...\n    // If move/copy during reassignment throws:\n} catch (...) {\n    // v.valueless_by_exception() may be true!\n}`,
     options: [
-      "Variants can never be in an invalid state — the standard guarantees that type-changing assignment is implemented as a two-phase commit, rolling back to the old value if construction of the new alternative throws",
+      "Variants can never be in an invalid state because the C++ standard guarantees that every type-changing assignment is implemented as a two-phase commit transaction, automatically rolling back to the previous value if construction of the new alternative throws an exception during assignment",
       "If an exception is thrown during type-changing assignment, the variant may enter a 'valueless' state where no alternative is active. valueless_by_exception() returns true. Accessing the value in this state is undefined behavior. This is rare but possible with throwing moves",
-      "Valueless means the variant has reverted to holding its first alternative type in a default-constructed state — index() returns 0 and std::get<0>() is always safe to call",
-      "Valueless variants automatically reset to std::monostate as a recovery mechanism — the standard requires monostate to be implicitly available as a fallback even if it is not listed in the variant's type list",
+      "Valueless means the variant has reverted to holding its first alternative type in a default-constructed state after the exception — index() returns 0 and std::get<0>() is always safe to call since the first type serves as the automatic fallback",
+      "Valueless variants automatically reset themselves to std::monostate as a built-in recovery mechanism — the C++ standard requires monostate to be implicitly available as a fallback alternative even if it was not explicitly listed in the variant's template type list",
     ],
     correctIndex: 1,
     explanation:
@@ -9858,10 +9858,10 @@ export const questions: Question[] = [
     question: "How does std::common_type work and when is it useful?",
     code: `std::common_type_t<int, double>       // → double\nstd::common_type_t<int, long, float>  // → float`,
     options: [
-      "It returns the largest type by sizeof",
+      "It returns the largest type by sizeof among all the arguments, selecting the type that occupies the most bytes in memory — for example, common_type<int, double> returns double because sizeof(double) is 8 vs 4",
       "It computes the type that all arguments can implicitly convert to — the type that the ternary operator (true ? a : b) would produce. Useful in generic code where you need a return type that accommodates multiple input types",
-      "It returns the type they all inherit from",
-      "It returns void if the types don't match",
+      "It returns the common base class that all argument types inherit from, traversing the inheritance hierarchy upward until a shared ancestor is found — it fails if the types are unrelated and share no base",
+      "It returns void if the types provided don't match exactly, since implicit conversions between different arithmetic or user-defined types are not considered during common type computation",
     ],
     correctIndex: 1,
     explanation:
@@ -9875,10 +9875,10 @@ export const questions: Question[] = [
     question: "What is tag dispatch and how does it use type traits?",
     code: `template<typename Iter>\nvoid advanceImpl(Iter& it, int n, std::random_access_iterator_tag) {\n    it += n;  // O(1)\n}\n\ntemplate<typename Iter>\nvoid advanceImpl(Iter& it, int n, std::input_iterator_tag) {\n    while (n-- > 0) ++it;  // O(n)\n}\n\ntemplate<typename Iter>\nvoid advance(Iter& it, int n) {\n    advanceImpl(it, n, typename std::iterator_traits<Iter>::iterator_category{});\n}`,
     options: [
-      "Tag dispatch uses RTTI to select the right function at runtime",
+      "Tag dispatch uses RTTI (Run-Time Type Information) and dynamic_cast to determine the iterator category at runtime, then calls the appropriate implementation through virtual dispatch",
       "Tag dispatch creates an empty 'tag' object from a type trait and uses overload resolution to select the optimal implementation at compile time — zero runtime overhead",
-      "Tag dispatch is a pattern for adding metadata to function arguments",
-      "Tag dispatch requires virtual functions",
+      "Tag dispatch is a design pattern for adding key-value metadata annotations to function arguments at compile time, which can be queried later through template metaprogramming introspection",
+      "Tag dispatch requires virtual functions and a class hierarchy — each tag type must inherit from a common base class so that the runtime can select the correct overload via polymorphism",
     ],
     correctIndex: 1,
     explanation:
@@ -9909,10 +9909,10 @@ export const questions: Question[] = [
     question: "What does std::conjunction / std::disjunction do?",
     code: `template<typename... Ts>\nusing all_integral = std::conjunction<std::is_integral<Ts>...>;\n\nstatic_assert(all_integral<int, long, char>::value);   // true\nstatic_assert(!all_integral<int, double>::value);       // true`,
     options: [
-      "They perform bitwise AND/OR on integer types",
+      "They perform bitwise AND/OR operations on the underlying integer representations of the type traits, treating std::true_type as 1 and std::false_type as 0, then converting the result back to a type trait",
       "conjunction<Ts...> short-circuit ANDs multiple type traits (stops at the first false). disjunction<Ts...> short-circuit ORs them. Unlike a fold expression with &&, conjunction preserves the failing trait's type for better error messages",
-      "They combine variants into larger variants",
-      "They only work with boolean values, not type traits",
+      "They combine multiple variant types into a single larger variant by concatenating their type lists — conjunction merges with deduplication and disjunction merges while keeping duplicate alternatives intact",
+      "They only work with raw boolean values passed as non-type template parameters, not with type traits — you must extract the ::value member manually before passing arguments to conjunction or disjunction",
     ],
     correctIndex: 1,
     explanation:
@@ -9927,10 +9927,10 @@ export const questions: Question[] = [
     topic: "Memory Management",
     question: "What is the difference between stack and heap allocation?",
     options: [
-      "The stack is slower but larger because it must traverse a linked list of frames to find free space; the heap is faster because it uses a simple bump-pointer allocator by default",
+      "The stack is slower but much larger than the heap because it must traverse a linked list of activation frames to find free space; the heap is faster because it uses a simple bump-pointer allocator by default and avoids the overhead of frame traversal during each allocation",
       "Stack allocation is automatic (local variables — allocated/freed with function scope, very fast). Heap allocation is manual (new/delete — persists until explicitly freed, slower due to allocator overhead). Stack is limited in size; heap is limited only by system memory",
-      "Stack memory is reserved exclusively for class instances and their virtual tables, while heap memory is used for primitives and POD types that don't require constructor or destructor calls",
-      "There is no meaningful performance difference between stack and heap allocation on modern CPUs because the memory management unit maps both to the same physical RAM with identical access latency",
+      "Stack memory is reserved exclusively for class instances and their virtual function tables, while heap memory is used for primitive types and POD (Plain Old Data) structures that don't require constructor or destructor calls during their lifetime and can be bitwise-copied",
+      "There is no meaningful performance difference between stack and heap allocation on modern CPUs because the memory management unit (MMU) maps both regions to the same physical RAM with identical access latency and caching behavior through the TLB (Translation Lookaside Buffer)",
     ],
     correctIndex: 1,
     explanation:
@@ -9961,10 +9961,10 @@ export const questions: Question[] = [
     question: "What is the difference between new/delete and new[]/delete[]?",
     code: `int* single = new int(42);     // one int\nint* array = new int[100];     // 100 ints\n\ndelete single;    // free one object\ndelete[] array;   // free array`,
     options: [
-      "They are interchangeable — use either",
+      "They are interchangeable — the compiler detects whether the pointer refers to an array or a single object and automatically selects the correct deallocation strategy at runtime through metadata stored in the allocation header",
       "new allocates a single object; new[] allocates an array. You MUST match them: delete for new, delete[] for new[]. Mixing them is undefined behavior because delete[] needs to know how many destructors to call",
-      "new[] is deprecated in favor of std::vector",
-      "delete[] only frees the first element",
+      "new[] is deprecated in modern C++ in favor of std::vector and std::array — the C++17 standard marks array-new as a legacy feature and all conforming compilers issue deprecation warnings when it is used",
+      "delete[] only frees the first element of the array and leaves the remaining elements allocated on the heap — you must call delete in a loop for each element to properly release all of the array's memory",
     ],
     correctIndex: 1,
     explanation:
@@ -9995,10 +9995,10 @@ export const questions: Question[] = [
     question: "What happens when you use a pointer after the memory it points to has been freed?",
     code: `int* p = new int(42);\ndelete p;\nstd::cout << *p;  // What happens?`,
     options: [
-      "Prints 42 — the memory still holds the value",
+      "Prints 42 reliably — freed memory retains its value indefinitely because the allocator only marks the block as available without actually modifying the stored data, so the value persists until overwritten",
       "Undefined behavior — this is a 'use-after-free' bug. The memory may be reused, the value may be garbage, or the program may crash. This is one of the most dangerous and common C++ bugs",
-      "Prints 0 — freed memory is zeroed",
-      "Compilation error — the compiler detects the freed pointer",
+      "Prints 0 — the C++ standard requires that freed memory is zeroed out by the allocator before being returned to the free list, ensuring that sensitive data cannot be leaked through reuse of heap blocks",
+      "Compilation error — the compiler performs static analysis to detect that the pointer has been passed to delete and refuses to compile any subsequent dereference of that pointer variable",
     ],
     correctIndex: 1,
     explanation:
@@ -10015,8 +10015,8 @@ export const questions: Question[] = [
     options: [
       "Never define any special member functions regardless of what resources the class manages — the compiler-generated defaults always handle resource cleanup correctly, even for raw pointers and file handles",
       "If a class only uses RAII members (smart pointers, std::string, std::vector) that manage their own resources, the compiler-generated destructor, copy, and move operations do the right thing — you don't need to write any of them. This is the Rule of Zero",
-      "Classes should have zero data members and rely entirely on free functions and global state — this eliminates the need for constructors, destructors, and assignment operators",
-      "Never use dynamic memory allocation (new/delete) anywhere in the codebase — all objects should be stack-allocated or stored in global arrays to avoid resource management complexity",
+      "Classes should have zero data members and rely entirely on free functions and global state for their behavior — this eliminates the need for constructors, destructors, and assignment operators, reducing boilerplate code significantly",
+      "Never use dynamic memory allocation (new/delete) anywhere in the codebase — all objects should be stack-allocated or stored in pre-allocated global arrays to avoid the complexity of manual resource management and prevent memory leaks",
     ],
     correctIndex: 1,
     explanation:
@@ -10029,10 +10029,10 @@ export const questions: Question[] = [
     topic: "Memory Management",
     question: "What is the difference between std::unique_ptr and std::shared_ptr?",
     options: [
-      "unique_ptr is for single objects; shared_ptr is for arrays",
+      "unique_ptr is designed exclusively for single heap-allocated objects; shared_ptr is designed exclusively for dynamically allocated arrays — using them the other way around results in undefined behavior and memory corruption",
       "unique_ptr has exclusive ownership (one owner, non-copyable, zero overhead). shared_ptr has shared ownership (reference counted, copyable, control block overhead). Use unique_ptr by default; use shared_ptr only when multiple owners truly need shared lifetime management",
-      "shared_ptr is always faster due to reference counting",
-      "unique_ptr cannot be stored in containers",
+      "shared_ptr is always faster than unique_ptr due to its internal reference counting mechanism, which allows the runtime to batch deallocations and free multiple objects at once when the count drops to zero, amortizing the cost",
+      "unique_ptr cannot be stored in standard library containers such as std::vector or std::map because containers require their elements to be copyable, and unique_ptr explicitly deletes its copy constructor and copy assignment operator",
     ],
     correctIndex: 1,
     explanation:
@@ -10046,10 +10046,10 @@ export const questions: Question[] = [
     question: "What is std::weak_ptr and what problem does it solve?",
     code: `struct Node {\n    std::shared_ptr<Node> next;\n    std::weak_ptr<Node> prev;  // break the cycle!\n};`,
     options: [
-      "A weak_ptr is a slower version of shared_ptr",
+      "A weak_ptr is a slower version of shared_ptr that trades performance for additional safety checks — every dereference through a weak_ptr validates the reference count and throws std::bad_weak_ptr if the object has been destroyed",
       "weak_ptr observes a shared_ptr-managed object without affecting the reference count. It breaks ownership cycles that would otherwise cause memory leaks. To use the object, call lock() to get a temporary shared_ptr (or nullptr if the object was deleted)",
-      "weak_ptr prevents the object from being deleted",
-      "weak_ptr is a non-owning raw pointer wrapper",
+      "weak_ptr prevents the managed object from being deleted by the shared_ptr control block — as long as at least one weak_ptr exists, the shared object remains alive in memory even if all shared_ptrs are gone",
+      "weak_ptr is simply a non-owning raw pointer wrapper with syntactic sugar — it stores a raw T* internally and provides no lifetime tracking or expiration detection, but it offers a cleaner and more expressive API than using raw pointers directly in modern C++ code",
     ],
     correctIndex: 1,
     explanation:
@@ -10062,10 +10062,10 @@ export const questions: Question[] = [
     topic: "Memory Management",
     question: "What is std::allocator and when would you write a custom one?",
     options: [
-      "std::allocator is the garbage collector for C++ — it tracks all heap allocations through reference counting and automatically frees memory when no pointers reference the block",
+      "std::allocator is the garbage collector for C++ — it tracks all heap allocations through reference counting and automatically frees memory when no pointers reference the allocated block, similar to how Java's garbage collector works with the young-generation heap",
       "std::allocator is the default memory allocation strategy used by STL containers. Custom allocators let you control where memory comes from — pool allocators for games (no fragmentation), arena allocators for request-scoped memory, or GPU allocators for graphics buffers",
-      "Allocators only control memory alignment and padding, not the actual allocation or deallocation — all STL containers always use operator new internally regardless of the allocator parameter",
-      "Custom allocators were possible in C++03 but the allocator model was removed in C++17 in favor of std::pmr, making direct allocator customization impossible in modern code",
+      "Allocators only control memory alignment and padding between fields, not the actual allocation or deallocation of memory — all STL containers always use operator new and operator delete internally regardless of the allocator template parameter that is specified",
+      "Custom allocators were possible in C++03 but the allocator model was completely removed from the standard in C++17 in favor of std::pmr (Polymorphic Memory Resources), making direct allocator template customization impossible in modern conforming code",
     ],
     correctIndex: 1,
     explanation:
@@ -10079,10 +10079,10 @@ export const questions: Question[] = [
     question: "What does std::unique_ptr with a custom deleter look like?",
     code: `auto fileDeleter = [](FILE* f) { if (f) fclose(f); };\nstd::unique_ptr<FILE, decltype(fileDeleter)> file(\n    fopen("data.txt", "r"), fileDeleter\n);`,
     options: [
-      "Custom deleters are not supported by unique_ptr",
+      "Custom deleters are not supported by unique_ptr because the deleter is hardcoded to operator delete — only shared_ptr supports custom deleters since it stores the deleter in its type-erased control block",
       "You specify the deleter type as the second template argument. When the unique_ptr is destroyed, it calls your custom deleter instead of delete. This lets unique_ptr manage any resource — files, sockets, C library handles, GPU buffers",
-      "Custom deleters make unique_ptr act like shared_ptr",
-      "The deleter must be a function pointer, not a lambda",
+      "Custom deleters fundamentally change unique_ptr's semantics to match shared_ptr — once a custom deleter is specified, the unique_ptr becomes reference-counted and copyable, losing its exclusive-ownership guarantee",
+      "The deleter must be a plain function pointer and cannot be a lambda, functor, or any other callable type — this is because unique_ptr stores the deleter as a raw function pointer in its internal layout",
     ],
     correctIndex: 1,
     explanation:
@@ -10097,10 +10097,10 @@ export const questions: Question[] = [
     topic: "Memory Management",
     question: "What is an arena (bump) allocator and why is it used in games?",
     options: [
-      "An allocator that reserves virtual address space with mmap/VirtualAlloc and commits physical pages on demand, trading TLB pressure for the ability to grow allocations without copying",
+      "An allocator that reserves a large virtual address space using mmap or VirtualAlloc and commits physical pages on demand as allocations grow, trading TLB pressure and page fault overhead for the ability to grow allocations in place without copying data to a new location",
       "An arena allocator pre-allocates a large block and hands out memory by simply incrementing a pointer. Deallocation is all-at-once (reset the pointer). It's extremely fast (O(1), no fragmentation, no per-object overhead) but can't free individual objects — perfect for per-frame game allocations",
-      "An allocator that uses alloca() to allocate from the current function's stack frame, providing fast allocation with automatic cleanup when the function returns but limited to the thread's stack size",
-      "An allocator that compacts live objects by relocating them to eliminate gaps, updating all pointers via a forwarding table — similar to a copying garbage collector but triggered explicitly by the programmer",
+      "An allocator that uses alloca() to allocate all requested memory directly from the current function's stack frame, providing extremely fast allocation with automatic cleanup when the function returns but strictly limited to the calling thread's available stack size",
+      "An allocator that compacts live objects by relocating them to eliminate memory gaps, updating all existing pointers via a forwarding table maintained in a side structure — similar to a copying garbage collector but triggered explicitly by the application programmer rather than automatically",
     ],
     correctIndex: 1,
     explanation:
@@ -10113,10 +10113,10 @@ export const questions: Question[] = [
     topic: "Memory Management",
     question: "What is memory fragmentation and how does it affect long-running programs?",
     options: [
-      "Fragmentation only affects disk storage (HDD/SSD sector layout) and not RAM, because the CPU\u2019s memory management unit provides virtual-to-physical page mapping that makes all allocations appear contiguous to the application",
+      "Fragmentation only affects disk storage media (HDD/SSD sector layout) and has no impact on RAM, because the CPU's memory management unit (MMU) provides virtual-to-physical page mapping that makes all allocations appear contiguous to the application regardless of their actual physical placement in DRAM",
       "External fragmentation: free memory exists but is scattered in small non-contiguous blocks, so large allocations fail even though total free memory is sufficient. Internal fragmentation: allocated blocks are larger than needed. Both degrade performance and can cause allocation failures in long-running programs like game servers",
-      "Fragmentation improves cache performance because scattered allocations spread data across more cache sets, reducing conflict misses and ensuring that frequently accessed objects do not evict each other from the L1 data cache",
-      "Modern allocators like jemalloc, tcmalloc, and mimalloc have completely solved fragmentation through slab allocation, thread-local caches, and size-class bucketing, making it a non-issue in any contemporary C++ program",
+      "Fragmentation actually improves cache performance because scattered allocations distribute data across more cache sets in the L1 and L2 caches, reducing conflict misses and ensuring that frequently accessed objects are less likely to evict each other from the same cache line, leading to higher hit rates overall",
+      "Modern allocators like jemalloc, tcmalloc, and mimalloc have completely solved the fragmentation problem through slab allocation, per-thread local caches, and automatic size-class bucketing — fragmentation is a non-issue in any contemporary C++ program that links against one of these allocator libraries",
     ],
     correctIndex: 1,
     explanation:
@@ -10130,10 +10130,10 @@ export const questions: Question[] = [
     question: "How does std::pmr::polymorphic_allocator enable runtime allocator selection?",
     code: `char buffer[4096];\nstd::pmr::monotonic_buffer_resource pool(buffer, sizeof(buffer));\nstd::pmr::vector<int> v(&pool);  // allocates from stack buffer!`,
     options: [
-      "It uses virtual dispatch on the allocator but still embeds the resource type as a template parameter, so pmr::vector<int, monotonic> and pmr::vector<int, pool> remain different types with different ABIs",
+      "It uses virtual dispatch on the allocator interface but still embeds the concrete memory resource type as a template parameter in the container, so pmr::vector<int, monotonic_buffer_resource> and pmr::vector<int, synchronized_pool_resource> remain entirely different types with incompatible ABIs and cannot be assigned to each other",
       "std::pmr uses a memory_resource base class with virtual allocate/deallocate. Containers use polymorphic_allocator which holds a pointer to a memory_resource. This allows changing allocation strategy at runtime without changing the container type — std::pmr::vector<int> always has the same type regardless of the resource",
-      "pmr is a compile-time allocator model like std::allocator — the memory resource is selected via a template parameter at compile time and cannot be changed after the container is instantiated",
-      "pmr only works with monotonic (arena) allocation because the polymorphic_allocator base class assumes memory is never freed individually — pool and freelist strategies are not supported",
+      "pmr is a compile-time-only allocator model identical to std::allocator in its parameterization approach — the memory resource strategy is selected via a template parameter at compile time and cannot be changed or swapped after the container has been instantiated, offering no runtime flexibility over the classical model",
+      "pmr only works with monotonic (arena-style) allocation because the polymorphic_allocator base class interface assumes that memory is never freed individually — pool-based, freelist-based, and other deallocation-supporting strategies are not compatible with the pmr framework and must use std::allocator instead",
     ],
     correctIndex: 1,
     explanation:
@@ -10147,10 +10147,10 @@ export const questions: Question[] = [
     question: "What is the 'aliasing constructor' of shared_ptr?",
     code: `struct Model {\n    Mesh mesh;\n    Texture texture;\n};\n\nauto model = std::make_shared<Model>(...);\nstd::shared_ptr<Mesh> meshPtr(model, &model->mesh);`,
     options: [
-      "It creates a separate shared_ptr that heap-allocates a copy of the member, giving the copy its own independent reference count and control block unrelated to the parent object",
+      "It creates a separate shared_ptr that heap-allocates an independent copy of the member sub-object, giving the copy its own control block with an independent reference count completely unrelated to the parent object's ownership and lifetime management",
       "The aliasing constructor creates a shared_ptr that shares ownership of the Model but points to a sub-object (mesh). The Model stays alive as long as meshPtr exists, even if the original model pointer is destroyed. The stored pointer and owned pointer are different",
-      "It's a convenience alias for make_shared that allocates the sub-object on the heap in a single allocation alongside a new control block, similar to how make_shared combines object and control block",
-      "It creates a weak_ptr to the member sub-object, allowing non-owning observation of the member's lifetime independently of the parent — lock() returns a shared_ptr to just that member",
+      "It's a convenience alias for make_shared that co-allocates the sub-object on the heap in a single memory block alongside a new control block, similar to how make_shared combines the managed object and its control block into one allocation for cache efficiency",
+      "It creates a weak_ptr pointing to the member sub-object rather than the parent, allowing non-owning observation of just that member's lifetime independently of the parent object — calling lock() on it returns a shared_ptr to the member alone with its own reference count",
     ],
     correctIndex: 1,
     explanation:
@@ -10164,10 +10164,10 @@ export const questions: Question[] = [
     question: "What are the alignment requirements for dynamic memory and how does std::aligned_alloc help?",
     code: `// Need 64-byte aligned memory for SIMD / cache lines\nvoid* p = std::aligned_alloc(64, 1024);\n// ... use p for SIMD operations ...\nstd::free(p);`,
     options: [
-      "All allocations from new and malloc are already aligned to any boundary the program might need, because modern OS virtual memory managers map pages at 4096-byte boundaries and the allocator inherits this alignment",
+      "All allocations from new and malloc are already aligned to any boundary the program might need, because modern operating system virtual memory managers map pages at 4096-byte boundaries and the heap allocator inherits this alignment guarantee for every individual allocation it returns",
       "new/malloc guarantee alignment to alignof(std::max_align_t) (typically 16 bytes). For stricter alignment (SIMD needs 32 or 64 bytes), use aligned_alloc (C17), operator new(size, align) (C++17), or platform-specific functions. Misaligned SIMD access can crash or silently degrade performance",
-      "Alignment only matters on embedded systems with no MMU \u2014 on desktop and server platforms the hardware transparently handles misaligned accesses with no performance penalty, making aligned_alloc unnecessary",
-      "aligned_alloc is a C-only function from the C11 standard that is not available in C++ \u2014 C++ programs must use platform-specific APIs like _aligned_malloc on Windows or posix_memalign on Linux instead",
+      "Alignment only matters on embedded systems with no MMU — on desktop and server platforms with modern x86 or ARM processors, the hardware transparently handles misaligned memory accesses with no measurable performance penalty whatsoever, making aligned_alloc entirely unnecessary",
+      "aligned_alloc is a C-only function defined in the C11 standard header <stdlib.h> that is not available in C++ — C++ programs must use platform-specific APIs like _aligned_malloc on Windows or posix_memalign on POSIX systems instead to get aligned memory blocks",
     ],
     correctIndex: 1,
     explanation:
@@ -10183,10 +10183,10 @@ export const questions: Question[] = [
     question: "What are rvalue references (&&) and what problem do they solve?",
     code: `std::string a = "hello";\nstd::string b = std::move(a);  // moves instead of copies`,
     options: [
-      "A reference that can only bind to constants",
+      "A reference type that can only bind to const-qualified objects and prevents any modification — it was introduced in C++11 to provide stronger immutability guarantees than const references in template contexts",
       "An rvalue reference (T&&) binds to temporaries and moved-from objects, enabling move semantics — transferring resources (heap memory, file handles) instead of copying them. This avoids expensive deep copies for temporary values",
-      "A double pointer (pointer to pointer)",
-      "A reference that prevents modification",
+      "A double pointer (pointer to pointer) that stores the address of another pointer variable, allowing indirect modification of the original pointer's target — commonly used for output parameters in C-style APIs",
+      "A reference modifier that prevents any modification of the referenced object, similar to const but enforced at the template-deduction level — it was added to complement const& in generic programming",
     ],
     correctIndex: 1,
     explanation:
@@ -10200,10 +10200,10 @@ export const questions: Question[] = [
     question: "What is a lambda expression and what does it capture?",
     code: `int multiplier = 3;\nauto fn = [multiplier](int x) { return x * multiplier; };\nfn(10);  // returns 30`,
     options: [
-      "A named function defined inline",
+      "A named function defined inline within another function's body, which can only access global variables and its own parameters — it does not have access to the enclosing scope's local variables",
       "An anonymous function object defined inline. The capture list [multiplier] specifies which outer variables to capture. [=] captures all by value, [&] captures all by reference, [this] captures the enclosing object",
-      "A function pointer with extra syntax",
-      "A macro that generates a function",
+      "A function pointer with extra syntax sugar that the compiler converts directly into a regular C-style function pointer during compilation — lambdas have no runtime overhead and no associated object or state",
+      "A preprocessor macro that generates a standalone function definition at the call site during preprocessing — the macro expansion produces a regular named function that is visible throughout the translation unit",
     ],
     correctIndex: 1,
     explanation:
@@ -10217,10 +10217,10 @@ export const questions: Question[] = [
     question: "What is std::optional and when should you use it?",
     code: `std::optional<int> findIndex(const std::vector<int>& v, int target) {\n    for (int i = 0; i < v.size(); ++i)\n        if (v[i] == target) return i;\n    return std::nullopt;  // not found\n}`,
     options: [
-      "A container that holds multiple optional values",
+      "A container that holds multiple optional values simultaneously, similar to a variant but allowing all values to be absent — it dynamically resizes to accommodate however many values are stored",
       "A wrapper that either contains a value of type T or is empty (nullopt). It replaces sentinel values (-1, nullptr) and out-parameters for functions that may not produce a result — making the 'no value' case explicit in the type system",
-      "An alias for a pointer that might be null",
-      "A compile-time check that a value exists",
+      "An alias for a raw pointer that might be null, providing the same semantics as T* but with a cleaner syntax — internally optional<T> stores a T* and dereferences it when the value is accessed",
+      "A compile-time check that statically verifies a value exists at every usage site, causing a compilation error if the compiler's flow analysis determines the optional might be empty when accessed",
     ],
     correctIndex: 1,
     explanation:
@@ -10234,10 +10234,10 @@ export const questions: Question[] = [
     question: "What are initializer lists and why does C++11 prefer brace initialization?",
     code: `std::vector<int> v = {1, 2, 3, 4, 5};\nstd::map<std::string, int> m = {{\"a\", 1}, {\"b\", 2}};`,
     options: [
-      "Initializer lists are only for arrays",
+      "Initializer lists are only usable for C-style arrays and cannot be used with STL containers, class constructors, or any other user-defined types — they were inherited from C and remain limited to aggregate initialization",
       "std::initializer_list<T> enables containers to be initialized with {value, value, ...} syntax. Brace initialization also prevents narrowing conversions and avoids the most-vexing parse — making initialization more consistent and safer",
-      "Brace initialization is slower than parenthesis initialization",
-      "Initializer lists require a special header",
+      "Brace initialization is significantly slower than parenthesis initialization because the compiler must construct a temporary std::initializer_list object on the heap, copy all elements into it, and then pass it to the constructor",
+      "Initializer lists require including a special header <initializer_list> that is not part of the standard library and must be provided by a third-party package — without this header, brace initialization syntax is unavailable",
     ],
     correctIndex: 1,
     explanation:
@@ -10250,10 +10250,10 @@ export const questions: Question[] = [
     topic: "Modern C++",
     question: "What does the nullptr keyword replace?",
     options: [
-      "It replaces the number 0 in all contexts",
+      "It replaces the integer literal 0 in all contexts throughout the language — arithmetic, comparisons, array indexing, and pointer assignment — serving as a universal zero constant with stronger type checking",
       "nullptr is a type-safe null pointer constant of type std::nullptr_t. It replaces NULL (which is just 0 or 0L) and avoids ambiguity: f(0) might call f(int) instead of f(int*), but f(nullptr) always calls f(int*)",
-      "nullptr is a special memory address",
-      "nullptr prevents null pointer dereferences at compile time",
+      "nullptr is a special memory address (typically 0x00000000) that the operating system reserves and marks as non-accessible, causing a hardware trap (segfault) whenever any process attempts to read or write to it",
+      "nullptr prevents null pointer dereferences at compile time by making the compiler statically analyze all pointer usage paths and reject any code where a pointer could potentially be null when dereferenced",
     ],
     correctIndex: 1,
     explanation:
@@ -10269,10 +10269,10 @@ export const questions: Question[] = [
     question: "What is a move constructor and when is it called?",
     code: `class Buffer {\n    int* data;\n    size_t size;\npublic:\n    Buffer(Buffer&& other) noexcept\n        : data(other.data), size(other.size) {\n        other.data = nullptr;\n        other.size = 0;\n    }\n};`,
     options: [
-      "A move constructor copies the object, then destroys the original",
+      "A move constructor performs a deep copy of all the object's data including heap-allocated resources, and then explicitly destroys the original object by calling its destructor to free the source's resources",
       "A move constructor transfers ownership of resources from a source (rvalue) to the new object by stealing its internal pointers/handles, then nullifies the source. The source must be left in a valid but unspecified state",
-      "Move constructors are only called explicitly",
-      "Move constructors are automatically generated for all classes",
+      "Move constructors are only invoked when the programmer explicitly calls std::move() — the compiler never generates implicit move operations and never calls move constructors automatically during return or assignment",
+      "Move constructors are automatically generated by the compiler for all classes without exception, including classes with user-defined destructors, virtual functions, and non-movable members like std::mutex",
     ],
     correctIndex: 1,
     explanation:
@@ -10286,10 +10286,10 @@ export const questions: Question[] = [
     question: "What are structured bindings (C++17)?",
     code: `auto [x, y, z] = std::tuple{1, 2.0, \"hello\"};\nstd::map<std::string, int> m;\nfor (const auto& [key, value] : m) {\n    std::cout << key << ": " << value;\n}`,
     options: [
-      "A way to destructure arrays only",
+      "A syntax for destructuring only C-style arrays into individually named variables — structured bindings cannot decompose tuples, pairs, structs, or any other compound types, and the element types must be trivially copyable primitives",
       "Structured bindings decompose an object into named parts. They work with tuples, pairs, arrays, and any struct with all public members. The compiler creates hidden references to the individual elements — it's syntactic sugar for std::get<N>() or member access",
-      "They create copies of each member",
-      "They only work in for loops",
+      "Structured bindings always create deep copies of each individual member of the source object, allocating new storage for every binding variable regardless of whether the binding is declared with auto, const auto&, or auto&&",
+      "Structured bindings only work within range-based for loops and cannot be used in standalone variable declarations, function return value decomposition, or any other statement context outside of iteration constructs",
     ],
     correctIndex: 1,
     explanation:
@@ -10303,10 +10303,10 @@ export const questions: Question[] = [
     question: "What does if constexpr do differently from a regular if?",
     code: `template<typename T>\nstd::string stringify(T val) {\n    if constexpr (std::is_same_v<T, std::string>)\n        return val;\n    else if constexpr (std::is_arithmetic_v<T>)\n        return std::to_string(val);\n    else\n        static_assert(false, "unsupported type");\n}`,
     options: [
-      "It's the same as a regular if but faster",
+      "It's functionally the same as a regular if statement but hints to the optimizer that the condition is likely to be constant, enabling better branch prediction and potentially faster code — no semantic difference exists",
       "if constexpr evaluates the condition at compile time and discards the false branch entirely — the discarded branch is not type-checked or compiled. This enables writing code in the false branch that would be invalid for the current type",
-      "if constexpr only works with boolean literals",
-      "The false branch is still compiled but not executed",
+      "if constexpr only works with boolean literal values (true or false) written directly in the source code — it does not accept constexpr variables, template parameters, type traits, or any other compile-time expressions",
+      "The false branch of an if constexpr is still fully compiled, type-checked, and included in the generated object code, but the optimizer removes the unreachable branch during the linking phase as dead code elimination",
     ],
     correctIndex: 1,
     explanation:
@@ -10321,9 +10321,9 @@ export const questions: Question[] = [
     code: `struct Config {\n    int width = 800;\n    int height = 600;\n    bool fullscreen = false;\n    int fps = 60;\n};\n\nConfig cfg = {.width = 1920, .height = 1080, .fullscreen = true};`,
     options: [
       "A way to initialize only specific fields, leaving others at their default values. The designators (.field =) must appear in declaration order",
-      "A way to name constructor parameters",
-      "They work in any order like Python keyword arguments",
-      "They replace constructors entirely",
+      "A way to name constructor parameters by prefixing each argument with the parameter name, allowing out-of-order passing in function calls",
+      "They work in any order like Python keyword arguments — the compiler silently reorders them to match declaration order",
+      "They replace constructors entirely — once designated initializers are used, the compiler prevents constructors from being called",
     ],
     correctIndex: 0,
     explanation:
@@ -10337,10 +10337,10 @@ export const questions: Question[] = [
     question: "What does std::string_view provide over const std::string&?",
     code: `void process(std::string_view sv) { /* read-only access */ }\n\nprocess("hello");              // no allocation (char* → string_view)\nprocess(std::string("hello")); // no copy\nprocess(someString);           // no copy`,
     options: [
-      "string_view is a mutable reference to a string",
+      "string_view is a mutable reference to a string's internal buffer, allowing direct modification of individual characters without copying the data — it provides write access while avoiding heap allocation",
       "string_view is a non-owning, lightweight view (pointer + size) that can bind to std::string, C-strings, and substrings without copying or allocating. Unlike const string&, it doesn't require constructing a std::string from a char*",
-      "string_view is slower but safer than const string&",
-      "string_view allocates a copy of the string data",
+      "string_view is slower but safer than const string& because it performs bounds checking on every character access and throws std::out_of_range for invalid indices, adding overhead compared to raw references",
+      "string_view allocates a separate copy of the string data on the heap, creating an independent owned buffer that remains valid even after the source string is destroyed or modified by other code",
     ],
     correctIndex: 1,
     explanation:
@@ -10356,10 +10356,10 @@ export const questions: Question[] = [
     question: "What is reference collapsing and why is it essential for perfect forwarding?",
     code: `template<typename T>\nvoid f(T&& arg);  // forwarding reference\n\n// When called with lvalue int x:\n// T = int&, T&& = int& && → collapses to int&\n\n// When called with rvalue 42:\n// T = int, T&& = int&&`,
     options: [
-      "References can't be combined — T&& is always an rvalue reference",
+      "References can never be combined or nested — T&& is always an rvalue reference regardless of what T is deduced as, and the compiler treats every use of && in a template parameter as binding exclusively to temporaries and moved-from objects",
       "Reference collapsing rules: T& & → T&, T& && → T&, T&& & → T&, T&& && → T&&. Only rvalue + rvalue stays rvalue. This lets T&& serve as a 'universal/forwarding reference' that deduces to lvalue ref for lvalues and rvalue ref for rvalues, enabling std::forward to preserve value category",
-      "Collapsing means the reference is removed entirely",
-      "This only applies to function return types",
+      "Collapsing means the reference qualifier is removed entirely from the type, stripping both & and && to produce a plain non-reference value type — T& collapses to T, and T&& also collapses to T, discarding all reference semantics completely and making the parameter a by-value copy",
+      "Reference collapsing only applies to function return types and has no effect on parameter types, local variable declarations, or template argument deduction — parameters always retain their original reference qualifiers without modification",
     ],
     correctIndex: 1,
     explanation:
@@ -10373,10 +10373,10 @@ export const questions: Question[] = [
     question: "What is a user-defined literal and how do you create one?",
     code: `constexpr long double operator\"\"_deg(long double deg) {\n    return deg * 3.14159265358979L / 180.0L;\n}\n\nauto angle = 90.0_deg;  // converts degrees to radians`,
     options: [
-      "User-defined literals are macros with special syntax",
+      "User-defined literals are preprocessor macros with special suffix syntax — the preprocessor expands each suffixed literal into a macro invocation before compilation, so they have the same limitations and scoping rules as #define macros",
       "You define operator\"\"_suffix to create a literal suffix. The compiler calls your function at compile time (if constexpr) when it encounters a number or string with your suffix. Standard library examples: \"hello\"s (string), 5ms (chrono), 0xFF_u8",
-      "User-defined literals only work with integers",
-      "The suffix must start with a letter, not underscore",
+      "User-defined literals only work with integer types — you cannot define custom suffixes for floating-point numbers, string literals, or character literals because the grammar only allows integer literal suffixes",
+      "The suffix must start with a letter rather than an underscore — suffixes beginning with _ are reserved by the standard library and the implementation, so user code that defines _deg or _km is ill-formed",
     ],
     correctIndex: 1,
     explanation:
@@ -10389,10 +10389,10 @@ export const questions: Question[] = [
     topic: "Modern C++",
     question: "What is the difference between std::move and actually moving?",
     options: [
-      "std::move performs the move",
+      "std::move performs the actual move operation — it transfers ownership of all heap-allocated resources from the source object to the destination, zeroing out the source's internal pointers, setting its size to zero, and leaving it in a destructed state in the process",
       "std::move does NOT move anything — it's just a cast to T&& (rvalue reference). The actual move happens when the rvalue reference is passed to a move constructor or move assignment operator. If the type has no move operations, the copy constructor is used instead — std::move is just a request",
-      "std::move always invalidates the source object",
-      "std::move transfers memory ownership at the OS level",
+      "std::move always invalidates the source object completely, leaving it in an undefined state where any operation including destruction is undefined behavior — you must never access or destroy a moved-from object under any circumstances",
+      "std::move transfers memory ownership at the operating system level by updating the virtual memory page table entries so that the destination process or thread owns the physical pages, avoiding any copying of data between address spaces",
     ],
     correctIndex: 1,
     explanation:
@@ -10406,10 +10406,10 @@ export const questions: Question[] = [
     question: "What is the 'immediately invoked lambda' pattern and when is it useful?",
     code: `const auto config = [&]() {\n    Config c;\n    c.width = parseArg("--width", 800);\n    c.height = parseArg("--height", 600);\n    if (debugMode) c.verbose = true;\n    return c;\n}();  // note the () — invoked immediately`,
     options: [
-      "It's a function pointer assigned to a variable",
+      "It's a function pointer assigned to a variable — the lambda is stored as a raw function pointer and the trailing () calls through that pointer indirection, adding a small overhead compared to a direct function call",
       "An IIFE (Immediately Invoked Function Expression) defines and calls a lambda in one expression. It's useful for complex initialization of const variables — the logic can span multiple statements but the result is a single immutable value",
-      "The () is optional — the lambda runs automatically",
-      "This pattern always causes a heap allocation",
+      "The trailing () is optional and serves only as documentation of the programmer's intent — the lambda runs automatically when it is assigned to a variable, so adding or removing the () has no effect on behavior",
+      "This pattern always causes a heap allocation because the lambda must capture variables from the enclosing scope, and captured state is stored in a heap-allocated closure object managed by std::function internally",
     ],
     correctIndex: 1,
     explanation:
@@ -10423,10 +10423,10 @@ export const questions: Question[] = [
     question: "What are the implications of marking a move constructor noexcept?",
     code: `class Widget {\npublic:\n    Widget(Widget&& other) noexcept;  // why noexcept matters\n};`,
     options: [
-      "noexcept is purely documentation — it has no effect",
+      "noexcept is purely documentation and has no observable effect on program behavior or codegen — the compiler ignores the noexcept specifier entirely and generates identical machine code whether the move constructor is marked noexcept or not, making it nothing more than a style choice",
       "std::vector (and other containers) check is_nothrow_move_constructible before reallocation. If the move constructor is noexcept, vector moves elements (fast). If it might throw, vector copies them instead (to preserve the strong exception guarantee). Omitting noexcept can silently degrade performance",
-      "noexcept prevents the constructor from being called",
-      "noexcept makes the move constructor constexpr",
+      "noexcept prevents the move constructor from being called in normal application code — marking a constructor noexcept makes it inaccessible from user code, restricting its invocation to compiler-generated implicit move contexts such as return statements and exception stack unwinding",
+      "noexcept automatically makes the move constructor constexpr as well, allowing it to be evaluated at compile time in constexpr contexts — this enables moved objects to be used in constant expressions, static_assert conditions, and template argument evaluations during instantiation",
     ],
     correctIndex: 1,
     explanation:
@@ -10459,10 +10459,10 @@ export const questions: Question[] = [
     question:
       "In computational physics simulations, what does the Euler method approximate?",
     options: [
-      "Matrix multiplication",
+      "Matrix multiplication for large-scale linear algebra solvers",
       "Numerical solutions to ordinary differential equations (ODEs)",
-      "Fast Fourier Transforms",
-      "Hash collisions",
+      "Fast Fourier Transforms for spectral frequency analysis",
+      "Hash collision resolution strategies in hash tables",
     ],
     correctIndex: 1,
     explanation:
@@ -10476,10 +10476,10 @@ export const questions: Question[] = [
     question:
       "What does the inverse-square law govern, and where is it applied in software?",
     options: [
-      "CPU clock speed decay over distance — used in distributed computing",
+      "CPU clock speed decay over distance from the chipset — used in distributed multi-socket scheduling",
       "Gravitational and electromagnetic force falloff — used in lighting and physics engines",
-      "Memory access latency — used in cache optimization",
-      "Network throughput — used in load balancers",
+      "Memory access latency scaling with distance from the CPU cache — used in NUMA-aware optimization",
+      "Network throughput degradation proportional to hop count — used in load balancer routing",
     ],
     correctIndex: 1,
     explanation:
@@ -10493,10 +10493,10 @@ export const questions: Question[] = [
     question:
       "What is the time complexity of naively simulating N-body gravitational interactions, and which algorithm optimizes it?",
     options: [
-      "O(N) — optimized with quicksort",
+      "O(N) — optimized with quicksort-based partitioning",
       "O(N²) — optimized with the Barnes-Hut algorithm to O(N log N)",
-      "O(N log N) — optimized with merge sort",
-      "O(2^N) — optimized with dynamic programming",
+      "O(N log N) — optimized with merge sort tree structures",
+      "O(2^N) — optimized with dynamic programming and memoization",
     ],
     correctIndex: 1,
     explanation:
@@ -10510,10 +10510,10 @@ export const questions: Question[] = [
     question:
       "Which physics concept is essential for signal processing in software (e.g., audio/image compression)?",
     options: [
-      "Thermodynamics",
+      "Thermodynamics (heat transfer)",
       "Fourier Transform (wave decomposition)",
-      "Bernoulli's Principle",
-      "Archimedes' Principle",
+      "Bernoulli's Principle (fluid flow)",
+      "Archimedes' Principle (buoyancy)",
     ],
     correctIndex: 1,
     explanation:
@@ -10530,10 +10530,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What does the dot product of two vectors tell you?",
     options: [
-      "The perpendicular vector between them",
+      "The perpendicular vector between them, which is used to compute surface normals in 3D rendering",
       "How parallel they are — it measures the cosine of the angle between them scaled by their magnitudes",
-      "The area of the parallelogram they form",
-      "The midpoint between the two vectors",
+      "The area of the parallelogram they form, which is useful for calculating surface area in mesh geometry",
+      "The midpoint between the two vectors, which is commonly used to find the center of a line segment",
     ],
     correctIndex: 1,
     explanation:
@@ -10546,10 +10546,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What does the cross product of two 3D vectors produce?",
     options: [
-      "A scalar representing the angle between them",
+      "A scalar representing the angle between them, calculated using the inverse tangent of their component ratios",
       "A vector perpendicular to both input vectors, with magnitude equal to the area of the parallelogram they span",
-      "The average of the two vectors",
-      "A 2D vector in the plane they share",
+      "The average of the two vectors, computed component-wise by adding them together and dividing each component by two",
+      "A 2D vector in the plane they share, obtained by projecting the result onto the plane defined by the two inputs",
     ],
     correctIndex: 1,
     explanation:
@@ -10562,10 +10562,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What does it mean to normalize a vector?",
     options: [
-      "Set all components to zero",
+      "Set all components to zero, creating the null vector at the origin",
       "Scale it to have a magnitude (length) of exactly 1 while preserving its direction",
-      "Reverse its direction",
-      "Round each component to the nearest integer",
+      "Reverse its direction by negating each component while preserving magnitude",
+      "Round each component to the nearest integer for grid-aligned positioning",
     ],
     correctIndex: 1,
     explanation:
@@ -10610,10 +10610,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "In 3D graphics, what does a 4×4 transformation matrix typically encode?",
     options: [
-      "Only color information",
+      "Only color information stored as RGBA channel values",
       "Translation, rotation, and scale combined into a single matrix",
-      "Only the position of an object",
-      "The texture coordinates of a mesh",
+      "Only the world-space position of a single object in the scene",
+      "The per-vertex texture coordinates (UV mapping) of a mesh",
     ],
     correctIndex: 1,
     explanation:
@@ -10626,10 +10626,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is linear interpolation (lerp)?",
     options: [
-      "Finding the maximum of two values",
+      "Finding the maximum of two values by comparing their magnitudes element-by-element",
       "Blending between two values by a factor t: result = a + t × (b − a), where t is in [0, 1]",
-      "Sorting values in ascending order",
-      "Clamping a value between a min and max",
+      "Sorting values in ascending order using a comparison-based partitioning algorithm",
+      "Clamping a value between a minimum and maximum bound to keep it within a valid range",
     ],
     correctIndex: 1,
     explanation:
@@ -10642,10 +10642,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "In game development, what are quaternions primarily used for?",
     options: [
-      "Storing color values",
+      "Storing RGBA color values for shading",
       "Representing 3D rotations without gimbal lock",
-      "Calculating collision responses",
-      "Managing memory allocation",
+      "Calculating collision response forces and impulses",
+      "Managing dynamic memory allocation pools",
     ],
     correctIndex: 1,
     explanation:
@@ -10674,10 +10674,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "In 3D graphics, what is SLERP?",
     options: [
-      "A sorting algorithm for render order",
+      "A sorting algorithm that determines the front-to-back render order of transparent objects",
       "Spherical Linear Interpolation — smooth interpolation between two rotations along the shortest arc",
-      "A shader optimization technique",
-      "A method for simplifying polygon meshes",
+      "A shader compilation optimization technique that reduces GPU instruction count by merging passes",
+      "A method for simplifying polygon meshes by progressively collapsing edges based on visual error",
     ],
     correctIndex: 1,
     explanation:
@@ -10690,10 +10690,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What happens when you multiply a vector by a negative scalar?",
     options: [
-      "The vector is rotated 90 degrees",
+      "The vector is rotated 90 degrees counterclockwise around the origin in the plane",
       "The vector reverses direction and is scaled by the absolute value of the scalar",
-      "The vector becomes a zero vector",
-      "Only the x-component is affected",
+      "The vector becomes a zero vector with all components set to exactly zero",
+      "Only the x-component is affected while y and z components remain unchanged",
     ],
     correctIndex: 1,
     explanation:
@@ -10722,10 +10722,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What does the scalar projection of vector a onto vector b give you?",
     options: [
-      "The angle between the two vectors",
+      "The angle between the two vectors in radians",
       "The signed length of a's shadow cast onto b's direction",
-      "A vector perpendicular to both",
-      "The area enclosed by a and b",
+      "A vector perpendicular to both a and b in 3D space",
+      "The area enclosed by vectors a and b in the plane",
     ],
     correctIndex: 1,
     explanation:
@@ -10738,10 +10738,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "Why is comparing squared distances preferred over actual distances in performance-critical code?",
     options: [
-      "Squared distances are more accurate",
+      "Squared distances are more accurate due to reduced rounding errors",
       "It avoids the expensive square root operation — if √a < √b, then a < b",
-      "Squared distances use less memory",
-      "It prevents floating-point overflow",
+      "Squared distances use less memory because they fit in smaller integer types",
+      "It prevents floating-point overflow that the square root can introduce",
     ],
     correctIndex: 1,
     explanation:
@@ -10754,10 +10754,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is homogeneous coordinates' main advantage in 3D graphics?",
     options: [
-      "It reduces the number of vertices in a mesh",
+      "It reduces the number of vertices in a mesh through automatic level-of-detail simplification",
       "It allows translation to be represented as matrix multiplication, unifying all transforms into one matrix",
-      "It doubles rendering speed",
-      "It eliminates the need for a depth buffer",
+      "It doubles rendering speed by halving the number of matrix multiplications per vertex",
+      "It eliminates the need for a depth buffer by encoding z-ordering directly in the coordinate system",
     ],
     correctIndex: 1,
     explanation:
@@ -10788,10 +10788,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How do you test if two AABBs overlap?",
     options: [
-      "Check if their centers are within a fixed radius",
+      "Check if their center points are within a fixed distance radius of each other",
       "Check for overlap on ALL axes: they overlap if and only if they overlap on X AND Y AND Z",
-      "Check if any single vertex is inside the other box",
-      "Compare their volumes",
+      "Check if any single vertex of one box is geometrically inside the other box's volume",
+      "Compare their volumes and assume overlap if the smaller one is less than half",
     ],
     correctIndex: 1,
     explanation:
@@ -10804,10 +10804,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the main advantage of AABB over other bounding volumes?",
     options: [
-      "It provides the tightest possible fit",
+      "It provides the tightest possible fit around any rotated object",
       "Overlap tests are extremely fast — just min/max comparisons per axis",
-      "It handles rotated objects perfectly",
-      "It uses less memory than a bounding sphere",
+      "It handles rotated objects perfectly without needing to be recomputed",
+      "It uses less memory than a bounding sphere representation in 3D",
     ],
     correctIndex: 1,
     explanation:
@@ -10820,10 +10820,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the main disadvantage of an AABB?",
     options: [
-      "It can't represent 3D objects",
+      "It can't represent 3D objects — only works for 2D flat shapes on a single plane",
       "It fits poorly around rotated or elongated objects — lots of empty space inside the box",
-      "It's too slow to compute",
-      "It can only be used for spherical objects",
+      "It's too slow to compute — recalculating the bounds requires iterating over every vertex each frame",
+      "It can only be used for spherical objects, since non-spherical shapes lack well-defined extents",
     ],
     correctIndex: 1,
     explanation:
@@ -10836,10 +10836,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is an OBB (Oriented Bounding Box)?",
     options: [
-      "A bounding box that is always axis-aligned",
+      "A bounding box that is always axis-aligned with the world coordinate system and never rotates with the object",
       "A bounding box that rotates with the object, giving a tighter fit than AABB for rotated objects",
-      "A spherical bounding volume",
-      "A 2D-only bounding rectangle",
+      "A spherical bounding volume that uses a center point and radius for fast intersection tests",
+      "A 2D-only bounding rectangle used for UI element hit testing and sprite collision detection",
     ],
     correctIndex: 1,
     explanation:
@@ -10852,10 +10852,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a bounding sphere?",
     options: [
-      "A cube that surrounds an object",
+      "A cube that surrounds an object and is aligned with the world coordinate axes",
       "A sphere defined by a center point and radius that fully encloses an object",
-      "A flat circle projected onto a surface",
-      "A half-sphere used for hemisphere lighting",
+      "A flat circle projected onto a surface, used for 2D collision detection only",
+      "A half-sphere used for hemisphere lighting and ambient occlusion calculations",
     ],
     correctIndex: 1,
     explanation:
@@ -10868,10 +10868,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is broad-phase collision detection?",
     options: [
-      "The precise calculation of contact points",
+      "The precise calculation of exact contact points and surface normals between two colliding shapes",
       "A fast, approximate pass that quickly eliminates pairs of objects that definitely cannot be colliding",
-      "Detecting collisions between the ground and all objects",
-      "Collision detection that only works on large objects",
+      "Detecting collisions only between the ground plane and all objects, ignoring object-to-object interactions",
+      "Collision detection that only works on large objects above a certain size threshold in the scene",
     ],
     correctIndex: 1,
     explanation:
@@ -10884,10 +10884,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is narrow-phase collision detection?",
     options: [
-      "Quickly rejecting non-colliding pairs",
+      "Quickly rejecting non-colliding pairs using bounding volumes before performing any detailed geometric tests",
       "The precise, per-shape test that determines exact collision: whether shapes actually intersect, plus contact points and normals",
-      "Detecting collisions only in a small region of the world",
-      "A technique that only works for convex shapes",
+      "Detecting collisions only in a small spatial region of the world, ignoring objects outside the designated active zone",
+      "A collision detection technique that only works for convex shapes and fails silently when applied to concave meshes",
     ],
     correctIndex: 1,
     explanation:
@@ -10900,10 +10900,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the Separating Axis Theorem (SAT)?",
     options: [
-      "A method for dividing objects into equal parts",
+      "A method for dividing objects into equal parts along their principal axes of symmetry",
       "If two convex shapes don't overlap, there exists an axis where their projections are separated",
-      "A technique for sorting objects by distance",
-      "A theorem about the number of sides in a polygon",
+      "A technique for sorting objects by distance from the camera to determine rendering order",
+      "A theorem about the number of sides in a polygon and how it affects collision test cost",
     ],
     correctIndex: 1,
     explanation:
@@ -10916,10 +10916,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "Why does the Separating Axis Theorem only work for convex shapes?",
     options: [
-      "Concave shapes have no edges",
+      "Concave shapes have no edges suitable for projection, so their geometry cannot produce valid test normals for any separation axis algorithm",
       "A concave shape can be non-overlapping on all tested axes but still intersecting — SAT's guarantee only holds for convex shapes",
-      "Concave shapes can't be rendered",
-      "SAT actually works for all shapes",
+      "Concave shapes can't be rendered efficiently because their winding order is ambiguous, making them incompatible with standard rasterization",
+      "SAT actually works for all shapes regardless of topology, including concave polygons, because axis projection is inherently shape-agnostic",
     ],
     correctIndex: 1,
     explanation:
@@ -10932,10 +10932,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the sweep and prune algorithm?",
     options: [
-      "A sorting-based rendering technique",
+      "A sorting-based rendering technique that orders polygons by depth before drawing them to screen, used in painter's algorithm",
       "A broad-phase algorithm that sorts AABB min/max endpoints along each axis to efficiently find overlapping pairs",
-      "A method for removing deleted objects from a scene",
-      "A narrow-phase collision response technique",
+      "A method for removing deleted objects from a scene graph by sweeping the hierarchy and pruning unreferenced nodes in one pass",
+      "A narrow-phase collision response technique that resolves penetration by sweeping contact points along the collision normal",
     ],
     correctIndex: 1,
     explanation:
@@ -10948,10 +10948,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is ray casting?",
     options: [
-      "A method for creating shadow maps",
+      "A method for creating shadow maps by projecting light-space depth into a texture, allowing per-pixel shadow comparisons during shading",
       "Shooting a ray from a point in a direction and finding what it hits first — used for line-of-sight, picking, and bullet traces",
-      "Projecting a 3D scene onto a 2D plane",
-      "Converting a mesh to voxels",
+      "Projecting a 3D scene onto a 2D plane using perspective division and viewport transforms, the core of standard rasterization",
+      "Converting a mesh to voxels by discretizing its surface into a regular 3D grid, typically used for volumetric or destructible terrain",
     ],
     correctIndex: 1,
     explanation:
@@ -10964,10 +10964,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How do you test if a ray intersects a sphere?",
     options: [
-      "Check if the ray's direction equals the sphere's normal",
+      "Check if the ray's direction equals the sphere's surface normal at the nearest point, then compare the dot product to a threshold",
       "Compute the closest point on the ray to the sphere's center — if that distance is ≤ the radius, the ray hits",
-      "Check if the ray's origin is inside the sphere",
-      "Count the number of triangles in the sphere mesh",
+      "Check if the ray's origin is inside the sphere by comparing origin-to-center distance against the radius, ignoring direction",
+      "Count the triangles in the sphere mesh that face the ray's direction using dot products against each triangle normal",
     ],
     correctIndex: 1,
     explanation:
@@ -10980,10 +10980,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a contact manifold in collision detection?",
     options: [
-      "A list of all objects in the scene",
+      "A list of all objects in the scene that are active and eligible for collision testing during broad-phase",
       "The set of contact points, normals, and penetration depths between two colliding objects",
-      "A type of 3D surface mesh",
-      "A database of collision shapes",
+      "A type of 3D surface mesh that stores vertex positions and face indices for rendering collision geometry",
+      "A database of collision shapes indexed by object ID, used for fast lookup during narrow-phase detection",
     ],
     correctIndex: 1,
     explanation:
@@ -10996,10 +10996,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is penetration depth in collision detection?",
     options: [
-      "How fast two objects are approaching",
+      "How fast two objects are approaching each other along the collision normal, called the closing speed",
       "The minimum distance one object must be moved to separate the two overlapping objects",
-      "The depth of a ray cast into a surface",
-      "The polygon count of an object",
+      "The depth of a ray cast into a surface, measured from the entry point to the exit through the object",
+      "The polygon count of an object's collision mesh, which determines narrow-phase intersection precision",
     ],
     correctIndex: 1,
     explanation:
@@ -11012,10 +11012,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the difference between convex and concave shapes in collision detection?",
     options: [
-      "Convex shapes have more vertices",
+      "Convex shapes have more vertices than concave ones because their outlines need additional points to approximate smooth curved boundaries",
       "A convex shape has no inward-facing parts — any line between two interior points stays inside. Concave shapes can have indentations",
-      "Concave shapes are always 2D",
-      "There is no practical difference",
+      "Concave shapes are always 2D polygons and cannot be extended into 3D, limiting their use to flat sprite-based collision in side-scrollers",
+      "There is no practical difference between convex and concave shapes for collision detection — both are handled identically by physics engines",
     ],
     correctIndex: 1,
     explanation:
@@ -11028,10 +11028,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a BVH (Bounding Volume Hierarchy)?",
     options: [
-      "A flat list of all collision shapes",
+      "A flat list of all collision shapes in a linear array, requiring every pair to be checked individually during broad-phase collision detection",
       "A tree structure where each node has a bounding volume containing all its children — used to skip large groups of objects quickly",
-      "A type of hash table for physics objects",
-      "A linked list of collision pairs",
+      "A type of hash table for physics objects that maps spatial coordinates to object references, with chaining for bucket overflow",
+      "A linked list of collision pairs maintained across frames and updated incrementally as objects move, with O(1) insertion per pair",
     ],
     correctIndex: 1,
     explanation:
@@ -11044,10 +11044,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How many separating axes must you test for two 3D OBBs using SAT?",
     options: [
-      "3 axes",
+      "3 axes — one for each coordinate axis (X, Y, Z), testing only face normals from one box",
       "15 axes — 3 face normals from each box (6) plus 9 edge-edge cross products",
-      "6 axes",
-      "1 axis",
+      "6 axes — three face normals from each box, ignoring the edge cross products for contacts",
+      "1 axis — the vector between box centers, since overlap on that axis confirms collision",
     ],
     correctIndex: 1,
     explanation:
@@ -11060,10 +11060,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the GJK algorithm used for?",
     options: [
-      "Sorting collision pairs by distance",
+      "Sorting collision pairs by distance from the camera so nearer pairs are resolved first in rendering",
       "Determining if two convex shapes intersect, using the Minkowski difference and simplexes",
-      "Rendering transparent objects",
-      "Compressing mesh data",
+      "Rendering transparent objects with alpha blending using back-to-front sorting based on centroid depth",
+      "Compressing mesh data by reducing vertex count through edge collapse operations while preserving shape",
     ],
     correctIndex: 1,
     explanation:
@@ -11076,10 +11076,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the Minkowski difference (or sum) used for in collision detection?",
     options: [
-      "Averaging two shapes' vertices",
+      "Averaging two shapes' vertices to produce a blended geometry approximating the intersection region between the two collision volumes",
       "Creating a new shape from two shapes — if the Minkowski difference contains the origin, the original shapes overlap",
-      "Reducing polygon count",
-      "Computing texture coordinates",
+      "Reducing polygon count of collision meshes by merging coplanar triangles and removing degenerate faces to optimize performance",
+      "Computing texture coordinates for surfaces generated during contact resolution, mapping the manifold onto a 2D UV space",
     ],
     correctIndex: 1,
     explanation:
@@ -11094,10 +11094,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a quadtree?",
     options: [
-      "A tree where each node has 8 children",
+      "A tree where each node has 8 children, subdividing 3D space into octants for volumetric spatial queries",
       "A 2D spatial partitioning tree where each node subdivides its region into 4 equal quadrants",
-      "A balanced binary search tree",
-      "A graph with 4 connected components",
+      "A balanced binary search tree optimized for range queries on sorted one-dimensional interval data",
+      "A graph with 4 connected components, each subgraph storing objects in a separate spatial region",
     ],
     correctIndex: 1,
     explanation:
@@ -11110,10 +11110,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is an octree?",
     options: [
-      "A quadtree with extra metadata",
+      "A quadtree with extra metadata encoding depth info per node for efficient 3D lookups",
       "The 3D equivalent of a quadtree — each node subdivides space into 8 octants",
-      "A tree with exactly 8 leaf nodes",
-      "A data structure for audio processing",
+      "A tree with exactly 8 leaf nodes at the bottom level, storing spatial data only there",
+      "A data structure for audio that partitions frequency bands into hierarchical nodes",
     ],
     correctIndex: 1,
     explanation:
@@ -11126,10 +11126,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a BSP (Binary Space Partitioning) tree?",
     options: [
-      "A tree that stores textures in binary format",
+      "A tree that stores textures in binary format, encoding pixel data as hierarchical bitstreams for GPU decompression",
       "A tree that recursively splits space with planes — each node divides space into two half-spaces",
-      "A binary search tree for player scores",
-      "A compression algorithm",
+      "A binary search tree for player scores supporting fast rank queries and insertions in O(log n) time",
+      "A compression algorithm that partitions data into binary segments and encodes each with variable-length codes",
     ],
     correctIndex: 1,
     explanation:
@@ -11142,10 +11142,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is spatial hashing?",
     options: [
-      "A cryptographic hash for 3D coordinates",
+      "A cryptographic hash for 3D coordinates ensuring collision-resistant encoding of spatial positions to prevent tampering in physics",
       "Dividing space into a uniform grid and hashing each cell — objects in the same cell are potential collision candidates",
-      "A method for encrypting game state",
-      "Hashing object names for fast lookup",
+      "A method for encrypting game state by applying spatial permutation ciphers to position and velocity vectors each frame",
+      "Hashing object names for fast lookup in the scene graph, enabling O(1) retrieval of physics components by string identifier",
     ],
     correctIndex: 1,
     explanation:
@@ -11158,10 +11158,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the main purpose of spatial partitioning in physics engines?",
     options: [
-      "To improve rendering quality",
+      "To improve rendering quality by batching draw calls according to spatial proximity, reducing overdraw per frame",
       "To reduce the number of collision pair checks from O(N²) to something closer to O(N log N) or O(N)",
-      "To save disk space",
-      "To enable multiplayer networking",
+      "To save disk space by storing only the partition structure rather than individual object positions in the scene",
+      "To enable multiplayer networking by assigning each partition cell to a different server, distributing workload",
     ],
     correctIndex: 1,
     explanation:
@@ -11175,9 +11175,9 @@ export const questions: Question[] = [
     question: "What is a KD-tree?",
     options: [
       "A tree for K-dimensional data that splits along one axis per level in a cycling pattern",
-      "A tree with exactly K children per node",
-      "A tree used only for 2D data",
-      "A tree for storing key-value pairs",
+      "A tree with exactly K children per node, forming a balanced K-ary structure for hierarchical storage",
+      "A tree used only for 2D data, splitting the plane along alternating X and Y axes at medians",
+      "A tree for storing key-value pairs in a balanced binary layout with O(log n) operations",
     ],
     correctIndex: 0,
     explanation:
@@ -11206,10 +11206,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "In a quadtree, what happens when a cell exceeds its maximum object capacity?",
     options: [
-      "Objects are deleted",
+      "Objects are deleted to keep the cell count manageable and prevent memory overflow",
       "The cell subdivides into 4 child cells, and objects are redistributed",
-      "The quadtree is rebuilt from scratch",
-      "A linked list is used within the cell",
+      "The quadtree is rebuilt from scratch by reinserting every object from root",
+      "A linked list chains overflow objects in the cell, avoiding subdivision",
     ],
     correctIndex: 1,
     explanation:
@@ -11222,10 +11222,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "When would a uniform grid be preferred over a BVH or quadtree?",
     options: [
-      "When objects vary greatly in size",
+      "When objects vary greatly in size, causing large bounding volumes that span many cells",
       "When objects are roughly uniform in size and evenly distributed in space",
-      "When objects are clustered in one corner",
-      "When there are very few objects",
+      "When objects are clustered in one corner, creating highly uneven spatial density",
+      "When there are very few objects, making broad-phase overhead negligible overall",
     ],
     correctIndex: 1,
     explanation:
@@ -11238,10 +11238,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "Why are BVHs commonly used in ray tracing?",
     options: [
-      "They produce better colors",
+      "They produce better colors and lighting by organizing surface normals hierarchically, enabling faster irradiance lookups during illumination passes",
       "They allow rays to skip large groups of geometry by testing against bounding volumes first — only traversing deeper if the ray hits the volume",
-      "They reduce the number of pixels to render",
-      "They are required by the GPU hardware",
+      "They reduce the number of pixels to render by culling off-screen geometry early in the pipeline, improving fragment shader throughput per frame",
+      "They are required by the GPU's ray tracing cores, which natively expect a BVH-format acceleration structure as input for intersection testing",
     ],
     correctIndex: 1,
     explanation:
@@ -11256,10 +11256,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What does Newton's First Law (Law of Inertia) state?",
     options: [
-      "Force equals mass times acceleration",
+      "Force equals mass times acceleration, which is Newton's Second Law describing how forces produce proportional changes in velocity over time",
       "An object at rest stays at rest, and an object in motion stays in motion at constant velocity, unless acted on by a net external force",
-      "Every action has an equal and opposite reaction",
-      "Energy cannot be created or destroyed",
+      "Every action has an equal and opposite reaction, meaning interaction forces between two bodies are always equal-magnitude and opposite-direction",
+      "Energy cannot be created or destroyed in an isolated system; it can only transform from one form to another, such as kinetic to potential",
     ],
     correctIndex: 1,
     explanation:
@@ -11272,10 +11272,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What does F = ma mean in a physics engine?",
     options: [
-      "Force equals momentum times area",
+      "Force equals momentum times area, giving dimensionally inconsistent units that do not correspond to any standard physical law or formula",
       "The acceleration of a body equals the net force on it divided by its mass — heavier objects accelerate less for the same force",
-      "Friction equals mass times angle",
-      "Frequency equals magnitude times amplitude",
+      "Friction equals mass times angle, a simplified approximation sometimes used in game physics to compute slope-dependent resistance on inclines",
+      "Frequency equals magnitude times amplitude, a relationship used in signal processing to determine the power spectral density of waveforms",
     ],
     correctIndex: 1,
     explanation:
@@ -11288,10 +11288,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What does Newton's Third Law mean for collision response?",
     options: [
-      "Heavier objects always win in collisions",
+      "Heavier objects always win in collisions and push lighter objects away without any change to their own velocity",
       "When object A exerts a force on B, B exerts an equal and opposite force on A — both objects are affected",
-      "Collisions only affect the faster object",
-      "Forces only exist during contact",
+      "Collisions only affect the faster object, leaving the slower one unchanged because momentum depends on higher velocity",
+      "Forces only exist during the exact instant of contact and vanish immediately, so prolonged contact produces no force",
     ],
     correctIndex: 1,
     explanation:
@@ -11304,10 +11304,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is impulse in physics?",
     options: [
-      "A type of electrical signal",
+      "A type of electrical signal in circuit simulation representing a sudden voltage spike with instantaneous rise and decay",
       "A sudden change in momentum — impulse = force × time, or equivalently the change in momentum (Δp = m × Δv)",
-      "The total energy in a system",
-      "The distance traveled in one frame",
+      "The total energy in a system at a given moment, encompassing kinetic and potential forms, constant in closed systems",
+      "The distance traveled in one frame divided by the timestep, giving an approximation of speed for discrete physics",
     ],
     correctIndex: 1,
     explanation:
@@ -11320,10 +11320,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What does conservation of momentum state?",
     options: [
-      "Momentum always increases",
+      "Momentum always increases over time in any system because objects continuously accumulate velocity from residual forces",
       "In a closed system with no external forces, total momentum before a collision equals total momentum after",
-      "Heavier objects always have more momentum",
-      "Momentum is converted to energy during collision",
+      "Heavier objects always have more momentum than lighter ones regardless of velocity, since mass dominates momentum calculations",
+      "Momentum is converted to energy during collision via a mass-dependent transfer function, so total momentum is not conserved",
     ],
     correctIndex: 1,
     explanation:
@@ -11336,10 +11336,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the difference between elastic and inelastic collisions?",
     options: [
-      "Elastic collisions are slower",
+      "Elastic collisions are slower to compute because they require iterative constraint solving to ensure kinetic energy is exactly conserved after each contact resolution step",
       "In elastic collisions, kinetic energy is conserved (e.g., billiard balls). In inelastic collisions, some kinetic energy is lost to deformation/heat (e.g., car crash)",
-      "Inelastic collisions don't obey Newton's laws",
-      "Elastic collisions only happen in 2D",
+      "Inelastic collisions don't obey Newton's laws and instead follow empirical material models, making them fundamentally different from standard Newtonian collision mechanics",
+      "Elastic collisions only happen in 2D because three-dimensional contact geometry introduces rotational energy transfer that always causes some kinetic energy loss",
     ],
     correctIndex: 1,
     explanation:
@@ -11352,10 +11352,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What does a coefficient of restitution (e) of 1.0 mean?",
     options: [
-      "The collision absorbs all energy",
+      "The collision absorbs all energy, converting kinetic energy into heat and sound entirely",
       "Perfectly elastic collision — objects bounce off with no kinetic energy loss",
-      "The objects pass through each other",
-      "Infinite friction is applied",
+      "The objects pass through each other without interaction, as if detection is off",
+      "Infinite friction is applied at the contact point, preventing any sliding at all",
     ],
     correctIndex: 1,
     explanation:
@@ -11368,10 +11368,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What does a coefficient of restitution (e) of 0.0 mean?",
     options: [
-      "The objects bounce infinitely",
+      "The objects bounce infinitely, gaining kinetic energy with each collision until the sim breaks",
       "Perfectly inelastic collision — the objects don't bounce at all and may stick together",
-      "No collision occurs",
-      "The objects accelerate on contact",
+      "No collision occurs between the objects, and they pass through each other as if on different layers",
+      "The objects accelerate on contact, gaining velocity proportional to the normal force at the contact",
     ],
     correctIndex: 1,
     explanation:
@@ -11384,10 +11384,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the difference between static friction and kinetic friction?",
     options: [
-      "They are the same thing",
+      "They are the same thing — both describe a single friction coefficient that applies equally whether the object is stationary or moving across the surface",
       "Static friction prevents a stationary object from starting to move (higher). Kinetic friction opposes an already-moving object (lower)",
-      "Static friction only applies to spheres",
-      "Kinetic friction only applies in zero gravity",
+      "Static friction only applies to spheres and round shapes because flat surfaces cannot generate the tangential forces needed to resist initial motion",
+      "Kinetic friction only applies in zero gravity where normal forces are absent, making surface contact depend entirely on adhesive molecular forces",
     ],
     correctIndex: 1,
     explanation:
@@ -11400,10 +11400,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is torque?",
     options: [
-      "Linear force applied to the center of mass",
+      "Linear force applied to the center of mass, causing pure translational acceleration with no rotational component in the rigid body",
       "A rotational force — torque = force × distance from the pivot point (lever arm), causing angular acceleration",
-      "The speed of rotation",
-      "The total mass of a rotating object",
+      "The speed of rotation measured in radians per second, determined by dividing angular displacement by the elapsed time interval",
+      "The total mass of a rotating object multiplied by the square of its radius, giving a measure of rotational resistance",
     ],
     correctIndex: 1,
     explanation:
@@ -11416,10 +11416,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is angular velocity?",
     options: [
-      "How fast an object moves in a straight line",
+      "How fast an object moves in a straight line, measured in meters per second along its path",
       "The rate of change of an object's rotation — measured in radians per second",
-      "The angle between two objects",
-      "The velocity at the edge of a circle",
+      "The angle between two objects measured from a shared reference point in the world",
+      "The velocity at the edge of a circle, found by multiplying radius by angular frequency",
     ],
     correctIndex: 1,
     explanation:
@@ -11432,10 +11432,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the moment of inertia?",
     options: [
-      "The tendency of a moment to be forgotten",
+      "The tendency of a moment to be forgotten over time, analogous to how a damped system loses energy and returns to equilibrium",
       "The rotational equivalent of mass — it describes how hard it is to change an object's rotation, depending on mass distribution",
-      "The initial angular velocity",
-      "The total torque on an object",
+      "The initial angular velocity of an object when a torque is first applied, before damping or friction forces begin to act",
+      "The total torque on an object summed across all applied forces, representing the net rotational influence on angular acceleration",
     ],
     correctIndex: 1,
     explanation:
@@ -11448,10 +11448,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the center of mass?",
     options: [
-      "The geometric center of an object's bounding box",
+      "The geometric center of an object's bounding box, computed as the average of minimum and maximum coordinates along each axis",
       "The weighted average position of all mass in an object — the point where it balances, and where forces cause pure translation",
-      "The point furthest from all edges",
-      "The origin of the coordinate system",
+      "The point furthest from all edges of the object, found by computing the maximum inscribed sphere within the volume",
+      "The origin of the coordinate system used by the physics engine, typically located at (0,0,0) in world space by default",
     ],
     correctIndex: 1,
     explanation:
@@ -11464,10 +11464,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the work-energy theorem?",
     options: [
-      "Work is always equal to power",
+      "Work is always equal to power multiplied by efficiency, determining energy transfer",
       "The net work done on an object equals its change in kinetic energy: W = ΔKE",
-      "Energy is always conserved in collisions",
-      "Work can only be done by gravity",
+      "Energy is always conserved in collisions regardless of whether they are elastic or not",
+      "Work can only be done by gravity since it is the only conservative force acting on objects",
     ],
     correctIndex: 1,
     explanation:
@@ -11499,10 +11499,10 @@ export const questions: Question[] = [
     question: "What is Euler integration in physics simulation?",
     code: "velocity += acceleration * dt;\nposition += velocity * dt;",
     options: [
-      "An exact analytical solution to equations of motion",
+      "An exact analytical solution to equations of motion derived by solving differential equations in closed form, yielding precise trajectories",
       "The simplest numerical integration: update velocity by acceleration, then position by velocity, each multiplied by the timestep",
-      "A method for computing Euler angles",
-      "An integration technique that requires derivatives up to 4th order",
+      "A method for computing Euler angles from a rotation matrix by decomposing it into sequential rotations around the principal axes",
+      "An integration technique requiring derivatives up to 4th order, evaluating them at multiple substeps per frame for high accuracy",
     ],
     correctIndex: 1,
     explanation:
@@ -11515,10 +11515,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the main drawback of explicit Euler integration?",
     options: [
-      "It's too slow to compute",
+      "It's too slow to compute per frame because each step requires solving linear equations via matrix factorization",
       "It adds energy to the system over time (energy drift), making simulations increasingly unstable",
-      "It requires matrix inversion",
-      "It only works for 2D simulations",
+      "It requires matrix inversion at each timestep to solve the implicit system, making it expensive for many bodies",
+      "It only works for 2D simulations because extending it to three dimensions introduces singularities in rotation",
     ],
     correctIndex: 1,
     explanation:
@@ -11532,10 +11532,10 @@ export const questions: Question[] = [
     question: "What is semi-implicit (symplectic) Euler integration?",
     code: "velocity += acceleration * dt;\nposition += velocity * dt;  // uses NEW velocity",
     options: [
-      "Updating position with the OLD velocity before updating velocity",
+      "Updating position with the OLD velocity before updating velocity, causing position to lag by one timestep with phase error",
       "Updating velocity first, then using the NEW velocity to update position — preserving energy much better",
-      "Taking the average of Euler and RK4",
-      "Running Euler integration twice and averaging",
+      "Taking the average of Euler and RK4 results to balance accuracy against computational cost per integration substep",
+      "Running Euler integration twice and averaging, effectively halving per-step error at double the computational cost",
     ],
     correctIndex: 1,
     explanation:
@@ -11549,10 +11549,10 @@ export const questions: Question[] = [
     question: "What is Verlet integration?",
     code: "newPos = 2 * currentPos - previousPos + acceleration * dt²;",
     options: [
-      "A method that stores velocity explicitly",
+      "A method that stores velocity explicitly as a separate state variable, updating it independently from position each frame via forces",
       "A position-based integration that uses current and previous positions to implicitly encode velocity — no explicit velocity variable needed",
-      "A variant of RK4",
-      "An integration method that only works for rotations",
+      "A variant of RK4 that reduces cost by evaluating only two intermediate derivatives instead of four per integration step throughout",
+      "An integration method that only works for rotations because it parameterizes orientation using quaternion differences instead of vectors",
     ],
     correctIndex: 1,
     explanation:
@@ -11565,10 +11565,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "Why is Verlet integration popular for particle and cloth simulation?",
     options: [
-      "It's the most mathematically accurate method",
+      "It's the most mathematically accurate method, achieving machine-precision results for all ordinary differential equations",
       "Constraints (fixed distances, pins) are trivially enforced by directly adjusting positions after each step",
-      "It uses the least memory",
-      "It was invented specifically for cloth",
+      "It uses the least memory of all integration methods because it avoids storing intermediate derivative evaluations per substep",
+      "It was invented specifically for cloth in the 1990s by game developers who needed real-time deformable surfaces in engines",
     ],
     correctIndex: 1,
     explanation:
@@ -11581,10 +11581,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is RK4 (4th-order Runge-Kutta)?",
     options: [
-      "A rendering algorithm",
+      "A rendering algorithm that traces rays through a scene and evaluates surface shading at each intersection for photorealistic images",
       "A high-accuracy integration method that evaluates the derivative 4 times per step to achieve 4th-order accuracy",
-      "A collision detection algorithm",
-      "A data compression technique",
+      "A collision detection algorithm that partitions space into K-dimensional cells and tests pairs only within neighboring cells",
+      "A data compression technique that reduces floating-point precision in physics state vectors while maintaining simulation fidelity",
     ],
     correctIndex: 1,
     explanation:
@@ -11597,10 +11597,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "Why do physics engines use a fixed timestep rather than variable?",
     options: [
-      "Variable timesteps are faster",
+      "Variable timesteps are faster because the integrator can take larger steps when objects move slowly and smaller steps during rapid motion",
       "A fixed timestep ensures deterministic, stable, reproducible behavior — variable timesteps cause instability and non-reproducible results",
-      "Fixed timesteps use less memory",
-      "Variable timesteps are not supported by CPUs",
+      "Fixed timesteps use less memory because the integrator can reuse pre-allocated buffers of known size rather than dynamically resizing each frame",
+      "Variable timesteps are not supported by CPUs because hardware timer resolution limits the minimum measurable interval to one millisecond",
     ],
     correctIndex: 1,
     explanation:
@@ -11613,10 +11613,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the 'spiral of death' in physics simulation?",
     options: [
-      "An object spiraling into a black hole",
+      "An object spiraling into a black hole due to gravitational attraction that increases inversely with the square of the distance between centers of mass",
       "When the physics step takes longer than the fixed timestep, causing accumulated time to grow, requiring more steps, which take even longer — a feedback loop",
-      "A rendering artifact in spiral shapes",
-      "When two objects orbit each other indefinitely",
+      "A rendering artifact in spiral shapes caused by insufficient tessellation of curved geometry, producing visible faceting along inner and outer edges",
+      "When two objects orbit each other indefinitely because their velocity perfectly balances gravitational pull, creating a stable circular trajectory",
     ],
     correctIndex: 1,
     explanation:
@@ -11629,10 +11629,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is energy drift in physics simulation?",
     options: [
-      "Objects slowly losing their texture data",
+      "Objects slowly losing their texture data due to GPU memory fragmentation when physics objects are frequently created and destroyed",
       "The total energy of a simulated system gradually increasing or decreasing due to numerical integration errors",
-      "A rendering artifact caused by floating-point errors",
-      "The natural loss of energy due to friction",
+      "A rendering artifact caused by floating-point errors in vertex transformation, producing visible jitter at large world coordinates",
+      "The natural loss of energy due to friction modeled explicitly in the simulation, correctly reducing velocity over time",
     ],
     correctIndex: 1,
     explanation:
@@ -11645,10 +11645,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is interpolation used for between physics steps?",
     options: [
-      "Running extra physics calculations",
+      "Running extra physics calculations between fixed timesteps to improve collision accuracy for fast objects that might tunnel through thin walls",
       "Smoothly blending between the previous and current physics state for rendering, so motion appears smooth even if physics runs at a lower rate",
-      "Compressing animation data",
-      "Predicting future collisions",
+      "Compressing animation data by fitting spline curves to keyframe samples, reducing storage while preserving smooth playback at any frame rate",
+      "Predicting future collisions by extrapolating trajectories forward in time, then pre-resolving contacts before they occur to prevent penetration",
     ],
     correctIndex: 1,
     explanation:
@@ -11663,10 +11663,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the difference between kinematics and dynamics?",
     options: [
-      "They are the same thing",
+      "They are the same thing — both terms refer to the study of how objects move under forces, and the distinction is purely historical in origin",
       "Kinematics describes motion (position, velocity, acceleration) without considering forces. Dynamics includes forces (F=ma) that cause motion",
-      "Kinematics is 2D, dynamics is 3D",
-      "Kinematics is for particles, dynamics is for rigid bodies",
+      "Kinematics is 2D analysis of motion restricted to a plane, while dynamics extends equations to full 3D space including rotation and torques",
+      "Kinematics is for particles with mass but no volume, while dynamics handles extended rigid bodies with shape, inertia, and rotation",
     ],
     correctIndex: 1,
     explanation:
@@ -11679,10 +11679,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What are the three basic kinematic quantities?",
     options: [
-      "Mass, force, energy",
+      "Mass, force, and energy — the three dynamical quantities",
       "Position (displacement), velocity, and acceleration",
-      "Temperature, pressure, volume",
-      "Frequency, wavelength, amplitude",
+      "Temperature, pressure, and volume — the thermodynamic trio",
+      "Frequency, wavelength, amplitude — the three wave properties",
     ],
     correctIndex: 1,
     explanation:
@@ -11711,10 +11711,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What determines the range of a projectile launched at angle θ with speed v (no air resistance)?",
     options: [
-      "Only the speed matters",
+      "Only the speed matters, not the launch angle at all",
       "Range = (v² × sin(2θ)) / g — maximum range occurs at 45°",
-      "Only the angle matters",
-      "Range = v × t regardless of angle",
+      "Only the angle matters, not the speed, since gravity dominates",
+      "Range = v × t regardless of angle or launch conditions",
     ],
     correctIndex: 1,
     explanation:
@@ -11727,10 +11727,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is terminal velocity?",
     options: [
-      "The speed at which an object breaks apart",
+      "The speed at which an object breaks apart due to aerodynamic stress exceeding its tensile strength during free fall",
       "The constant speed reached when drag force equals gravitational force, so net acceleration is zero",
-      "The fastest possible speed in a simulation",
-      "The velocity at the moment of impact",
+      "The fastest possible speed in a simulation, set by the maximum floating-point value the engine can represent",
+      "The velocity at the moment of impact with the ground, calculated from initial height and gravitational acceleration",
     ],
     correctIndex: 1,
     explanation:
@@ -11743,10 +11743,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How is drag force typically modeled in game physics?",
     options: [
-      "As a constant subtraction from velocity each frame",
+      "As a constant subtraction from velocity each frame, removing a fixed amount regardless of speed",
       "F_drag = -½ × ρ × v² × Cd × A (proportional to velocity squared, opposing motion)",
-      "As a random force applied each frame",
-      "Drag is not modeled in games",
+      "As a random force each frame with magnitude sampled from a Gaussian distribution around zero",
+      "Drag is not modeled in games because it would slow all objects unrealistically and hurt gameplay",
     ],
     correctIndex: 1,
     explanation:
@@ -11759,10 +11759,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "In most game engines, how is gravity applied?",
     options: [
-      "As a position offset each frame",
+      "As a position offset each frame that shifts the object downward by a fixed distance regardless of velocity",
       "As a constant downward acceleration (e.g., -9.81 m/s²) added to velocity each physics step",
-      "As a one-time impulse when an object is created",
-      "Gravity is always simulated using Newton's gravitational law with real masses",
+      "As a one-time impulse when an object is created, giving it an initial downward velocity that persists",
+      "Gravity is always simulated using Newton's gravitational law with real masses and the gravitational constant",
     ],
     correctIndex: 1,
     explanation:
@@ -11777,10 +11777,10 @@ export const questions: Question[] = [
       "What is the kinematic equation for position with constant acceleration?",
     code: "x = x₀ + v₀t + ½at²",
     options: [
-      "x = v × t",
+      "x = v × t, which only holds for constant-velocity motion with zero acceleration applied throughout",
       "x = x₀ + v₀·t + ½·a·t² — initial position plus velocity term plus acceleration term",
-      "x = a × t²",
-      "x = x₀ + a·t",
+      "x = a × t², which omits the initial velocity and position terms, valid only when both are zero",
+      "x = x₀ + a·t, which treats acceleration as velocity, linearly scaling displacement incorrectly",
     ],
     correctIndex: 1,
     explanation:
@@ -11793,10 +11793,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is relative velocity and why does it matter for collisions?",
     options: [
-      "The velocity of an object relative to the ground",
+      "The velocity of an object relative to the ground in the world frame, which ignores how fast the other colliding body is moving toward it",
       "The velocity of one object as seen from another — collision response depends on how fast objects approach EACH OTHER, not their individual speeds",
-      "The average velocity of all objects",
-      "The maximum velocity allowed in the simulation",
+      "The average velocity of all objects in the scene, computed by summing every velocity vector and dividing by the total number of active bodies",
+      "The maximum velocity allowed in the simulation, enforced by clamping each object's speed to a predefined upper bound during velocity integration",
     ],
     correctIndex: 1,
     explanation:
@@ -11809,10 +11809,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the relationship between linear velocity and angular velocity for a point on a rotating body?",
     options: [
-      "They are unrelated",
+      "They are unrelated — linear velocity depends only on applied forces while angular velocity depends solely on torques",
       "v = ω × r — linear velocity equals angular velocity cross radius vector from the center of rotation",
-      "v = ω + r",
-      "v = ω / r",
+      "v = ω + r, a simple additive relationship where linear velocity is the sum of angular velocity and radius",
+      "v = ω / r, meaning linear velocity equals angular velocity divided by radius, so inner points move faster",
     ],
     correctIndex: 1,
     explanation:
@@ -11827,10 +11827,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a rigid body in physics simulation?",
     options: [
-      "An object that can deform under force",
+      "An object that can deform under force, changing its shape dynamically through vertex displacement driven by stress and strain calculations",
       "An idealized solid object that does not deform — it has fixed shape, mass, and inertia, and moves via translation and rotation only",
-      "A body with no mass",
-      "A static, immovable object",
+      "A body with no mass that floats in space unaffected by gravity or collisions, used as a trigger volume for detecting overlap events",
+      "A static, immovable object anchored in place that participates in collision detection but never changes position or orientation",
     ],
     correctIndex: 1,
     explanation:
@@ -11843,10 +11843,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a soft body in physics simulation?",
     options: [
-      "An object that can't collide",
+      "An object that can't collide with others because its collision shape is disabled by default in the engine",
       "A deformable object — it can bend, stretch, and squish under forces (e.g., cloth, jelly, rubber)",
-      "An object with very low mass",
-      "An object that only responds to gravity",
+      "An object with very low mass that behaves like a particle, with negligible rotational inertia and no spin",
+      "An object that only responds to gravity and ignores all other forces including collisions, springs, and impulses",
     ],
     correctIndex: 1,
     explanation:
@@ -11859,10 +11859,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is tunneling (or ghosting) in physics simulation?",
     options: [
-      "When two objects become permanently stuck together",
+      "When two objects become permanently stuck together after a collision due to penetration the solver cannot resolve",
       "When a fast-moving object passes entirely through a thin object between two discrete physics steps",
-      "When an object becomes invisible",
-      "When a physics object is removed from the simulation",
+      "When an object becomes invisible because its transform matrix contains NaN values from an unstable calculation",
+      "When a physics object is removed from the simulation unexpectedly due to a memory failure in the collision broadphase",
     ],
     correctIndex: 1,
     explanation:
@@ -11875,10 +11875,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How is tunneling typically prevented?",
     options: [
-      "By making all objects very large",
+      "By making all objects very large so that even fast-moving bodies cannot traverse an object's full thickness in a single timestep",
       "Using Continuous Collision Detection (CCD) — sweeping the object's motion between frames to find the exact time of impact",
-      "By removing fast-moving objects",
-      "By increasing the rendering frame rate",
+      "By removing fast-moving objects from the simulation whenever their velocity exceeds a safe threshold defined by engine settings",
+      "By increasing the rendering frame rate to match the physics update rate, ensuring visual and physical states stay synchronized",
     ],
     correctIndex: 1,
     explanation:
@@ -11891,10 +11891,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a physics constraint (or joint)?",
     options: [
-      "A limit on the number of physics objects",
+      "A limit on the number of physics objects that can exist simultaneously, enforced by the engine to maintain stable performance",
       "A rule that restricts the relative motion between two bodies — e.g., a hinge allows rotation on one axis only",
-      "A type of collision shape",
-      "A method for deleting physics objects",
+      "A type of collision shape that wraps around geometry, providing a simplified bounding volume for broad-phase detection",
+      "A method for deleting physics objects from the simulation by removing solver references and freeing associated memory",
     ],
     correctIndex: 1,
     explanation:
@@ -11907,10 +11907,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What does 'sleeping' mean for physics objects?",
     options: [
-      "The object is being deleted",
+      "The object is being deleted from the simulation after its lifetime expires and pending collision callbacks are processed",
       "Objects at rest are deactivated to save CPU — they stop being simulated until something disturbs them",
-      "The object is in slow motion",
-      "The object's rendering is paused",
+      "The object is in slow motion mode with its local time scale reduced to create dramatic visual effects in gameplay",
+      "The object's rendering is paused but physics continues, allowing invisible collision detection for game logic",
     ],
     correctIndex: 1,
     explanation:
@@ -11923,10 +11923,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the typical order of operations in one physics engine step?",
     options: [
-      "Render → Detect → Respond",
+      "Render then Detect then Respond — performing visual output first, then checking collisions and resolving them before the next frame",
       "Apply forces → Broad-phase collision → Narrow-phase collision → Solve constraints → Integrate velocities/positions",
-      "Move objects → Draw objects → Check input",
-      "Collision → Forces → Render → Input",
+      "Move objects then Draw then Check input — a simplified game loop interleaving physics with rendering and input handling",
+      "Collision then Forces then Render then Input — processing contacts before applying forces, then drawing and polling input",
     ],
     correctIndex: 1,
     explanation:
@@ -11939,10 +11939,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the difference between discrete and continuous collision detection?",
     options: [
-      "Discrete is more accurate",
+      "Discrete is more accurate because it tests exact geometric configuration at each timestep without approximating the swept volume between steps",
       "Discrete tests shapes at their current position each step. Continuous sweeps the shape's path between steps to catch fast-moving collisions",
-      "Continuous only works for spheres",
-      "There is no practical difference",
+      "Continuous only works for spheres because swept-volume computation for arbitrary convex polyhedra is prohibitively expensive in real-time",
+      "There is no practical difference between the two approaches — both produce identical collision results for all object speeds and shapes",
     ],
     correctIndex: 1,
     explanation:
@@ -11955,10 +11955,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a constraint solver in a physics engine?",
     options: [
-      "A system that creates constraints",
+      "A system that creates constraints automatically by analyzing scene topology and inferring joint types from object proximity and alignment",
       "An iterative algorithm that adjusts velocities and positions to satisfy all collision responses and joints simultaneously",
-      "A tool for debugging physics",
-      "A method for generating collision shapes",
+      "A tool for debugging physics by visualizing constraint forces, contact normals, and penetration depths in an overlay render pass",
+      "A method for generating collision shapes from visual mesh data, producing simplified convex hulls or decompositions for physics",
     ],
     correctIndex: 1,
     explanation:
@@ -11971,10 +11971,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a kinematic body in a physics engine (as opposed to dynamic)?",
     options: [
-      "A body with no collision shape",
+      "A body with no collision shape attached, existing only as a transform node in the scene hierarchy without participating in detection",
       "A body that is moved directly by code (setting velocity/position), is not affected by forces, but DOES push dynamic objects it touches",
-      "A body that can only rotate",
-      "A body that is identical to a static body",
+      "A body that can only rotate around its center of mass, with all translational degrees of freedom locked by the constraint solver",
+      "A body identical to a static body in every way, including being immovable and unaffected by collisions or any applied forces",
     ],
     correctIndex: 1,
     explanation:
@@ -11990,10 +11990,10 @@ export const questions: Question[] = [
     question: "What does Hooke's Law describe?",
     code: "F = -k * x",
     options: [
-      "The force of gravity",
+      "The force of gravity between two massive bodies, calculated using Newton's universal law of gravitation with the gravitational constant G",
       "The restoring force of a spring is proportional to displacement: F = -kx, where k is stiffness and x is displacement from rest",
-      "The conservation of energy",
-      "The friction between two surfaces",
+      "The conservation of energy in a closed system, where total mechanical energy stays constant if no non-conservative forces act on it",
+      "The friction between two surfaces in contact, computed as the product of the normal force and the coefficient of friction for the pair",
     ],
     correctIndex: 1,
     explanation:
@@ -12006,10 +12006,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is damping in a physics simulation?",
     options: [
-      "Adding water to the simulation",
+      "Adding water to the simulation by introducing fluid dynamics equations that model buoyancy, drag, and surface tension on submerged objects",
       "A force proportional to velocity that removes energy from the system, preventing perpetual oscillation: F_damp = -c × v",
-      "Increasing the mass of objects",
-      "A rendering technique for reducing flicker",
+      "Increasing the mass of objects over time to slow them down, simulating energy loss by making each body harder to accelerate gradually",
+      "A rendering technique for reducing flicker by applying temporal filtering that blends consecutive frames together in the output buffer",
     ],
     correctIndex: 1,
     explanation:
@@ -12022,10 +12022,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is critical damping?",
     options: [
-      "When an object stops instantly with no motion",
+      "When an object stops instantly with no motion, snapping to equilibrium in a single timestep regardless of displacement",
       "The exact damping coefficient that returns a system to equilibrium in the shortest time without oscillating",
-      "When damping is set to zero",
-      "When the spring constant equals the mass",
+      "When damping is set to zero, allowing the system to oscillate indefinitely with constant amplitude and no energy dissipation",
+      "When the spring constant equals the mass, creating a natural frequency of one radian per second in the undamped system",
     ],
     correctIndex: 1,
     explanation:
@@ -12038,10 +12038,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "In cloth simulation, what is the mass-spring model?",
     options: [
-      "A model where cloth is treated as a rigid sheet",
+      "A model where cloth is treated as a rigid sheet that cannot bend or deform, maintaining its original shape regardless of external forces or collisions",
       "A network of particles connected by springs — structural springs maintain shape, shear springs prevent diagonal collapse, bend springs prevent folding",
-      "A model that only simulates wind",
-      "A method for texturing cloth objects",
+      "A model that only simulates wind forces acting on cloth surfaces, ignoring gravity, collisions, and self-intersection entirely for performance reasons",
+      "A method for texturing cloth objects by projecting UV coordinates onto the deformed mesh, ensuring that patterns stretch naturally with the fabric",
     ],
     correctIndex: 1,
     explanation:
@@ -12054,10 +12054,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is simple harmonic motion?",
     options: [
-      "Motion in a straight line at constant speed",
+      "Motion in a straight line at constant speed, where no acceleration acts on the object and position changes linearly with time according to x = v·t",
       "Oscillatory motion where the restoring force is proportional to displacement (Hooke's Law), producing sinusoidal motion like a pendulum or spring",
-      "Motion along a parabolic path",
-      "Random motion with no pattern",
+      "Motion along a parabolic path caused by uniform gravitational acceleration acting on an object with an initial horizontal velocity component",
+      "Random motion with no pattern, also known as Brownian motion, caused by thermal fluctuations on microscopic particles suspended in a fluid",
     ],
     correctIndex: 1,
     explanation:
@@ -12072,10 +12072,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the Fourier Transform used for in software?",
     options: [
-      "Sorting arrays efficiently",
+      "Sorting arrays efficiently using a divide-and-conquer strategy that recursively partitions data and merges sorted subsequences in O(n log n)",
       "Decomposing a signal into its constituent frequencies — used in audio processing, image compression (JPEG), and signal analysis",
-      "Encrypting data",
-      "Rendering 3D objects",
+      "Encrypting data by applying a mathematical transformation that maps plaintext bytes into ciphertext using a secret key and block cipher",
+      "Rendering 3D objects by projecting triangulated meshes onto a 2D viewport, applying per-pixel shading based on normals and light positions",
     ],
     correctIndex: 1,
     explanation:
@@ -12088,10 +12088,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the Nyquist frequency?",
     options: [
-      "The highest frequency a computer can process",
+      "The highest frequency a computer can handle during real-time signal analysis, limited by the hardware clock speed",
       "Half the sampling rate — the maximum frequency that can be accurately represented without aliasing",
-      "The frequency of the CPU clock",
-      "The refresh rate of a monitor",
+      "The frequency of the CPU clock cycle, which determines the rate at which instructions are executed per second",
+      "The refresh rate of a monitor or display device, measured in hertz, indicating how often the screen image is redrawn",
     ],
     correctIndex: 1,
     explanation:
@@ -12104,10 +12104,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the Doppler effect?",
     options: [
-      "Sound getting louder as you approach",
+      "Sound getting progressively louder as you physically approach the source, with the amplitude increasing in proportion to the inverse square of the distance traveled",
       "The change in perceived frequency of a wave when the source and observer are moving relative to each other — approaching sounds higher-pitched, receding sounds lower",
-      "Sound reflecting off walls",
-      "The absorption of sound by materials",
+      "Sound reflecting off walls, floors, and ceilings in enclosed spaces, creating echoes and reverberations that persist until the acoustic energy is fully absorbed by surfaces",
+      "The absorption of sound energy by materials in the environment, where different surfaces attenuate different frequencies at varying rates depending on their density and composition",
     ],
     correctIndex: 1,
     explanation:
@@ -12120,10 +12120,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is aliasing in the context of physics simulation?",
     options: [
-      "Two objects having the same name",
+      "Two objects or variables having the same name or identifier in a simulation, leading to namespace conflicts and ambiguous references during execution",
       "When the simulation timestep is too large to capture high-frequency events, causing them to appear as incorrect low-frequency behavior",
-      "A memory allocation issue",
-      "A rendering artifact only",
+      "A memory allocation issue where the simulation runs out of available heap space due to excessive object instantiation during high-frequency event processing",
+      "A rendering artifact only visible on screen, caused by pixel interpolation errors at polygon edges, unrelated to the underlying physics computation",
     ],
     correctIndex: 1,
     explanation:
@@ -12136,10 +12136,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What does the inverse-square law describe?",
     options: [
-      "Force increasing with distance",
+      "Force increasing linearly with distance between two objects, contrary to how gravitational and electromagnetic forces actually behave in physical systems",
       "Intensity decreasing proportional to 1/r² — applies to gravity, light, sound, and electromagnetic radiation as they spread from a point source",
-      "A linear decrease in energy over time",
-      "The square root of the distance determines force",
+      "A linear decrease in energy over time at a constant rate regardless of the spatial distribution, which does not account for geometric spreading from a source",
+      "The square root of the distance determines the force magnitude, which incorrectly models the spatial relationship between separation and interaction strength",
     ],
     correctIndex: 1,
     explanation:
@@ -12156,10 +12156,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "You have a character facing direction F and a target at direction T from the character. How do you determine if the target is to the left or right?",
     options: [
-      "Compare the magnitudes of F and T",
+      "Compare the magnitudes of F and T directly, then use the larger vector to determine the turning direction in all coordinate frames",
       "Use the sign of the cross product F × T — positive means left, negative means right (in a right-handed 2D system)",
-      "Use the dot product F · T",
-      "Compare the x-components of both vectors",
+      "Use the dot product F dot T to determine the angle, where positive means left turn, negative means right turn in the coordinate system",
+      "Compare the x-components of both vectors to determine which direction the entity should steer, ignoring the y-components entirely",
     ],
     correctIndex: 1,
     explanation:
@@ -12172,10 +12172,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How do you determine if a target is within a character's field of view (FOV) cone using vectors?",
     options: [
-      "Check if the target's position is within the AABB of the cone",
+      "Check if the target position is within the AABB of the cone, treating it as a rectangular region",
       "Compute dot(normalize(forward), normalize(toTarget)) and check if it's ≥ cos(halfFOV)",
-      "Check if the distance to the target is less than the cone radius",
-      "Use the cross product to measure the angle",
+      "Check if the distance to the target is less than the cone radius, ignoring the angular FOV constraint",
+      "Use the cross product to measure the angle between the forward vector and the target direction",
     ],
     correctIndex: 1,
     explanation:
@@ -12188,10 +12188,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "Why does the order of matrix multiplication matter for 3D transformations?",
     options: [
-      "It doesn't — matrix multiplication is commutative",
+      "It does not matter because matrix multiplication is commutative, so applying rotation then translation yields the same result as the reverse order",
       "Matrix multiplication is NOT commutative. Rotating then translating puts the object in a different place than translating then rotating",
-      "The order only matters for scale operations",
-      "The order only matters when using quaternions",
+      "The order only matters for scale operations because scaling affects vertex positions non-uniformly, while rotation and translation can be freely swapped",
+      "The order only matters when using quaternions for rotation representation, since quaternion multiplication is non-commutative unlike standard matrix operations",
     ],
     correctIndex: 1,
     explanation:
@@ -12204,10 +12204,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What problem does gimbal lock cause, and how is it avoided?",
     options: [
-      "It causes objects to scale incorrectly — avoided by using larger matrices",
+      "It causes objects to scale incorrectly along arbitrary axes, and is avoided by using larger 4x4 matrices that have extra room for scale correction and compensation terms",
       "When two rotation axes align, one degree of freedom is lost — you can't rotate in all directions. Avoided by using quaternions instead of Euler angles",
-      "It causes objects to move to the origin — avoided by using world space",
-      "It's a rendering issue — avoided by double buffering",
+      "It causes objects to teleport to the world origin after a sequence of rotations, and is avoided by consistently performing all transformations in world space coordinates",
+      "It is a rendering issue where polygons flicker between frames due to floating-point imprecision, and is avoided by enabling double buffering in the graphics pipeline",
     ],
     correctIndex: 1,
     explanation:
@@ -12221,10 +12221,10 @@ export const questions: Question[] = [
     question: "How do you reflect a velocity vector v off a surface with normal n?",
     code: "reflected = v - 2 * dot(v, n) * n",
     options: [
-      "reflected = -v",
+      "reflected = -v, which simply reverses the vector direction regardless of the surface normal orientation",
       "reflected = v - 2 × dot(v, n) × n — subtract twice the normal component to flip only the perpendicular part",
-      "reflected = v + n",
-      "reflected = cross(v, n)",
+      "reflected = v + n, which adds the normal to the vector but does not account for the angle of incidence",
+      "reflected = cross(v, n), which produces a perpendicular vector rather than the correct reflection",
     ],
     correctIndex: 1,
     explanation:
@@ -12237,10 +12237,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the difference between a point and a vector in homogeneous coordinates?",
     options: [
-      "There is no difference",
+      "There is no practical difference between points and vectors in homogeneous coordinates because the w component is ignored by the transformation pipeline in all cases",
       "A point has w=1 (affected by translation), a vector has w=0 (NOT affected by translation). This is because directions shouldn't change when you move the origin",
-      "A point has w=0 and a vector has w=1",
-      "Points use 3 components, vectors use 4",
+      "A point has w=0 and a vector has w=1, which is the reverse convention where points ignore translation while vectors are affected by translation in the pipeline",
+      "Points always use 3 components (x, y, z) and vectors always use 4 components (x, y, z, w), which is how the graphics API distinguishes between them at the hardware level",
     ],
     correctIndex: 1,
     explanation:
@@ -12253,10 +12253,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "Why can't you simply lerp between two quaternions and expect correct results?",
     options: [
-      "Quaternions can't be interpolated",
+      "Quaternions cannot be interpolated at all because they exist on a four-dimensional hypersphere and standard algebraic blending operations do not produce valid results in this non-Euclidean space",
       "Lerp doesn't maintain unit length — the result may not be a valid rotation quaternion. Also, lerp doesn't follow the shortest arc on the sphere. SLERP or normalized lerp (nlerp) should be used instead",
-      "Lerp always produces gimbal lock",
-      "Lerp reverses the rotation direction",
+      "Lerp always produces gimbal lock in quaternion interpolation because it evaluates Euler angle singularities during the blending process, making smooth transitions through those regions impossible",
+      "Lerp reverses the rotation direction when interpolation crosses the quaternion hemisphere boundary, which causes the animation to visually snap backward through the longer arc on the sphere",
     ],
     correctIndex: 1,
     explanation:
@@ -12269,10 +12269,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "You need to find the closest point on a line segment AB to point P. What's the approach?",
     options: [
-      "Always use the midpoint of AB",
+      "Always use the midpoint of AB as the closest point, regardless of where P is located, as this provides a constant-time O(1) approximation",
       "Project P onto the infinite line through A and B using dot products, then clamp the parameter t to [0,1] to stay on the segment",
-      "Pick whichever endpoint (A or B) is closer to P",
-      "Use the cross product of AP and AB",
+      "Pick whichever endpoint (A or B) is geometrically closer to P using Euclidean distance, ignoring all interior points along the segment",
+      "Use the cross product of AP and AB to derive the perpendicular distance, then project that distance back onto the segment direction",
     ],
     correctIndex: 1,
     explanation:
@@ -12285,10 +12285,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How do you compute the normal of a triangle given its three vertices A, B, C?",
     options: [
-      "Average the three vertices",
+      "Average the three vertex positions component-wise to get the face normal direction",
       "Take the cross product of two edges: normal = normalize((B - A) × (C - A))",
-      "Subtract the smallest vertex from the largest",
-      "Use the dot product of AB and AC",
+      "Subtract the smallest vertex coordinate from the largest to obtain the normal direction",
+      "Use the dot product of edges AB and AC, then normalize the resulting scalar as normal",
     ],
     correctIndex: 1,
     explanation:
@@ -12301,10 +12301,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What are barycentric coordinates used for?",
     options: [
-      "Converting between Euler angles and quaternions",
+      "Converting between Euler angles and quaternion rotation representations, a process required for storing orientations in compact form and performing smooth interpolation between keyframes",
       "Expressing a point's position relative to a triangle's vertices — used for interpolating attributes (normals, UVs, colors) across a triangle and for point-in-triangle tests",
-      "Measuring the area of a bounding box",
-      "Computing the determinant of a matrix",
+      "Measuring the surface area of an axis-aligned bounding box, which is needed for spatial acceleration structure construction and for evaluating split quality in BVH builders",
+      "Computing the determinant of a transformation matrix, which tells you the volume scaling factor and whether the coordinate system handedness has been flipped by the transform",
     ],
     correctIndex: 1,
     explanation:
@@ -12317,10 +12317,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the difference between a normal matrix and a model matrix, and why does it matter?",
     options: [
-      "They are the same matrix",
+      "They are the same matrix, and the model matrix can be used directly for transforming both vertex positions and surface normals without any additional processing or correction steps",
       "The normal matrix is the transpose of the inverse of the upper-left 3×3 of the model matrix — non-uniform scaling distorts normals if you use the model matrix directly",
-      "The normal matrix is just the rotation part of the model matrix",
-      "The normal matrix is the model matrix with translation removed",
+      "The normal matrix is just the rotation part of the model matrix, extracted by removing the last row and column, which preserves orthogonality and handles all transformation cases",
+      "The normal matrix is the model matrix with the translation column removed and the remaining 3x3 block used directly, which is sufficient for transforming directional quantities",
     ],
     correctIndex: 1,
     explanation:
@@ -12334,10 +12334,10 @@ export const questions: Question[] = [
     question: "How do you compute the signed area of a 2D triangle with vertices (x1,y1), (x2,y2), (x3,y3)?",
     code: "signedArea = 0.5 * ((x2-x1)*(y3-y1) - (x3-x1)*(y2-y1))",
     options: [
-      "Multiply the base by the height",
+      "Multiply the base length by the height and divide by two, which only works for right triangles aligned with coordinate axes",
       "Use the 2D cross product: 0.5 × ((x2−x1)(y3−y1) − (x3−x1)(y2−y1)). The sign indicates winding order (CW vs CCW)",
-      "Sum all coordinates and divide by 3",
-      "Use the Pythagorean theorem on all three sides",
+      "Sum all vertex coordinates component-wise and divide by 3 to get the centroid, then use the centroid as an area estimate",
+      "Use the Pythagorean theorem on all three sides to compute edge lengths, then apply the perimeter-based area approximation formula",
     ],
     correctIndex: 1,
     explanation:
@@ -12350,10 +12350,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the Gram-Schmidt process used for in the context of physics/graphics?",
     options: [
-      "Sorting vertex buffers",
+      "Sorting vertex buffers to optimize cache locality and rendering throughput, reordering triangle indices for better GPU performance during rasterization",
       "Orthogonalizing a set of vectors — ensuring they're mutually perpendicular, used to fix drifting coordinate frames and build TBN matrices",
-      "Computing bounding volumes",
-      "Generating random numbers",
+      "Computing axis-aligned bounding volumes for spatial queries and broad-phase collision detection, enclosing geometry in rectangular regions for fast overlap tests",
+      "Generating pseudo-random numbers with uniform distribution for Monte Carlo sampling, stochastic simulation, and procedural content generation in engines",
     ],
     correctIndex: 1,
     explanation:
@@ -12366,10 +12366,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What happens if you try to normalize a zero-length vector?",
     options: [
-      "You get a unit vector pointing up",
+      "You get a unit vector pointing up along the world Y-axis, because the normalization function defaults to the up direction when the input magnitude is negligible",
       "Division by zero — the result is undefined (NaN/infinity). You must check for zero length before normalizing to avoid corrupting the simulation",
-      "You get the zero vector back",
-      "The program automatically handles it",
+      "You get the zero vector back as the result, which is safe to use in subsequent calculations since multiplying by zero simply cancels out all dependent terms",
+      "The program automatically handles it by substituting a default unit vector in the forward direction, so no special error checking is needed by the developer",
     ],
     correctIndex: 1,
     explanation:
@@ -12382,10 +12382,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a view frustum, and how is it used for culling?",
     options: [
-      "A type of collision shape for player characters",
+      "A special type of collision shape optimized for player characters and NPCs, shaped like a truncated cone to handle steps, slopes, and uneven terrain surfaces",
       "The truncated pyramid representing the camera's visible volume — defined by 6 planes. Objects outside the frustum are not rendered (frustum culling)",
-      "A post-processing effect",
-      "The shadow volume of a directional light",
+      "A post-processing rendering effect applied after the main scene is drawn, adding bloom, color correction, and depth-of-field blurring to enhance visual realism",
+      "The shadow volume cast by a directional light source in the scene, used for stencil-based shadow rendering and determining which surfaces are in shadow or illuminated",
     ],
     correctIndex: 1,
     explanation:
@@ -12400,10 +12400,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How do you update an AABB when an object rotates?",
     options: [
-      "Simply rotate the min/max corners",
+      "Simply rotate the min and max corners of the AABB by the same rotation matrix used for the object, preserving the original axis-aligned extents exactly",
       "Recompute the AABB by finding the min/max of ALL transformed vertices (or transform the original AABB's 8 corners and take the new min/max)",
-      "AABBs never need updating",
-      "Multiply the AABB dimensions by the rotation angle",
+      "AABBs never need updating after initial creation because they are defined in world space and remain valid regardless of object rotation or translation changes",
+      "Multiply the AABB width, height, and depth dimensions by the rotation angle in radians to scale the bounding volume proportionally to the amount of rotation applied",
     ],
     correctIndex: 1,
     explanation:
@@ -12416,10 +12416,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the 'slab method' for ray-AABB intersection?",
     options: [
-      "Testing the ray against all 12 triangles of the box",
+      "Testing the ray against all 12 triangles making up the 6 faces of the box, performing individual ray-triangle intersection tests for each face independently",
       "Computing the ray's entry and exit distances (tmin, tmax) along each axis — if the intervals overlap across all axes, the ray hits the box",
-      "Checking if the ray origin is inside the box",
-      "Using the dot product between the ray and the box center",
+      "Checking if the ray origin point is geometrically located inside the box volume, which only detects rays that start within the box but misses external rays",
+      "Using the dot product between the ray direction vector and the vector from the ray origin to the box center to estimate whether an intersection might occur",
     ],
     correctIndex: 1,
     explanation:
@@ -12432,10 +12432,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "In SAT, how do you find the minimum penetration depth (MTV — Minimum Translation Vector)?",
     options: [
-      "Use the axis with the maximum overlap",
+      "Use the axis with the maximum overlap between projections, since the largest separation on any axis indicates the primary collision direction to resolve",
       "Track the axis with the SMALLEST overlap across all tested axes — that overlap and axis direction is the MTV, the shortest push to separate the shapes",
-      "Average all overlaps",
-      "Use the axis perpendicular to the collision normal",
+      "Average all overlap amounts across every tested axis to compute a mean penetration depth, then use the averaged direction as the combined resolution vector",
+      "Use the axis perpendicular to the collision normal from the previous frame, assuming temporal coherence between successive simulation steps for efficiency",
     ],
     correctIndex: 1,
     explanation:
@@ -12448,10 +12448,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "Why is the EPA (Expanding Polytope Algorithm) used together with GJK?",
     options: [
-      "GJK is too slow on its own",
+      "GJK is too slow on its own for real-time applications and requires EPA to accelerate the basic intersection test by providing a more efficient search strategy",
       "GJK only tells you IF shapes overlap. EPA takes GJK's final simplex and expands it to find the penetration depth and collision normal",
-      "EPA replaces GJK entirely",
-      "EPA handles broad-phase while GJK handles narrow-phase",
+      "EPA completely replaces GJK in modern engines because it handles both intersection testing and penetration computation in a single unified algorithm",
+      "EPA handles the broad-phase spatial partitioning while GJK handles the narrow-phase precise intersection test, operating at different stages of the pipeline",
     ],
     correctIndex: 1,
     explanation:
@@ -12464,10 +12464,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a collision layer (or collision mask) system?",
     options: [
-      "A rendering layer for transparent objects",
+      "A rendering layer system for transparent objects that controls the order in which translucent surfaces are drawn, sorting them back-to-front to achieve correct alpha blending",
       "A bitmask system where each object has a layer and a mask — two objects only collide if each object's layer is in the other's mask. This lets you control which types interact",
-      "A way to sort objects by depth",
-      "A method for reducing polygon count",
+      "A way to sort objects by their depth from the camera, used during the rendering pipeline to determine draw order and ensure correct occlusion of overlapping geometry in the scene",
+      "A mesh decimation method for reducing polygon count on distant objects, progressively simplifying geometry as the camera moves further away to maintain consistent frame rates",
     ],
     correctIndex: 1,
     explanation:
@@ -12480,10 +12480,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the difference between trigger/sensor colliders and solid colliders?",
     options: [
-      "Triggers are more expensive to compute",
+      "Triggers are more expensive to compute than solid colliders because they must continuously test for overlap each frame without the early-exit optimization of contact generation",
       "Triggers detect overlap and fire callbacks but don't produce a physical response (no bounce/push). Solid colliders produce both detection AND physical response",
-      "Triggers only work with static objects",
-      "There is no functional difference",
+      "Triggers only work with static objects that do not move, so if attached to a dynamic or kinematic body the trigger callbacks will not fire and overlap is not detected",
+      "There is no functional difference between triggers and solid colliders, as they both detect overlap and produce the same physical response forces using different internal code paths",
     ],
     correctIndex: 1,
     explanation:
@@ -12496,10 +12496,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How does sweep-and-prune exploit temporal coherence?",
     options: [
-      "It rebuilds the entire data structure each frame",
+      "It rebuilds the entire spatial data structure from scratch each frame using a fresh sort pass, achieving O(N log N) performance regardless of how little objects have moved",
       "It keeps the sorted axis list between frames — since objects move little per frame, the list is nearly sorted, making insertion sort O(N) instead of O(N log N)",
-      "It caches collision results from the previous frame",
-      "It predicts future positions using velocity",
+      "It caches the complete set of collision pair results from the previous frame and reuses them directly, only checking for new pairs when objects are created or destroyed in the scene",
+      "It predicts future object positions using their current velocity vectors and pre-computes collisions one frame ahead, amortizing the broad-phase cost over two simulation steps",
     ],
     correctIndex: 1,
     explanation:
@@ -12512,10 +12512,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "For two AABB-based objects approaching each other at high speed, why might the broad-phase still miss the collision?",
     options: [
-      "AABBs can't detect fast collisions",
+      "AABBs inherently cannot detect fast-moving object collisions because their axis-aligned edges create gaps at diagonal trajectories where objects pass between the aligned boundaries",
       "At discrete timesteps, both AABBs might be on opposite sides of each other at consecutive frames — they never overlap at any sampled instant (tunneling)",
-      "The broad-phase only checks static objects",
-      "AABBs become invalid at high speeds",
+      "The broad-phase collision detection system only checks static objects against each other, completely ignoring dynamic or kinematic bodies that move between frames in the simulation",
+      "AABBs become geometrically invalid at high speeds because the min/max coordinates can invert when velocity exceeds the bounding volume dimensions within a single timestep",
     ],
     correctIndex: 1,
     explanation:
@@ -12528,10 +12528,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a swept AABB, and how does it help with fast-moving objects?",
     options: [
-      "An AABB that grows smaller each frame",
+      "An AABB that progressively grows smaller each frame as the simulation converges toward a stable state, eventually reaching the tight-fitting bounds once all objects come to rest",
       "An expanded AABB that encompasses the object's start AND end positions for the frame — ensuring fast-moving objects still register potential overlaps in broad-phase",
-      "An AABB that only covers the bottom of an object",
-      "A compressed representation of the AABB",
+      "An AABB that only covers the bottom half of an object for ground collision detection, ignoring the upper portion to save computation when vertical contacts are not expected",
+      "A compressed mathematical representation of the AABB using fewer bits per coordinate, trading precision for memory savings in large-scale simulations with thousands of objects",
     ],
     correctIndex: 1,
     explanation:
@@ -12544,10 +12544,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the GJK support function, and why is it important?",
     options: [
-      "A function that tests if two shapes overlap",
+      "A function that tests if two convex shapes overlap by checking their bounding volumes, vertex positions, and edge intersections in a multi-phase approach for precise detection",
       "A function that returns the furthest point on a shape in a given direction — GJK only needs this function, so it works for ANY convex shape without special-case code",
-      "A function that computes the center of mass",
-      "A function that generates collision callbacks",
+      "A function that computes the center of mass of a convex shape by averaging all vertex positions, weighted by the face areas, for use in physics simulation mass distribution",
+      "A function that generates collision callbacks and event notifications when two objects interact, dispatching messages to the game logic layer for gameplay response handling",
     ],
     correctIndex: 1,
     explanation:
@@ -12560,10 +12560,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a convex hull, and why is it useful for collision detection?",
     options: [
-      "The bounding sphere of a mesh",
+      "The bounding sphere of a mesh, computed by finding the center of all vertices and the maximum distance from that center, providing a rough but fast enclosing volume for collision",
       "The smallest convex shape that contains all points of a mesh — like shrink-wrapping a rubber band around the object. It allows fast GJK/SAT collision for complex meshes",
-      "A flat 2D projection of a 3D shape",
-      "The wireframe of an object",
+      "A flat 2D projection of a 3D shape onto a screen-aligned plane, used during the rendering pipeline to convert three-dimensional geometry into pixel coordinates for rasterization",
+      "The wireframe representation of an object showing only its edges and vertices without filled polygons, commonly used in debug visualization and modeling tools for inspection",
     ],
     correctIndex: 1,
     explanation:
@@ -12576,10 +12576,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is convex decomposition, and when is it needed?",
     options: [
-      "Splitting a mesh for LOD purposes",
+      "Splitting a mesh into multiple detail levels for LOD rendering purposes, creating progressively simplified versions of geometry for display at increasing camera distances",
       "Breaking a concave (non-convex) shape into multiple convex parts so that efficient convex collision algorithms (GJK, SAT) can be used on each part",
-      "Removing interior faces from a mesh",
-      "Converting a mesh to voxels",
+      "Removing interior faces from a mesh that are hidden by outer surfaces and will never be visible to the camera, optimizing rendering performance by reducing the triangle count",
+      "Converting a mesh composed of triangular polygons into a regular voxel grid representation for volumetric processing, enabling uniform spatial queries and Boolean operations",
     ],
     correctIndex: 1,
     explanation:
@@ -12592,10 +12592,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the benefit of using a capsule (line segment + radius) as a collision shape for characters?",
     options: [
-      "Capsules have more vertices for accuracy",
+      "Capsules have significantly more vertices for higher geometric accuracy in collision detection, providing a finer approximation of the character actual body shape and contour",
       "Capsules slide smoothly along surfaces with no edge-catching, have fast collision math (closest point on segment + radius check), and handle steps/slopes well",
-      "Capsules use less memory than spheres",
-      "Capsules are required by most physics APIs",
+      "Capsules use substantially less memory than spheres because they store only two endpoints and a radius, whereas spheres require storing a full tessellated vertex buffer for precision",
+      "Capsules are required by most physics API specifications as the mandatory default collision primitive for character controllers, since other shapes are not officially supported",
     ],
     correctIndex: 1,
     explanation:
@@ -12608,10 +12608,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How does a physics engine typically handle collision between a moving object and a static concave mesh (e.g., terrain)?",
     options: [
-      "It tests against every triangle in the mesh every frame",
+      "It performs brute-force testing against every triangle in the mesh every single frame, iterating through the complete triangle list without any spatial acceleration or early termination optimization",
       "The static mesh is stored in a spatial structure (BVH or octree). Broad-phase queries the structure with the moving object's AABB to find nearby triangles, then narrow-phase tests only those triangles",
-      "It converts the terrain to a single convex hull",
-      "It ignores the terrain and only handles object-object collision",
+      "It first converts the terrain into a single convex hull approximation, then uses standard convex-convex collision algorithms like GJK or SAT, sacrificing geometric accuracy for speed",
+      "It ignores the terrain geometry entirely and only handles object-to-object collision detection, relying on a separate ground-plane system for basic vertical collision and gravity response",
     ],
     correctIndex: 1,
     explanation:
@@ -12624,10 +12624,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is speculative contacts (speculative CCD)?",
     options: [
-      "A method for predicting future rendering frames",
+      "A method for predicting future rendering frame positions by extrapolating current motion, allowing the GPU to begin rasterization before the physics step completes",
       "Expanding collision shapes by the object's velocity to detect potential contacts BEFORE they happen, allowing the solver to prevent penetration proactively",
-      "A technique for creating fake physics for visual effects",
-      "A networking prediction technique",
+      "A technique for creating physically inaccurate but visually convincing fake physics for visual effects, prioritizing artistic control over simulation correctness",
+      "A networking prediction technique used in multiplayer games to estimate remote player positions between network updates, compensating for latency and packet loss",
     ],
     correctIndex: 1,
     explanation:
@@ -12640,10 +12640,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the time of impact (TOI), and how is it computed?",
     options: [
-      "The total simulation time",
+      "The total cumulative simulation time elapsed since the physics engine was initialized, measured in seconds from the start of the application to the current frame being processed",
       "The exact fractional timestep [0,1] when two moving shapes first touch — found by binary search or root-finding (e.g., bisection) on the distance function between swept shapes",
-      "The frame number when collision occurred",
-      "The duration of the collision response",
+      "The integer frame number at which the collision event was first detected by the broad-phase system, stored as a timestamp index for ordering collision events chronologically in solver",
+      "The total duration of the collision response phase measured in simulation steps, from initial contact detection through penetration resolution until the objects fully separate again",
     ],
     correctIndex: 1,
     explanation:
@@ -12656,10 +12656,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "Why is it common to 'fatten' or expand AABBs slightly in dynamic BVH trees?",
     options: [
-      "To improve rendering quality",
+      "To improve the visual rendering quality of collision debug shapes, making the bounding boxes easier to see and interpret during development and testing phases of the application",
       "So that small movements don't require immediately rebuilding the tree — the object can move within the fat AABB without triggering a refit, amortizing the update cost",
-      "To ensure AABBs are always square",
-      "To prevent memory fragmentation",
+      "To ensure all AABBs in the tree are always perfectly square with equal dimensions on all axes, which simplifies the intersection math and enables faster overlap tests between nodes",
+      "To prevent memory fragmentation in the tree node allocator by ensuring all bounding volumes are the same padded size, allowing uniform memory block allocation and deallocation",
     ],
     correctIndex: 1,
     explanation:
@@ -12672,10 +12672,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the Surface Area Heuristic (SAH) used for when building BVHs?",
     options: [
-      "Computing the surface area of meshes for texturing",
+      "Computing the total surface area of mesh polygons for texture atlas allocation, determining how much UV space each face needs to maintain consistent texel density across all surfaces",
       "Choosing WHERE to split objects when building the BVH — splits that minimize total surface area of child nodes produce trees where rays are less likely to hit nodes, improving query performance",
-      "Determining the LOD level for rendering",
-      "Calculating friction based on surface area",
+      "Determining the appropriate LOD (level of detail) rendering level for objects at various distances from the camera, switching between pre-built mesh simplifications based on screen coverage",
+      "Calculating the friction coefficient between surfaces based on their contact surface area, scaling resistance force proportionally to the geometric overlap between colliding shapes",
     ],
     correctIndex: 1,
     explanation:
@@ -12688,10 +12688,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a compound collision shape?",
     options: [
-      "A collision shape shared between multiple objects",
+      "A single collision shape instance shared between multiple objects through instancing, reducing memory usage by reusing the same geometric definition across many game entities",
       "A collision shape made of multiple primitive shapes (spheres, boxes, capsules) combined — approximating complex geometry without the cost of a convex hull",
-      "A shape that changes over time",
-      "A collision shape with multiple materials",
+      "A collision shape that dynamically changes its geometry over time in response to simulation forces, deforming each frame to match the current state of a soft-body object",
+      "A collision shape with multiple physics material assignments on different regions, allowing varying friction and restitution properties across different parts of the same surface",
     ],
     correctIndex: 1,
     explanation:
@@ -12704,10 +12704,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How do height maps improve terrain collision detection compared to triangle meshes?",
     options: [
-      "Height maps look better",
+      "Height maps produce better visual rendering quality with more natural-looking terrain surfaces, supporting higher polygon density and smoother normal interpolation than generic triangle meshes",
       "A height map stores one height per grid cell, so finding the triangle under a point is O(1) — just divide (x,z) by cell size to get the grid index, rather than querying a BVH",
-      "Height maps use less GPU memory",
-      "Height maps only work in 2D games",
+      "Height maps consume significantly less GPU memory than equivalent triangle mesh representations because they store elevation data in a compact single-channel texture format per grid cell",
+      "Height maps are exclusively designed for two-dimensional game environments and cannot represent vertical terrain features such as overhangs, caves, or bridges that require full 3D geometry",
     ],
     correctIndex: 1,
     explanation:
@@ -12722,10 +12722,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What problem do objects spanning multiple quadtree cells cause, and how is it solved?",
     options: [
-      "They render incorrectly",
+      "They render incorrectly because the spatial structure cannot determine which cell owns the drawing responsibility, causing either duplicate rendering or missing fragments at cell boundaries",
       "They can cause duplicate collision checks (tested in each cell). Solutions: store them in the smallest cell that fully contains them (parent node), or use flags to mark already-tested pairs",
-      "They are deleted automatically",
-      "They cause the tree to become unbalanced",
+      "They are automatically deleted from the simulation when they grow beyond a single cell boundary, as the spatial structure cannot maintain references to objects that span multiple regions",
+      "They cause the tree structure to become severely unbalanced because large objects must be inserted at higher levels, increasing the depth variance and degrading query performance over time",
     ],
     correctIndex: 1,
     explanation:
@@ -12738,10 +12738,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a loose quadtree (or loose octree)?",
     options: [
-      "A quadtree with fewer levels",
+      "A quadtree variant that uses fewer subdivision levels than a standard quadtree, limiting the maximum depth to reduce memory consumption and tree traversal overhead at the cost of precision",
       "A variant where each cell's boundary is expanded (loosened), so objects are placed in just ONE cell based on their center — even if they slightly overlap neighboring cells",
-      "A quadtree that is rebuilt every frame",
-      "A quadtree where cells have variable sizes",
+      "A quadtree implementation that is completely rebuilt from scratch every simulation frame, inserting all objects fresh rather than incrementally updating existing node assignments from prior frame",
+      "A quadtree where individual cells have variable and adaptive sizes determined by local object density, subdividing further in crowded regions and merging nodes in sparse areas of the space",
     ],
     correctIndex: 1,
     explanation:
@@ -12754,10 +12754,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the trade-off when choosing grid cell size for spatial hashing?",
     options: [
-      "Cell size doesn't affect performance",
+      "The choice of cell size does not meaningfully affect performance because modern hardware handles any reasonable grid resolution efficiently through parallelized spatial hashing implementations",
       "Too small: objects span many cells (expensive insertion + queries). Too large: many objects per cell (broad-phase becomes less effective). Ideal: 2-4× the size of the average object",
-      "Larger cells always perform better",
-      "Smaller cells always perform better",
+      "Larger cells always perform better because they reduce the total number of cells that need to be allocated and managed, lowering memory overhead and simplifying the insertion logic significantly",
+      "Smaller cells always perform better because they provide finer spatial resolution, ensuring each cell contains at most one object and eliminating all unnecessary pairwise comparison tests",
     ],
     correctIndex: 1,
     explanation:
@@ -12770,10 +12770,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the advantage of a BVH over a uniform grid for scenes with varying object sizes?",
     options: [
-      "BVHs are simpler to implement",
+      "BVH trees are simpler to implement in practice because they only require basic node splitting and traversal logic, without the need for hash functions, cell indexing, or grid resolution tuning",
       "BVH nodes adapt to object distribution — large objects get large bounding volumes, small objects get small ones. Grids waste space on empty cells and struggle when objects are much bigger than cell size",
-      "BVHs use less memory",
-      "Grids can't handle 3D scenes",
+      "BVH trees use significantly less memory than grid-based approaches because each node only stores a bounding volume and two child pointers, compared to the large allocated cell arrays grids require",
+      "Uniform grids fundamentally cannot handle 3D scenes because the data structure is inherently two-dimensional, requiring separate spatial partitioning systems for handling the vertical axis",
     ],
     correctIndex: 1,
     explanation:
@@ -12786,10 +12786,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How do you efficiently update a BVH when objects move (dynamic BVH)?",
     options: [
-      "Rebuild the entire tree every frame",
+      "Rebuild the entire BVH tree from scratch every frame by collecting all objects, sorting them spatially, and recursively partitioning them into balanced subtrees using the surface area heuristic",
       "Strategies: refit (update node volumes bottom-up), remove/reinsert moved nodes, or use fat AABBs to defer updates. Incremental updates are O(log N) per moved object vs O(N log N) full rebuild",
-      "BVHs cannot be updated — use a grid instead",
-      "Simply ignore movement and let the tree degrade",
+      "BVH trees cannot be efficiently updated once constructed, so the standard recommendation is to switch to a uniform grid data structure when dealing with dynamic scenes containing moving objects",
+      "Simply ignore all object movement and let the tree quality degrade naturally over time, relying on the broad-phase overlap tests to still produce correct results despite loose bounding volumes",
     ],
     correctIndex: 1,
     explanation:
@@ -12802,10 +12802,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the difference between top-down and bottom-up BVH construction?",
     options: [
-      "Top-down is faster at runtime",
+      "Top-down construction is faster at runtime query traversal because it guarantees balanced tree depth, ensuring every leaf is at the same level and providing consistent O(log N) lookup performance for all queries",
       "Top-down recursively splits objects into two groups (using SAH or spatial median). Bottom-up starts with individual objects and merges closest pairs. Top-down is faster to build; bottom-up can produce higher quality",
-      "They produce identical trees",
-      "Bottom-up only works for 2D",
+      "They always produce identical tree structures regardless of the construction approach, because the optimal spatial partitioning is uniquely determined by the input object set configuration, positions, and bounding volumes",
+      "Bottom-up construction only works correctly for two-dimensional scenes because the merge heuristic relies on planar distance metrics that break down when extended to three-dimensional spatial partitioning and volume calculations",
     ],
     correctIndex: 1,
     explanation:
@@ -12818,10 +12818,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a Morton code (Z-order curve), and how is it used in spatial data structures?",
     options: [
-      "A code for encrypting spatial data",
+      "A specialized encoding scheme for encrypting spatial coordinate data, converting three-dimensional positions into secure hashed values that prevent unauthorized access to game world geometry information",
       "A space-filling curve that maps multi-dimensional coordinates to 1D by interleaving coordinate bits — preserving spatial locality. Used for fast linear BVH construction and cache-friendly spatial hashing",
-      "A code for numbering tree nodes",
-      "A data compression technique",
+      "A sequential numbering code assigned to BVH tree nodes during construction, labeling each internal and leaf node with a unique integer identifier for efficient pointer-free tree traversal in arrays",
+      "A general-purpose data compression technique that reduces the storage size of spatial information by exploiting redundancy in coordinate representations and quantizing floating-point values to integers",
     ],
     correctIndex: 1,
     explanation:
@@ -12834,10 +12834,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "When would you choose a KD-tree over a BVH for spatial queries?",
     options: [
-      "Always — KD-trees are superior",
+      "Always use KD-trees because they are categorically superior to BVHs in every scenario, offering faster construction, tighter bounds, and better query performance across all workloads",
       "KD-trees excel at nearest-neighbor and point queries in static scenes. BVHs are better for ray casting, overlap queries, and dynamic scenes where objects move frequently",
-      "Only when working in 2D",
-      "Never — BVHs are always better",
+      "Only when working in 2D scenes, because KD-trees use axis-aligned splitting planes that can only partition two dimensions effectively and cannot extend to three-dimensional spatial subdivision",
+      "Never use KD-trees because BVHs are always better in every measurable metric, since KD-trees are an outdated data structure with no practical advantages in modern game engine architectures",
     ],
     correctIndex: 1,
     explanation:
@@ -12850,10 +12850,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the 'curse of dimensionality' and how does it affect spatial data structures?",
     options: [
-      "Higher dimensions make rendering more expensive",
+      "Higher dimensions make rendering more expensive because each additional dimension requires proportionally more pixel shader invocations and increases the GPU per-fragment computation workload significantly",
       "As dimensions increase, the volume of space grows exponentially — spatial data structures become less effective because 'nearby' regions occupy an exponentially decreasing fraction of total space",
-      "It only affects databases, not physics",
-      "It means you need more memory for higher-dimensional data",
+      "The curse of dimensionality only affects database query systems and indexing structures, not physics simulations or spatial partitioning, because game engines are immune since they operate in fixed 3D space",
+      "It simply means you need proportionally more memory for storing higher-dimensional data points, with storage scaling linearly with dimension count but having no effect on algorithm performance",
     ],
     correctIndex: 1,
     explanation:
@@ -12866,10 +12866,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How does hierarchical grid (multi-level grid) solve the varying object size problem?",
     options: [
-      "It uses one grid with very small cells",
+      "It uses a single uniform grid with extremely small cell dimensions to ensure fine-grained spatial resolution, handling all object sizes equally by fitting them into the smallest possible containment cells",
       "Multiple grids at different resolutions — small objects go in the fine grid, large objects in the coarse grid. Queries check the relevant grid levels based on the query size",
-      "It stores all objects in a single grid cell",
-      "It converts objects to the same size",
+      "It stores all objects in a single oversized grid cell that encompasses the entire simulation domain, relying on brute-force pairwise testing within that cell for simplicity of implementation",
+      "It converts all objects to the same standardized size by scaling their collision shapes before insertion, ensuring uniform cell occupancy and simplifying the spatial hashing computation step",
     ],
     correctIndex: 1,
     explanation:
@@ -12885,10 +12885,10 @@ export const questions: Question[] = [
     question: "How is the collision impulse magnitude calculated for two colliding bodies?",
     code: "j = -(1 + e) * dot(v_rel, n) / (1/m_a + 1/m_b)",
     options: [
-      "impulse = mass × velocity",
+      "impulse = mass x velocity, which is the formula for momentum, not the collision impulse accounting for relative motion and restitution",
       "j = -(1+e) × dot(v_rel, n) / (1/m_a + 1/m_b) — using relative velocity along the normal, coefficient of restitution, and both inverse masses",
-      "j = F × dt for each object separately",
-      "j = (m_a × v_a + m_b × v_b) / 2",
+      "j = F x dt for each object separately, which gives the impulse from an external force but ignores the relative velocity and mass coupling",
+      "j = (m_a x v_a + m_b x v_b) / 2, which computes the average momentum rather than the impulse needed to resolve the velocity constraint",
     ],
     correctIndex: 1,
     explanation:
@@ -12901,10 +12901,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How does inverse mass simplify physics engine code?",
     options: [
-      "It doesn't — it's just a preference",
+      "It does not provide any real benefit because using inverse mass is just a historical preference carried over from older physics engines, and modern implementations could use regular mass just as effectively",
       "Static/infinite-mass objects have invMass = 0, which naturally excludes them from all force/impulse calculations without special cases. Division by mass becomes multiplication by invMass (faster)",
-      "It makes gravity stronger",
-      "It reduces memory usage",
+      "It makes gravity calculations stronger and more numerically stable by scaling the gravitational constant proportionally to the inverse mass, amplifying the force applied to lighter objects in simulation",
+      "It reduces the overall memory usage of the physics engine by storing a single float instead of both mass and density, saving four bytes per rigid body in large-scale simulations with many objects",
     ],
     correctIndex: 1,
     explanation:
@@ -12917,10 +12917,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How are friction impulses typically computed in a collision solver?",
     options: [
-      "Friction is always a constant force opposing motion",
+      "Friction is always modeled as a constant force opposing motion regardless of the normal force magnitude, applied uniformly to all surfaces with the same deceleration",
       "Compute the tangential relative velocity (perpendicular to normal), then apply an impulse opposing it — clamped by μ × normal_impulse (Coulomb friction model)",
-      "Friction is computed from the objects' colors",
-      "Friction only applies to horizontal surfaces",
+      "Friction forces are computed from the surface colors and material textures of the colliding objects, using visual appearance as a proxy for physical roughness",
+      "Friction only applies to horizontal surfaces and flat ground planes in the simulation, as inclined surfaces and walls do not generate any tangential resistance",
     ],
     correctIndex: 1,
     explanation:
@@ -12933,10 +12933,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the Coulomb friction cone?",
     options: [
-      "A cone-shaped collision volume",
+      "A cone-shaped collision volume used for detecting objects within a character field of view, similar to a trigger zone but with a conical geometry defined by an apex angle and height distance",
       "The set of valid friction force directions — friction force must lie within a cone defined by angle arctan(μ) around the contact normal. Inside the cone: static friction. On the cone's surface: sliding",
-      "A visual effect for friction sparks",
-      "The distribution of friction across a surface",
+      "A visual particle effect used to render friction sparks and skid marks when objects slide against each other at high speed, with the spark intensity proportional to the relative sliding velocity",
+      "The spatial distribution pattern of friction force across a contact surface area, showing how tangential resistance varies from the center of the contact patch to its outer edges and boundaries",
     ],
     correctIndex: 1,
     explanation:
@@ -12949,10 +12949,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How do you combine restitution coefficients of two colliding objects?",
     options: [
-      "Always use the higher value",
+      "Always use the higher restitution value from the two colliding materials, so the bouncier surface property dominates regardless of what the other object material coefficient might be set to",
       "Common approaches: use the maximum (most bouncy wins), minimum (least bouncy wins), multiply (e = e_a × e_b), or average. The choice depends on the engine — max and multiply are most common",
-      "Always use 0.5",
-      "Subtract one from the other",
+      "Always use a fixed default value of 0.5 as the combined restitution for every collision pair, ignoring the individual material properties assigned to each object in the simulation scene entirely",
+      "Subtract one material restitution from the other and take the absolute value as the combined coefficient, producing higher bounce when materials differ significantly and zero bounce when they match",
     ],
     correctIndex: 1,
     explanation:
@@ -12965,10 +12965,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How does applying a force off-center on a rigid body create rotation?",
     options: [
-      "Off-center forces only create translation",
+      "Off-center forces only create translational motion of the center of mass and do not generate any rotational effect because torque requires forces applied at the exact surface boundary point only",
       "The force is decomposed: it accelerates the center of mass linearly (F=ma) AND creates torque (τ = r × F) proportional to the lever arm distance, causing angular acceleration (τ = Iα)",
-      "Off-center forces are ignored by physics engines",
-      "Rotation only occurs when forces are applied at the surface",
+      "Off-center forces are completely ignored by most real-time physics engines for performance reasons, as only forces applied directly through the center of mass are processed and integrated each frame",
+      "Rotation only occurs when forces are applied exactly at the outermost surface point of the body, since interior force application points generate purely translational acceleration without any angular component",
     ],
     correctIndex: 1,
     explanation:
@@ -12981,10 +12981,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the inertia tensor, and why isn't a single scalar sufficient for 3D rotation?",
     options: [
-      "A single scalar is sufficient for all cases",
+      "A single scalar moment of inertia value is sufficient for all cases because resistance to rotation is uniform in every direction for any rigid body, regardless of its geometric shape or mass distribution",
       "In 3D, resistance to rotation varies by axis — a long rod is easy to spin along its length but hard to tumble. The inertia tensor (3×3 matrix) captures this axis-dependent resistance",
-      "The inertia tensor is only needed for soft bodies",
-      "It's used to compute gravity, not rotation",
+      "The full inertia tensor (3x3 matrix) is only needed for deformable soft body simulations where mass distribution changes each frame, while rigid bodies can always use a single scalar for rotational inertia",
+      "The inertia tensor is used to compute gravitational attraction between objects, not to model rotational resistance, since it encodes how mass is distributed for the purpose of force field calculations",
     ],
     correctIndex: 1,
     explanation:
@@ -12997,10 +12997,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the parallel axis theorem, and when is it used?",
     options: [
-      "It's about parallel computing for physics",
+      "It is about distributing physics computations across parallel CPU cores, splitting the rigid body simulation into independent work units that can execute concurrently without synchronization overhead",
       "I_offset = I_center + m × d² — it computes the moment of inertia about any axis from the known inertia about the center of mass plus m×d², where d is the offset distance",
-      "It describes parallel force pairs",
-      "It's used to parallelize collision detection",
+      "It describes the behavior of parallel force pairs acting on opposite sides of a rigid body, where equal and opposite forces create a torque couple that produces pure rotation without translation",
+      "It is an algorithm used to parallelize collision detection across multiple CPU threads, distributing spatial regions to different processors for concurrent broad-phase overlap testing at scale",
     ],
     correctIndex: 1,
     explanation:
@@ -13013,10 +13013,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "In a collision between a 1 kg ball and a 100 kg ball at equal speeds, what happens?",
     options: [
-      "Both bounce back equally",
+      "Both objects bounce back equally with the same speed in opposite directions, sharing the kinetic energy and momentum change symmetrically regardless of their individual mass difference",
       "The light ball bounces back at nearly its original speed while the heavy ball barely changes velocity — momentum is conserved but the lighter object absorbs most of the velocity change",
-      "The heavy ball stops completely",
-      "Both objects stop",
+      "The heavy ball stops completely and transfers all of its kinetic energy and momentum to the lighter ball, which then moves away at a higher speed determined by the mass ratio between them",
+      "Both objects stop immediately upon contact and all kinetic energy is converted to heat and sound, which is the expected result of a perfectly inelastic head-on collision between two bodies",
     ],
     correctIndex: 1,
     explanation:
@@ -13029,10 +13029,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is angular impulse and how does it relate to collision response?",
     options: [
-      "It's the same as linear impulse",
+      "Angular impulse is mathematically identical to linear impulse because the same formula and magnitude apply equally to both translational and rotational motion, just expressed in different coordinate frames",
       "Angular impulse = r × J (cross product of lever arm and linear impulse). It changes angular velocity: Δω = I⁻¹ × (r × J). Off-center collisions cause both linear and angular velocity changes",
-      "Angular impulse only applies to spinning objects",
-      "It's computed from the angular velocity alone",
+      "Angular impulse only applies to objects that are already spinning with a nonzero angular velocity before the collision, because stationary objects cannot receive angular impulse and only translate linearly",
+      "Angular impulse is computed solely from the existing angular velocity of the colliding objects, without any dependence on the contact point location, lever arm, or the linear impulse magnitude",
     ],
     correctIndex: 1,
     explanation:
@@ -13046,10 +13046,10 @@ export const questions: Question[] = [
     question: "What is the impulse-based collision response formula INCLUDING rotation?",
     code: "j = -(1+e) * v_rel_n / (1/m_a + 1/m_b + (I_a⁻¹(r_a × n) × r_a + I_b⁻¹(r_b × n) × r_b) · n)",
     options: [
-      "The same as without rotation — rotation doesn't affect impulse",
+      "The impulse formula for rotating bodies is exactly the same as without rotation because angular velocity and moment of inertia do not affect the collision impulse magnitude or its direction along the normal",
       "The denominator adds terms for angular effects: each body's inverse inertia tensor applied to (r × n), crossed with r, then dotted with n. This accounts for how much the contact point accelerates due to rotation",
-      "You simply multiply the standard formula by angular velocity",
-      "You ignore rotation and apply torque separately",
+      "You simply multiply the standard non-rotating impulse formula result by the angular velocity magnitude of each body to account for rotational energy, scaling the response proportionally to spin speed",
+      "You compute the collision impulse ignoring rotation entirely and then apply a separate torque correction afterward to handle the angular component, keeping the linear and angular solvers fully independent",
     ],
     correctIndex: 1,
     explanation:
@@ -13062,10 +13062,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the purpose of a velocity threshold for restitution in physics engines?",
     options: [
-      "To make all objects bounce more",
+      "To make all objects in the simulation bounce more energetically by artificially increasing the restitution coefficient, producing more dynamic collision responses",
       "Below a velocity threshold, restitution is set to 0 to prevent objects from jittering/bouncing forever at rest — a tiny bounce leads to a smaller bounce, infinitely",
-      "To limit maximum velocity",
-      "To make friction stronger at low speeds",
+      "To impose a hard limit on the maximum velocity any object can reach, preventing numerical instability when speeds exceed what the integrator can handle",
+      "To make friction forces progressively stronger at low speeds, increasing the tangential deceleration as velocity decreases to bring sliding objects to rest",
     ],
     correctIndex: 1,
     explanation:
@@ -13078,10 +13078,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the difference between force, impulse, and velocity change in a physics engine API?",
     options: [
-      "They are all interchangeable",
+      "They are all interchangeable names for the same underlying operation, applying a change to an object motion state, and the engine converts them all to the same internal representation before processing them",
       "Force is accumulated over the frame (integrated via F=ma). Impulse directly changes velocity this frame (Δv = J/m). Velocity change sets velocity directly. Use force for continuous effects, impulse for collisions/explosions",
-      "Force is for static objects, impulse is for dynamic",
-      "They all produce the same result",
+      "Force is exclusively for static objects that need gradual acceleration, impulse is exclusively for dynamic objects that need instantaneous velocity changes, and using the wrong one on the wrong body type causes errors",
+      "They all ultimately produce the same physical result on the object trajectory because the distinction is purely an API convenience for code readability, with no actual difference in the simulation behavior at all",
     ],
     correctIndex: 1,
     explanation:
@@ -13094,10 +13094,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "Why is it important to resolve collisions at the contact point velocity rather than center-of-mass velocity?",
     options: [
-      "Contact point velocity is easier to compute",
+      "Contact point velocity is significantly easier and cheaper to compute than center-of-mass velocity, so engines use it as a performance optimization even though both methods produce identical collision results",
       "The contact point velocity includes both linear AND angular components (v_contact = v_cm + ω × r). Using center-of-mass velocity ignores rotation, giving incorrect bounce directions for spinning objects",
-      "Center-of-mass velocity is always zero",
-      "It's only important for soft bodies",
+      "The center-of-mass velocity is always exactly zero for objects in a simulation because it represents the reference frame origin, making it useless for relative velocity calculations at collision contacts",
+      "Using contact point velocity is only important for deformable soft body simulations where the surface moves independently from the center, while for rigid bodies center-of-mass velocity produces correct results",
     ],
     correctIndex: 1,
     explanation:
@@ -13110,10 +13110,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is gyroscopic precession, and does it matter in game physics?",
     options: [
-      "It's only relevant in astrophysics",
+      "Gyroscopic precession is only relevant in astrophysics and orbital mechanics simulations, because at the scale of game objects and everyday physics the effect is negligibly small and can always be safely ignored",
       "When a spinning body has torque applied perpendicular to its spin axis, it precesses (rotates about a third axis). It matters for realistic spinning tops, gyroscopes, spacecraft, and bicycle physics",
-      "It's a rendering artifact",
-      "It's identical to angular damping",
+      "Gyroscopic precession is purely a rendering artifact caused by numerical integration errors in the angular velocity computation, producing visible wobble that can be eliminated with smaller timesteps",
+      "Gyroscopic precession is functionally identical to angular damping because both cause a spinning body rotation axis to gradually shift over time, and they use the same mathematical formulation in the solver",
     ],
     correctIndex: 1,
     explanation:
@@ -13128,10 +13128,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What makes a numerical integrator 'symplectic' and why does it matter?",
     options: [
-      "It's the most accurate type of integrator",
+      "A symplectic integrator is the most accurate type of numerical integrator available, producing results closest to the analytical solution at every individual timestep compared to all other integration methods",
       "A symplectic integrator approximately preserves the total energy of a Hamiltonian system over long periods — the energy oscillates but doesn't systematically grow or shrink, preventing simulation blow-up",
-      "It runs in O(1) time",
-      "It only works for linear systems",
+      "A symplectic integrator runs in O(1) constant time per step regardless of the number of bodies, unlike other integrators that scale linearly, making it the fastest option for large-scale simulations",
+      "A symplectic integrator only works correctly for linear dynamical systems with constant coefficients, because nonlinear forces like gravity wells and spring contacts require non-symplectic methods to solve",
     ],
     correctIndex: 1,
     explanation:
@@ -13144,10 +13144,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is implicit (backward) Euler integration, and when is it used?",
     options: [
-      "Evaluating forces at the current position",
+      "Evaluating all forces at the current known position of each body, using only present-state information to compute accelerations, which is straightforward to implement but can accumulate energy in stiff systems",
       "Evaluating forces at the FUTURE position — requiring solving an equation system. It's unconditionally stable (energy-dissipative), making it ideal for stiff systems like cloth and deformable bodies",
-      "Running Euler integration backwards in time",
-      "Using negative timesteps",
+      "Running the standard forward Euler integration algorithm backwards in time from the next frame to the current frame, effectively reversing the temporal direction of the simulation for improved accuracy",
+      "Using negative timestep values in the standard explicit integration formula, which reverses the direction of motion each step and requires special handling of velocity sign conventions throughout the solver",
     ],
     correctIndex: 1,
     explanation:
@@ -13160,10 +13160,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What does 'stiffness' mean in the context of numerical simulation, and why is it a problem?",
     options: [
-      "It refers to how rigid an object is visually",
+      "Stiffness refers to how visually rigid an object appears during rendering, where stiff objects maintain their shape while non-stiff objects deform visibly, which affects the choice of mesh skinning technique",
       "A stiff system has forces that change rapidly with small position changes (e.g., strong springs). Explicit integrators need extremely small timesteps to remain stable, making simulation impractically slow",
-      "It only applies to soft body simulation",
-      "It means the simulation is deterministic",
+      "Stiffness only applies to soft body simulation systems like cloth, hair, and jelly, because rigid body solvers are completely unaffected since their objects are infinitely stiff by definition and never deform",
+      "Stiffness means the simulation produces deterministic results regardless of the timestep size, as stiff simulations always converge to the same final state, making them reproducible across different machines",
     ],
     correctIndex: 1,
     explanation:
@@ -13176,10 +13176,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is sub-stepping and when is it used?",
     options: [
-      "Running the renderer multiple times per frame",
+      "Running the rendering pipeline multiple times per frame with different camera jitter offsets for temporal anti-aliasing, accumulating sub-pixel samples to reduce geometric aliasing and shimmering artifacts on edges",
       "Dividing one physics timestep into multiple smaller internal steps — used when a single step is too large for stability (stiff springs, fast objects) but you can't afford to run the entire engine at that fine resolution",
-      "A type of motion blur",
-      "Taking steps backward in time",
+      "A motion blur rendering technique that samples object positions at multiple points within a single frame exposure time, blending the results together to create a smooth blur proportional to velocity on screen",
+      "Taking integration steps backward in time from the current state to reconstruct previous frames, used for rewinding gameplay and implementing time-reversal mechanics in game design, debugging tools, and replays",
     ],
     correctIndex: 1,
     explanation:
@@ -13193,10 +13193,10 @@ export const questions: Question[] = [
     question: "What is the 'accumulator pattern' for fixed-timestep physics?",
     code: "accumulator += frameTime;\nwhile (accumulator >= fixedDt) {\n  physics.step(fixedDt);\n  accumulator -= fixedDt;\n}\nalpha = accumulator / fixedDt;\nrender(lerp(prevState, currState, alpha));",
     options: [
-      "Accumulate all forces before applying them",
+      "Accumulate all forces acting on each body into a single resultant vector before applying them to compute acceleration, ensuring order-independent force resolution within each simulation timestep",
       "Accumulate elapsed time and consume it in fixed-size chunks. Left-over time is used as an interpolation factor for rendering, giving smooth visuals regardless of frame rate",
-      "Store all collision data before resolving",
-      "Accumulate position changes over multiple frames",
+      "Store all collision detection data including contact points, normals, and penetration depths in a buffer before resolving any of them, enabling global constraint solving across all contacts simultaneously",
+      "Accumulate incremental position changes from multiple solver iterations over several frames before applying the final displacement, smoothing out jitter from sequential constraint resolution passes",
     ],
     correctIndex: 1,
     explanation:
@@ -13209,10 +13209,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "Why does Verlet integration handle constraints better than velocity-based methods?",
     options: [
-      "Verlet is more mathematically accurate",
+      "Verlet is more mathematically accurate than other integration schemes because it uses higher-order Taylor expansion terms, which reduces truncation error and produces smoother trajectories for most particle-based simulations",
       "Verlet stores positions, not velocities. Moving a particle to satisfy a constraint (e.g., fixed distance) automatically adjusts its implicit velocity — no separate velocity correction step needed",
-      "Verlet runs faster than other methods",
-      "Verlet doesn't support constraints",
+      "Verlet runs faster than other methods because it requires fewer floating-point operations per particle per timestep, making it the most computationally efficient integrator for real-time physics engines",
+      "Verlet doesn't support constraints natively and requires an additional constraint-resolution layer on top, which is why most engines pair it with a separate Lagrange multiplier solver for stability",
     ],
     correctIndex: 1,
     explanation:
@@ -13225,10 +13225,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is Position Based Dynamics (PBD)?",
     options: [
-      "A method for computing positions from GPS data",
+      "A method for computing positions from GPS data by triangulating satellite signals and applying relativistic corrections to timing measurements, commonly used in navigation systems and geolocation services",
       "A simulation method that directly manipulates positions to satisfy constraints, rather than computing forces. It's stable and controllable but not physically accurate — widely used for games and real-time VFX",
-      "A way to position objects in a level editor",
-      "An alternative name for Euler integration",
+      "A way to position objects in a level editor using a constraint-based layout system that automatically resolves overlapping placements and snaps items to a grid, commonly found in modern game development tools",
+      "An alternative name for Euler integration that emphasizes the position update step rather than the velocity step, used primarily in academic literature on classical mechanics and numerical simulation theory",
     ],
     correctIndex: 1,
     explanation:
@@ -13242,10 +13242,10 @@ export const questions: Question[] = [
     question: "What is leapfrog integration, and how does it relate to Verlet?",
     code: "v(t + dt/2) = v(t - dt/2) + a(t) * dt\nx(t + dt) = x(t) + v(t + dt/2) * dt",
     options: [
-      "Leapfrog is unrelated to Verlet",
+      "Leapfrog is unrelated to Verlet integration and was developed independently for fluid dynamics simulations where particle positions need to be updated using pressure gradient forces rather than explicit velocity tracking",
       "Leapfrog evaluates velocity at half-timestep offsets from position — velocity 'leaps' over position and vice versa. It's mathematically equivalent to Verlet but explicitly tracks velocity, making it easier to apply velocity-dependent forces",
-      "Leapfrog is another name for RK4",
-      "Leapfrog only works in 1D",
+      "Leapfrog is another name for RK4 (Runge-Kutta 4th order) that originated in the computational astrophysics community where multi-step methods are preferred for simulating long-duration orbital trajectories accurately",
+      "Leapfrog only works in 1D and cannot be generalized to 2D or 3D simulations because its half-step velocity evaluation assumes a single axis of motion, making it unsuitable for multi-dimensional physics engines",
     ],
     correctIndex: 1,
     explanation:
@@ -13258,10 +13258,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is CFL condition and why does it matter for simulation stability?",
     options: [
-      "A condition on the number of collision checks per frame",
+      "A condition on the number of collision checks per frame that limits the broad-phase algorithm to testing at most N candidate pairs per timestep, ensuring the physics engine maintains a stable frame rate budget",
       "The Courant-Friedrichs-Lewy condition states that information must not travel more than one grid cell per timestep — dt must be small enough that no signal crosses a cell in one step, or the simulation becomes unstable",
-      "A memory allocation constraint",
-      "A rendering performance metric",
+      "A memory allocation constraint that limits the total number of physics objects that can be active simultaneously, preventing buffer overflows in the engine's internal collision pair and contact manifold storage arrays",
+      "A rendering performance metric that measures the ratio of visible to occluded geometry per frame, used to determine whether the physics LOD system should reduce simulation fidelity for off-screen objects",
     ],
     correctIndex: 1,
     explanation:
@@ -13274,10 +13274,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is determinism in physics simulation, and why is it hard to achieve?",
     options: [
-      "Determinism means the simulation is realistic",
+      "Determinism means the simulation is realistic and accurately models real-world physics laws including conservation of energy, momentum, and angular momentum to produce visually convincing and physically plausible results",
       "Determinism means the EXACT same inputs produce the EXACT same results. It's hard because floating-point math varies across compilers, CPUs, and instruction ordering. Required for lockstep multiplayer and replays",
-      "All physics engines are automatically deterministic",
-      "Determinism only matters for offline rendering",
+      "All physics engines are automatically deterministic because they use IEEE 754 floating-point arithmetic, which guarantees bit-identical results across all platforms, compilers, and optimization levels by specification",
+      "Determinism only matters for offline rendering pipelines where frame-to-frame consistency is needed for motion blur and temporal anti-aliasing passes, not for real-time interactive physics simulations in games",
     ],
     correctIndex: 1,
     explanation:
@@ -13293,10 +13293,10 @@ export const questions: Question[] = [
     question: "How do you predict where a projectile will land (time of flight)?",
     code: "t_land = (v_y + sqrt(v_y² + 2*g*h)) / g",
     options: [
-      "Divide distance by speed",
+      "Divide distance by speed, treating the projectile as a constant-velocity object traveling in a straight line with no gravitational influence",
       "Solve the quadratic y₀ + v_y*t - ½g*t² = y_target for t. Use the quadratic formula. The positive root gives the time of landing",
-      "Time = initial velocity / gravity",
-      "It can't be predicted analytically",
+      "Time = initial velocity / gravity, assuming the projectile decelerates uniformly until zero velocity at the apex of its arc",
+      "It can't be predicted analytically and must be computed using iterative numerical methods such as Newton-Raphson to approximate the landing time",
     ],
     correctIndex: 1,
     explanation:
@@ -13309,10 +13309,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How does an AI calculate the aim direction to hit a moving target with a projectile?",
     options: [
-      "Aim directly at the target's current position",
+      "Aim directly at the target's current position and fire immediately, relying on the projectile's high speed to minimize the error between where the target was and where it will be upon projectile arrival",
       "Predict where the target WILL BE when the projectile arrives — solve for the intercept point using target velocity, projectile speed, and distance. This involves solving a quadratic equation for intercept time",
-      "Aim in a random direction near the target",
-      "Use the target's velocity as the aim direction",
+      "Aim in a random direction near the target and rely on a guidance system to adjust the projectile's trajectory mid-flight using homing behavior, which steers toward the target using proportional navigation",
+      "Use the target's velocity as the aim direction by normalizing the velocity vector and firing along that line, which assumes the target will continue moving in the same direction at the same speed indefinitely",
     ],
     correctIndex: 1,
     explanation:
@@ -13325,10 +13325,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is centripetal acceleration and how is it used in games?",
     options: [
-      "Acceleration that pushes objects outward from a curve",
+      "Acceleration that pushes objects outward from a curve, known as centrifugal force in the rotating reference frame, which is commonly used in racing games to simulate the sensation of being pushed outward during turns",
       "a = v²/r, directed toward the center of the circular path. It's the acceleration needed to maintain circular motion. Used for vehicle cornering physics, orbital mechanics, and spinning objects",
-      "Acceleration along the direction of motion",
-      "Acceleration due to gravity only",
+      "Acceleration along the direction of motion, known as tangential acceleration, which changes the object's speed without altering its direction of travel — used in games for throttle and braking force calculations",
+      "Acceleration due to gravity only, which acts as the sole force pulling orbiting objects toward the center of their path, and is unrelated to the object's tangential velocity or the radius of curvature",
     ],
     correctIndex: 1,
     explanation:
@@ -13341,10 +13341,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How do you simulate a rope or chain in a game?",
     options: [
-      "Use a single rigid body shaped like a rope",
+      "Use a single rigid body shaped like a rope, modeled as a long thin capsule or box collider that bends using a spline deformer, with the physics engine handling collision response against the environment",
       "Model it as a series of particles connected by distance constraints (Verlet) or small rigid body segments connected by joints. Iteratively enforce constraints to maintain segment lengths",
-      "Draw a curved line and add collision to it",
-      "Use a pre-computed animation",
+      "Draw a curved line and add collision to it using a mesh collider generated from the curve control points, then animate the curve procedurally each frame to simulate swinging and dangling motion",
+      "Use a pre-computed animation baked from an offline cloth simulation tool, then blend between several cached animation clips depending on the rope's attachment points and external forces",
     ],
     correctIndex: 1,
     explanation:
@@ -13357,10 +13357,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How do you implement a character standing on a moving platform?",
     options: [
-      "Parent the character to the platform in the scene graph",
+      "Parent the character to the platform in the scene graph so they move as one unit, updating the character's world transform by concatenating it with the platform's local-to-world matrix each frame automatically",
       "Detect the platform beneath the character (ground check). Apply the platform's velocity to the character each frame. When the character jumps or leaves, they inherit the platform's velocity at that moment",
-      "Make the platform's AABB contain the character",
-      "Disable gravity while on the platform",
+      "Make the platform's AABB contain the character and rely on continuous collision detection to push the character along with the platform, resolving penetration each frame via the contact manifold solver",
+      "Disable gravity while on the platform and instead apply a downward force equal to the platform's normal reaction, keeping the character pinned to the surface without any additional velocity tracking",
     ],
     correctIndex: 1,
     explanation:
@@ -13373,10 +13373,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How does a physics engine handle stacking (multiple objects resting on each other)?",
     options: [
-      "Each object is solved independently",
+      "Each object is solved independently by applying gravity, integrating velocity, and resolving collisions in isolation without considering how forces from one contact affect neighboring bodies in the stack",
       "The constraint solver processes contacts iteratively — impulses propagate from the ground up through the stack over multiple solver iterations. More iterations = more stable stacks. Warm starting helps convergence",
-      "Stacking is not supported",
-      "Objects are merged into a single rigid body",
+      "Stacking is not supported in real-time physics engines because the computational cost of solving simultaneous resting contacts grows exponentially with the number of bodies, making it infeasible at interactive rates",
+      "Objects are merged into a single rigid body when stacked, forming a compound shape whose mass and inertia tensor are computed from the union of the individual bodies, simplifying the solver's workload significantly",
     ],
     correctIndex: 1,
     explanation:
@@ -13389,10 +13389,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is Baumgarte stabilization?",
     options: [
-      "A method for generating collision shapes",
+      "A method for generating collision shapes from visual meshes by computing the convex decomposition of the mesh surface, then fitting primitive shapes (spheres, boxes, capsules) to each convex piece automatically",
       "Adding a position-correction bias to the velocity constraint to gradually fix penetration: v_bias = β/dt × penetration_depth. It prevents objects from sinking into each other over time",
-      "A rendering stabilization technique",
-      "A network synchronization method",
+      "A rendering stabilization technique that reduces temporal aliasing in shadow maps by jittering the shadow camera's projection matrix and averaging results across multiple frames to reduce flickering artifacts",
+      "A network synchronization method that aligns physics state between client and server by applying correction impulses proportionally to the difference between predicted and authoritative positions each tick",
     ],
     correctIndex: 1,
     explanation:
@@ -13405,10 +13405,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is warm starting in a constraint solver?",
     options: [
-      "Pre-heating the GPU before simulation",
+      "Pre-heating the GPU before simulation by running several dummy compute shader dispatches to warm the driver's shader cache and stabilize clock frequencies before the actual physics workload begins",
       "Using the contact impulses from the previous frame as the initial guess for this frame's solver iterations — since contacts persist between frames, last frame's solution is a great starting point",
-      "Running the solver once before the main loop",
-      "Gradually increasing the timestep at startup",
+      "Running the solver once before the main loop as a calibration pass to establish baseline contact forces and constraint Lagrange multipliers, which are then discarded and never used during actual simulation",
+      "Gradually increasing the timestep at startup from a very small value to the target dt over the first few hundred frames, allowing the solver to stabilize before running at full speed to avoid initial explosions",
     ],
     correctIndex: 1,
     explanation:
@@ -13421,10 +13421,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is an island in a physics engine?",
     options: [
-      "A terrain feature",
+      "A terrain feature in the physics world that represents an isolated landmass surrounded by water, typically modeled as a heightfield collider with specialized buoyancy zones around its perimeter edges",
       "A connected group of bodies that are in contact or joined by constraints. Islands can be solved independently and in parallel — sleeping is applied per-island (if all bodies in an island are still, the whole island sleeps)",
-      "An isolated collision shape",
-      "A physics object on water",
+      "An isolated collision shape that exists in the broadphase acceleration structure but has no corresponding rigid body, used as a trigger volume or sensor zone that detects overlaps without generating contact forces",
+      "A physics object on water that uses a simplified buoyancy model based on the displaced volume of submerged collision primitives, applying an upward force proportional to the depth below the water surface",
     ],
     correctIndex: 1,
     explanation:
@@ -13437,10 +13437,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the Sequential Impulse solver (also called Projected Gauss-Seidel)?",
     options: [
-      "A solver that processes all constraints simultaneously",
+      "A solver that processes all constraints simultaneously using a global matrix equation, computing the exact solution in one pass by inverting the full mass-constraint matrix for every body in the scene at once",
       "An iterative solver that processes one constraint at a time, applying impulses immediately so subsequent constraints see updated velocities. Simple to implement, converges well with warm starting",
-      "A constraint solver that only handles joints",
-      "A pre-processing step before the main solver",
+      "A constraint solver that only handles joints and ignores contact constraints entirely, delegating collision response to a separate penalty-force system that pushes overlapping bodies apart each frame",
+      "A pre-processing step before the main solver that identifies redundant or degenerate constraints and removes them from the constraint graph, reducing the iteration count needed for convergence",
     ],
     correctIndex: 1,
     explanation:
@@ -13456,10 +13456,10 @@ export const questions: Question[] = [
     question: "What determines whether explicit Euler integration is stable for a spring system?",
     code: "stability requires: dt < 2 * sqrt(m / k)",
     options: [
-      "The spring's visual appearance",
+      "The spring's visual appearance determines stability because thicker springs with fewer coils have lower natural frequencies and are easier to integrate accurately",
       "The timestep must be smaller than 2×√(m/k). Higher stiffness (k) or lower mass (m) requires smaller timesteps. Exceeding this causes the simulation to gain energy and explode",
-      "The number of springs in the system",
-      "The spring's rest length",
+      "The number of springs in the system determines stability because each additional spring adds another constraint that the solver must satisfy, and beyond a certain count the system becomes over-determined",
+      "The spring's rest length is the primary stability factor because longer rest lengths produce larger displacement values that can overflow the floating-point range and cause numerical divergence",
     ],
     correctIndex: 1,
     explanation:
@@ -13473,10 +13473,10 @@ export const questions: Question[] = [
     question: "What is the damping ratio (ζ), and what do its values mean?",
     code: "ζ = c / (2 * sqrt(k * m))",
     options: [
-      "ζ is always 1.0",
+      "ζ is always 1.0 in every physical system because the damping coefficient is defined as the ratio of actual damping to critical damping, and real-world materials always exhibit exactly critical damping behavior",
       "ζ < 1: under-damped (oscillates with decay). ζ = 1: critically damped (fastest return, no oscillation). ζ > 1: over-damped (slow return, no oscillation). Most game springs use ζ = 0.5-0.8 for responsive but stable behavior",
-      "ζ only affects visual rendering",
-      "Higher ζ means more oscillation",
+      "ζ only affects visual rendering by controlling the amplitude of procedural animation curves applied to mesh vertices, and has no influence on the underlying physics simulation or force calculations",
+      "Higher ζ means more oscillation because increasing the damping ratio adds energy to the system on each cycle, causing the amplitude to grow over time rather than decay toward the equilibrium position",
     ],
     correctIndex: 1,
     explanation:
@@ -13489,10 +13489,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How do you implement a stable spring in code that works regardless of frame rate?",
     options: [
-      "Just use F = -kx each frame",
+      "Just use F = -kx each frame and apply the resulting force to the object's velocity, then update position accordingly — this Hookean spring model is unconditionally stable for all timestep sizes and stiffness values",
       "Use the exact analytical solution for a damped spring (exponential decay with sine/cosine), evaluating it at each frame's dt — this avoids numerical instability entirely regardless of timestep or stiffness",
-      "Increase k when frame rate drops",
-      "Cap the maximum spring force",
+      "Increase k when frame rate drops to compensate for the larger timestep, scaling the spring constant inversely with dt so the total impulse applied per frame remains constant regardless of how long the frame took",
+      "Cap the maximum spring force to a fixed threshold each frame so that even with large displacements the applied impulse never exceeds a safe limit, preventing velocity from growing beyond a stable range",
     ],
     correctIndex: 1,
     explanation:
@@ -13505,10 +13505,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the problem with using very stiff springs to enforce constraints (penalty method)?",
     options: [
-      "Stiff springs don't produce enough force",
+      "Stiff springs don't produce enough force to maintain constraints because the penalty force is proportional to penetration depth, and with high stiffness the penetration is too small to generate meaningful corrective impulses",
       "Very stiff springs require tiny timesteps for stability, add visible vibration/oscillation, and the required stiffness depends on the scenario — there's no single k that works for all cases. True constraints (Lagrange multipliers) are preferred",
-      "Stiff springs use too much memory",
-      "There is no problem with penalty methods",
+      "Stiff springs use too much memory because each spring constraint requires storing additional Jacobian entries, accumulated impulse history, and warm-starting data that scales linearly with the spring's stiffness parameter",
+      "There is no problem with penalty methods — they are universally preferred over constraint-based approaches because they are simpler to implement, require no matrix inversions, and produce identical results for all stiffness values",
     ],
     correctIndex: 1,
     explanation:
@@ -13521,10 +13521,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is resonance, and why can it crash a physics simulation?",
     options: [
-      "Resonance only occurs in audio systems",
+      "Resonance only occurs in audio systems where standing waves form in enclosed spaces, and has no relevance to mechanical or computational simulations because those systems have no natural oscillation frequency to excite",
       "When a periodic force matches the natural frequency of a system (ω = √(k/m)), amplitude grows dramatically. In simulation, periodic timestep errors at the natural frequency can amplify oscillations until the system explodes",
-      "Resonance makes objects shrink",
-      "Resonance only affects rendering",
+      "Resonance makes objects shrink in simulation because the oscillating forces cancel out the object's rest dimensions, causing the collision shape to progressively lose volume until it collapses to a point and disappears",
+      "Resonance only affects rendering by causing aliasing patterns in procedural textures and vertex animations, where the sampling frequency of the pixel shader aligns with the spatial frequency of the generated pattern",
     ],
     correctIndex: 1,
     explanation:
@@ -13539,10 +13539,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the Entity-Component-System (ECS) pattern, and why is it used in physics engines?",
     options: [
-      "A pattern for creating UI components",
+      "A pattern for creating UI components using a reactive framework where entities represent widgets, components store visual properties, and systems handle layout, rendering, and input event propagation each frame",
       "Data is stored in flat arrays of components (position, velocity, shape). Systems process all entities with matching components in tight loops — maximizing cache locality and enabling SIMD/parallelization for physics",
-      "A network architecture pattern",
-      "A design pattern for database queries",
+      "A network architecture pattern that separates entities into client-owned and server-owned groups, with components replicated via a delta-compression protocol and systems running in lockstep across all connected peers",
+      "A design pattern for database queries where entities map to rows, components map to columns, and systems are stored procedures that execute batch updates on matching rows to maintain referential integrity",
     ],
     correctIndex: 1,
     explanation:
@@ -13555,10 +13555,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the difference between a physics body's local space and world space?",
     options: [
-      "They are always identical",
+      "They are always identical — the physics engine uses the exact same vertex data for collision detection as the renderer uses for drawing, ensuring pixel-perfect correspondence between visual and physical boundaries",
       "Local space: coordinates relative to the body's own origin and orientation. World space: absolute coordinates in the simulation. Shapes are defined in local space; the engine transforms to world space for collision using the body's transform",
-      "Local space is 2D, world space is 3D",
-      "Local space doesn't include rotation",
+      "Local space is 2D, world space is 3D — collision shapes are authored as flat 2D cross-sections in local space, then extruded into 3D volumes when the engine transforms them into world space for the broadphase",
+      "Local space doesn't include rotation and only stores translational offsets from the body's center of mass, while world space encodes the full rigid body transform including orientation as a quaternion or matrix",
     ],
     correctIndex: 1,
     explanation:
@@ -13571,10 +13571,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the purpose of split impulse (or contact position correction)?",
     options: [
-      "Splitting collision forces between objects",
+      "Splitting collision forces between objects by distributing the total contact impulse proportionally based on each body's inverse mass, so lighter objects receive larger velocity changes than heavier ones during resolution",
       "Separating the position correction from the velocity solve — penetration is fixed by moving objects directly, while velocity constraints handle bounce and friction. This prevents Baumgarte's artificial bounce artifacts",
-      "Splitting physics across multiple CPU cores",
-      "Dividing impulse between linear and angular parts",
+      "Splitting physics across multiple CPU cores by partitioning the simulation island graph into independent subsets and assigning each subset to a worker thread, enabling parallel constraint solving without synchronization",
+      "Dividing impulse between linear and angular parts by projecting the total contact impulse onto the body's center of mass and moment arm, then applying each component separately to the velocity and angular velocity",
     ],
     correctIndex: 1,
     explanation:
@@ -13587,10 +13587,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How do physics engines typically handle one-way platforms (platforms you can jump through from below)?",
     options: [
-      "They use a special collision shape",
+      "They use a special collision shape called a half-plane collider that only generates contact normals pointing in one direction, allowing objects to pass through from the opposite side without triggering a response",
       "During collision detection, check the contact normal direction. If the character is approaching from below (normal points downward), ignore the contact. Only resolve contacts where the character is above the platform",
-      "They turn collision on/off based on a timer",
-      "One-way platforms are not possible in physics engines",
+      "They turn collision on/off based on a timer that starts when the character initiates a jump, disabling the platform's collider for a fixed duration and re-enabling it once the character has risen above the platform",
+      "One-way platforms are not possible in physics engines because the collision detection and response pipeline is symmetric by design, always generating equal and opposite forces on both bodies involved in a contact pair",
     ],
     correctIndex: 1,
     explanation:
@@ -13603,10 +13603,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a ragdoll, and how is it typically implemented?",
     options: [
-      "A pre-animated death sequence",
+      "A pre-animated death sequence created by an animator in a DCC tool and stored as keyframe data, which is played back on the character's skeleton when triggered by a damage event from the game's combat system",
       "A system of rigid bodies (one per bone/limb) connected by constrained joints — when activated, the character switches from animation to physics-driven motion with joint limits mimicking human anatomy",
-      "A soft body simulation of the entire mesh",
-      "A particle system shaped like a character",
+      "A soft body simulation of the entire mesh using a finite element method that deforms the character's vertices based on material stiffness, allowing realistic stretching and compression of the body on impact",
+      "A particle system shaped like a character where each particle represents a vertex of the mesh, connected by spring constraints and driven by wind and gravity forces to produce a cloth-like falling motion",
     ],
     correctIndex: 1,
     explanation:
@@ -13621,10 +13621,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the difference between DFT and DCT, and why does JPEG use DCT?",
     options: [
-      "They are the same thing with different names",
+      "They are the same thing with different names — both decompose a signal into frequency components using complex exponentials, and the choice of which to use is purely a matter of convention in different engineering fields",
       "DFT decomposes into complex exponentials (sine + cosine). DCT uses only cosines, producing real-valued coefficients. DCT concentrates energy in fewer coefficients, making it better for compression — most image energy ends up in low-frequency DCT terms",
-      "DCT is faster than DFT",
-      "DFT works on images, DCT works on audio",
+      "DCT is faster than DFT because it operates on real numbers only and skips the imaginary component calculations, reducing the total floating-point operations by half for any given input size and producing identical results",
+      "DFT works on images, DCT works on audio — they are domain-specific transforms designed for their respective signal types, with DFT optimized for 2D spatial data and DCT optimized for 1D temporal waveforms",
     ],
     correctIndex: 1,
     explanation:
@@ -13638,10 +13638,10 @@ export const questions: Question[] = [
     question: "What is the Doppler effect formula used in 3D audio engines?",
     code: "f_observed = f_source × (v_sound + v_listener) / (v_sound + v_source)",
     options: [
-      "f = f_source × distance",
+      "f = f_source × distance, which means the observed frequency increases linearly with the distance between the source and listener, producing a pitch shift proportional to separation in the 3D audio scene",
       "f_observed = f_source × (speed_of_sound ± v_listener) / (speed_of_sound ∓ v_source) — approaching increases frequency, receding decreases it. The ± signs flip based on direction relative to the source-listener axis",
-      "f_observed = f_source / distance²",
-      "The Doppler effect doesn't have a formula",
+      "f_observed = f_source / distance², following the inverse square law just like sound attenuation, meaning the pitch drops off quadratically with distance and becomes inaudible at large separations in the scene",
+      "The Doppler effect doesn't have a formula and is implemented as a heuristic pitch-shift table lookup based on the relative speed between source and listener, tuned by audio designers to match the desired game feel",
     ],
     correctIndex: 1,
     explanation:
@@ -13654,10 +13654,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is a windowing function in signal processing, and why is it needed for FFT?",
     options: [
-      "A function that creates window UI elements",
+      "A function that creates window UI elements in a desktop application framework, handling widget layout, focus management, and paint events within a rectangular region of the screen during each display refresh cycle",
       "A taper applied to a finite signal chunk before FFT — because abruptly cutting a signal creates artificial high-frequency artifacts (spectral leakage). Windows (Hann, Hamming) smoothly fade the edges to zero",
-      "A function that selects which data to process",
-      "A rendering technique for transparent surfaces",
+      "A function that selects which data to process from a continuous input stream by specifying a time range or sample range, acting as a filter that crops the signal before passing it to downstream analysis stages",
+      "A rendering technique for transparent surfaces that uses order-independent blending and depth-peeling to correctly composite overlapping translucent geometry, commonly used in glass, water, and particle rendering",
     ],
     correctIndex: 1,
     explanation:
@@ -13670,10 +13670,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is wave superposition, and how is it used in water/ocean simulation?",
     options: [
-      "Stacking waves on top of each other in a queue",
+      "Stacking waves on top of each other in a queue data structure, processing them first-in-first-out so the simulation handles each wave sequentially before combining the results into a final displacement field",
       "Multiple waves add together: the displacement at any point is the sum of all individual wave displacements. Ocean surfaces are simulated by summing many sine waves with different frequencies, amplitudes, and directions",
-      "Only the largest wave is visible",
-      "Waves cancel each other out completely",
+      "Only the largest wave is visible because smaller waves are culled by the LOD system once their amplitude falls below a screen-pixel threshold, which reduces the total number of wave calculations per frame significantly",
+      "Waves cancel each other out completely through destructive interference whenever two or more waves overlap at the same point in space, resulting in a perfectly flat surface regardless of the number of wave sources",
     ],
     correctIndex: 1,
     explanation:
@@ -13687,10 +13687,10 @@ export const questions: Question[] = [
     question: "What is Snell's Law, and where is it used in rendering?",
     code: "n₁ × sin(θ₁) = n₂ × sin(θ₂)",
     options: [
-      "It describes shadow casting",
+      "It describes shadow casting by computing how light rays are blocked by opaque surfaces, determining the umbra and penumbra regions of a shadow using geometric ray-surface intersection tests in the scene",
       "It describes how light bends (refracts) when passing between materials with different indices of refraction. Used in ray tracing for glass, water, diamonds, and any transparent material",
-      "It describes how light reflects",
-      "It describes light absorption",
+      "It describes how light reflects off a smooth surface, defining the relationship between the angle of incidence and the angle of reflection relative to the surface normal at the point of contact",
+      "It describes light absorption in translucent materials, quantifying how much intensity is lost per unit distance traveled through the medium according to the material's extinction coefficient and wavelength",
     ],
     correctIndex: 1,
     explanation:
@@ -13705,10 +13705,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "Why does floating-point precision cause problems far from the world origin in physics simulations?",
     options: [
-      "Floating-point numbers work the same everywhere",
+      "Floating-point numbers work the same everywhere in the coordinate space because IEEE 754 guarantees uniform precision across the entire representable range, regardless of the magnitude of the stored value",
       "Float32 has ~7 decimal digits of precision. At position x=1,000,000, the smallest representable change is ~0.06 — too coarse for smooth physics. Objects jitter, collision breaks, and positions quantize to visible steps",
-      "The problem only affects rendering, not physics",
-      "Modern CPUs handle arbitrary precision",
+      "The problem only affects rendering, not physics, because the GPU's rasterizer operates in screen space where precision depends on pixel density, while the CPU physics solver uses double-precision arithmetic internally",
+      "Modern CPUs handle arbitrary precision through hardware-accelerated extended-precision floating-point units that automatically promote float32 values to float80 during computation, eliminating precision loss entirely",
     ],
     correctIndex: 1,
     explanation:
@@ -13722,10 +13722,10 @@ export const questions: Question[] = [
     question: "Why should you use epsilon comparisons instead of exact equality for floating-point physics?",
     code: "// Bad: if (distance == 0.0f)\n// Good: if (distance < EPSILON)",
     options: [
-      "Epsilon comparisons are faster",
+      "Epsilon comparisons are faster because the CPU can perform approximate comparisons using a single fused instruction that tests whether two values are within a hardware-defined tolerance, avoiding full subtraction",
       "Floating-point arithmetic accumulates tiny rounding errors — two values that should be equal may differ by ~10⁻⁷. Using a small tolerance (epsilon) prevents missed collisions and division by zero",
-      "Exact equality works fine for physics",
-      "Epsilon is only needed for double precision",
+      "Exact equality works fine for physics comparisons because IEEE 754 guarantees deterministic results for all basic arithmetic operations, ensuring that identical computations always yield bit-identical output values",
+      "Epsilon is only needed for double precision because float32 has limited range and any rounding errors are too small to affect collision detection thresholds, while double64 accumulates noticeable drift over time",
     ],
     correctIndex: 1,
     explanation:
@@ -13738,10 +13738,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the problem with using Euler angles (yaw, pitch, roll) for physics simulation?",
     options: [
-      "Euler angles are more accurate than quaternions",
+      "Euler angles are more accurate than quaternions for representing rotations because they store three independent angles that map directly to physical degrees of freedom, providing intuitive and unambiguous orientation data",
       "Euler angles suffer from gimbal lock (losing a DOF at ±90° pitch), have ambiguous representation (multiple angles = same rotation), and interpolation produces unnatural paths. Quaternions or rotation matrices are preferred",
-      "Euler angles use more memory",
-      "Euler angles can't represent rotation",
+      "Euler angles use more memory than quaternions because each of the three angles requires a double-precision value plus a sine/cosine lookup table, totaling far more storage than the four floats of a quaternion",
+      "Euler angles can't represent rotation at all and are only used as a debugging visualization aid that displays the current orientation in human-readable form without participating in any actual physics calculations",
     ],
     correctIndex: 1,
     explanation:
@@ -13754,10 +13754,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "How do physics engines typically represent orientation for 3D rigid bodies?",
     options: [
-      "Three Euler angles (yaw, pitch, roll)",
+      "Three Euler angles (yaw, pitch, roll) stored as floats and updated each frame by integrating angular velocity directly into the angle values, using trigonometric functions to reconstruct the rotation matrix when needed",
       "A quaternion (4 floats) — integrated from angular velocity each frame. Quaternions avoid gimbal lock, compose efficiently, and interpolate smoothly. The quaternion is renormalized periodically to correct floating-point drift",
-      "A single angle value",
-      "A 4×4 matrix stored per object",
+      "A single angle value that represents rotation around the up axis only, since most 3D rigid body simulations restrict objects to planar motion and do not require full three-dimensional orientation tracking",
+      "A 4×4 matrix stored per object that encodes both rotation and translation in a single homogeneous transform, updated each frame by multiplying with a delta rotation matrix derived from the angular velocity vector",
     ],
     correctIndex: 1,
     explanation:
@@ -13770,10 +13770,10 @@ export const questions: Question[] = [
     topic: "Physics for Software Engineering",
     question: "What is the difference between a physics proxy and the visual mesh?",
     options: [
-      "They are always identical",
+      "They are always identical because the physics engine renders objects directly using the collision geometry, so there is no separate visual mesh and the collision shape must match the rendered appearance exactly",
       "The physics proxy is a simplified collision shape (box, capsule, convex hull) used for fast collision detection, while the visual mesh is the detailed rendering geometry. They are decoupled for performance",
-      "The physics proxy is higher resolution",
-      "The visual mesh is used for physics",
+      "The physics proxy is higher resolution than the visual mesh because collision detection requires sub-pixel accuracy to prevent tunneling, so the engine tessellates the collision shape into many more triangles",
+      "The visual mesh is used for physics calculations directly because modern engines can afford to perform narrow-phase collision detection against the full triangle mesh at interactive frame rates on current hardware",
     ],
     correctIndex: 1,
     explanation:
@@ -13789,10 +13789,10 @@ export const questions: Question[] = [
     question: "What does the `namespace` keyword do in C++?",
     code: `namespace math {\n    double pi = 3.14159;\n    double square(double x) { return x * x; }\n}`,
     options: [
-      "It defines a new data type",
+      "It defines a new data type with a fixed size and alignment, similar to how struct works but restricted to primitive types that can be stored in CPU registers",
       "It creates a named scope that groups related declarations to prevent name collisions — accessed via math::pi or using namespace math",
-      "It imports a library from the standard library",
-      "It declares a variable with block scope",
+      "It imports a library from the standard library and makes all of its public symbols available in the current translation unit",
+      "It declares a variable with block scope that is only visible within the enclosing braces, similar to a local variable inside a function body",
     ],
     correctIndex: 1,
     explanation:
@@ -13806,10 +13806,10 @@ export const questions: Question[] = [
     question: "What is the difference between `typedef` and `using` for type aliases?",
     code: `typedef std::vector<int> IntVec;      // C-style\nusing IntVec = std::vector<int>;       // Modern C++`,
     options: [
-      "typedef is faster at runtime",
+      "typedef is faster at runtime because the compiler optimizes typedef aliases into direct type references, avoiding indirection",
       "They are functionally equivalent for simple aliases, but 'using' supports template aliases while 'typedef' does not",
-      "typedef works with templates, using does not",
-      "using creates a copy of the type, typedef creates a reference",
+      "typedef works with templates, using does not — typedef can parameterize a type alias with template arguments unlike using",
+      "using creates a copy of the type, typedef creates a reference — using aliases allocate separate storage while typedef aliases share memory",
     ],
     correctIndex: 1,
     explanation:
@@ -13823,10 +13823,10 @@ export const questions: Question[] = [
     question: "What does the `volatile` keyword tell the compiler?",
     code: `volatile int hardware_register = 0;`,
     options: [
-      "The variable is thread-safe",
+      "The variable is thread-safe and can be accessed from multiple threads without data races, because the compiler inserts memory barriers automatically",
       "The variable's value may change at any time outside the program's control — the compiler must not optimize away reads/writes to it",
-      "The variable is stored in a CPU register",
-      "The variable cannot be modified after initialization",
+      "The variable is stored in a CPU register for faster access, bypassing the memory hierarchy so that every read and write goes directly to the register file",
+      "The variable cannot be modified after initialization and acts as a runtime constant, similar to const but with the guarantee that its value is set early",
     ],
     correctIndex: 1,
     explanation:
@@ -13840,10 +13840,10 @@ export const questions: Question[] = [
     question: "What does `alignof` return?",
     code: `std::cout << alignof(int) << std::endl;    // typically 4\nstd::cout << alignof(double) << std::endl; // typically 8`,
     options: [
-      "The size of the type in bytes",
+      "The size of the type in bytes, including any padding added by the compiler to satisfy the platform's data alignment requirements",
       "The alignment requirement (in bytes) of a type — the address of any object of that type must be a multiple of this value",
-      "The number of bits in the type",
-      "The padding added to the type",
+      "The number of bits in the type, counting both the value bits used for magnitude and the sign bit if the type is signed",
+      "The padding added to the type by the compiler to ensure proper alignment within structs, calculated as the difference between size and alignment",
     ],
     correctIndex: 1,
     explanation:
@@ -13857,10 +13857,10 @@ export const questions: Question[] = [
     question: "What does the `extern` keyword do when applied to a variable declaration?",
     code: `// header.h\nextern int globalCount;  // declaration only\n\n// source.cpp\nint globalCount = 0;     // definition`,
     options: [
-      "It makes the variable local to the current file",
+      "It makes the variable local to the current file by giving it internal linkage, preventing other translation units from accessing it",
       "It declares a variable without defining it — telling the compiler the definition exists in another translation unit",
-      "It makes the variable constant",
-      "It allocates the variable on the heap",
+      "It makes the variable constant and read-only, enforced by the linker placing the symbol in the read-only data segment of the binary",
+      "It allocates the variable on the heap with dynamic storage duration that persists until delete is called or the process terminates",
     ],
     correctIndex: 1,
     explanation:
@@ -13874,10 +13874,10 @@ export const questions: Question[] = [
     question: "What does the `goto` keyword do, and why is it generally avoided?",
     code: `for (int i = 0; i < n; i++)\n    for (int j = 0; j < m; j++)\n        if (grid[i][j] == target)\n            goto found;\nfound:\n    // handle result`,
     options: [
-      "It calls a function by name",
+      "It calls a function by name at runtime through a dynamic dispatch table, similar to a virtual function call but using a string-based lookup mechanism to resolve the target address each time",
       "It performs an unconditional jump to a labeled statement — avoided because it makes control flow hard to follow, but acceptable for breaking out of nested loops",
-      "It returns from the current function",
-      "It was removed from C++ in C++11",
+      "It returns from the current function immediately and transfers control back to the caller, optionally passing a return value that is stored in the function's return register by the compiler",
+      "It was removed from C++ in C++11 as part of the language cleanup effort that also deprecated auto_ptr and export templates, and using it in modern code produces a compilation error",
     ],
     correctIndex: 1,
     explanation:
@@ -13891,10 +13891,10 @@ export const questions: Question[] = [
     question: "What does the `const` keyword mean when placed AFTER a member function's parameter list?",
     code: `class Rect {\n    int w, h;\npublic:\n    int area() const { return w * h; }\n};`,
     options: [
-      "The return value cannot be modified",
+      "The return value cannot be modified by the caller — the compiler enforces that the result is used only as an rvalue and cannot be assigned to",
       "The function promises not to modify any non-mutable member variables — it can be called on const objects and through const references",
-      "The function's parameters are constant",
-      "The function can only be called once",
+      "The function's parameters are constant and cannot be reassigned within the function body, preventing accidental modification of input values",
+      "The function can only be called once per object lifetime — the compiler tracks invocations and reports an error if it is called again",
     ],
     correctIndex: 1,
     explanation:
@@ -13908,10 +13908,10 @@ export const questions: Question[] = [
     question: "What is the purpose of the `static` keyword inside a function?",
     code: `int counter() {\n    static int count = 0;  // initialized once\n    return ++count;\n}`,
     options: [
-      "It makes the variable global",
+      "It makes the variable global and accessible from any function in any translation unit, placing it in the global symbol table with external linkage so the linker can resolve references to it",
       "It gives the variable static storage duration — initialized once on first call and persists across all subsequent calls, retaining its value between invocations",
-      "It makes the variable thread-local",
-      "It prevents the variable from being modified",
+      "It makes the variable thread-local so that each thread gets its own independent copy, preventing data races when multiple threads call the same function concurrently",
+      "It prevents the variable from being modified after its initial assignment, acting as a runtime const that the compiler enforces by flagging any subsequent write as an error",
     ],
     correctIndex: 1,
     explanation:
@@ -13925,10 +13925,10 @@ export const questions: Question[] = [
     question: "What does `decltype` do?",
     code: `int x = 5;\ndecltype(x) y = 10;        // y is int\ndecltype(x + 0.5) z = 3.0; // z is double`,
     options: [
-      "It declares a variable without a type",
+      "It declares a variable without a type, deferring type deduction to the linker which examines all uses across translation units and selects the most compatible type",
       "It yields the type of an expression at compile time without evaluating it — used for deducing return types, template metaprogramming, and perfect forwarding",
-      "It converts a value to a different type",
-      "It checks if a type is valid at runtime",
+      "It converts a value to a different type at compile time using implicit conversion rules, similar to static_cast but with automatic target type deduction",
+      "It checks if a type is valid at runtime by performing RTTI queries against the expression's operands, returning a type_info reference for dispatch",
     ],
     correctIndex: 1,
     explanation:
@@ -13942,10 +13942,10 @@ export const questions: Question[] = [
     question: "What is the difference between `constexpr` and `consteval` in C++20?",
     code: `constexpr int square(int x) { return x * x; }  // MAY run at compile time\nconsteval int cube(int x) { return x * x * x; }  // MUST run at compile time`,
     options: [
-      "They are identical — consteval is just an alias",
+      "They are identical — consteval is just an alias introduced in C++20 for readability, and the compiler treats both keywords exactly the same way during constant expression evaluation and code generation",
       "constexpr functions CAN be evaluated at compile time (but also at runtime). consteval functions MUST be evaluated at compile time — calling one with a runtime value is a compilation error",
-      "consteval is slower because it always runs at runtime",
-      "constexpr only works with integers, consteval works with all types",
+      "consteval is slower because it always runs at runtime rather than at compile time, adding overhead from checking whether the function's arguments are constant expressions before falling back to interpretation",
+      "constexpr only works with integers, consteval works with all types including floating-point, strings, and user-defined classes, making consteval the preferred choice for general-purpose compile-time computation",
     ],
     correctIndex: 1,
     explanation:
@@ -13959,10 +13959,10 @@ export const questions: Question[] = [
     question: "What does `constinit` guarantee in C++20?",
     code: `constinit int global = 42;           // OK: constant initialization\nconstinit thread_local int tl = 0;  // OK: also works with thread_local`,
     options: [
-      "The variable cannot be modified after initialization",
+      "The variable cannot be modified after initialization because constinit implies const, making it a compile-time constant that the compiler places in the read-only data segment of the binary image",
       "The variable is initialized at compile time (constant initialization), preventing the static initialization order fiasco — but unlike constexpr, it CAN be modified afterward",
-      "The variable is initialized lazily on first use",
-      "The variable is always stored in ROM",
+      "The variable is initialized lazily on first use rather than at program startup, deferring construction until the first time control flow passes through the declaration statement at runtime",
+      "The variable is always stored in ROM (read-only memory) by the linker, which places constinit symbols in a special non-writable section of the executable image that is mapped as read-only at load time",
     ],
     correctIndex: 1,
     explanation:
@@ -13975,10 +13975,10 @@ export const questions: Question[] = [
     topic: "C++ Keywords",
     question: "What does `inline` actually mean in modern C++ (C++17)?",
     options: [
-      "It forces the compiler to inline-expand the function body at every call site",
+      "It forces the compiler to inline-expand the function body at every call site, eliminating function call overhead by substituting the function's instructions directly into the caller's code at compile time",
       "It relaxes the One Definition Rule (ODR) — the same entity can be defined in multiple translation units as long as all definitions are identical. It does NOT guarantee inlining",
-      "It makes the function run faster",
-      "It prevents the function from being exported",
+      "It makes the function run faster by marking it as a hot path hint for the compiler's optimization passes, enabling aggressive loop unrolling, constant propagation, and register allocation for that function",
+      "It prevents the function from being exported to other translation units by giving it internal linkage, similar to declaring a function as static at namespace scope in traditional C-style code organization",
     ],
     correctIndex: 1,
     explanation:
@@ -13991,10 +13991,10 @@ export const questions: Question[] = [
     topic: "C++ Keywords",
     question: "What are the THREE different meanings of the `static` keyword depending on context?",
     options: [
-      "static always means the same thing — file scope",
+      "static always means the same thing — file scope, restricting the visibility of any declaration it is applied to so that only code within the same source file can reference the declared entity",
       "(1) Inside a function: persistent local variable. (2) In a class: member shared by all instances (no this pointer). (3) At file/namespace scope: internal linkage (visible only in this translation unit)",
-      "static only has two meanings: class member and global variable",
-      "static means thread-local storage in all contexts",
+      "static only has two meanings: class member and global variable — its use inside functions was deprecated in C++11 and removed in C++17 because thread_local now serves the same purpose more safely",
+      "static means thread-local storage in all contexts, giving each thread its own independent copy of the variable so that concurrent access from multiple threads never causes data races or requires synchronization",
     ],
     correctIndex: 1,
     explanation:
@@ -14008,10 +14008,10 @@ export const questions: Question[] = [
     question: "What does `mutable` allow, and what is its primary use case?",
     code: `class Cache {\n    mutable std::unordered_map<int, int> cache_;\npublic:\n    int compute(int x) const {\n        if (auto it = cache_.find(x); it != cache_.end())\n            return it->second;\n        int result = /* expensive */;\n        cache_[x] = result;  // legal: cache_ is mutable\n        return result;\n    }\n};`,
     options: [
-      "It makes a variable thread-safe",
+      "It makes a variable thread-safe by instructing the compiler to wrap every read and write to the member in an implicit mutex lock/unlock pair, preventing data races when the object is accessed concurrently",
       "It allows a member variable to be modified inside a const member function — used for caching, lazy evaluation, mutexes, and debug counters that don't affect observable state",
-      "It makes a variable volatile",
-      "It creates a copy of the variable for each function call",
+      "It makes a variable volatile, telling the compiler not to cache the member's value in a register and instead reload it from memory on every access to handle hardware-mapped memory or signal handlers",
+      "It creates a copy of the variable for each function call so that every invocation of the member function operates on an independent snapshot of the mutable field, preventing cross-call data dependencies",
     ],
     correctIndex: 1,
     explanation:
@@ -14025,10 +14025,10 @@ export const questions: Question[] = [
     question: "What does `explicit` prevent on a constructor or conversion operator?",
     code: `class Meters {\npublic:\n    explicit Meters(double val) : val_(val) {}\nprivate:\n    double val_;\n};\n\nvoid walk(Meters distance);\nwalk(5.0);            // ERROR: no implicit conversion\nwalk(Meters(5.0));    // OK: explicit construction`,
     options: [
-      "It prevents the constructor from being inherited",
+      "It prevents the constructor from being inherited by derived classes, ensuring that each derived class must define its own constructor even if the base class constructor would be sufficient for initialization",
       "It prevents implicit conversions — the compiler won't silently use this constructor/operator to convert types. Callers must construct the type explicitly, catching accidental type mismatches",
-      "It makes the constructor private",
-      "It makes the constructor constexpr",
+      "It makes the constructor private and inaccessible from outside the class, restricting object creation to static factory methods or friend functions that have been granted access to the private section",
+      "It makes the constructor constexpr so that objects of this type can be constructed at compile time, enabling their use in constant expressions, template parameters, and static_assert declarations",
     ],
     correctIndex: 1,
     explanation:
@@ -14042,10 +14042,10 @@ export const questions: Question[] = [
     question: "What is `extern \"C\"` used for?",
     code: `extern "C" {\n    void c_function(int x);\n    int c_global;\n}`,
     options: [
-      "It imports C standard library functions",
+      "It imports C standard library functions like printf, malloc, and strlen into the C++ translation unit, making them available without the std:: prefix",
       "It disables C++ name mangling so C++ code can link with C libraries — C doesn't mangle names, so without extern \"C\", the linker can't find C functions",
-      "It enables C-style casts",
-      "It compiles the code as C instead of C++",
+      "It enables C-style casts throughout the enclosed block, allowing reinterpret_cast and const_cast semantics via the parenthesized cast syntax from C",
+      "It compiles the code as C instead of C++, disabling classes, templates, namespaces, and exceptions within the enclosed block",
     ],
     correctIndex: 1,
     explanation:
@@ -14059,10 +14059,10 @@ export const questions: Question[] = [
     question: "What does `thread_local` do?",
     code: `thread_local int request_id = 0;\n\nvoid handle_request() {\n    request_id++;  // each thread has its own copy\n}`,
     options: [
-      "It makes the variable shared between all threads",
+      "It makes the variable shared between all threads in the process, placing it in a global memory region visible to every thread, requiring explicit mutex protection for safety",
       "Each thread gets its own independent copy of the variable — changes in one thread are invisible to others. It has static storage duration (lives for the thread's lifetime)",
-      "It locks the variable with a mutex automatically",
-      "It restricts the variable to only be read by one thread",
+      "It locks the variable with a mutex automatically on every read and write, providing built-in thread safety without the programmer managing synchronization",
+      "It restricts the variable to only be read by one thread at a time, using a reader-writer lock so multiple readers can proceed but writers need exclusive access",
     ],
     correctIndex: 1,
     explanation:
@@ -14075,10 +14075,10 @@ export const questions: Question[] = [
     topic: "C++ Keywords",
     question: "What is the difference between `struct` and `class` in C++?",
     options: [
-      "Structs can't have member functions",
+      "Structs can't have member functions, constructors, destructors, or operator overloads because they are plain-old-data (POD) types inherited from C that only support public data member declarations",
       "The ONLY difference is the default access specifier: struct defaults to public, class defaults to private. They are otherwise identical — both support inheritance, virtual functions, templates, etc.",
-      "Structs are allocated on the stack, classes on the heap",
-      "Structs can't use inheritance",
+      "Structs are allocated on the stack, classes on the heap — the compiler automatically uses new/delete for class instances and stack allocation for struct instances unless the programmer overrides this behavior",
+      "Structs can't use inheritance or polymorphism because they lack a vtable pointer, while classes always have a vtable allocated for virtual dispatch even if no virtual functions are declared in the hierarchy",
     ],
     correctIndex: 1,
     explanation:
@@ -14092,10 +14092,10 @@ export const questions: Question[] = [
     question: "What does `= delete` do when applied to a function?",
     code: `class NonCopyable {\npublic:\n    NonCopyable() = default;\n    NonCopyable(const NonCopyable&) = delete;\n    NonCopyable& operator=(const NonCopyable&) = delete;\n};`,
     options: [
-      "It removes the function from memory at runtime",
+      "It removes the function from memory at runtime by deallocating its code segment after the first call completes, making subsequent calls undefined behavior unless the function is reloaded from the object file",
       "It explicitly prevents the function from being called — any attempt to call it produces a compile error. Used to forbid copying, prevent implicit conversions, or disable specific overloads",
-      "It marks the function for lazy deletion",
-      "It makes the function virtual",
+      "It marks the function for lazy deletion by the garbage collector, which will remove the function's code from the executable image once no active call stack references it, freeing memory for other allocations",
+      "It makes the function virtual and adds it to the class's vtable, enabling dynamic dispatch through base class pointers so that derived classes can override the function's behavior with their own implementation",
     ],
     correctIndex: 1,
     explanation:
@@ -14109,10 +14109,10 @@ export const questions: Question[] = [
     question: "What does `= default` do when applied to a special member function?",
     code: `class Widget {\npublic:\n    Widget() = default;  // compiler-generated default ctor\n    ~Widget() = default; // compiler-generated destructor\n};`,
     options: [
-      "It sets all member variables to zero",
+      "It sets all member variables to zero or their default values by generating a constructor body that explicitly initializes each field using value-initialization syntax in the member initializer list of the constructor",
       "It tells the compiler to generate the default implementation of that special member function — making it explicit that you want the compiler-generated version, even if other user-declared functions would suppress it",
-      "It makes the function do nothing",
-      "It makes the function inline",
+      "It makes the function do nothing by generating an empty function body that simply returns immediately, which is useful for declaring no-op destructors or constructors that skip all initialization work",
+      "It makes the function inline and marked for aggressive optimization by the compiler, hinting that the generated default implementation should be expanded at every call site to eliminate function call overhead",
     ],
     correctIndex: 1,
     explanation:
@@ -14126,10 +14126,10 @@ export const questions: Question[] = [
     question: "What does the `friend` keyword do?",
     code: `class Matrix {\n    double data_[16];\n    friend Matrix operator*(const Matrix& a, const Matrix& b);\n    friend class Serializer;\n};`,
     options: [
-      "It makes the class inherit from another class",
+      "It makes the class inherit from another class using private inheritance, importing all base class members as private members of the derived class",
       "It grants a specific function or class access to the private and protected members of this class — breaking encapsulation intentionally for tightly coupled operations",
-      "It merges two classes into one",
-      "It creates a weak reference to another object",
+      "It merges two classes into one by combining their member variables and methods into a single class definition, resolving any name conflicts by giving priority to the declaring class's own members",
+      "It creates a weak reference to another object that doesn't prevent it from being destroyed, allowing the friend class to observe state without extending lifetime",
     ],
     correctIndex: 1,
     explanation:
@@ -14143,10 +14143,10 @@ export const questions: Question[] = [
     question: "What is the difference between `using` as a type alias, a using-declaration, and a using-directive?",
     code: `// 1. Type alias\nusing IntVec = std::vector<int>;\n\n// 2. Using-declaration (brings ONE name into scope)\nusing std::cout;\n\n// 3. Using-directive (brings ALL names into scope)\nusing namespace std;`,
     options: [
-      "They are all the same thing",
+      "They are all the same thing — the using keyword has a single meaning in C++ regardless of the syntactic context in which it appears, and the compiler resolves its behavior purely from the surrounding tokens",
       "Type alias creates a synonym for a type. Using-declaration imports a single name from a namespace. Using-directive imports ALL names from a namespace — each has different scope and safety implications",
-      "The difference is only syntactic sugar — they compile to the same thing",
-      "Using-declarations are deprecated in C++20",
+      "The difference is only syntactic sugar — they compile to the same thing, and the linker treats all three forms identically when resolving symbols across translation units in the final executable image",
+      "Using-declarations are deprecated in C++20 and will be removed in C++23, replaced by import statements from the modules system that provide better encapsulation and faster compilation times overall",
     ],
     correctIndex: 1,
     explanation:
@@ -14160,10 +14160,10 @@ export const questions: Question[] = [
     question: "What does `noexcept` do as both a specifier and an operator?",
     code: `// As specifier: promises no exceptions\nvoid safe() noexcept { /* ... */ }\n\n// As operator: compile-time check\nstatic_assert(noexcept(safe()));         // true\nstatic_assert(!noexcept(std::stoi("1"))); // false`,
     options: [
-      "As a specifier it catches exceptions, as an operator it throws them",
+      "As a specifier it catches exceptions thrown within the function body and silently discards them, while as an operator it re-throws the most recently caught exception from the current catch block's handler",
       "As a specifier it marks a function as non-throwing (std::terminate if violated). As an operator it evaluates to true/false at compile time based on whether an expression can throw — used in conditional noexcept",
-      "As a specifier it disables exceptions, as an operator it counts exceptions",
-      "Both forms are identical and interchangeable",
+      "As a specifier it disables exceptions for the entire translation unit once applied to any function, while as an operator it counts the number of potential throw-expressions in a given statement or expression",
+      "Both forms are identical and interchangeable — the compiler treats the specifier and operator versions of noexcept the same way, and either can appear in a function declaration or a static_assert expression",
     ],
     correctIndex: 1,
     explanation:
@@ -14177,10 +14177,10 @@ export const questions: Question[] = [
     question: "What does `alignas` do, and when would you use it?",
     code: `struct alignas(64) CacheLine {\n    int data[16];\n};\n\nalignas(16) float simd_array[4];`,
     options: [
-      "It sets the size of a type",
+      "It sets the size of a type by adding padding bytes until the total size matches the specified value, which is useful when interoperating with hardware that expects data structures of a particular fixed size",
       "It specifies stricter alignment requirements for a type or variable — used for cache line alignment (avoiding false sharing), SIMD requirements, and hardware register mapping",
-      "It aligns text output to the console",
-      "It pads a struct to a specific size",
+      "It aligns text output to the console by inserting padding characters before the printed value, similar to std::setw but applied at the storage level so the alignment persists across multiple output operations",
+      "It pads a struct to a specific size by inserting anonymous bytes between members, which can be used to match the layout of a network protocol packet or a memory-mapped hardware register block exactly",
     ],
     correctIndex: 1,
     explanation:
@@ -14194,10 +14194,10 @@ export const questions: Question[] = [
     question: "What does `decltype(auto)` deduce differently from plain `auto`?",
     code: `int x = 0;\nint& rx = x;\n\nauto a = rx;            // int (auto strips reference)\ndecltype(auto) b = rx;  // int& (decltype preserves reference)`,
     options: [
-      "They are identical in all cases",
+      "They are identical in all cases — both auto and decltype(auto) use the same type deduction rules inherited from template argument deduction, producing the same result for every possible expression type",
       "auto strips top-level references and cv-qualifiers. decltype(auto) preserves the exact type including references and const — crucial for perfect-forwarding return types in generic code",
-      "decltype(auto) is always a pointer",
-      "auto preserves references, decltype(auto) strips them",
+      "decltype(auto) is always a pointer because it deduces the address of the expression's result rather than the value, which is why it is primarily used for returning pointers from factory functions",
+      "auto preserves references, decltype(auto) strips them — meaning auto deduces int& from an lvalue expression while decltype(auto) deduces plain int, which is the opposite of what most programmers expect",
     ],
     correctIndex: 1,
     explanation:
@@ -14210,10 +14210,10 @@ export const questions: Question[] = [
     topic: "C++ Keywords",
     question: "What is the `register` keyword's status in modern C++?",
     options: [
-      "It forces the compiler to store the variable in a CPU register",
+      "It forces the compiler to store the variable in a CPU register, bypassing the memory hierarchy entirely so that every access goes directly to the register file for maximum read and write performance",
       "It was deprecated in C++11 and removed in C++17 — the compiler ignores it entirely. Modern compilers make register allocation decisions far better than programmers can hint",
-      "It's still required for performance-critical code",
-      "It was repurposed in C++20 for coroutine registers",
+      "It's still required for performance-critical code in tight inner loops where the programmer knows better than the compiler which variables should reside in registers for optimal throughput",
+      "It was repurposed in C++20 for coroutine registers that store the suspended coroutine's frame pointer, allowing the runtime to resume execution without searching the heap for the frame",
     ],
     correctIndex: 1,
     explanation:
@@ -14226,10 +14226,10 @@ export const questions: Question[] = [
     topic: "C++ Keywords",
     question: "What is the difference between `const`, `constexpr`, `consteval`, and `constinit`?",
     options: [
-      "They all mean the same thing — the value cannot change",
+      "They all mean the same thing — the value cannot change after initialization, and the compiler enforces immutability at compile time for all four keywords using identical constant-folding and dead-store elimination passes",
       "const: runtime immutability. constexpr: value CAN be computed at compile time. consteval: value MUST be computed at compile time. constinit: variable MUST be initialized at compile time but CAN be modified later",
-      "constexpr and consteval are identical, constinit is just const + init",
-      "const is for variables, the others are for functions only",
+      "constexpr and consteval are identical — both require compile-time evaluation, and constinit is just const + init, which is a convenience alias for declaring and initializing a const variable in a single statement",
+      "const is for variables, the others are for functions only — constexpr, consteval, and constinit cannot be applied to variable declarations and are exclusively used as function specifiers in template metaprogramming",
     ],
     correctIndex: 1,
     explanation:
@@ -14243,10 +14243,10 @@ export const questions: Question[] = [
     question: "What does `virtual` inheritance solve, and what is its performance cost?",
     code: `struct Base { int x; };\nstruct A : virtual Base {};\nstruct B : virtual Base {};\nstruct Diamond : A, B {};  // only ONE copy of Base`,
     options: [
-      "It makes inheritance faster by caching vtables",
+      "It makes inheritance faster by caching vtables in a shared lookup table that all derived classes reference, eliminating the per-object vtable pointer overhead and reducing the total memory footprint of polymorphic objects",
       "It ensures only one copy of a base class exists in diamond inheritance — without it, Diamond would have two separate Base subobjects. The cost is an extra pointer (vptr) per virtual base and indirect access to the base's members",
-      "It prevents a class from being inherited",
-      "It makes all member functions virtual",
+      "It prevents a class from being inherited by marking it as final at the inheritance level, so that any attempt to derive from a virtually inherited class produces a compile error in the derived class declaration",
+      "It makes all member functions virtual automatically by inserting a hidden vtable pointer into the base class, enabling dynamic dispatch for every method call even if the functions are not explicitly declared virtual",
     ],
     correctIndex: 1,
     explanation:
@@ -14260,10 +14260,10 @@ export const questions: Question[] = [
     question: "What does `requires` do in its two forms in C++20?",
     code: `// 1. Requires-clause (constrains a template)\ntemplate<typename T>\n    requires std::integral<T>\nT gcd(T a, T b);\n\n// 2. Requires-expression (tests if code is valid)\ntemplate<typename T>\nconcept Addable = requires(T a, T b) {\n    { a + b } -> std::convertible_to<T>;\n};`,
     options: [
-      "Both forms are identical — they define concepts",
+      "Both forms are identical — they define concepts by specifying constraints on template parameters, and the compiler treats requires-clauses and requires-expressions interchangeably in all template contexts",
       "A requires-clause constrains a template (if the constraint fails, the template is removed from overload set). A requires-expression is a compile-time predicate that checks if a set of expressions are valid for given types",
-      "requires-clauses are runtime checks, requires-expressions are compile-time",
-      "requires can only be used with concepts, not directly on templates",
+      "requires-clauses are runtime checks that evaluate template constraints during program execution, while requires-expressions are compile-time checks that the compiler evaluates during template instantiation only",
+      "requires can only be used with concepts, not directly on templates — you must first define a named concept and then reference it in the template declaration, because anonymous constraints are not supported",
     ],
     correctIndex: 1,
     explanation:
@@ -14277,10 +14277,10 @@ export const questions: Question[] = [
     question: "What happens when you call a `noexcept` function that actually throws?",
     code: `void dangerous() noexcept {\n    throw std::runtime_error("oops");\n}`,
     options: [
-      "The exception is silently swallowed",
+      "The exception is silently swallowed and execution continues at the statement following the throw, with the noexcept specifier acting as a catch-all handler",
       "std::terminate() is called immediately — no stack unwinding occurs. The program crashes. The noexcept contract is enforced at runtime, not just at compile time",
-      "The exception propagates normally, noexcept is just a hint",
-      "The compiler prevents this code from compiling",
+      "The exception propagates normally — noexcept is just a hint to the optimizer with no effect on actual exception handling behavior at runtime",
+      "The compiler prevents this code from compiling by statically analyzing all execution paths and rejecting any that could reach a throw expression",
     ],
     correctIndex: 1,
     explanation:
