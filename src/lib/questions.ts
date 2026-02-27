@@ -14979,4 +14979,648 @@ if (static int n = get(); n > 0) {} // (4) if-init`,
       "(1) file-scope static gives internal linkage -- the symbol is invisible to other translation units. (2) function-scope static gives the variable static storage duration: it's initialized once (thread-safely in C++11+) and persists for the program's lifetime. (3) class-scope static means one copy shared across all instances, with external linkage (must be defined in one TU). (4) if-init with static makes n a block-scope variable with static storage duration -- it outlives the if-block.",
     link: "https://en.cppreference.com/w/cpp/language/storage_duration.html",
   },
+
+  // ── C++ Keywords (Q882--Q911) ──
+  {
+    id: 882,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question:
+      "What is the key difference between a `while` loop and a `do-while` loop in C++?",
+    options: [
+      "A do-while loop always executes its body at least once",
+      "A while loop always executes its body at least once",
+      "A do-while loop cannot use a boolean condition to stop",
+      "A while loop does not support break or continue inside",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A do-while loop checks the condition after executing the body, so the body is guaranteed to run at least once. A while loop checks the condition before the body, meaning it may never execute if the condition is initially false.",
+    link: "https://www.learncpp.com/cpp-tutorial/do-while-statements/",
+  },
+  {
+    id: 883,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question: "Which of the following is a valid range-based `for` loop in C++?",
+    code: `std::vector<int> v = {1, 2, 3};`,
+    options: [
+      "for (int i : v.size()) { cout << i; }",
+      "for (int x = v.begin()) { cout << x; }",
+      "for (int x : v) { cout << x; }",
+      "for (v : int x) { cout << x; }",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The range-based for loop syntax is `for (element_declaration : range_expression)`. The form `for (int x : v)` iterates over each element in the vector v, copying each value into x.",
+    link: "https://www.learncpp.com/cpp-tutorial/range-based-for-loops-for-each/",
+  },
+  {
+    id: 884,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question:
+      "What does the `void` keyword mean when used as a function return type in C++?",
+    options: [
+      "The function returns a null pointer value",
+      "The function does not return any value",
+      "The function can return any type of value",
+      "The function returns zero by default always",
+    ],
+    correctIndex: 1,
+    explanation:
+      "When void is used as a return type, it indicates the function does not return a value. A void function executes its statements and then returns control to the caller without producing a result.",
+    link: "https://www.learncpp.com/cpp-tutorial/void-functions-non-value-returning-functions/",
+  },
+  {
+    id: 885,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question:
+      "In C++, what happens when a non-zero integer is implicitly converted to `bool`?",
+    code: `int x = 42;
+bool b = x;`,
+    options: [
+      "The program produces a compilation error",
+      "The bool variable b is set to false (0)",
+      "The bool variable b stores the value 42",
+      "The bool variable b is set to true (1)",
+    ],
+    correctIndex: 3,
+    explanation:
+      "In C++, any non-zero integer value converts to true when assigned to a bool. Only the value 0 converts to false. So b will hold the value true, which is equivalent to 1.",
+    link: "https://www.learncpp.com/cpp-tutorial/boolean-values/",
+  },
+  {
+    id: 886,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question:
+      "In modern C++, which is the recommended way to represent a null pointer?",
+    options: [
+      "Use nullptr, which is a type-safe null pointer literal",
+      "Use NULL, which is the safest macro for null pointers",
+      "Use the integer literal 0 as the null pointer value",
+      "All three -- nullptr, NULL, and 0 -- are equivalent",
+    ],
+    correctIndex: 0,
+    explanation:
+      "nullptr (introduced in C++11) is the recommended null pointer literal because it has its own type (std::nullptr_t) and cannot be implicitly converted to an integer. NULL is a macro that may be defined as 0 or (void*)0, which can cause ambiguity in overload resolution.",
+    link: "https://www.learncpp.com/cpp-tutorial/null-pointers/",
+  },
+  {
+    id: 887,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question: "What does `const_cast` do in C++?",
+    options: [
+      "It converts an object from one type to another type safely",
+      "It performs a runtime type check before doing a cast",
+      "It adds or removes const (or volatile) from a variable",
+      "It reinterprets the raw bit pattern of a given object",
+    ],
+    correctIndex: 2,
+    explanation:
+      "const_cast is used to add or remove the const (or volatile) qualifier from a variable. It is the only C++ cast that can remove const. It does not change the underlying type of the object.",
+    link: "https://en.cppreference.com/w/cpp/language/const_cast",
+  },
+  {
+    id: 888,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question: "Why is `reinterpret_cast` considered dangerous in C++?",
+    options: [
+      "It always causes a runtime exception when used",
+      "It converts bit patterns without any type safety checks",
+      "It can only be used on fundamental types like int",
+      "It requires explicit compiler flags to be enabled",
+    ],
+    correctIndex: 1,
+    explanation:
+      "reinterpret_cast simply reinterprets the underlying bit pattern of one type as another, performing no safety or validity checks. This can easily lead to undefined behavior if the resulting type is incompatible with the original data.",
+    link: "https://en.cppreference.com/w/cpp/language/reinterpret_cast",
+  },
+  {
+    id: 889,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question:
+      "What is the correct syntax to declare a simple function template in C++?",
+    options: [
+      "template T add<T>(T a, T b) { return a + b; }",
+      "T add(T a, T b) template<typename T> { return a + b; }",
+      "template<typename T> { T add(T a, T b); return a + b; }",
+      "template<typename T> T add(T a, T b) { return a + b; }",
+    ],
+    correctIndex: 3,
+    explanation:
+      "A function template begins with template<typename T> (or template<class T>), followed by the normal function declaration. The template parameter T can then be used in the return type, parameters, and body of the function.",
+    link: "https://www.learncpp.com/cpp-tutorial/function-templates/",
+  },
+  {
+    id: 890,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question:
+      "What is the default access specifier for members of a `struct` compared to a `class` in C++?",
+    options: [
+      "Both struct and class default to private access",
+      "Both struct and class default to public access",
+      "struct defaults to public, class defaults to private",
+      "struct defaults to private, class defaults to public",
+    ],
+    correctIndex: 2,
+    explanation:
+      "In C++, the only difference between struct and class (aside from the keyword) is the default access level. Members of a struct are public by default, while members of a class are private by default.",
+    link: "https://www.learncpp.com/cpp-tutorial/public-and-private-members-and-access-specifiers/",
+  },
+  {
+    id: 891,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question:
+      "What happens when an `unsigned int` overflows (goes past its maximum value) in C++?",
+    options: [
+      "It wraps around to zero via modular arithmetic rules",
+      "It triggers undefined behavior like signed overflow does",
+      "It throws a std::overflow_error runtime exception",
+      "It is clamped at the maximum representable int value",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Unsigned integer overflow in C++ is well-defined: the result wraps around using modulo 2^N arithmetic, where N is the number of bits. Signed integer overflow, by contrast, is undefined behavior.",
+    link: "https://www.learncpp.com/cpp-tutorial/unsigned-integers-and-why-to-avoid-them/",
+  },
+  {
+    id: 892,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question: "Why does `volatile` NOT provide thread safety in C++?",
+    code: `volatile int counter = 0;
+
+// Thread 1:
+counter++;
+
+// Thread 2:
+counter++;`,
+    options: [
+      "volatile forces every access to go through main memory, but the compiler still combines multiple volatile reads into one optimized load instruction",
+      "volatile is thread-safe in practice because all modern CPUs implement it with hardware memory barriers -- the standard just does not formally guarantee it",
+      "volatile prevents the compiler from optimizing away reads/writes, but it does not insert memory fences or prevent CPU instruction reordering between threads",
+      "volatile only applies to reads, not writes -- the compiler is free to reorder or cache writes to a volatile variable, so increments can be lost",
+    ],
+    correctIndex: 2,
+    explanation:
+      "volatile tells the compiler not to optimize away or reorder accesses to the variable at the compiler level. However, it provides no memory ordering guarantees at the CPU level -- hardware can still reorder loads and stores. For thread safety, use std::atomic, which provides both compiler and hardware memory ordering guarantees. The counter++ operation is also non-atomic (read-modify-write), which volatile does nothing to protect.",
+    link: "https://en.cppreference.com/w/cpp/language/cv.html",
+  },
+  {
+    id: 893,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question:
+      "In C++14 and later, which of the following is a valid `constexpr` function?",
+    code: `constexpr int sum_to(int n) {
+    int total = 0;
+    for (int i = 1; i <= n; ++i)
+        total += i;
+    return total;
+}
+
+static_assert(sum_to(5) == 15);`,
+    options: [
+      "This is valid in C++14+: constexpr functions can contain local variables, loops, and multiple statements as long as the result is computable at compile time",
+      "This is invalid because constexpr functions cannot declare local variables -- all intermediate values must be passed as function parameters instead",
+      "This is invalid because constexpr functions must consist of a single return statement -- loops and variable declarations are prohibited in all standards",
+      "This compiles but the loop runs at runtime only -- constexpr functions with loops cannot be evaluated at compile time, so the static_assert fails",
+    ],
+    correctIndex: 0,
+    explanation:
+      "C++11 constexpr functions were limited to essentially a single return statement. C++14 relaxed these restrictions significantly, allowing local variables, loops (for, while), if-else branches, and multiple statements. The function can still be evaluated at compile time as long as all inputs are constant expressions. The static_assert proves sum_to(5) is computed at compile time.",
+    link: "https://en.cppreference.com/w/cpp/language/constexpr.html",
+  },
+  {
+    id: 894,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question:
+      "How does marking a move constructor `noexcept` affect std::vector performance?",
+    code: `class Widget {
+public:
+    Widget(Widget&& other) noexcept;  // A
+    Widget(Widget&& other);           // B -- no noexcept
+};`,
+    options: [
+      "It makes no difference -- std::vector always uses move semantics when available regardless of the noexcept specification on the move constructor",
+      "With noexcept (A), vector::push_back uses move when reallocating; without it (B), vector falls back to copying to maintain the strong exception guarantee",
+      "The noexcept version (A) runs faster because the compiler skips generating stack unwinding code, but vector uses it the same way as version (B)",
+      "Without noexcept (B), the vector refuses to compile when push_back triggers reallocation -- a noexcept move constructor is required by the standard",
+    ],
+    correctIndex: 1,
+    explanation:
+      "When std::vector reallocates (e.g., during push_back), it must move or copy elements to the new buffer. If moving an element throws, some elements would be in the new buffer and some in the old -- violating the strong exception guarantee. So vector only moves elements if the move constructor is noexcept. Without noexcept, it copies them instead, which can be significantly slower for types like std::string.",
+    link: "https://en.cppreference.com/w/cpp/utility/move_if_noexcept.html",
+  },
+  {
+    id: 895,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question: "Why can a `static` member function NOT access the `this` pointer?",
+    code: `class Logger {
+    int logLevel;
+public:
+    static void setDefault() {
+        // this->logLevel = 1;  // Error!
+    }
+};`,
+    options: [
+      "A static member function does have a this pointer, but it points to a shared global instance -- the error occurs because the global instance is const-qualified",
+      "A static member function has access to this, but only if the class has exactly one instance -- the compiler rejects it when multiple instances could exist",
+      "The compiler hides the this pointer from static functions as an optimization -- in debug builds this code would actually compile and work correctly",
+      "A static member function belongs to the class, not any instance -- it has no hidden object parameter, so there is no this pointer to dereference",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Non-static member functions receive a hidden 'this' parameter pointing to the object they are called on. Static member functions are associated with the class itself, not any particular object, so they receive no such hidden parameter. They can be called without an object (Logger::setDefault()), which means there is simply no instance for 'this' to point to. They can only access other static members.",
+    link: "https://en.cppreference.com/w/cpp/language/static.html",
+  },
+  {
+    id: 896,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question: "When is the `mutable` keyword useful on a class data member?",
+    code: `class QueryCache {
+    mutable std::unordered_map<int, int> cache;
+    int computeExpensive(int x) const {
+        if (cache.count(x)) return cache[x];
+        int result = /* ... */ x * x;
+        cache[x] = result;  // OK: cache is mutable
+        return result;
+    }
+};`,
+    options: [
+      "mutable makes the member thread-safe so it can be accessed from multiple const methods concurrently without needing a mutex or atomic operations",
+      "mutable lets the member be modified in constructors only -- once construction finishes, the member becomes const like all other members of a const object",
+      "mutable allows modifying the member even in const member functions -- useful for caches, mutexes, and debug counters that do not affect logical state",
+      "mutable forces the member to be stored on the heap instead of inline in the object, allowing it to be resized and modified after construction finishes",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The mutable keyword allows a data member to be modified even when accessed through a const reference or inside a const member function. This is for members that are implementation details, not part of the object's logical (observable) state. Common examples include caches (as shown), mutexes (needed to make const methods thread-safe), and debug/logging counters.",
+    link: "https://en.cppreference.com/w/cpp/language/cv.html",
+  },
+  {
+    id: 897,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question: "What error does the `override` specifier help catch at compile time?",
+    code: `class Base {
+public:
+    virtual void process(int x) const;
+};
+
+class Derived : public Base {
+public:
+    void process(int x) override;  // Missing const!
+};`,
+    options: [
+      "override changes the function's linkage to external so that the linker can detect mismatched signatures across translation units at link time",
+      "override only documents intent for human readers -- it produces a warning but not an error, so the code above compiles and silently creates a new function",
+      "override prevents the derived function from being called through a base pointer -- it restricts access to direct calls on the derived type for safety",
+      "override forces a compile error if the function does not actually override a base virtual function -- here the missing const makes it a different signature",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Without 'override', the Derived::process(int) silently creates a new virtual function that hides the base version instead of overriding it. The base function has 'const' but the derived one does not, making them different signatures. The 'override' keyword causes a compile error when the function does not match any virtual function in the base class, catching subtle bugs like mismatched const, different parameter types, or typos in function names.",
+    link: "https://en.cppreference.com/w/cpp/language/override.html",
+  },
+  {
+    id: 898,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question:
+      "Can a `friend` function of a base class access private members of a derived class?",
+    code: `class Base {
+    int secret = 42;
+    friend void peek(Base& b);
+};
+
+class Derived : public Base {
+    int derivedSecret = 99;
+};
+
+void peek(Base& b) {
+    b.secret;          // OK
+    // b.derivedSecret; // ??
+}`,
+    options: [
+      "No -- friendship is not inherited. peek() can access Base::secret but not Derived::derivedSecret, even when passed a Derived object by reference",
+      "Yes -- friendship extends to all derived classes automatically, so peek() can access both Base::secret and Derived::derivedSecret through any reference",
+      "It depends on the inheritance type: public inheritance shares friendship with derived classes, but private and protected inheritance do not share it",
+      "Yes, but only if the derived class re-declares peek() as a friend -- the original friendship acts as a default that derived classes can opt out of",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Friendship is not inherited and not transitive in C++. A friend of Base can access Base's private members, but gains no special access to Derived's private members. Even if peek() receives a Derived object (via a Base& reference), it can only access the Base portion's private members. For peek() to access Derived::derivedSecret, Derived would need to independently declare peek() as its own friend.",
+    link: "https://en.cppreference.com/w/cpp/language/friend.html",
+  },
+  {
+    id: 899,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question:
+      "What does C++20's `explicit(bool)` conditional explicit allow you to do?",
+    code: `template<typename T>
+class Wrapper {
+public:
+    explicit(!std::is_convertible_v<T, int>)
+    Wrapper(T val) : value(val) {}
+private:
+    T value;
+};`,
+    options: [
+      "explicit(bool) makes the constructor conditionally virtual -- if the condition is true, the constructor participates in dynamic dispatch through base pointers",
+      "It conditionally marks the constructor explicit based on a compile-time boolean -- here, Wrapper<int> allows implicit conversion but Wrapper<string> does not",
+      "explicit(bool) is a runtime check -- if the bool evaluates to true at runtime, the constructor throws std::bad_cast on implicit conversion attempts",
+      "It makes the constructor constexpr when the condition is true and non-constexpr when false -- this controls whether the type can be used in constant expressions",
+    ],
+    correctIndex: 1,
+    explanation:
+      "C++20's explicit(bool) lets you conditionally apply the explicit specifier based on a compile-time boolean expression. When the condition is false, implicit conversions are allowed; when true, only explicit construction works. This is invaluable for wrapper types like std::pair and std::tuple that should mirror the convertibility of their element types. Before C++20, this required SFINAE or separate overloads.",
+    link: "https://en.cppreference.com/w/cpp/language/explicit.html",
+  },
+  {
+    id: 900,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question:
+      "How do C++17 `inline` variables solve the One Definition Rule (ODR) problem in header files?",
+    code: `// config.h (included by multiple .cpp files)
+inline int maxRetries = 3;
+inline const std::string appName = "MyApp";`,
+    options: [
+      "inline variables are evaluated at compile time like constexpr -- they exist only during compilation and are replaced with literal values in the generated code",
+      "inline variables are given internal linkage, so each translation unit gets its own independent copy -- this avoids linker errors but creates separate instances",
+      "inline variables can appear in multiple translation units and the linker merges them into one definition -- all TUs share the same single instance at runtime",
+      "inline variables must be defined inside a function body -- placing them at namespace scope as shown above is ill-formed and will produce a compiler error",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Before C++17, defining a non-const variable in a header included by multiple .cpp files caused linker errors (multiple definitions). The inline specifier tells the linker that identical definitions across translation units should be merged into a single entity. All TUs share one instance with the same address. This is especially useful for class static members: 'inline static int count = 0;' can be defined directly in the class body.",
+    link: "https://en.cppreference.com/w/cpp/language/inline.html",
+  },
+  {
+    id: 901,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question:
+      "What is the difference between `auto` and `decltype(auto)` as a function return type?",
+    code: `int x = 42;
+int& getRef() { return x; }
+
+auto f()           { return getRef(); }  // A
+decltype(auto) g() { return getRef(); }  // B`,
+    options: [
+      "f() returns int (auto strips references), while g() returns int& (decltype(auto) preserves the exact type including references and cv-qualifiers)",
+      "Both return int& because the compiler always deduces the exact return type of getRef() regardless of whether auto or decltype(auto) is used as the return type",
+      "f() returns int& and g() returns int -- auto preserves references from the returned expression, while decltype(auto) always decays to the underlying value type",
+      "They are identical in behavior -- decltype(auto) is simply a more explicit spelling of auto that serves as documentation but does not change type deduction rules",
+    ],
+    correctIndex: 0,
+    explanation:
+      "auto applies template argument deduction rules, which strip references and top-level cv-qualifiers. So f() deduces int from the int& returned by getRef(). decltype(auto) applies decltype rules to the return expression, preserving the exact type. Since getRef() returns int&, g() returns int&. This distinction matters for forwarding functions and proxy objects where preserving reference semantics is essential.",
+    link: "https://en.cppreference.com/w/cpp/language/auto.html",
+  },
+  {
+    id: 902,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "A class has a `const` member function that modifies a `mutable` counter. Is this function inherently thread-safe?",
+    code: `class Widget {
+  mutable int accessCount = 0;
+public:
+  int getData() const {
+    ++accessCount;  // legal: mutable
+    return 42;
+  }
+};`,
+    options: [
+      "Yes -- const methods are read-only by definition so the compiler serializes all access to mutable members",
+      "No -- const only means logical constness; mutable members can be modified without any synchronization",
+      "Yes -- the mutable keyword implicitly wraps the member in a std::atomic for safe concurrent access",
+      "No -- but the compiler emits a warning that is promoted to an error under -Wall and -Wthread-safety",
+    ],
+    correctIndex: 1,
+    explanation:
+      "The const qualifier on a member function means logical constness -- it promises not to modify the observable state. However, mutable members bypass this restriction at the language level. No synchronization is provided automatically: concurrent calls to getData() from multiple threads create a data race on accessCount. You must use std::atomic or a mutex to make it safe.",
+    link: "https://en.cppreference.com/w/cpp/language/cv",
+  },
+  {
+    id: 903,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "In C++20, when is a `constexpr` destructor allowed, and what does it enable?",
+    code: `struct S {
+  int* p;
+  constexpr S(int v) : p(new int(v)) {}
+  constexpr ~S() { delete p; }
+};
+constexpr int test() {
+  S obj(10);
+  return *obj.p;
+}`,
+    options: [
+      "It is allowed when the body satisfies constexpr rules, enabling compile-time destruction of objects that use transient dynamic allocation",
+      "It requires every data member to be a literal type and only enables trivial destruction at compile time with no dynamic memory support",
+      "It is always ill-formed because delete expressions cannot appear inside any constexpr evaluation context per the C++20 standard text",
+      "It is allowed only for empty classes with no data members and enables constexpr-compatible polymorphism via virtual destructor dispatch",
+    ],
+    correctIndex: 0,
+    explanation:
+      "C++20 permits constexpr destructors and allows new/delete within constant evaluation, provided all allocated memory is deallocated before the evaluation completes (transient allocation). The destructor body itself must satisfy constexpr requirements. This enables types like constexpr containers that perform dynamic memory management entirely at compile time.",
+    link: "https://en.cppreference.com/w/cpp/language/constexpr",
+  },
+  {
+    id: 904,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "What does placement `new` do in this code, and when must you manually call the destructor?",
+    code: `alignas(Widget) char buf[sizeof(Widget)];
+Widget* w = new (buf) Widget(42);
+// ... use w ...
+w->~Widget();  // manual destructor call`,
+    options: [
+      "Placement new allocates memory from buf, and the destructor call is optional because buf's scope handles cleanup automatically",
+      "Placement new bypasses the allocator and calls the constructor only, but the destructor is automatically invoked when buf goes out of scope",
+      "Placement new constructs an object at the given address without allocating memory, and you must call the destructor explicitly because delete would free buf",
+      "Placement new is equivalent to a reinterpret_cast followed by assignment, and the destructor call is only needed when buf is heap-allocated",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Placement new constructs an object in pre-existing storage without allocating memory. Since the memory was not obtained via operator new, calling delete would be undefined behavior (it would try to free stack memory). You must explicitly call the destructor to properly clean up the object. The raw memory (buf) is then reclaimed by its own scope or allocator.",
+    link: "https://en.cppreference.com/w/cpp/language/new",
+  },
+  {
+    id: 905,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "Why is `volatile` NOT a valid replacement for `std::atomic` in multithreaded code?",
+    code: `volatile int flag = 0;  // Thread 1 sets flag
+// Thread 2 reads flag
+
+// vs.
+std::atomic<int> flag2{0};
+// Thread 1: flag2.store(1);
+// Thread 2: flag2.load();`,
+    options: [
+      "volatile forces the compiler to use a mutex internally, which is slower than the lock-free guarantees of std::atomic",
+      "volatile prevents all compiler optimizations on the variable, making it slower than atomic but equally correct for concurrency",
+      "volatile and atomic are interchangeable on x86 platforms but volatile fails only on ARM and other weakly-ordered architectures",
+      "volatile prevents compiler reordering of reads/writes to that variable but provides no memory ordering guarantees or atomicity for the CPU",
+    ],
+    correctIndex: 3,
+    explanation:
+      "volatile tells the compiler not to optimize away or reorder accesses to the variable, but it says nothing about CPU memory ordering or atomicity. On modern hardware, the CPU can still reorder volatile accesses relative to other memory operations. std::atomic provides both atomicity and configurable memory ordering (seq_cst by default), making it correct for inter-thread communication.",
+    link: "https://en.cppreference.com/w/cpp/language/cv",
+  },
+  {
+    id: 906,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "What happens if you use `delete` instead of `delete[]` on an array allocated with `new[]`?",
+    code: `struct Obj {
+  int val;
+  ~Obj() { std::cout << "dtor "; }
+};
+Obj* arr = new Obj[5];
+delete arr;  // wrong: should be delete[]`,
+    options: [
+      "Undefined behavior -- the standard does not specify what happens when delete is mismatched with new[], so any outcome is possible",
+      "Only the first element's destructor runs but the memory is fully freed, causing a resource leak but no undefined behavior",
+      "The compiler detects the mismatch and automatically promotes delete to delete[] for array allocations at runtime",
+      "All five destructors run in reverse order but the deallocation function receives an incorrect size, causing a memory leak",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Using delete on memory allocated with new[] (or vice versa) is undefined behavior per the C++ standard. In practice, it may call only one destructor, corrupt the heap metadata, leak memory, or crash -- but no specific outcome is guaranteed. The compiler does not detect this mismatch, and no automatic promotion occurs.",
+    link: "https://en.cppreference.com/w/cpp/language/delete",
+  },
+  {
+    id: 907,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "Why is the `typename` keyword mandatory when accessing a dependent type inside a template?",
+    code: `template<typename T>
+void process() {
+  typename T::iterator it;  // typename required
+  // Without typename, the compiler assumes
+  // T::iterator is a value, not a type.
+}`,
+    options: [
+      "typename is needed because dependent names could collide with global namespace identifiers, and it acts as disambiguation",
+      "typename tells the compiler that T::iterator names a type, because dependent names are assumed to be non-types by default",
+      "typename is required only when T is a pointer type; for class types the compiler can always deduce that it names a type",
+      "typename is syntactic sugar that helps IDEs with code completion but has no effect on the actual compilation of templates",
+    ],
+    correctIndex: 1,
+    explanation:
+      "During the first phase of two-phase lookup, the compiler cannot resolve dependent names (names that depend on a template parameter). By default, it assumes a dependent qualified name is a non-type (value or template). The typename keyword explicitly tells the compiler to parse T::iterator as a type name, which is necessary for the declaration to be valid.",
+    link: "https://en.cppreference.com/w/cpp/language/dependent_name",
+  },
+  {
+    id: 908,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "What is the key difference between the deprecated `throw()` specification and modern `noexcept`?",
+    code: `void old_style() throw();    // C++98, deprecated C++17, removed C++20
+void modern() noexcept;      // C++11 and later
+
+// What happens if either function throws?`,
+    options: [
+      "throw() calls std::unexpected() then std::terminate() while noexcept calls std::terminate() only, but both allow stack unwinding",
+      "throw() silently catches and discards the exception while noexcept converts it into a std::error_code return value automatically",
+      "throw() is purely advisory with no runtime effect while noexcept generates a compiler error if a throw statement appears in the body",
+      "throw() invokes std::unexpected() which may rethrow or terminate, while noexcept calls std::terminate() directly and may skip unwinding",
+    ],
+    correctIndex: 3,
+    explanation:
+      "When a function declared throw() throws, std::unexpected() is called, which by default calls std::terminate(). With noexcept, std::terminate() is called directly. Crucially, noexcept allows implementations to skip stack unwinding entirely, which enables better optimizations. The throw() mechanism was removed in C++20 (except throw() being equivalent to noexcept).",
+    link: "https://en.cppreference.com/w/cpp/language/noexcept_spec",
+  },
+  {
+    id: 909,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "How does a generic lambda with `auto` parameters (C++14/20) differ from an explicit function template?",
+    code: `auto lam = [](auto x, auto y) { return x + y; };
+// vs.
+template<typename T, typename U>
+auto func(T x, U y) { return x + y; }`,
+    options: [
+      "The lambda version cannot be overloaded or specialized but the function template can be partially specialized for specific types",
+      "The lambda deduces all parameter types as the same type while the function template allows independent type deduction per parameter",
+      "They generate equivalent templated call operators, but the lambda creates a unique closure type that cannot be named or forward-declared",
+      "The lambda auto parameters are resolved at runtime via type erasure while the function template is fully resolved at compile time only",
+    ],
+    correctIndex: 2,
+    explanation:
+      "A generic lambda with auto parameters generates a closure type with a templated operator(). Each auto parameter gets its own independent template parameter, just like the function template. The key difference is that the lambda's type is a unique unnamed class generated by the compiler -- it cannot be forward-declared, named in another context, or used as a template argument without decltype.",
+    link: "https://en.cppreference.com/w/cpp/language/lambda",
+  },
+  {
+    id: 910,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "When round-tripping a pointer through `void*`, which cast is guaranteed safe by the standard?",
+    code: `int x = 42;
+void* vp = static_cast<void*>(&x);
+
+// Option A:
+int* a = static_cast<int*>(vp);
+// Option B:
+int* b = reinterpret_cast<int*>(vp);`,
+    options: [
+      "static_cast is guaranteed to yield the original pointer value; reinterpret_cast is implementation-defined for void* conversions",
+      "reinterpret_cast is the only correct cast for void* because static_cast cannot convert between unrelated pointer types safely",
+      "Both casts are guaranteed equivalent for void* round-trips and always produce identical results per the C++ standard text",
+      "Neither cast is safe -- you must use std::launder after casting from void* to restore the original pointer value reliably",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The standard guarantees that static_cast from T* to void* and back to T* yields the original pointer. For reinterpret_cast, the void* round-trip is specified to work in practice (the standard says the result is the same as static_cast in this case), but static_cast is the idiomatic and directly guaranteed choice. reinterpret_cast is designed for conversions between unrelated pointer types, not void* round-trips.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast",
+  },
+  {
+    id: 911,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "How do `consteval` and `constexpr` interact? Can a `consteval` function call a `constexpr` one and vice versa?",
+    code: `constexpr int square(int x) { return x * x; }
+consteval int cube(int x) { return x * square(x); }
+
+constexpr int test() {
+  // return cube(3);  // Is this valid?
+  return square(3);
+}`,
+    options: [
+      "Neither can call the other because consteval and constexpr are separate evaluation domains with no cross-invocation allowed",
+      "constexpr functions can freely call consteval functions because constexpr is a superset that includes compile-time evaluation",
+      "Both can call the other without restriction -- consteval and constexpr are interchangeable aliases in all evaluation contexts",
+      "consteval can call constexpr functions, but constexpr cannot call consteval unless the call itself is a constant expression",
+    ],
+    correctIndex: 3,
+    explanation:
+      "A consteval (immediate) function must produce a constant at compile time, so it can call constexpr functions (which are valid in constant expressions). However, a constexpr function may be called at runtime, where consteval functions are forbidden. A constexpr function can only call a consteval function if that specific call is guaranteed to be evaluated as a constant expression (e.g., the result is used in a constant context).",
+    link: "https://en.cppreference.com/w/cpp/language/consteval",
+  },
 ];
