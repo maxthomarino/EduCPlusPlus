@@ -107,6 +107,8 @@ function MenuView({
   onStart,
   selectAll,
   selectNone,
+  questionLimit,
+  setQuestionLimit,
 }: {
   selectedTopics: Set<string>;
   toggleTopic: (t: string) => void;
@@ -116,10 +118,19 @@ function MenuView({
   onStart: () => void;
   selectAll: () => void;
   selectNone: () => void;
+  questionLimit: number;
+  setQuestionLimit: (n: number) => void;
 }) {
+  const [search, setSearch] = useState("");
   const difficulties: Difficulty[] = ["All", "Easy", "Medium", "Hard"];
+  const limits = [10, 25, 50, 0] as const;
 
-  // Count questions per difficulty for the selected topics
+  const visibleTopics = useMemo(() => {
+    if (!search.trim()) return [...TOPICS];
+    const q = search.toLowerCase();
+    return TOPICS.filter((t) => t.toLowerCase().includes(q));
+  }, [search]);
+
   const difficultyCounts = useMemo(() => {
     let easy = 0, medium = 0, hard = 0;
     for (const t of selectedTopics) {
@@ -138,180 +149,265 @@ function MenuView({
     }
   };
 
+  const actualCount = questionLimit > 0 ? Math.min(filteredCount, questionLimit) : filteredCount;
+
   return (
     <div class="page-reveal">
-      {/* Topics card */}
-      <div
-        class="surface-card p-5 sm:p-6"
-        style={{ marginBottom: "1rem" }}
-      >
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
-          <p class="eyebrow">Topics</p>
-          <div style={{ display: "flex", gap: "0.5rem" }}>
+      {/* ── Topics ── */}
+      <div class="surface-card" style={{ padding: "1.25rem 1.5rem", marginBottom: "0.75rem" }}>
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          marginBottom: "0.75rem",
+        }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <p class="eyebrow" style={{ margin: 0 }}>Topics</p>
+            <span style={{
+              fontSize: "0.66rem", fontWeight: 600, color: "var(--text-muted)",
+              background: "var(--surface-muted)", borderRadius: "4px",
+              padding: "0.08rem 0.35rem", fontFamily: "var(--font-code)",
+            }}>
+              {selectedTopics.size}/{TOPICS.length}
+            </span>
+          </div>
+          <div style={{ display: "flex", gap: "0.35rem" }}>
             <button
               onClick={selectAll}
               class="chip"
-              style={{ cursor: "pointer", fontSize: "0.68rem" }}
+              style={{ cursor: "pointer", fontSize: "0.66rem", padding: "0.18rem 0.5rem" }}
             >
-              All
+              Select all
             </button>
             <button
               onClick={selectNone}
               class="chip"
-              style={{ cursor: "pointer", fontSize: "0.68rem" }}
+              style={{ cursor: "pointer", fontSize: "0.66rem", padding: "0.18rem 0.5rem" }}
             >
-              None
+              Clear
             </button>
           </div>
         </div>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-          {TOPICS.map((t) => {
+
+        {/* Search */}
+        <div style={{ position: "relative", marginBottom: "0.65rem" }}>
+          <svg
+            width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"
+            style={{
+              position: "absolute", left: "0.65rem", top: "50%",
+              transform: "translateY(-50%)", color: "var(--text-muted)", pointerEvents: "none",
+            }}
+          >
+            <circle cx="11" cy="11" r="8" />
+            <path d="m21 21-4.3-4.3" />
+          </svg>
+          <input
+            type="text"
+            placeholder="Filter topics..."
+            value={search}
+            onInput={(e) => setSearch((e.target as HTMLInputElement).value)}
+            class="quiz-search"
+          />
+        </div>
+
+        {/* Topic Grid */}
+        <div class="quiz-topic-grid">
+          {visibleTopics.map((t) => {
             const active = selectedTopics.has(t);
-            const count = topicCounts.get(t)?.total || 0;
+            const counts = topicCounts.get(t) || { total: 0, easy: 0, medium: 0, hard: 0 };
             return (
               <button
                 key={t}
                 onClick={() => toggleTopic(t)}
-                class="chip"
-                style={{
-                  cursor: "pointer",
-                  background: active
-                    ? "var(--accent-soft)"
-                    : "color-mix(in srgb, var(--surface-elevated) 78%, var(--surface-muted))",
-                  color: active ? "var(--accent)" : "var(--text-secondary)",
-                  borderColor: active ? "var(--accent)" : "var(--border-soft)",
-                  fontWeight: active ? "700" : "600",
-                  transition: "all 0.18s ease",
-                  gap: "0.25rem",
-                }}
+                class={`quiz-topic-card${active ? " quiz-topic-card--active" : ""}`}
               >
-                {t}
-                <span
-                  style={{
-                    fontSize: "0.62rem",
-                    fontWeight: "700",
-                    opacity: active ? "1" : "0.55",
+                {/* Row 1: Name + check */}
+                <div style={{
+                  display: "flex", alignItems: "center", justifyContent: "space-between",
+                  gap: "0.4rem",
+                }}>
+                  <span style={{
+                    fontFamily: "var(--font-display)",
+                    fontSize: "0.84rem",
+                    fontWeight: active ? 700 : 600,
+                    color: active ? "var(--text-primary)" : "var(--text-secondary)",
+                    lineHeight: "1.3",
+                  }}>
+                    {t}
+                  </span>
+                  <span style={{
+                    width: "18px", height: "18px", borderRadius: "50%",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    flexShrink: 0, fontSize: "0.6rem", fontWeight: 700,
+                    background: active ? "var(--accent)" : "transparent",
+                    border: active ? "1.5px solid var(--accent)" : "1.5px solid var(--border-strong)",
+                    color: active ? "white" : "transparent",
+                    transition: "all 0.18s ease",
+                  }}>
+                    ✓
+                  </span>
+                </div>
+
+                {/* Row 2: Count + difficulty bar */}
+                <div style={{
+                  display: "flex", alignItems: "center", gap: "0.5rem",
+                }}>
+                  <span style={{
+                    fontSize: "0.68rem", fontWeight: 700, fontFamily: "var(--font-code)",
                     color: active ? "var(--accent)" : "var(--text-muted)",
-                    background: active
-                      ? "color-mix(in srgb, var(--accent) 12%, transparent)"
-                      : "color-mix(in srgb, var(--text-muted) 10%, transparent)",
-                    borderRadius: "4px",
-                    padding: "0.05rem 0.3rem",
-                    minWidth: "1.2rem",
-                    textAlign: "center",
-                    lineHeight: "1.4",
-                  }}
-                >
-                  {count}
-                </span>
+                    minWidth: "1.6rem",
+                    transition: "color 0.18s ease",
+                  }}>
+                    {counts.total}
+                  </span>
+                  <div style={{
+                    flex: 1, height: "3px", borderRadius: "2px",
+                    display: "flex", gap: "1px", overflow: "hidden",
+                    opacity: active ? 1 : 0.4,
+                    transition: "opacity 0.18s ease",
+                  }}>
+                    {counts.easy > 0 && (
+                      <div style={{ flex: counts.easy, background: "var(--success)", borderRadius: "2px 0 0 2px" }} />
+                    )}
+                    {counts.medium > 0 && (
+                      <div style={{ flex: counts.medium, background: "var(--warning)" }} />
+                    )}
+                    {counts.hard > 0 && (
+                      <div style={{ flex: counts.hard, background: "var(--deep)", borderRadius: "0 2px 2px 0" }} />
+                    )}
+                  </div>
+                </div>
               </button>
             );
           })}
         </div>
+
+        {/* No results */}
+        {visibleTopics.length === 0 && (
+          <p style={{
+            textAlign: "center", padding: "1.5rem 0", fontSize: "0.82rem",
+            color: "var(--text-muted)",
+          }}>
+            No topics match "{search}"
+          </p>
+        )}
       </div>
 
-      {/* Difficulty card */}
-      <div
-        class="surface-card p-5 sm:p-6"
-        style={{ marginBottom: "1rem" }}
-      >
-        <p class="eyebrow" style={{ marginBottom: "0.75rem" }}>
-          Difficulty
-        </p>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-          {difficulties.map((d) => {
-            const isActive = d === difficulty;
-            const color = difficultyColor(d);
-            const count = difficultyCounts[d];
-            return (
-              <button
-                key={d}
-                onClick={() => setDifficulty(d)}
-                class="metric-pill"
-                style={{
-                  cursor: "pointer",
-                  background: isActive
-                    ? d === "All"
-                      ? "var(--accent-soft)"
-                      : `color-mix(in srgb, ${color} 10%, var(--surface-elevated))`
-                    : "color-mix(in srgb, var(--surface-elevated) 82%, var(--surface-muted))",
-                  color: isActive ? color : "var(--text-secondary)",
-                  borderColor: isActive ? color : "var(--border-soft)",
-                  fontWeight: isActive ? "700" : "400",
-                  transition: "all 0.18s ease",
-                  gap: "0.35rem",
-                }}
-              >
-                {d}
-                <span
-                  style={{
-                    fontSize: "0.68rem",
-                    fontWeight: "600",
-                    opacity: isActive ? "0.9" : "0.5",
-                    fontFamily: "var(--font-code)",
-                  }}
-                >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
+      {/* ── Configuration ── */}
+      <div class="surface-card" style={{ padding: "1.1rem 1.5rem", marginBottom: "0.75rem" }}>
+        <div class="quiz-config-row">
+          {/* Difficulty */}
+          <div>
+            <p class="eyebrow" style={{ marginBottom: "0.5rem" }}>Difficulty</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
+              {difficulties.map((d) => {
+                const isActive = d === difficulty;
+                const color = difficultyColor(d);
+                const count = difficultyCounts[d];
+                return (
+                  <button
+                    key={d}
+                    onClick={() => setDifficulty(d)}
+                    class="metric-pill"
+                    style={{
+                      cursor: "pointer",
+                      background: isActive
+                        ? d === "All"
+                          ? "var(--accent-soft)"
+                          : `color-mix(in srgb, ${color} 12%, var(--surface-elevated))`
+                        : "color-mix(in srgb, var(--surface-elevated) 82%, var(--surface-muted))",
+                      color: isActive ? color : "var(--text-secondary)",
+                      borderColor: isActive ? color : "var(--border-soft)",
+                      fontWeight: isActive ? 700 : 500,
+                      transition: "all 0.18s ease",
+                      gap: "0.3rem",
+                      padding: "0.32rem 0.55rem",
+                      fontSize: "0.76rem",
+                    }}
+                  >
+                    {d}
+                    <span style={{
+                      fontSize: "0.66rem", fontWeight: 600,
+                      opacity: isActive ? 0.9 : 0.45,
+                      fontFamily: "var(--font-code)",
+                    }}>
+                      {count}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Question Limit */}
+          <div>
+            <p class="eyebrow" style={{ marginBottom: "0.5rem" }}>Max Questions</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
+              {limits.map((n) => {
+                const label = n === 0 ? "All" : String(n);
+                const isActive = questionLimit === n;
+                return (
+                  <button
+                    key={n}
+                    onClick={() => setQuestionLimit(n)}
+                    class="metric-pill"
+                    style={{
+                      cursor: "pointer",
+                      background: isActive
+                        ? "var(--accent-soft)"
+                        : "color-mix(in srgb, var(--surface-elevated) 82%, var(--surface-muted))",
+                      color: isActive ? "var(--accent)" : "var(--text-secondary)",
+                      borderColor: isActive ? "var(--accent)" : "var(--border-soft)",
+                      fontWeight: isActive ? 700 : 500,
+                      transition: "all 0.18s ease",
+                      padding: "0.32rem 0.55rem",
+                      fontSize: "0.76rem",
+                      fontFamily: "var(--font-code)",
+                    }}
+                  >
+                    {label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Start bar */}
+      {/* ── Start Bar ── */}
       <div
         class="surface-card"
         style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "1rem",
-          flexWrap: "wrap",
-          padding: "0.75rem 1.1rem",
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          flexWrap: "wrap", gap: "0.75rem",
+          padding: "0.85rem 1.25rem",
         }}
       >
-        <p
-          class="display-font"
-          style={{
-            fontSize: "0.88rem",
-            fontWeight: "600",
-            color: "var(--text-secondary)",
-          }}
-        >
-          <span
+        <div>
+          <p
             class="display-font"
-            style={{
-              fontWeight: "800",
-              fontSize: "1.05rem",
-              color: filteredCount > 0 ? "var(--text-primary)" : "var(--text-muted)",
-              fontFamily: "var(--font-code)",
-            }}
+            style={{ fontSize: "0.9rem", fontWeight: 600, color: "var(--text-secondary)", lineHeight: "1.4" }}
           >
-            {filteredCount}
-          </span>
-          {" "}question{filteredCount !== 1 ? "s" : ""} ready
-        </p>
+            <span
+              style={{
+                fontWeight: 800, fontSize: "1.1rem",
+                color: actualCount > 0 ? "var(--accent)" : "var(--text-muted)",
+                fontFamily: "var(--font-code)",
+              }}
+            >
+              {actualCount}
+            </span>{" "}
+            question{actualCount !== 1 ? "s" : ""} ready
+          </p>
+          {questionLimit > 0 && filteredCount > questionLimit && (
+            <p style={{ fontSize: "0.7rem", color: "var(--text-muted)", marginTop: "0.1rem" }}>
+              {filteredCount} available, capped at {questionLimit}
+            </p>
+          )}
+        </div>
         <button
           onClick={onStart}
-          disabled={filteredCount === 0}
-          class="hover-lift"
-          style={{
-            cursor: filteredCount === 0 ? "not-allowed" : "pointer",
-            background:
-              filteredCount === 0
-                ? "var(--surface-muted)"
-                : "var(--accent)",
-            color: filteredCount === 0 ? "var(--text-muted)" : "white",
-            border: "none",
-            borderRadius: "0.6rem",
-            fontWeight: "700",
-            fontSize: "0.88rem",
-            padding: "0.6rem 1.5rem",
-            fontFamily: "var(--font-display)",
-            letterSpacing: "-0.01em",
-            transition: "all 0.2s ease",
-          }}
+          disabled={actualCount === 0}
+          class="quiz-start-btn"
         >
           Start Quiz →
         </button>
@@ -804,6 +900,7 @@ export default function FlashcardQuiz() {
     () => new Set(TOPICS)
   );
   const [difficulty, setDifficulty] = useState<Difficulty>("All");
+  const [questionLimit, setQuestionLimit] = useState<number>(0);
   const [quizQuestions, setQuizQuestions] = useState<Question[]>([]);
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selected, setSelected] = useState<number | null>(null);
@@ -837,7 +934,10 @@ export default function FlashcardQuiz() {
   }, []);
 
   const startQuiz = useCallback(() => {
-    const shuffled = shuffle(filteredQuestions);
+    let shuffled = shuffle(filteredQuestions);
+    if (questionLimit > 0) {
+      shuffled = shuffled.slice(0, questionLimit);
+    }
     setQuizQuestions(shuffled);
     setCurrentIndex(0);
     setSelected(null);
@@ -845,7 +945,7 @@ export default function FlashcardQuiz() {
     setAnswers([]);
     setAnimClass("card-enter");
     setView("quiz");
-  }, [filteredQuestions]);
+  }, [filteredQuestions, questionLimit]);
 
   const handleSelect = useCallback(
     (idx: number) => {
@@ -942,6 +1042,8 @@ export default function FlashcardQuiz() {
           onStart={startQuiz}
           selectAll={selectAll}
           selectNone={selectNone}
+          questionLimit={questionLimit}
+          setQuestionLimit={setQuestionLimit}
         />
       )}
 

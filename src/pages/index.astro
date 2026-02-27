@@ -3,6 +3,7 @@ import { getCollection } from "astro:content";
 import DocLayout from "../layouts/DocLayout.astro";
 import { buildSidebarData } from "../lib/sidebar-data.js";
 import type { ParsedFile } from "../lib/types.js";
+import { questions, TOPICS } from "../lib/questions";
 
 const allLessons = await getCollection("lessons");
 const allArticles = await getCollection(
@@ -64,7 +65,7 @@ function getLevel(order: number): { label: string; cssClass: string } {
         <span class="lp-stat-lbl">Articles</span>
       </div>
       <div class="lp-stat" style="animation-delay:380ms">
-        <span class="lp-stat-num">271</span>
+        <span class="lp-stat-num">{questions.length}</span>
         <span class="lp-stat-lbl">Quiz Qs</span>
       </div>
     </div>
@@ -95,7 +96,7 @@ function getLevel(order: number): { label: string; cssClass: string } {
       </div>
       <div class="min-w-0">
         <p class="lp-qcard-title">C++ Quiz</p>
-        <p class="lp-qcard-sub">271 questions across 17 topics</p>
+        <p class="lp-qcard-sub">{questions.length} questions across {TOPICS.length} topics</p>
       </div>
       <span class="lp-qcard-arrow">&rarr;</span>
     </a>

@@ -374,6 +374,108 @@ details[open] > summary .chevron {
 .answer-pop { animation: answer-pop 300ms ease both; }
 .score-enter { animation: score-count 400ms cubic-bezier(0.2, 0.8, 0.2, 1) both; }
 
+/* ── Quiz topic selection ── */
+
+.quiz-topic-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+@media (min-width: 480px) {
+  .quiz-topic-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.quiz-topic-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: 0.6rem;
+  border: 1.5px solid var(--border-soft);
+  background: var(--surface-elevated);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease, transform 0.18s ease;
+}
+
+.quiz-topic-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, var(--border-soft));
+  box-shadow: var(--shadow-sm);
+  transform: translateY(-1px);
+}
+
+.quiz-topic-card--active {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent-soft) 40%, var(--surface-elevated));
+}
+
+.quiz-topic-card--active:hover {
+  border-color: var(--accent);
+  box-shadow: 0 4px 14px -6px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.quiz-search {
+  width: 100%;
+  padding: 0.5rem 0.75rem 0.5rem 2.1rem;
+  font-size: 0.82rem;
+  font-family: inherit;
+  border-radius: 0.55rem;
+  border: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--surface-muted) 30%, var(--surface-elevated));
+  color: var(--text-primary);
+  outline: none;
+  transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.quiz-search::placeholder {
+  color: var(--text-muted);
+}
+
+.quiz-search:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 10%, transparent);
+}
+
+.quiz-config-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+}
+
+.quiz-config-row > div {
+  flex: 1;
+  min-width: 170px;
+}
+
+.quiz-start-btn {
+  cursor: pointer;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 0.6rem;
+  font-weight: 700;
+  font-size: 0.88rem;
+  padding: 0.62rem 1.5rem;
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.quiz-start-btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px -6px color-mix(in srgb, var(--accent) 44%, transparent);
+  filter: brightness(1.06);
+}
+
+.quiz-start-btn:disabled {
+  cursor: not-allowed;
+  background: var(--surface-muted);
+  color: var(--text-muted);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
