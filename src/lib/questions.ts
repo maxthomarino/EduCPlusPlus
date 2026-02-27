@@ -15623,4 +15623,2279 @@ constexpr int test() {
       "A consteval (immediate) function must produce a constant at compile time, so it can call constexpr functions (which are valid in constant expressions). However, a constexpr function may be called at runtime, where consteval functions are forbidden. A constexpr function can only call a consteval function if that specific call is guaranteed to be evaluated as a constant expression (e.g., the result is used in a constant context).",
     link: "https://en.cppreference.com/w/cpp/language/consteval",
   },
+
+  // ── Polymorphism (Q912--Q941) ──
+  {
+    id: 912,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question:
+      "C++ supports two main forms of polymorphism. Which pair correctly names them?",
+    options: [
+      "Compile-time (static) and runtime (dynamic) polymorphism",
+      "Structural polymorphism and behavioral polymorphism",
+      "Reference polymorphism and pointer-based polymorphism",
+      "Implicit polymorphism and user-defined polymorphism",
+    ],
+    correctIndex: 0,
+    explanation:
+      "C++ offers compile-time polymorphism through templates and function overloading, and runtime polymorphism through virtual functions and inheritance. These are the two standard categories recognized by the language.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-object-oriented-programming/",
+  },
+  {
+    id: 913,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question:
+      "What does the `virtual` keyword do when applied to a base class member function?",
+    options: [
+      "It prevents the function from being called outside the class",
+      "It forces every derived class to implement its own version",
+      "It makes the function available only at compile time in templates",
+      "It enables dynamic dispatch so derived overrides are called at runtime",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Marking a base class function as virtual enables dynamic dispatch. When the function is called through a base pointer or reference, the program determines which override to invoke at runtime based on the actual object type.",
+    link: "https://www.learncpp.com/cpp-tutorial/virtual-functions/",
+  },
+  {
+    id: 914,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question: "What does this code print?",
+    code: `class Base {
+public:
+    virtual void speak() { std::cout << "Base"; }
+};
+class Derived : public Base {
+public:
+    void speak() override { std::cout << "Derived"; }
+};
+
+Base* ptr = new Derived();
+ptr->speak();`,
+    options: [
+      "It prints nothing because virtual functions suppress output",
+      "Derived -- the virtual call resolves to the actual object type",
+      "Base -- the pointer type always determines which version runs",
+      "It causes a compilation error due to the override specifier",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Because speak() is virtual, the call through a Base pointer is resolved at runtime. The actual object is a Derived instance, so Derived::speak() is invoked, printing \"Derived\".",
+    link: "https://www.learncpp.com/cpp-tutorial/virtual-functions/",
+  },
+  {
+    id: 915,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question:
+      "What does the syntax `= 0` at the end of a virtual function declaration mean?",
+    code: `class Shape {
+public:
+    virtual double area() const = 0;
+};`,
+    options: [
+      "It assigns a default return value of zero to the function",
+      "It marks the function as deprecated and scheduled for removal",
+      "It declares a pure virtual function with no base class body",
+      "It initializes the virtual table pointer to a null address",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The = 0 syntax declares a pure virtual function. It tells the compiler that this function has no implementation in the base class and must be overridden by any concrete derived class.",
+    link: "https://en.cppreference.com/w/cpp/language/abstract_class.html",
+  },
+  {
+    id: 916,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question:
+      "Can you create an instance of a class that contains at least one pure virtual function?",
+    options: [
+      "Yes, but only if the pure virtual function has a default body provided",
+      "Yes, the compiler generates a stub implementation automatically for you",
+      "No, unless you cast it to a derived type during the construction call",
+      "No, only pointers or references to such a class may be declared",
+    ],
+    correctIndex: 3,
+    explanation:
+      "A class with one or more pure virtual functions is abstract and cannot be instantiated directly. You can only create objects of concrete derived classes that override all pure virtual functions, then use base pointers or references.",
+    link: "https://www.learncpp.com/cpp-tutorial/pure-virtual-functions-abstract-base-classes-and-interface-classes/",
+  },
+  {
+    id: 917,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question: "Function overloading is an example of which type of polymorphism?",
+    code: `int add(int a, int b) { return a + b; }
+double add(double a, double b) { return a + b; }`,
+    options: [
+      "Compile-time polymorphism -- the compiler picks the correct overload",
+      "Runtime polymorphism -- the program picks the overload during execution",
+      "Template polymorphism -- the overloads are expanded from a template",
+      "Dynamic polymorphism -- overloads are resolved via the virtual table",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Function overloading is resolved entirely at compile time. The compiler uses the number and types of arguments to select the matching function, making it a form of compile-time (static) polymorphism.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-function-overloading/",
+  },
+  {
+    id: 918,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question:
+      "Which operator function signature correctly overloads the + operator for a Vec2 class?",
+    options: [
+      "Vec2 add(const Vec2& other) const;",
+      "Vec2 operator+(const Vec2& other) const;",
+      "Vec2 plus(const Vec2& rhs) const;",
+      "Vec2 op_add(const Vec2& rhs) const;",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Operator overloading uses the keyword operator followed by the operator symbol. The correct syntax is operator+. The other options use regular function names which do not overload the + operator.",
+    link: "https://www.learncpp.com/cpp-tutorial/overloading-the-arithmetic-operators-using-friend-functions/",
+  },
+  {
+    id: 919,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question:
+      "What does the `override` keyword do when placed on a derived class method?",
+    code: `class Base {
+public:
+    virtual void draw() const;
+};
+class Circle : public Base {
+public:
+    void draw() const override;
+};`,
+    options: [
+      "It converts the function to a pure virtual function automatically",
+      "It replaces the base version so the base function is fully deleted",
+      "It tells the compiler to verify the function overrides a base virtual",
+      "It changes the function linkage from internal to external visibility",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The override specifier instructs the compiler to check that the function actually overrides a virtual function in a base class. If the signatures do not match, the compiler reports an error, preventing silent bugs.",
+    link: "https://en.cppreference.com/w/cpp/language/override.html",
+  },
+  {
+    id: 920,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question:
+      "Why should a base class destructor be declared virtual when objects are deleted through base pointers?",
+    code: `class Base {
+public:
+    virtual ~Base() = default;
+};
+class Derived : public Base {
+    int* data;
+public:
+    ~Derived() { delete data; }
+};`,
+    options: [
+      "A virtual destructor makes the class abstract and prevents direct use",
+      "Without it, the compiler refuses to compile any class with inheritance",
+      "It ensures the derived destructor runs, preventing resource leaks",
+      "It allows the destructor to be called multiple times without errors",
+    ],
+    correctIndex: 2,
+    explanation:
+      "When you delete a Derived object through a Base pointer, a non-virtual destructor would only call Base::~Base(), skipping Derived::~Derived() and leaking resources. A virtual destructor ensures the correct derived destructor is called first.",
+    link: "https://www.learncpp.com/cpp-tutorial/virtual-destructors-virtual-assignment-and-overriding-virtualization/",
+  },
+  {
+    id: 921,
+    difficulty: "Easy",
+    topic: "Polymorphism",
+    question:
+      "What is the key difference between static binding and dynamic binding in C++?",
+    options: [
+      "Static binding resolves function calls at compile time, while dynamic binding resolves them at runtime via virtual dispatch",
+      "Static binding applies only to global functions, while dynamic binding applies only to class member functions in every case",
+      "Static binding uses the heap for dispatch, while dynamic binding uses the stack for all function resolution lookups",
+      "Static binding requires the override keyword, while dynamic binding requires the final keyword on every function",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Static binding (early binding) resolves which function to call at compile time based on the declared type. Dynamic binding (late binding) defers resolution to runtime using the virtual table, selecting the function based on the actual object type.",
+    link: "https://www.learncpp.com/cpp-tutorial/virtual-functions/",
+  },
+  {
+    id: 922,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question: "What is the vtable in C++ and when is it typically created?",
+    code: `class Base {
+public:
+    virtual void speak() { std::cout << "Base"; }
+    virtual ~Base() = default;
+};
+
+class Derived : public Base {
+public:
+    void speak() override { std::cout << "Derived"; }
+};`,
+    options: [
+      "A per-class table of function pointers, generated at compile time",
+      "A per-object table of function pointers, generated at runtime",
+      "A per-class table of object addresses, generated at link time",
+      "A per-object table of class names, generated at compile time",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The vtable is a per-class (not per-object) table of function pointers to virtual functions. The compiler generates it at compile time. Each object with virtual functions contains a hidden vptr that points to its class's vtable, enabling dynamic dispatch.",
+    link: "https://www.learncpp.com/cpp-tutorial/the-virtual-table/",
+  },
+  {
+    id: 923,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question: "What does this code print, and why?",
+    code: `class Base {
+public:
+    int x;
+    virtual void show() { std::cout << "Base"; }
+    Base() : x(10) {}
+};
+
+class Derived : public Base {
+public:
+    int y;
+    void show() override { std::cout << "Derived"; }
+    Derived() : y(20) {}
+};
+
+int main() {
+    Derived d;
+    Base b = d;  // copy by value
+    b.show();
+}`,
+    options: [
+      "It prints \"Derived\" because d is a Derived object originally",
+      "It throws a runtime exception due to type mismatch on copy",
+      "It prints \"Base\" because object slicing removes the Derived part",
+      "It prints nothing because the assignment is not permitted here",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Assigning a Derived object to a Base variable by value causes object slicing. Only the Base portion of d is copied into b, including the Base vptr. The Derived-specific data member y and the Derived vtable pointer are lost, so b.show() calls Base::show().",
+    link: "https://www.learncpp.com/cpp-tutorial/object-slicing/",
+  },
+  {
+    id: 924,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question: "Which statement about covariant return types is correct?",
+    code: `class Base {
+public:
+    virtual Base* clone() const {
+        return new Base(*this);
+    }
+    virtual ~Base() = default;
+};
+
+class Derived : public Base {
+public:
+    Derived* clone() const override {
+        return new Derived(*this);
+    }
+};`,
+    options: [
+      "This code fails to compile because return types must be identical",
+      "Covariant returns allow Derived* when Base* is the base return type",
+      "Covariant returns only work with references, not with raw pointers",
+      "The override keyword is invalid here due to the different return type",
+    ],
+    correctIndex: 1,
+    explanation:
+      "C++ allows a covariant return type: if a base virtual function returns Base*, the override may return Derived* (or any type publicly derived from Base). This applies to both pointers and references. The override keyword is valid because the compiler recognizes the covariant relationship.",
+    link: "https://en.cppreference.com/w/cpp/language/virtual.html",
+  },
+  {
+    id: 925,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question:
+      "What does calling a virtual function inside a constructor actually invoke?",
+    code: `class Base {
+public:
+    Base() { greet(); }
+    virtual void greet() {
+        std::cout << "Hello from Base\n";
+    }
+    virtual ~Base() = default;
+};
+
+class Derived : public Base {
+public:
+    void greet() override {
+        std::cout << "Hello from Derived\n";
+    }
+};
+
+int main() { Derived d; }`,
+    options: [
+      "It prints \"Hello from Derived\" via normal virtual dispatch",
+      "It prints both \"Hello from Base\" then \"Hello from Derived\"",
+      "It is undefined behavior to call virtual functions in constructors",
+      "It prints \"Hello from Base\" because the Derived part is not yet constructed",
+    ],
+    correctIndex: 3,
+    explanation:
+      "During Base's constructor, the object's dynamic type is Base, not Derived. The Derived portion has not been constructed yet, so virtual dispatch resolves to Base::greet(). This is well-defined behavior -- not undefined -- but it often surprises developers who expect the Derived override to be called.",
+    link: "https://www.learncpp.com/cpp-tutorial/calling-virtual-functions-from-constructors-and-destructors/",
+  },
+  {
+    id: 926,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question:
+      "What happens when you try to override a function marked 'final' in a derived class?",
+    code: `class Base {
+public:
+    virtual void process() { }
+    virtual ~Base() = default;
+};
+
+class Middle : public Base {
+public:
+    void process() override final { }
+};
+
+class Bottom : public Middle {
+public:
+    void process() override { }
+};`,
+    options: [
+      "Bottom::process causes a compile error because Middle marked it final",
+      "Bottom::process silently hides Middle::process without any error",
+      "The final keyword is ignored when override is also used on Middle",
+      "The code compiles but Middle::process is always called at runtime",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The final specifier on Middle::process prevents any further derived class from overriding that function. When Bottom attempts to override it, the compiler produces an error. The final keyword works alongside override -- they are not mutually exclusive.",
+    link: "https://en.cppreference.com/w/cpp/language/final.html",
+  },
+  {
+    id: 927,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question:
+      "How does virtual inheritance solve the diamond problem in multiple inheritance?",
+    code: `class Animal {
+public:
+    int age;
+    virtual ~Animal() = default;
+};
+class Dog : virtual public Animal { };
+class Cat : virtual public Animal { };
+class DogCat : public Dog, public Cat { };`,
+    options: [
+      "It prevents DogCat from inheriting any members from Animal at all",
+      "It creates two separate copies of Animal that are merged at runtime",
+      "It ensures only one shared Animal subobject exists in DogCat objects",
+      "It forces Dog and Cat to use pointers to Animal instead of subobjects",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Without virtual inheritance, DogCat would contain two separate Animal subobjects (one via Dog, one via Cat), causing ambiguity. Virtual inheritance ensures that Dog and Cat share a single Animal subobject within DogCat, eliminating duplicate base members and ambiguous access.",
+    link: "https://www.learncpp.com/cpp-tutorial/virtual-base-classes/",
+  },
+  {
+    id: 928,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question: "When does dynamic_cast return nullptr for pointer types?",
+    code: `class Base {
+public:
+    virtual ~Base() = default;
+};
+class Derived : public Base { };
+class Other : public Base { };
+
+Base* bp = new Other();
+Derived* dp = dynamic_cast<Derived*>(bp);`,
+    options: [
+      "It never returns nullptr because Base has a virtual destructor defined",
+      "It returns nullptr when the actual object type is not the target type",
+      "It returns nullptr only when used with references rather than pointers",
+      "It returns nullptr when the base class does not have virtual functions",
+    ],
+    correctIndex: 1,
+    explanation:
+      "dynamic_cast checks the actual runtime type of the object using RTTI. Here bp points to an Other object, not a Derived object, so the cast to Derived* fails and returns nullptr. The base class must be polymorphic (have at least one virtual function) for dynamic_cast to work at all.",
+    link: "https://en.cppreference.com/w/cpp/language/dynamic_cast.html",
+  },
+  {
+    id: 929,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question:
+      "In C++, what is the difference between overriding, overloading, and hiding a base class member function?",
+    code: `class Base {
+public:
+    virtual void foo(int x) { }
+    void bar(int x) { }
+    virtual ~Base() = default;
+};
+class Derived : public Base {
+public:
+    void foo(int x) override { }  // A
+    void foo(double x) { }        // B
+    void bar(int x) { }           // C
+};`,
+    options: [
+      "A overrides, B overloads foo in Derived, and C overrides bar",
+      "A overrides, B also overrides with different parameter, C hides",
+      "A overrides, B hides Base::foo(int) in Derived, and C hides bar",
+      "A hides Base::foo, B overloads in Derived scope, C overrides bar",
+    ],
+    correctIndex: 2,
+    explanation:
+      "A is a proper override of the virtual function Base::foo(int). B declares a new foo(double) in Derived, which hides Base::foo(int) from unqualified lookup in Derived's scope -- this is name hiding, not overloading across scopes. C hides Base::bar(int) because bar is non-virtual, so it cannot be overridden.",
+    link: "https://www.learncpp.com/cpp-tutorial/hiding-inherited-functionality/",
+  },
+  {
+    id: 930,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question: "What is the Non-Virtual Interface (NVI) pattern, and why is it used?",
+    code: `class Shape {
+public:
+    void draw() const {
+        validate();
+        doDraw();    // calls the private virtual
+        log();
+    }
+    virtual ~Shape() = default;
+private:
+    virtual void doDraw() const = 0;
+    void validate() const { /* ... */ }
+    void log() const { /* ... */ }
+};`,
+    options: [
+      "NVI uses only non-virtual functions and avoids virtual dispatch entirely",
+      "NVI makes all virtual functions public to simplify the class interface",
+      "NVI prevents derived classes from customizing any base class behavior",
+      "NVI uses a public non-virtual wrapper that calls a private virtual function",
+    ],
+    correctIndex: 3,
+    explanation:
+      "The NVI pattern exposes a public non-virtual function (draw) that performs pre/post operations and delegates to a private virtual function (doDraw) that derived classes override. This lets the base class control the invariant steps while derived classes customize only the core behavior.",
+    link: "https://en.cppreference.com/w/cpp/language/nvi.html",
+  },
+  {
+    id: 931,
+    difficulty: "Medium",
+    topic: "Polymorphism",
+    question:
+      "What is the primary runtime overhead of calling a virtual function compared to a non-virtual function?",
+    code: `class Widget {
+public:
+    virtual void update() { }
+    void reset() { }
+    virtual ~Widget() = default;
+};
+
+Widget* w = getWidget();
+w->update();  // virtual call
+w->reset();   // non-virtual call`,
+    options: [
+      "An indirect function call through the vtable pointer, plus a possible cache miss",
+      "A full runtime type lookup in a global type registry before each virtual call",
+      "An additional heap allocation is required every time a virtual function is called",
+      "A mutex lock is acquired to ensure thread safety during virtual function dispatch",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A virtual call requires loading the vptr from the object, indexing into the vtable, and calling through the resulting function pointer. This indirection (typically one or two extra memory loads) can cause CPU cache misses. There is no global type registry lookup, heap allocation, or mutex involved in virtual dispatch itself.",
+    link: "https://www.learncpp.com/cpp-tutorial/the-virtual-table/",
+  },
+  {
+    id: 932,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "Given multiple inheritance from two polymorphic bases, how many vptrs does the most-derived object typically contain?",
+    code: `struct A { virtual void f(); };
+struct B { virtual void g(); };
+struct C : A, B { void f() override; void g() override; };
+
+C obj;
+// How many vptrs does obj contain?`,
+    options: [
+      "Exactly one vptr because the compiler merges all vtables into a single dispatch table for efficiency",
+      "Three vptrs -- one for each of A, B, and C -- since every class in the hierarchy gets its own pointer",
+      "Two vptrs -- one for the A subobject and one for the B subobject -- each pointing to its own vtable",
+      "Zero vptrs because the compiler can resolve all calls at compile time via final overriders in C",
+    ],
+    correctIndex: 2,
+    explanation:
+      "In typical implementations, each polymorphic base subobject needs its own vptr. C inherits from both A and B, so the C object contains two vptrs: one at the A subobject offset and one at the B subobject offset. The most-derived class C does not introduce a third vptr; it reuses the A subobject's vptr for its own virtual functions. This is necessary so that a B* pointing into the C object can still dispatch correctly through its own vtable.",
+    link: "https://en.cppreference.com/w/cpp/language/virtual",
+  },
+  {
+    id: 933,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "What does this CRTP (Curiously Recurring Template Pattern) code print, and why does it avoid virtual dispatch?",
+    code: `template <typename Derived>
+struct Base {
+  void interface() {
+    static_cast<Derived*>(this)->impl();
+  }
+};
+
+struct Widget : Base<Widget> {
+  void impl() { std::cout << "Widget"; }
+};
+
+Widget w;
+w.interface();`,
+    options: [
+      "It prints \"Widget\" -- the static_cast resolves the call at compile time so no vtable lookup is needed",
+      "It prints nothing -- Base::interface cannot call impl because impl is not declared virtual in Base",
+      "It causes undefined behavior -- casting this to Derived* is invalid when called from a base method",
+      "It fails to compile -- template parameter Derived is incomplete at the point of the static_cast call",
+    ],
+    correctIndex: 0,
+    explanation:
+      "CRTP achieves compile-time polymorphism by having the base class template parameterized on the derived class. When interface() calls static_cast<Derived*>(this)->impl(), the compiler knows the exact type at compile time and emits a direct call to Widget::impl() with no vtable overhead. The Derived type is complete by the time the member function is instantiated, so the cast is well-defined.",
+    link: "https://en.cppreference.com/w/cpp/language/crtp",
+  },
+  {
+    id: 934,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "What does typeid return for a non-polymorphic type accessed through a base reference versus a polymorphic type?",
+    code: `struct NonPoly { int x; };
+struct DerivedNP : NonPoly {};
+
+struct Poly { virtual ~Poly() = default; };
+struct DerivedP : Poly {};
+
+DerivedNP dnp; NonPoly& rnp = dnp;
+DerivedP dp;   Poly& rp = dp;
+
+bool a = (typeid(rnp) == typeid(DerivedNP));
+bool b = (typeid(rp)  == typeid(DerivedP));`,
+    options: [
+      "a is true, b is true -- typeid always resolves the dynamic type regardless of whether virtuals exist",
+      "a is false, b is true -- without virtual functions typeid uses the static type; with them it uses RTTI",
+      "a is false, b is false -- typeid through a reference always returns the static declared type of the ref",
+      "a is true, b is false -- RTTI is only used for non-polymorphic types to compensate for missing vtables",
+    ],
+    correctIndex: 1,
+    explanation:
+      "For non-polymorphic types, typeid uses the static (declared) type of the expression, so typeid(rnp) yields NonPoly, making a false. For polymorphic types (those with at least one virtual function), typeid uses RTTI to determine the dynamic type at runtime, so typeid(rp) yields DerivedP, making b true. This is why at least one virtual function is needed for dynamic type identification.",
+    link: "https://en.cppreference.com/w/cpp/language/typeid",
+  },
+  {
+    id: 935,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "In the diamond inheritance below using virtual bases, how many Base subobjects does Final contain, and how is the shared base located?",
+    code: `struct Base { int val = 42; virtual void f() {} };
+struct Left  : virtual Base { void f() override {} };
+struct Right : virtual Base { void f() override {} };
+struct Final : Left, Right  { void f() override {} };
+
+Final obj;
+Left*  lp = &obj;
+Right* rp = &obj;
+// Do lp->val and rp->val refer to the same int?`,
+    options: [
+      "Two Base subobjects exist -- virtual inheritance only prevents ambiguity errors but still duplicates data",
+      "One Base subobject exists at a fixed offset from Final known at compile time, like normal inheritance layout",
+      "Two Base subobjects exist but the compiler aliases their memory so writes to one are visible through the other",
+      "One Base subobject exists -- Left and Right locate it at runtime via a vbase pointer or offset in their vtable",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Virtual inheritance ensures exactly one shared Base subobject in Final. Because Left and Right do not know their offset to the shared Base at compile time (it depends on the most-derived class), they use an indirection mechanism -- typically a vbase pointer or an offset stored in the vtable -- to locate the single Base subobject at runtime. Both lp->val and rp->val refer to the same int.",
+    link: "https://en.cppreference.com/w/cpp/language/derived_class",
+  },
+  {
+    id: 936,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "In which scenario can the compiler devirtualize a virtual function call, bypassing the vtable entirely?",
+    code: `struct Base {
+  virtual int compute() { return 1; }
+};
+struct Derived final : Base {
+  int compute() override { return 2; }
+};
+
+void callByValue(Derived d) {
+  int r = d.compute(); // Can this be devirtualized?
+}
+
+void callByRef(Base& b) {
+  int r = b.compute();  // Can this be devirtualized?
+}`,
+    options: [
+      "callByValue can be devirtualized because the exact type is known; callByRef generally cannot without more info",
+      "callByRef can be devirtualized because references always carry type info; callByValue cannot due to slicing",
+      "Neither call can be devirtualized -- the virtual keyword forces vtable dispatch in all circumstances always",
+      "Both calls are always devirtualized -- modern compilers eliminate all vtable lookups as a standard optimization",
+    ],
+    correctIndex: 0,
+    explanation:
+      "In callByValue, the parameter d has the exact type Derived (marked final), so the compiler knows no further overrides exist and can emit a direct call. In callByRef, the reference could point to any class derived from Base, so the compiler must generally use vtable dispatch unless it can prove the dynamic type through other analysis (like seeing the call site). The final keyword on Derived is key -- it guarantees no subclass can override compute().",
+    link: "https://en.cppreference.com/w/cpp/language/final",
+  },
+  {
+    id: 937,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "Why must a pure virtual destructor still have a definition provided, unlike other pure virtual functions?",
+    code: `struct Abstract {
+  virtual ~Abstract() = 0;
+};
+// Abstract::~Abstract() {} // Is this needed?
+
+struct Concrete : Abstract {
+  ~Concrete() override {}
+};
+
+Concrete c; // What happens without the definition?`,
+    options: [
+      "No definition is needed -- the compiler generates a default destructor body for any pure virtual destructor",
+      "The definition is needed only if Abstract has data members that require non-trivial destruction explicitly",
+      "Derived destructors implicitly call the base destructor, so a missing definition causes a linker error",
+      "The definition is optional -- it only matters if someone explicitly calls Abstract::~Abstract() by name",
+    ],
+    correctIndex: 2,
+    explanation:
+      "When Concrete is destroyed, its destructor ~Concrete() automatically chains a call to ~Abstract() as part of the standard destruction sequence. If Abstract::~Abstract() has no definition, this implicit call results in an unresolved symbol at link time. This is unique to destructors because they are always called in the base-to-derived chain during object destruction, unlike other pure virtual functions which are only called if explicitly invoked.",
+    link: "https://en.cppreference.com/w/cpp/language/destructor",
+  },
+  {
+    id: 938,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "What is the primary advantage of using std::variant with std::visit over a traditional virtual-function class hierarchy?",
+    code: `using Shape = std::variant<Circle, Rect, Tri>;
+
+double area(const Shape& s) {
+  return std::visit([](const auto& shape) {
+    return shape.area();
+  }, s);
+}
+
+// vs.
+// struct Shape { virtual double area() const = 0; };
+// struct Circle : Shape { ... };`,
+    options: [
+      "std::visit uses RTTI under the hood making it slower but safer than virtual dispatch for all type sizes",
+      "Values are stored inline with no heap allocation, and dispatch uses a jump table -- avoiding pointer indirection",
+      "std::variant allows unlimited types while virtual hierarchies are capped at a compiler-defined maximum depth",
+      "std::visit calls are always resolved at compile time, making it impossible to add new types at link time",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::variant stores the active alternative inline (no heap allocation), and std::visit typically dispatches through a compiler-generated jump table or switch indexed by the variant's internal type index. This avoids the pointer indirection and cache misses inherent in virtual dispatch through base pointers to heap-allocated objects. The trade-off is a closed set of types -- you cannot add new alternatives without modifying the variant definition and recompiling.",
+    link: "https://en.cppreference.com/w/cpp/utility/variant/visit",
+  },
+  {
+    id: 939,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "Why can't C++ virtual functions provide true multiple dispatch, and what is the standard workaround?",
+    code: `struct Shape { virtual bool intersects(Shape& o) = 0; };
+struct Circle : Shape {
+  bool intersects(Shape& o) override {
+    // Need to know o's dynamic type too!
+    // Single dispatch only resolves 'this'
+  }
+};
+struct Rect : Shape { /* same problem */ };
+// How do we resolve both types?`,
+    options: [
+      "C++ does support multiple dispatch via overload resolution -- you just need to make intersects a free function",
+      "Use virtual inheritance to merge the dispatch tables so the compiler resolves both arguments automatically",
+      "Add RTTI casts inside each override to check the other argument -- this gives true double dispatch natively",
+      "Use the visitor pattern: the second argument calls back a method on the first, resolving both types via two calls",
+    ],
+    correctIndex: 3,
+    explanation:
+      "C++ virtual dispatch only resolves the dynamic type of the object on which the method is called (single dispatch). To dispatch on two dynamic types, the visitor pattern uses two virtual calls: the first call dispatches on 'this', and inside that override, a second virtual call dispatches on the other argument by calling back into it. This two-step process resolves both dynamic types. RTTI with dynamic_cast is fragile and violates the open-closed principle.",
+    link: "https://en.cppreference.com/w/cpp/language/virtual",
+  },
+  {
+    id: 940,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "Can a polymorphic base class (one with virtual functions) benefit from Empty Base Optimization (EBO)?",
+    code: `struct Empty {};
+struct PolyEmpty { virtual ~PolyEmpty() = default; };
+
+struct A : Empty       { int data; };
+struct B : PolyEmpty   { int data; };
+
+// sizeof(Empty) == 1, but sizeof(A) == sizeof(int) via EBO.
+// What about sizeof(B)?`,
+    options: [
+      "No EBO -- a polymorphic base contains a hidden vptr, so it is never truly empty and always adds to the size",
+      "EBO applies -- the compiler removes the vptr when the base has no data members besides the vtable pointer",
+      "EBO applies only if the derived class is also polymorphic and merges vtables with the base class completely",
+      "No EBO -- the standard forbids applying EBO to any base class that has any member functions defined at all",
+    ],
+    correctIndex: 0,
+    explanation:
+      "EBO allows an empty base subobject to occupy zero bytes in the derived class layout. However, a class with virtual functions is never truly empty because it contains a hidden vptr (virtual table pointer) added by the implementation. Since PolyEmpty has sizeof >= sizeof(void*) due to the vptr, it is not an empty class and EBO does not apply. sizeof(B) will be sizeof(void*) + sizeof(int) (plus any padding), larger than sizeof(A).",
+    link: "https://en.cppreference.com/w/cpp/language/ebo",
+  },
+  {
+    id: 941,
+    difficulty: "Hard",
+    topic: "Polymorphism",
+    question:
+      "What happens if a virtual function called during stack unwinding throws a second exception?",
+    code: `struct Resource {
+  virtual void cleanup() { throw std::logic_error("oops"); }
+  ~Resource() noexcept(false) {
+    cleanup(); // virtual call in destructor during unwind
+  }
+};
+
+try {
+  Resource r;
+  throw std::runtime_error("first");
+  // ~Resource() runs during unwinding and cleanup() throws
+} catch (...) { /* ... */ }`,
+    options: [
+      "The second exception replaces the first one and propagation continues normally with the new logic_error",
+      "Both exceptions are stored and can be accessed later through std::current_exception as a chained pair",
+      "The first exception is silently discarded and only the second exception from cleanup() is caught by catch",
+      "std::terminate is called because two exceptions cannot be active simultaneously during stack unwinding",
+    ],
+    correctIndex: 3,
+    explanation:
+      "When an exception is thrown while another exception is already propagating (during stack unwinding), C++ calls std::terminate() immediately. The language does not support multiple simultaneously active exceptions. This is why destructors should be noexcept (the default since C++11) and virtual functions called from destructors must not throw during stack unwinding. Marking the destructor noexcept(false) avoids the implicit noexcept but does not prevent std::terminate.",
+    link: "https://en.cppreference.com/w/cpp/error/terminate",
+  },
+
+  // ── Value Categories (Q942--Q971) ──
+  {
+    id: 942,
+    difficulty: "Easy",
+    topic: "Value Categories",
+    question: "Which best describes an lvalue in C++?",
+    options: [
+      "An expression with a persistent, addressable memory location",
+      "A temporary value that cannot be stored in any variable",
+      "A compile-time constant known before the program runs",
+      "An expression that can only appear on the right of =",
+    ],
+    correctIndex: 0,
+    explanation:
+      "An lvalue is an expression that refers to a persistent object with an identifiable memory location. You can take its address with the & operator and it can appear on the left side of an assignment.",
+    link: "https://en.cppreference.com/w/cpp/language/value_category",
+  },
+  {
+    id: 943,
+    difficulty: "Easy",
+    topic: "Value Categories",
+    question: "Which best describes an rvalue in C++?",
+    options: [
+      "A named variable stored on the heap segment of memory",
+      "An expression that designates a temporary without lasting address",
+      "A pointer to a function that returns an integer value",
+      "A reference that can only bind to const-qualified objects",
+    ],
+    correctIndex: 1,
+    explanation:
+      "An rvalue is a temporary expression that does not have a persistent memory address. Typical rvalues include literals like 42, arithmetic results like (x + 1), and values returned by functions that return by value.",
+    link: "https://en.cppreference.com/w/cpp/language/value_category",
+  },
+  {
+    id: 944,
+    difficulty: "Easy",
+    topic: "Value Categories",
+    question: "What does the following declaration create?",
+    code: `int x = 10;
+int& ref = x;`,
+    options: [
+      "A pointer to x that can be reassigned later on",
+      "An independent copy of x stored at a new address",
+      "An lvalue reference that is an alias for x",
+      "An rvalue reference bound to a temporary value",
+    ],
+    correctIndex: 2,
+    explanation:
+      "int& ref = x; declares an lvalue reference. The variable ref becomes another name (alias) for x. Any modification through ref also changes x, and they share the same address.",
+    link: "https://www.learncpp.com/cpp-tutorial/lvalue-references/",
+  },
+  {
+    id: 945,
+    difficulty: "Easy",
+    topic: "Value Categories",
+    question: "What does the following declaration create?",
+    code: `int&& rref = 42;`,
+    options: [
+      "A const lvalue reference bound to the literal 42",
+      "A pointer that stores the memory address of 42",
+      "A macro alias that replaces rref with 42 at compile time",
+      "An rvalue reference bound to the temporary value 42",
+    ],
+    correctIndex: 3,
+    explanation:
+      "The && syntax declares an rvalue reference. It can bind to temporary (rvalue) expressions like the literal 42. The compiler extends the lifetime of the temporary so rref remains valid.",
+    link: "https://en.cppreference.com/w/cpp/language/reference",
+  },
+  {
+    id: 946,
+    difficulty: "Easy",
+    topic: "Value Categories",
+    question:
+      "What happens if you try to take the address of an rvalue, as in &(x + 1)?",
+    options: [
+      "It causes a compilation error because rvalues have no address",
+      "It creates a new pointer to a heap-allocated copy",
+      "It returns the address of the variable x in memory",
+      "It returns a null pointer since the value is temporary",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Rvalues are temporary expressions without a persistent memory location. The address-of operator (&) requires an lvalue operand, so applying it to an rvalue like (x + 1) causes a compile error.",
+    link: "https://en.cppreference.com/w/cpp/language/value_category",
+  },
+  {
+    id: 947,
+    difficulty: "Easy",
+    topic: "Value Categories",
+    question:
+      "What is the value category of a string literal such as \"hello\" in C++?",
+    options: [
+      "It is an rvalue because literal values are always temporary",
+      "It is an xvalue because literals can be moved from safely",
+      "It is an lvalue because it resides in static storage memory",
+      "It is a prvalue because it produces a new temporary object",
+    ],
+    correctIndex: 2,
+    explanation:
+      "String literals are stored in static memory for the entire duration of the program. Because they occupy a persistent, addressable location, they are classified as lvalues -- unlike numeric literals which are prvalues.",
+    link: "https://en.cppreference.com/w/cpp/language/string_literal",
+  },
+  {
+    id: 948,
+    difficulty: "Easy",
+    topic: "Value Categories",
+    question: "What does std::move(x) return?",
+    options: [
+      "A deep copy of x allocated on the heap memory segment",
+      "A const lvalue reference preventing modification of x",
+      "A nullptr if x has already been moved from previously",
+      "An rvalue reference (xvalue) enabling move semantics on x",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::move does not actually move anything. It performs an unconditional cast of its argument to an rvalue reference (specifically an xvalue). This allows move constructors or move assignment operators to be selected by overload resolution.",
+    link: "https://en.cppreference.com/w/cpp/utility/move",
+  },
+  {
+    id: 949,
+    difficulty: "Easy",
+    topic: "Value Categories",
+    question:
+      "How does a function parameter of type int& differ from one of type int&&?",
+    options: [
+      "int& accepts only lvalues; int&& accepts only rvalues",
+      "int& accepts only rvalues; int&& accepts only lvalues",
+      "int& is for const values; int&& is for mutable values",
+      "There is no difference -- both accept any expression",
+    ],
+    correctIndex: 0,
+    explanation:
+      "An int& parameter (lvalue reference) can only bind to lvalues such as named variables. An int&& parameter (rvalue reference) can only bind to rvalues such as temporaries or expressions cast via std::move.",
+    link: "https://www.learncpp.com/cpp-tutorial/rvalue-references/",
+  },
+  {
+    id: 950,
+    difficulty: "Easy",
+    topic: "Value Categories",
+    question:
+      "Can an rvalue reference parameter bind directly to an lvalue without any cast?",
+    code: `void foo(int&& val);
+int x = 5;
+foo(x); // Does this compile?`,
+    options: [
+      "Yes -- rvalue references can bind to any expression type",
+      "No -- you need std::move(x) to cast the lvalue to rvalue",
+      "Yes -- but only when the lvalue is a non-const integer",
+      "No -- you need static_cast<const int>(x) to convert it",
+    ],
+    correctIndex: 1,
+    explanation:
+      "An rvalue reference cannot bind to an lvalue directly. To pass x to a function expecting int&&, you must cast it using std::move(x), which produces an xvalue that the rvalue reference can bind to.",
+    link: "https://en.cppreference.com/w/cpp/utility/move",
+  },
+  {
+    id: 951,
+    difficulty: "Easy",
+    topic: "Value Categories",
+    question:
+      "What is the value category of the expression f() if f is declared as int f();?",
+    options: [
+      "It is an lvalue because function calls always produce lvalues",
+      "It is a prvalue because the function returns a temporary by value",
+      "It is an xvalue because return values are about to expire soon",
+      "It is an lvalue because the return type int is not a reference",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A function call that returns by value (not by reference) produces a prvalue -- a pure rvalue. The result is a temporary object without a persistent identity. If the function returned int& instead, the result would be an lvalue.",
+    link: "https://en.cppreference.com/w/cpp/language/value_category",
+  },
+  {
+    id: 952,
+    difficulty: "Medium",
+    topic: "Value Categories",
+    question:
+      "In the C++11 value category taxonomy, which two categories together form the set of all glvalues?",
+    code: `// Value category taxonomy:
+//
+//       expression
+//       /       \
+//    glvalue   rvalue
+//    /    \    /    \
+// lvalue  xvalue  prvalue`,
+    options: [
+      "lvalues and xvalues are the two subcategories that compose glvalue",
+      "prvalues and xvalues are the two subcategories that compose glvalue",
+      "lvalues and prvalues are the two subcategories that compose glvalue",
+      "rvalues and prvalues are the two subcategories that compose glvalue",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A glvalue (generalized lvalue) is either an lvalue or an xvalue. An rvalue is either an xvalue or a prvalue. The xvalue category sits at the intersection -- it is both a glvalue and an rvalue. lvalues have identity and cannot be moved from implicitly, while xvalues have identity but are expiring and can be moved from.",
+    link: "https://en.cppreference.com/w/cpp/language/value_category.html",
+  },
+  {
+    id: 953,
+    difficulty: "Medium",
+    topic: "Value Categories",
+    question: "What does std::move actually do at runtime?",
+    code: `std::string a = "hello";
+std::string b = std::move(a);
+// What did std::move do?`,
+    options: [
+      "It performs an unconditional cast to an rvalue reference without moving data",
+      "It transfers ownership of the internal buffer from source to target directly",
+      "It swaps the internal pointers of both objects so each gets the other's data",
+      "It copies the data first then empties the source to simulate a move operation",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::move does not move anything. It is simply a static_cast to T&& (an rvalue reference). The actual move happens when the move constructor or move assignment operator of std::string is invoked with that rvalue reference. std::move just enables the move by changing the value category.",
+    link: "https://en.cppreference.com/w/cpp/utility/move.html",
+  },
+  {
+    id: 954,
+    difficulty: "Medium",
+    topic: "Value Categories",
+    question:
+      "What is the danger of storing an rvalue reference to a temporary object?",
+    code: `std::string&& ref = std::string("temp");
+// ref is valid here -- lifetime extended
+
+std::string&& get() {
+  std::string local = "oops";
+  return std::move(local);
+}
+std::string&& bad = get();
+// What is bad?`,
+    options: [
+      "bad is a compile error because rvalue references cannot bind to moved locals",
+      "bad holds a dangling reference because the local was destroyed when get returned",
+      "bad is valid because std::move transfers ownership out of the function cleanly",
+      "bad is a copy of the local string since the compiler converts moves to copies",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Returning an rvalue reference to a local variable creates a dangling reference. The local is destroyed when the function returns, and the reference now points to freed memory. Lifetime extension only works when binding a temporary directly, not when returning a reference to a local from a function.",
+    link: "https://en.cppreference.com/w/cpp/language/reference_initialization.html",
+  },
+  {
+    id: 955,
+    difficulty: "Medium",
+    topic: "Value Categories",
+    question:
+      "After an object has been moved from using std::move, what state is the moved-from object guaranteed to be in?",
+    code: `std::vector<int> a = {1, 2, 3};
+std::vector<int> b = std::move(a);
+// What can we say about a now?`,
+    options: [
+      "It is always empty with size zero because the standard mandates clearing moved-from containers",
+      "It is in an unspecified state but accessing it without reassigning first is undefined behavior",
+      "It retains its original value because move is just a hint the compiler can ignore freely",
+      "It is in a valid but unspecified state -- safe to destroy or reassign but contents unknown",
+    ],
+    correctIndex: 3,
+    explanation:
+      "The C++ standard requires moved-from objects to be in a valid but unspecified state. This means you can safely destroy the object or assign a new value to it, but you should not rely on its contents. For standard containers, the moved-from container is valid but its size and contents are unspecified.",
+    link: "https://en.cppreference.com/w/cpp/utility/move.html",
+  },
+  {
+    id: 956,
+    difficulty: "Medium",
+    topic: "Value Categories",
+    question:
+      "What problem does std::forward solve in template code with forwarding references?",
+    code: `template<typename T>
+void wrapper(T&& arg) {
+  // Should we pass arg as lvalue or rvalue?
+  inner(std::forward<T>(arg));
+}`,
+    options: [
+      "It prevents template argument deduction from failing when const references are passed in",
+      "It converts any argument to an rvalue reference to guarantee the move constructor is called",
+      "It preserves the value category of the original argument -- forwarding lvalues and rvalues",
+      "It removes const qualifiers from the argument so the inner function can modify it freely",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::forward implements perfect forwarding. Inside a function template, a named parameter is always an lvalue (it has a name). std::forward conditionally casts it back to an rvalue if the original argument was an rvalue. This preserves the original value category, allowing inner() to select the correct overload.",
+    link: "https://en.cppreference.com/w/cpp/utility/forward.html",
+  },
+  {
+    id: 957,
+    difficulty: "Medium",
+    topic: "Value Categories",
+    question:
+      "When is T&& a forwarding (universal) reference rather than an rvalue reference?",
+    code: `template<typename T>
+void foo(T&& x);       // Case A
+
+void bar(std::string&& y); // Case B
+
+auto&& z = getValue(); // Case C`,
+    options: [
+      "Only in Case A because it uses a class type and the other cases use a concrete type parameter",
+      "In Cases A and C because T&& and auto&& both involve type deduction on the reference target",
+      "In all three cases because && always means universal reference regardless of deduction context",
+      "Only in Case B because a concrete type rvalue reference is the true universal reference form",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A forwarding (universal) reference occurs when && is applied to a deduced type -- either a template parameter T&& where T is deduced, or auto&&. In Case A, T is deduced so T&& is a forwarding reference. In Case C, auto&& deduces the type. In Case B, std::string is a concrete type so std::string&& is just a plain rvalue reference.",
+    link: "https://en.cppreference.com/w/cpp/language/reference.html",
+  },
+  {
+    id: 958,
+    difficulty: "Medium",
+    topic: "Value Categories",
+    question:
+      "Under what condition is the compiler allowed to apply Named Return Value Optimization (NRVO)?",
+    code: `Widget makeWidget(bool flag) {
+  Widget a, b;
+  if (flag) return a;
+  else      return b;
+}`,
+    options: [
+      "The compiler can always apply NRVO even when multiple different local variables may be returned",
+      "NRVO cannot apply here because the compiler cannot know which variable to construct in place",
+      "NRVO only applies when the function is marked constexpr and the result is used at compile time",
+      "NRVO is mandatory in C++17 for all named return values so the compiler must optimize this case",
+    ],
+    correctIndex: 1,
+    explanation:
+      "NRVO lets the compiler construct the return value directly in the caller's space, eliminating the copy or move. However, when multiple different local variables might be returned (as with a and b depending on a flag), the compiler typically cannot apply NRVO because it does not know which variable to place in the return slot at construction time.",
+    link: "https://en.cppreference.com/w/cpp/language/copy_elision.html",
+  },
+  {
+    id: 959,
+    difficulty: "Medium",
+    topic: "Value Categories",
+    question:
+      "How does auto&& differ from auto& when deducing the type of a variable?",
+    code: `int x = 42;
+auto& a = x;           // OK
+// auto& b = 42;       // Error
+auto&& c = 42;         // OK
+auto&& d = x;          // OK`,
+    options: [
+      "auto&& always deduces an rvalue reference, while auto& always deduces an lvalue reference to x",
+      "auto&& and auto& are identical in behavior -- both deduce lvalue references in every situation",
+      "auto&& is a forwarding reference -- it deduces lvalue ref for lvalues and rvalue ref for rvalues",
+      "auto&& deduces a const reference automatically, while auto& deduces a non-const reference only",
+    ],
+    correctIndex: 2,
+    explanation:
+      "auto&& is a forwarding reference. When initialized with an lvalue, reference collapsing produces an lvalue reference (auto deduces int&, and int& && collapses to int&). When initialized with an rvalue, auto deduces int, giving int&&. In contrast, auto& always deduces an lvalue reference and cannot bind to rvalues.",
+    link: "https://www.learncpp.com/cpp-tutorial/type-deduction-with-pointers-references-and-const/",
+  },
+  {
+    id: 960,
+    difficulty: "Medium",
+    topic: "Value Categories",
+    question:
+      "When does 'return x;' for a local variable trigger an implicit move instead of a copy?",
+    code: `Widget func() {
+  Widget w;
+  // ... use w ...
+  return w; // copy or move?
+}`,
+    options: [
+      "Only when the programmer writes std::move(w) explicitly -- implicit moves never happen on return",
+      "Only when the Widget class is trivially copyable and the compiler applies copy elision on return",
+      "When copy elision does not apply and the return expression names a local or parameter by value",
+      "When the returned variable was originally declared as an rvalue reference inside the function",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Since C++11, when a return statement names a local variable or by-value parameter eligible for copy elision (even if elision is not performed), the compiler first tries overload resolution as if the expression were an rvalue. If a move constructor is found, it is used instead of copying. In C++20 and later, this implicit move applies even more broadly, including to rvalue reference variables.",
+    link: "https://en.cppreference.com/w/cpp/language/return.html",
+  },
+  {
+    id: 961,
+    difficulty: "Medium",
+    topic: "Value Categories",
+    question:
+      "Given two overloads void process(const std::string&) and void process(std::string&&), which is called here?",
+    code: `std::string name = "Alice";
+process(name);            // Call 1
+process(std::move(name)); // Call 2
+process("Bob");           // Call 3`,
+    options: [
+      "Call 1 uses const&, Call 2 uses &&, and Call 3 uses const& since literals are always lvalues",
+      "All three calls select the const& overload because it can bind to both lvalues and rvalues",
+      "Call 1 uses const&, Call 2 uses &&, and Call 3 uses && after implicit conversion to temporary",
+      "Call 1 uses &&, Call 2 uses const&, and Call 3 uses && because named variables are rvalues",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Call 1 passes an lvalue, so the const& overload wins. Call 2 passes an xvalue (via std::move), so the && overload wins -- rvalue references bind more tightly to rvalues. Call 3 passes a string literal which implicitly constructs a temporary std::string (a prvalue), so the && overload wins. While const& can bind to rvalues, the && overload is a better match.",
+    link: "https://en.cppreference.com/w/cpp/language/overload_resolution.html",
+  },
+  {
+    id: 962,
+    difficulty: "Hard",
+    topic: "Value Categories",
+    question: "Which of these expressions is classified as an xvalue?",
+    code: `struct S { int m; };
+S s;
+S getS();
+
+// (A) s.m
+// (B) getS().m
+// (C) std::move(s)
+// (D) S{}`,
+    options: [
+      "s.m is an xvalue because member access always yields an xvalue",
+      "S{} is an xvalue because it constructs a temporary object on the spot",
+      "std::move(s) is an xvalue because it casts s to an rvalue reference",
+      "getS() is an xvalue because it returns a class type by value here",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::move(s) is equivalent to static_cast<S&&>(s), which produces an xvalue. s.m is an lvalue (member of an lvalue). S{} is a prvalue. getS() is a prvalue (returns by value). However, getS().m is an xvalue -- member access on an rvalue. The question asks about std::move(s) specifically, which is the classic xvalue example.",
+    link: "https://en.cppreference.com/w/cpp/language/value_category",
+  },
+  {
+    id: 963,
+    difficulty: "Hard",
+    topic: "Value Categories",
+    question: "In C++17, when does prvalue materialization occur in this code?",
+    code: `struct Widget {
+    Widget() { std::cout << "C"; }
+    Widget(const Widget&) { std::cout << "CC"; }
+};
+
+const Widget& ref = Widget();`,
+    options: [
+      "A temporary is materialized when the prvalue is bound to ref",
+      "A temporary is created first, then copied into the reference slot",
+      "No temporary is ever materialized because of mandatory elision",
+      "The prvalue is stored directly in ref without materialization",
+    ],
+    correctIndex: 0,
+    explanation:
+      "In C++17, prvalues are not objects -- they are initializations waiting to happen. When a prvalue is bound to a reference (const Widget& ref = Widget()), temporary materialization occurs: a temporary object is created from the prvalue. No copy or move constructor is invoked. Only the default constructor prints \"C\". This is distinct from copy elision -- it is a separate mechanism called temporary materialization conversion.",
+    link: "https://en.cppreference.com/w/cpp/language/implicit_conversion#Temporary_materialization",
+  },
+  {
+    id: 964,
+    difficulty: "Hard",
+    topic: "Value Categories",
+    question:
+      "Under C++17 mandatory copy elision, how many times is a constructor called?",
+    code: `struct Obj {
+    Obj() { std::cout << "D"; }
+    Obj(const Obj&) { std::cout << "C"; }
+    Obj(Obj&&) { std::cout << "M"; }
+};
+
+Obj makeObj() { return Obj(); }
+Obj x = makeObj();`,
+    options: [
+      "Three constructors are called: default, then move, then move again",
+      "Two constructors called: default in makeObj, then move into x",
+      "Two constructors called: default in makeObj, then copy into x here",
+      "One constructor called: only the default constructor, printing \"D\"",
+    ],
+    correctIndex: 3,
+    explanation:
+      "In C++17, mandatory copy elision means prvalues are not objects until they need to be. Obj() is a prvalue, and return Obj() does not materialize it -- it propagates the prvalue to the caller. Obj x = makeObj() initializes x directly from the prvalue. No move or copy constructor is ever called. Only the default constructor fires once, printing just \"D\".",
+    link: "https://en.cppreference.com/w/cpp/language/copy_elision",
+  },
+  {
+    id: 965,
+    difficulty: "Hard",
+    topic: "Value Categories",
+    question:
+      "What type does T resolve to after reference collapsing in this template instantiation?",
+    code: `template<typename T>
+void foo(T&& param);
+
+int x = 42;
+foo(x);  // What is T deduced as?
+
+// After deduction, the parameter type T&& becomes what?`,
+    options: [
+      "T is deduced as int, so T&& is int&& (an rvalue reference to int)",
+      "T is deduced as int&, so T&& collapses to int& (lvalue reference)",
+      "T is deduced as int&&, and T&& becomes int&&&& which is invalid",
+      "T is deduced as const int&, so T&& collapses to const int& here",
+    ],
+    correctIndex: 1,
+    explanation:
+      "When an lvalue of type int is passed to a forwarding reference T&&, template argument deduction deduces T as int&. Then the parameter type becomes int& && which, by the reference collapsing rules, collapses to int&. The rule is: if either reference is an lvalue reference, the result is an lvalue reference. Only T&& && produces T&&.",
+    link: "https://en.cppreference.com/w/cpp/language/reference#Reference_collapsing",
+  },
+  {
+    id: 966,
+    difficulty: "Hard",
+    topic: "Value Categories",
+    question: "What types do decltype(x) and decltype((x)) deduce here?",
+    code: `int x = 10;
+
+using A = decltype(x);
+using B = decltype((x));
+
+// What are A and B?`,
+    options: [
+      "A is int, B is int& because (x) is an lvalue expression",
+      "A is int&, B is int because parentheses strip the reference",
+      "A is int, B is int because the parentheses have no effect here",
+      "A is int&, B is int& because x is always an lvalue expression",
+    ],
+    correctIndex: 0,
+    explanation:
+      "decltype(x) where x is the unparenthesized name of a variable yields the declared type, which is int. But decltype((x)) treats (x) as an expression, not a variable name. Since (x) is an lvalue expression of type int, decltype yields int&. This is a critical distinction: decltype on an id-expression gives the declared type, while decltype on any other expression gives a type qualified by value category (lvalue yields T&, xvalue yields T&&, prvalue yields T).",
+    link: "https://en.cppreference.com/w/cpp/language/decltype",
+  },
+  {
+    id: 967,
+    difficulty: "Hard",
+    topic: "Value Categories",
+    question: "What happens to the temporary's lifetime in this code?",
+    code: `struct Data { int val; };
+Data makeData() { return Data{42}; }
+
+const int& ref = makeData().val;
+std::cout << ref;`,
+    options: [
+      "Prints 42 because const& extends the temporary Data object lifetime",
+      "Prints 42 because .val copies the int out of the temporary object",
+      "Prints 0 because the Data temporary is value-initialized by default",
+      "Undefined behavior -- binding ref to a subobject does not extend it",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Binding a const reference to a member of a temporary does not extend the temporary's lifetime. The temporary Data returned by makeData() is destroyed at the end of the full expression. The reference ref then dangles. Accessing ref is undefined behavior. Lifetime extension only applies when a reference is bound directly to a temporary, not to a subobject or member of a temporary (prior to C++23, which fixes this specific case).",
+    link: "https://en.cppreference.com/w/cpp/language/reference_initialization#Lifetime_of_a_temporary",
+  },
+  {
+    id: 968,
+    difficulty: "Hard",
+    topic: "Value Categories",
+    question:
+      "How does std::forward preserve value category using reference collapsing?",
+    code: `template<typename T>
+T&& forward(std::remove_reference_t<T>& arg) {
+    return static_cast<T&&>(arg);
+}
+
+// When T = int&, what does static_cast<T&&>(arg) produce?`,
+    options: [
+      "It produces int&& because T&& always creates an rvalue reference",
+      "It produces int& because int& && collapses to int& via the rules",
+      "It produces int because the reference is stripped by the cast here",
+      "It produces const int& because forward adds const qualification",
+    ],
+    correctIndex: 1,
+    explanation:
+      "When T is deduced as int& (because an lvalue was passed), T&& becomes int& && which collapses to int& by the reference collapsing rules. So static_cast<int&>(arg) returns an lvalue reference, preserving the lvalue category. When T is deduced as int (because an rvalue was passed), T&& is simply int&&, and the cast produces an rvalue reference. This is how std::forward conditionally casts to an rvalue only when the original argument was an rvalue.",
+    link: "https://en.cppreference.com/w/cpp/utility/forward",
+  },
+  {
+    id: 969,
+    difficulty: "Hard",
+    topic: "Value Categories",
+    question:
+      "Why does std::vector use copy instead of move when the move constructor is not noexcept?",
+    code: `struct Item {
+    Item() = default;
+    Item(const Item&) { /* copy */ }
+    Item(Item&&) { /* move, not noexcept */ }
+};
+
+std::vector<Item> v;
+v.push_back(Item());
+v.push_back(Item());  // reallocation happens here`,
+    options: [
+      "The vector always copies on reallocation regardless of noexcept status",
+      "The standard forbids move constructors that can throw any exceptions",
+      "If move throws mid-reallocation, already-moved elements cannot be restored",
+      "The compiler optimizes away the move and uses placement new copies instead",
+    ],
+    correctIndex: 2,
+    explanation:
+      "When vector reallocates, it needs to transfer existing elements to the new buffer. If it used move and the move constructor threw after some elements were already moved, those elements would be in a moved-from state in the old buffer -- the strong exception guarantee would be violated. By using copy, if an exception occurs, the old buffer is still intact. std::move_if_noexcept is used internally to choose copy when move is not noexcept.",
+    link: "https://en.cppreference.com/w/cpp/utility/move_if_noexcept",
+  },
+  {
+    id: 970,
+    difficulty: "Hard",
+    topic: "Value Categories",
+    question:
+      "What is the value category of the expression returned by this function, and why is it dangerous?",
+    code: `int&& dangerous() {
+    int local = 42;
+    return std::move(local);
+}
+
+int&& ref = dangerous();
+std::cout << ref;`,
+    options: [
+      "The result is a prvalue so a copy of local is made, which is safe",
+      "The result is an lvalue since the caller binds it to a named variable",
+      "The result is a prvalue and mandatory elision avoids the dangling ref",
+      "The result is an xvalue, and ref dangles because local is destroyed",
+    ],
+    correctIndex: 3,
+    explanation:
+      "A function call whose return type is an rvalue reference (T&&) produces an xvalue. Here, dangerous() returns int&&, which is an xvalue. However, it returns a reference to a local variable that is destroyed when the function returns. The reference ref binds to a destroyed object, resulting in undefined behavior. Returning rvalue references to local variables is almost always a bug -- unlike returning by value, no copy or move occurs.",
+    link: "https://en.cppreference.com/w/cpp/language/value_category",
+  },
+  {
+    id: 971,
+    difficulty: "Hard",
+    topic: "Value Categories",
+    question:
+      "How are *p, p[0], and static_cast<int&&>(x) classified by value category?",
+    code: `int x = 10;
+int* p = &x;
+
+auto& a = *p;                       // expression: *p
+auto& b = p[0];                     // expression: p[0]
+int&& c = static_cast<int&&>(x);    // expression: static_cast<int&&>(x)`,
+    options: [
+      "*p is lvalue, p[0] is lvalue, and static_cast<int&&>(x) is an xvalue",
+      "*p is lvalue, p[0] is prvalue, static_cast<int&&>(x) is an xvalue",
+      "*p is xvalue, p[0] is lvalue, static_cast<int&&>(x) is a prvalue",
+      "*p is lvalue, p[0] is lvalue, and static_cast<int&&>(x) is prvalue",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The indirection operator *p yields an lvalue because it refers to an object in memory. The subscript operator p[0] is defined as *(p+0), which is also an lvalue for the same reason. A static_cast to an rvalue reference type (int&&) produces an xvalue -- this is the same mechanism that std::move uses internally. So the classification is: *p = lvalue, p[0] = lvalue, static_cast<int&&>(x) = xvalue.",
+    link: "https://en.cppreference.com/w/cpp/language/value_category",
+  },
+
+  // ── Code Reading (Q972--Q1001) ──
+  {
+    id: 972,
+    difficulty: "Easy",
+    topic: "Code Reading",
+    question:
+      "What does this code print? Pay close attention to the condition inside the if statement.",
+    code: `#include <iostream>
+int main() {
+    int x = 3;
+    if (x = 5) {
+        std::cout << x;
+    } else {
+        std::cout << 0;
+    }
+    return 0;
+}`,
+    options: [
+      "5 -- the assignment sets x to 5, which is truthy",
+      "3 -- the original value of x is preserved here",
+      "0 -- the condition evaluates to false so else runs",
+      "Compilation error -- assignment inside if is invalid",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The condition uses = (assignment) not == (comparison). The expression x = 5 assigns 5 to x and evaluates to 5, which is truthy. So the if-branch runs and prints 5.",
+    link: "https://www.learncpp.com/cpp-tutorial/if-statements-and-blocks/",
+  },
+  {
+    id: 973,
+    difficulty: "Easy",
+    topic: "Code Reading",
+    question: "After this loop finishes, what is the value of the variable `count`?",
+    code: `#include <iostream>
+int main() {
+    int count = 0;
+    for (int i = 0; i < 5; i++) {
+        count += 2;
+    }
+    std::cout << count;
+    return 0;
+}`,
+    options: [
+      "5 -- the loop runs five times adding 1 each time",
+      "8 -- the loop runs four times adding 2 each time",
+      "10 -- the loop runs five times adding 2 each time",
+      "12 -- the loop runs six times adding 2 each time",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The loop runs with i = 0, 1, 2, 3, 4, which is exactly 5 iterations. Each iteration adds 2 to count, so count = 0 + 2*5 = 10.",
+    link: "https://www.learncpp.com/cpp-tutorial/for-statements/",
+  },
+  {
+    id: 974,
+    difficulty: "Easy",
+    topic: "Code Reading",
+    question: "What values of a and b are printed after the function call?",
+    code: `#include <iostream>
+void modify(int x, int& y) {
+    x = 10;
+    y = 20;
+}
+int main() {
+    int a = 1, b = 2;
+    modify(a, b);
+    std::cout << a << " " << b;
+    return 0;
+}`,
+    options: [
+      "10 20 -- both parameters are modified by the function",
+      "1 20 -- only the reference parameter b is changed",
+      "1 2 -- neither value is changed after the function call",
+      "10 2 -- only the first parameter a gets modified here",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Parameter x is passed by value, so modifying x inside the function does not affect a. Parameter y is passed by reference, so modifying y changes b directly. The output is 1 20.",
+    link: "https://www.learncpp.com/cpp-tutorial/pass-by-lvalue-reference/",
+  },
+  {
+    id: 975,
+    difficulty: "Easy",
+    topic: "Code Reading",
+    question: "What does this code print when accessing the array element?",
+    code: `#include <iostream>
+int main() {
+    int arr[] = {10, 20, 30, 40, 50};
+    std::cout << arr[3];
+    return 0;
+}`,
+    options: [
+      "30 -- index 3 means the third element in the array",
+      "10 -- array indexing starts at the first element here",
+      "50 -- index 3 refers to the last accessible element",
+      "40 -- index 3 is the fourth element since arrays start at 0",
+    ],
+    correctIndex: 3,
+    explanation:
+      "C++ arrays use zero-based indexing. arr[0] is 10, arr[1] is 20, arr[2] is 30, and arr[3] is 40. So the output is 40.",
+    link: "https://www.learncpp.com/cpp-tutorial/arrays-part-i/",
+  },
+  {
+    id: 976,
+    difficulty: "Easy",
+    topic: "Code Reading",
+    question: "What string does this code print to the console?",
+    code: `#include <iostream>
+#include <string>
+int main() {
+    std::string a = "Hello";
+    std::string b = " World";
+    std::string c = a + b + "!";
+    std::cout << c;
+    return 0;
+}`,
+    options: [
+      "Hello -- only the first string is stored in variable c",
+      "Hello World -- the exclamation mark is dropped from output",
+      "Hello World! -- all three parts are concatenated together",
+      "Error -- you cannot concatenate strings with the + operator",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The + operator on std::string performs concatenation. It joins \"Hello\", \" World\", and \"!\" into a single string \"Hello World!\", which is then printed.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-stdstring/",
+  },
+  {
+    id: 977,
+    difficulty: "Easy",
+    topic: "Code Reading",
+    question:
+      "What does this switch statement print? Watch for missing break statements.",
+    code: `#include <iostream>
+int main() {
+    int val = 2;
+    switch (val) {
+        case 1: std::cout << "A";
+        case 2: std::cout << "B";
+        case 3: std::cout << "C";
+        default: std::cout << "D";
+    }
+    return 0;
+}`,
+    options: [
+      "BCD -- fall-through causes cases 2, 3, and default to run",
+      "B -- only the matching case 2 runs and then exits switch",
+      "ABCD -- all cases always execute regardless of the value",
+      "BD -- it prints the matching case then skips to default",
+    ],
+    correctIndex: 0,
+    explanation:
+      "When val matches case 2, execution starts there and falls through all subsequent cases because there are no break statements. So it prints B, then C, then D, giving BCD.",
+    link: "https://www.learncpp.com/cpp-tutorial/switch-statement-basics/",
+  },
+  {
+    id: 978,
+    difficulty: "Easy",
+    topic: "Code Reading",
+    question:
+      "What value is assigned to the variable `result` by this ternary expression?",
+    code: `#include <iostream>
+int main() {
+    int x = 7;
+    int result = (x > 10) ? 100 : 200;
+    std::cout << result;
+    return 0;
+}`,
+    options: [
+      "100 -- the condition x > 10 evaluates to true for x = 7",
+      "7 -- the ternary operator returns the value of x itself",
+      "10 -- the ternary returns the comparison threshold value",
+      "200 -- the condition is false so the second branch is taken",
+    ],
+    correctIndex: 3,
+    explanation:
+      "The condition x > 10 is false because x is 7. When the condition is false, the ternary operator returns the value after the colon, which is 200.",
+    link: "https://www.learncpp.com/cpp-tutorial/the-conditional-operator/",
+  },
+  {
+    id: 979,
+    difficulty: "Easy",
+    topic: "Code Reading",
+    question:
+      "What does this code print? Pay attention to prefix vs postfix increment.",
+    code: `#include <iostream>
+int main() {
+    int a = 5;
+    int b = a++;
+    int c = ++a;
+    std::cout << b << " " << c;
+    return 0;
+}`,
+    options: [
+      "6 6 -- both increments produce the same result value",
+      "5 7 -- postfix returns old value, prefix returns new value",
+      "6 7 -- postfix returns new value, prefix returns new value",
+      "5 6 -- postfix returns old value, prefix returns old value",
+    ],
+    correctIndex: 1,
+    explanation:
+      "a++ (postfix) returns the original value of a (5) then increments a to 6. So b = 5. Then ++a (prefix) increments a from 6 to 7 and returns the new value. So c = 7. Output is 5 7.",
+    link: "https://www.learncpp.com/cpp-tutorial/increment-decrement-operators-and-side-effects/",
+  },
+  {
+    id: 980,
+    difficulty: "Easy",
+    topic: "Code Reading",
+    question:
+      "What does this code print? Consider how short-circuit evaluation works with the logical AND operator.",
+    code: `#include <iostream>
+int main() {
+    int x = 0;
+    if (x != 0 && (10 / x) > 1) {
+        std::cout << "Yes";
+    } else {
+        std::cout << "No";
+    }
+    return 0;
+}`,
+    options: [
+      "No -- x is 0 so the first condition is false and && short-circuits",
+      "Yes -- the division evaluates successfully and the result is true",
+      "Runtime error -- division by zero crashes the running program here",
+      "Compilation error -- dividing by a variable set to zero is invalid",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Since x is 0, the left side of && (x != 0) is false. With short-circuit evaluation, the right side (10 / x) is never evaluated, avoiding a division by zero. The else branch runs, printing No.",
+    link: "https://www.learncpp.com/cpp-tutorial/logical-operators/",
+  },
+  {
+    id: 981,
+    difficulty: "Easy",
+    topic: "Code Reading",
+    question: "What does this code print when calling getValue() on the object?",
+    code: `#include <iostream>
+class Counter {
+    int count;
+public:
+    Counter(int c) : count(c) {}
+    int getValue() { return count; }
+};
+int main() {
+    Counter obj(42);
+    std::cout << obj.getValue();
+    return 0;
+}`,
+    options: [
+      "A garbage value -- count is uninitialized in the object",
+      "0 -- all class member variables default to zero in C++ code",
+      "42 -- the constructor initializes count to the passed argument",
+      "Compilation error -- getValue cannot access the private member",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The constructor Counter(int c) uses an initializer list to set count to 42. The method getValue() is a public member function that can access private members of its own class, so it returns 42.",
+    link: "https://www.learncpp.com/cpp-tutorial/constructors/",
+  },
+  {
+    id: 982,
+    difficulty: "Medium",
+    topic: "Code Reading",
+    question: "What does this program print?",
+    code: `#include <iostream>
+using namespace std;
+
+int main() {
+    int arr[] = {10, 20, 30, 40, 50};
+    int* ptr = arr;
+    cout << *(ptr + 2) << " " << *(ptr + 4);
+    return 0;
+}`,
+    options: [
+      "20 40 -- ptr+2 skips two bytes from the start of the array",
+      "10 30 -- pointer arithmetic starts from index 1 in arrays",
+      "30 50 -- ptr+2 advances two int-sized steps to index 2",
+      "30 40 -- ptr+4 wraps around to the fourth byte in memory",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Pointer arithmetic on int* advances by sizeof(int) per step. ptr points to arr[0] which is 10. ptr+2 points to arr[2] which is 30, and ptr+4 points to arr[4] which is 50. So the output is \"30 50\".",
+    link: "https://en.cppreference.com/w/cpp/language/operator_arithmetic.html",
+  },
+  {
+    id: 983,
+    difficulty: "Medium",
+    topic: "Code Reading",
+    question: "What does this program print when run?",
+    code: `#include <iostream>
+using namespace std;
+
+class Animal {
+public:
+    virtual void speak() { cout << "Animal"; }
+    virtual ~Animal() = default;
+};
+
+class Dog : public Animal {
+public:
+    void speak() override { cout << "Woof"; }
+};
+
+class Cat : public Animal {
+public:
+    void speak() override { cout << "Meow"; }
+};
+
+int main() {
+    Animal* pet = new Cat();
+    pet->speak();
+    delete pet;
+    return 0;
+}`,
+    options: [
+      "It prints \"Animal\" because the pointer type is Animal*",
+      "It prints \"Meow\" because virtual dispatch uses the Cat vtable",
+      "It prints \"Woof\" because Dog is declared before Cat in code",
+      "It causes undefined behavior due to the base pointer type",
+    ],
+    correctIndex: 1,
+    explanation:
+      "The pointer pet has static type Animal* but points to a Cat object. Because speak() is virtual, the call pet->speak() uses dynamic dispatch through the vtable of the actual object (Cat), so Cat::speak() runs and prints \"Meow\".",
+    link: "https://www.learncpp.com/cpp-tutorial/virtual-functions/",
+  },
+  {
+    id: 984,
+    difficulty: "Medium",
+    topic: "Code Reading",
+    question: "How many times is the copy constructor called in this program?",
+    code: `#include <iostream>
+using namespace std;
+
+class Box {
+public:
+    int val;
+    Box(int v) : val(v) { cout << "Ctor "; }
+    Box(const Box& o) : val(o.val) { cout << "Copy "; }
+    Box& operator=(const Box& o) {
+        val = o.val;
+        cout << "Assign ";
+        return *this;
+    }
+};
+
+int main() {
+    Box a(5);
+    Box b = a;
+    Box c(10);
+    c = a;
+    return 0;
+}`,
+    options: [
+      "Exactly once -- only \"Box b = a\" calls the copy constructor",
+      "Exactly twice -- both \"Box b = a\" and \"c = a\" use copy ctor",
+      "Zero times -- all three lines use the regular constructor only",
+      "Exactly three times -- each line involving a triggers a copy",
+    ],
+    correctIndex: 0,
+    explanation:
+      "\"Box a(5)\" calls the regular constructor. \"Box b = a\" is copy-initialization and calls the copy constructor (once). \"Box c(10)\" calls the regular constructor. \"c = a\" calls the assignment operator, not the copy constructor. Output: \"Ctor Copy Ctor Assign\". The copy constructor is called exactly once.",
+    link: "https://en.cppreference.com/w/cpp/language/copy_constructor.html",
+  },
+  {
+    id: 985,
+    difficulty: "Medium",
+    topic: "Code Reading",
+    question: "What values does this program print?",
+    code: `#include <iostream>
+using namespace std;
+
+int main() {
+    int x = 10;
+    int y = 20;
+    auto byVal = [x, y]() { return x + y; };
+    auto byRef = [&x, &y]() { return x + y; };
+    x = 100;
+    y = 200;
+    cout << byVal() << " " << byRef();
+    return 0;
+}`,
+    options: [
+      "100 200 -- both lambdas see the updated values of x and y",
+      "30 300 -- byVal sees a copy, but byRef uses current memory",
+      "30 30 -- both lambdas captured the values at creation time",
+      "30 300 -- byVal captured copies at creation, byRef sees updates",
+    ],
+    correctIndex: 3,
+    explanation:
+      "The byVal lambda captures x and y by value at the time of creation, so it holds copies of 10 and 20 and returns 30. The byRef lambda captures x and y by reference, so after x=100 and y=200, it returns 300. The output is \"30 300\".",
+    link: "https://en.cppreference.com/w/cpp/language/lambda.html",
+  },
+  {
+    id: 986,
+    difficulty: "Medium",
+    topic: "Code Reading",
+    question: "What does this program print?",
+    code: `#include <iostream>
+using namespace std;
+
+int counter() {
+    static int count = 0;
+    count += 5;
+    return count;
+}
+
+int main() {
+    cout << counter() << " ";
+    cout << counter() << " ";
+    cout << counter();
+    return 0;
+}`,
+    options: [
+      "5 5 5 -- static just limits visibility, resets each call",
+      "5 10 15 -- the static local persists between function calls",
+      "0 5 10 -- count is returned before the increment each time",
+      "5 25 125 -- static variables multiply instead of adding here",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A static local variable is initialized only once and retains its value between calls. The first call sets count from 0 to 5 and returns 5. The second call adds 5 to get 10. The third call adds 5 to get 15. Output: \"5 10 15\".",
+    link: "https://en.cppreference.com/w/cpp/language/storage_duration.html",
+  },
+  {
+    id: 987,
+    difficulty: "Medium",
+    topic: "Code Reading",
+    question: "What does this program print?",
+    code: `#include <iostream>
+using namespace std;
+
+int main() {
+    int arr[] = {10, 20, 30, 40};
+    int* p = arr;
+    cout << *p++ << " ";
+    cout << *p++ << " ";
+    cout << *p;
+    return 0;
+}`,
+    options: [
+      "10 20 30 -- *p++ dereferences p first, then advances p",
+      "11 21 31 -- the ++ increments the pointed-to value by one",
+      "20 30 40 -- p++ advances the pointer before dereferencing it",
+      "10 20 40 -- the second ++ skips an element in the array",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The expression *p++ is parsed as *(p++) due to operator precedence. Postfix ++ returns the original pointer value, so * dereferences the old position. Then p advances. First call: dereference arr[0]=10, p moves to arr[1]. Second: dereference arr[1]=20, p moves to arr[2]. Third: dereference arr[2]=30. Output: \"10 20 30\".",
+    link: "https://en.cppreference.com/w/cpp/language/operator_incdec.html",
+  },
+  {
+    id: 988,
+    difficulty: "Medium",
+    topic: "Code Reading",
+    question: "What does this program print?",
+    code: `#include <iostream>
+#include <vector>
+using namespace std;
+
+int main() {
+    vector<int> v = {1, 2, 3, 4, 5};
+    for (auto x : v) {
+        x *= 10;
+    }
+    for (auto& x : v) {
+        x += 1;
+    }
+    cout << v[0] << " " << v[2] << " " << v[4];
+    return 0;
+}`,
+    options: [
+      "10 30 50 -- the first loop multiplied all values by ten",
+      "11 31 51 -- both loops modified the vector's stored values",
+      "2 4 6 -- only the second loop modified the actual elements",
+      "1 3 5 -- neither loop can modify the original vector data",
+    ],
+    correctIndex: 2,
+    explanation:
+      "In the first loop, \"auto x\" creates a copy of each element, so x *= 10 modifies only the local copy -- the vector is unchanged. In the second loop, \"auto& x\" is a reference to each element, so x += 1 modifies the vector in place. The vector becomes {2, 3, 4, 5, 6}. Output: \"2 4 6\".",
+    link: "https://en.cppreference.com/w/cpp/language/range-for.html",
+  },
+  {
+    id: 989,
+    difficulty: "Medium",
+    topic: "Code Reading",
+    question: "Does this code compile and run? If so, what does it print?",
+    code: `#include <iostream>
+#include <string>
+using namespace std;
+
+string greet() {
+    return "Hello, World!";
+}
+
+int main() {
+    const string& msg = greet();
+    cout << msg;
+    return 0;
+}`,
+    options: [
+      "It fails to compile -- cannot bind a reference to a temporary",
+      "It compiles but crashes at runtime due to a dangling reference",
+      "It compiles and prints garbage because the temporary is destroyed",
+      "It compiles and prints \"Hello, World!\" -- const ref extends lifetime",
+    ],
+    correctIndex: 3,
+    explanation:
+      "In C++, binding a const lvalue reference to a temporary extends the lifetime of that temporary to match the lifetime of the reference. So the string returned by greet() lives as long as msg does, and the program safely prints \"Hello, World!\".",
+    link: "https://en.cppreference.com/w/cpp/language/reference_initialization.html",
+  },
+  {
+    id: 990,
+    difficulty: "Medium",
+    topic: "Code Reading",
+    question: "What does this program print?",
+    code: `#include <iostream>
+using namespace std;
+
+int main() {
+    int result = 0;
+    for (int i = 0; i < 3; i++) {
+        for (int j = 0; j < 3; j++) {
+            if (j == 1) break;
+            result += 1;
+        }
+    }
+    cout << result;
+    return 0;
+}`,
+    options: [
+      "3 -- break exits the inner loop only, outer runs all 3 times",
+      "1 -- break exits both loops after the very first j==1 check",
+      "6 -- break has no effect because j is incremented beforehand",
+      "9 -- the if condition is never true so break never executes",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The break statement exits only the innermost loop it appears in. For each iteration of i (0,1,2), the inner loop starts with j=0, increments result by 1, then when j=1 the break exits the inner loop. So the inner loop adds 1 per outer iteration. 3 outer iterations gives result = 3.",
+    link: "https://en.cppreference.com/w/cpp/language/break.html",
+  },
+  {
+    id: 991,
+    difficulty: "Medium",
+    topic: "Code Reading",
+    question: "What type does the compiler deduce for the variable result?",
+    code: `#include <iostream>
+#include <string>
+using namespace std;
+
+template <typename T, typename U>
+auto add(T a, U b) -> decltype(a + b) {
+    return a + b;
+}
+
+int main() {
+    auto result = add(3, 4.5);
+    cout << result;
+    return 0;
+}`,
+    options: [
+      "int -- the first argument is int so the return type matches it",
+      "long -- adding int and double promotes the result to long type",
+      "double -- int + double promotes to double via usual conversions",
+      "float -- mixed arithmetic with a decimal defaults to float type",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The trailing return type decltype(a + b) with a being int and b being double yields double, because the usual arithmetic conversions promote int to double when added to double. So result is deduced as double, and the program prints 7.5.",
+    link: "https://en.cppreference.com/w/cpp/language/template_argument_deduction.html",
+  },
+  {
+    id: 992,
+    difficulty: "Hard",
+    topic: "Code Reading",
+    question:
+      "What does this program print when a Derived object is passed by value to a function taking a Base parameter?",
+    code: `#include <iostream>
+struct Base {
+  virtual std::string name() { return "Base"; }
+};
+struct Derived : Base {
+  std::string name() override { return "Derived"; }
+};
+
+void print(Base b) {
+  std::cout << b.name();
+}
+
+int main() {
+  Derived d;
+  print(d);
+}`,
+    options: [
+      "It prints \"Base\" because the Derived part is sliced off when d is copied into the Base parameter by value",
+      "It prints \"Derived\" because the virtual dispatch still resolves to the overridden method in the copy",
+      "It causes undefined behavior because the vtable pointer is invalidated during the copy from Derived to Base",
+      "It fails to compile because a Derived object cannot be implicitly converted to a Base value parameter",
+    ],
+    correctIndex: 0,
+    explanation:
+      "When a Derived object is passed by value to a function expecting a Base, object slicing occurs. The copy constructor of Base is invoked, creating a pure Base object. The Derived portion -- including the overridden virtual function dispatch -- is lost. The resulting object's vtable points to Base's vtable, so b.name() calls Base::name() and prints \"Base\". This is a classic pitfall of passing polymorphic objects by value instead of by reference or pointer.",
+    link: "https://www.learncpp.com/cpp-tutorial/object-slicing/",
+  },
+  {
+    id: 993,
+    difficulty: "Hard",
+    topic: "Code Reading",
+    question:
+      "What order of destructor calls does this program print when main returns?",
+    code: `#include <iostream>
+struct Obj {
+  char c;
+  Obj(char ch) : c(ch) { std::cout << "+" << c; }
+  ~Obj() { std::cout << "-" << c; }
+};
+
+int main() {
+  Obj a('A');
+  Obj b('B');
+  Obj c('C');
+}`,
+    options: [
+      "It prints +A+B+C-A-B-C because objects are destroyed in the same order they were constructed",
+      "It prints +A+B+C-B-A-C because the middle object is destroyed first then outward in both directions",
+      "The destruction order is unspecified by the standard and may vary between different compiler vendors",
+      "It prints +A+B+C-C-B-A because local objects are destroyed in reverse order of their construction",
+    ],
+    correctIndex: 3,
+    explanation:
+      "The C++ standard requires that local objects with automatic storage duration are destroyed in the reverse order of their construction. Objects a, b, and c are constructed in that order, so the construction output is +A+B+C. When main returns, c is destroyed first, then b, then a, producing -C-B-A. The full output is +A+B+C-C-B-A. This reverse destruction order is guaranteed and ensures that objects constructed later (which might depend on earlier ones) are cleaned up first.",
+    link: "https://en.cppreference.com/w/cpp/language/destructor",
+  },
+  {
+    id: 994,
+    difficulty: "Hard",
+    topic: "Code Reading",
+    question:
+      "What can happen when this program is compiled with optimizations enabled?",
+    code: `#include <iostream>
+#include <climits>
+
+int main() {
+  int x = INT_MAX;
+  if (x + 1 > x) {
+    std::cout << "overflow detected";
+  } else {
+    std::cout << "no overflow";
+  }
+}`,
+    options: [
+      "It always prints \"no overflow\" because INT_MAX + 1 wraps to INT_MIN which is less than INT_MAX",
+      "It always prints \"overflow detected\" because the comparison is always true for any finite integer x",
+      "It prints \"overflow detected\" because the optimizer assumes signed overflow cannot happen and removes the else",
+      "It fails to compile because the compiler detects the guaranteed signed overflow at compile time as an error",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Signed integer overflow is undefined behavior in C++. The compiler is allowed to assume it never happens. With optimizations, the compiler reasons: for any valid int x, x + 1 > x is always true (since overflow \"cannot\" occur). It therefore optimizes away the else branch entirely and always executes the if branch, printing \"overflow detected\". This is a well-known consequence of UB-based optimization. Without optimizations, wrapping might occur on two's complement hardware, but relying on that is non-portable.",
+    link: "https://en.cppreference.com/w/cpp/language/ub",
+  },
+  {
+    id: 995,
+    difficulty: "Hard",
+    topic: "Code Reading",
+    question:
+      "What does this program print, and does std::move on a const object actually perform a move?",
+    code: `#include <iostream>
+#include <string>
+
+void take(std::string s) {
+  std::cout << s;
+}
+
+int main() {
+  const std::string msg = "hello";
+  std::string copy = std::move(msg);
+  take(std::move(msg));
+  std::cout << "|" << msg;
+}`,
+    options: [
+      "It prints \"hello|\" because both std::move calls successfully move from msg, leaving it in an empty state",
+      "It prints \"hello|hello\" because std::move on a const object produces a const rvalue reference, selecting copy",
+      "It causes undefined behavior because moving from the same const object twice violates the moved-from contract",
+      "It fails to compile because std::move cannot be called on a const-qualified lvalue expression at all",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::move on a const object produces a const rvalue reference (const std::string&&). The move constructors and move assignment operators of std::string take a non-const rvalue reference (std::string&&), so they do not match. Instead, the copy constructor (which takes const std::string&) is selected because a const rvalue reference can bind to a const lvalue reference. No actual move ever happens -- msg is copied each time and remains \"hello\". The output is \"hello|hello\".",
+    link: "https://en.cppreference.com/w/cpp/utility/move",
+  },
+  {
+    id: 996,
+    difficulty: "Hard",
+    topic: "Code Reading",
+    question:
+      "In what order are the base class constructors called in this multiple inheritance hierarchy?",
+    code: `#include <iostream>
+struct A {
+  A() { std::cout << "A"; }
+};
+struct B {
+  B() { std::cout << "B"; }
+};
+struct C {
+  C() { std::cout << "C"; }
+};
+struct D : C, A, B {
+  D() : B(), A(), C() { std::cout << "D"; }
+};
+
+int main() {
+  D d;
+}`,
+    options: [
+      "It prints CABD because bases are constructed in the order they appear in the inheritance list, not the init list",
+      "It prints ABCD because base constructors are always called in alphabetical order by their type names",
+      "It prints BACD because the member initializer list order (B, A, C) determines the construction sequence",
+      "It prints DCAB because the most-derived constructor body runs first then base constructors run afterward",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The C++ standard mandates that base class constructors are called in the order they appear in the class definition's base-specifier list, regardless of the order in the member initializer list. D inherits from C, A, B (in that order), so the constructors run as C, A, B, then D's own body. The member initializer list order (B(), A(), C()) is ignored for base class construction ordering. The output is CABD. Compilers typically issue a warning when the initializer list order differs from the declaration order.",
+    link: "https://en.cppreference.com/w/cpp/language/constructor",
+  },
+  {
+    id: 997,
+    difficulty: "Hard",
+    topic: "Code Reading",
+    question:
+      "When an exception is thrown after constructing a local RAII object, is the destructor called for that object?",
+    code: `#include <iostream>
+#include <stdexcept>
+
+struct Guard {
+  Guard()  { std::cout << "acquired "; }
+  ~Guard() { std::cout << "released "; }
+};
+
+void work() {
+  Guard g;
+  throw std::runtime_error("fail");
+}
+
+int main() {
+  try { work(); }
+  catch (...) { std::cout << "caught"; }
+}`,
+    options: [
+      "It prints \"acquired caught\" only because destructors are skipped when an exception propagates out of scope",
+      "It prints \"acquired\" then terminates because throwing in a function with a local object calls std::terminate",
+      "The behavior is implementation-defined and compilers may or may not invoke the destructor during unwinding",
+      "It prints \"acquired released caught\" because stack unwinding destroys all fully-constructed local objects",
+    ],
+    correctIndex: 3,
+    explanation:
+      "When an exception is thrown, the C++ runtime performs stack unwinding. During this process, destructors are called for all local objects with automatic storage duration that have been fully constructed in the scope being exited. Since Guard g was fully constructed before the throw, its destructor runs during unwinding, printing \"released\". The exception is then caught in main, printing \"caught\". This deterministic cleanup is the foundation of the RAII idiom and is guaranteed by the standard.",
+    link: "https://en.cppreference.com/w/cpp/language/throw",
+  },
+  {
+    id: 998,
+    difficulty: "Hard",
+    topic: "Code Reading",
+    question:
+      "What happens when this function returns a reference to a local variable and the caller uses it?",
+    code: `#include <iostream>
+
+int& getVal() {
+  int local = 42;
+  return local;
+}
+
+int main() {
+  int& ref = getVal();
+  std::cout << ref;
+}`,
+    options: [
+      "It reliably prints 42 because the reference extends the lifetime of the local variable until ref goes out of scope",
+      "It fails to compile because returning a reference to an automatic local variable is a syntax error in all standards",
+      "It causes undefined behavior because the local variable is destroyed when getVal returns, leaving a dangling ref",
+      "It prints 0 because the local's memory is zero-initialized by the runtime after the function's stack frame is freed",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Returning a reference to a local variable creates a dangling reference. The local variable is destroyed when getVal() returns, and the reference ref then refers to memory that is no longer valid. Using this reference is undefined behavior -- it might print 42, garbage, 0, or crash. Compilers typically emit a warning but it is not a compilation error. The key misconception is that binding a reference extends lifetime, but that only applies to binding a const reference to a temporary, not to returning references to locals.",
+    link: "https://en.cppreference.com/w/cpp/language/reference",
+  },
+  {
+    id: 999,
+    difficulty: "Hard",
+    topic: "Code Reading",
+    question:
+      "Does this aggregate initialization compile under C++11 and later, given the narrowing conversion?",
+    code: `#include <iostream>
+
+struct Point {
+  int x;
+  int y;
+};
+
+int main() {
+  double a = 3.7, b = 4.2;
+  Point p = {a, b};
+  std::cout << p.x << " " << p.y;
+}`,
+    options: [
+      "It compiles and prints 3.7 4.2 because the struct stores the double values and int is implicitly widened on output",
+      "It fails to compile because brace initialization prohibits narrowing conversions from double to int since C++11",
+      "It compiles and prints 3 4 because the doubles are truncated to int as implicit narrowing conversions are allowed",
+      "It compiles but has undefined behavior because the fractional parts are lost in an unspecified truncation manner",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Since C++11, list (brace) initialization prohibits narrowing conversions. Converting from double to int is a narrowing conversion because it can lose the fractional part. The code Point p = {a, b}; attempts to narrow doubles a and b into int fields, which is ill-formed. A conforming compiler must issue a diagnostic (typically an error). If the values were constexpr and fit exactly in int (e.g., 3.0), it would be allowed, but runtime double variables always count as potentially narrowing.",
+    link: "https://en.cppreference.com/w/cpp/language/list_initialization",
+  },
+  {
+    id: 1000,
+    difficulty: "Hard",
+    topic: "Code Reading",
+    question:
+      "In a constexpr-if statement inside a template, does the compiler check the discarded branch for errors?",
+    code: `#include <iostream>
+#include <type_traits>
+
+template <typename T>
+void process(T val) {
+  if constexpr (std::is_integral_v<T>) {
+    std::cout << val * 2;
+  } else {
+    static_assert(std::is_floating_point_v<T>,
+      "Only numeric types are supported");
+    std::cout << val + 0.5;
+  }
+}
+
+int main() {
+  process(10);
+}`,
+    options: [
+      "It prints 20 -- the else branch is discarded entirely and its static_assert is not evaluated for integral types",
+      "It prints 20 -- the else branch is fully compiled but never executed, so the static_assert is checked and passes",
+      "It fails to compile because static_assert in a discarded constexpr-if branch is always evaluated by the compiler",
+      "It has undefined behavior because both branches generate code and the else branch's assert fires at runtime",
+    ],
+    correctIndex: 0,
+    explanation:
+      "When if constexpr evaluates to true, the else branch is a discarded statement. In a template, a discarded branch is not instantiated for the current template arguments. The static_assert depends on the template parameter T (via std::is_floating_point_v<T>), making it a dependent expression that is only checked upon instantiation. Since the else branch is never instantiated for T=int, the static_assert is never evaluated. The if branch runs, printing 10*2 = 20. If the static_assert's condition were non-dependent (e.g., static_assert(false)), it would fire even in a discarded branch.",
+    link: "https://en.cppreference.com/w/cpp/language/if",
+  },
+  {
+    id: 1001,
+    difficulty: "Hard",
+    topic: "Code Reading",
+    question:
+      "What do the structured binding variables bind to when iterating over a std::map with a range-based for loop?",
+    code: `#include <iostream>
+#include <map>
+
+int main() {
+  std::map<std::string, int> m = {
+    {"alpha", 1}, {"beta", 2}
+  };
+  for (const auto& [key, val] : m) {
+    std::cout << key << val << " ";
+  }
+}`,
+    options: [
+      "key binds to a copy of the string and val binds to a copy of the int stored separately from the map entries",
+      "The binding fails to compile because structured bindings cannot destructure std::pair elements inside map nodes",
+      "key and val bind to temporary pair objects created by the iterator, so modifying val would have no effect on m",
+      "key binds to the pair's first (const string) and val binds to the pair's second (int) as references into the map",
+    ],
+    correctIndex: 3,
+    explanation:
+      "In a std::map, each element is a std::pair<const Key, Value>. When using structured bindings with const auto&, the binding aliases the pair's members by reference. Here, key is a reference to the const std::string (the pair's first member), and val is a const reference to the int (the pair's second member, made const by the const auto& qualifier). No copies are made. The map stores elements in sorted key order, so the output is \"alpha1 beta2 \". Without the const, val would be a non-const reference allowing modification of the map's values.",
+    link: "https://en.cppreference.com/w/cpp/language/structured_bindings",
+  },
 ];
