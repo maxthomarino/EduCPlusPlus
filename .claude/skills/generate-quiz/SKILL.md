@@ -41,8 +41,9 @@ Create exactly **30** questions following this TypeScript interface:
 - 10 Easy, 10 Medium, 10 Hard
 
 ### Randomize `correctIndex`
-- Do NOT always put the correct answer at index 1.
-- Spread `correctIndex` roughly evenly across 0, 1, 2, 3.
+- Do NOT always put the correct answer at index 1. This is a known bias -- avoid it.
+- Spread `correctIndex` **exactly**: aim for 7-8 each of 0, 1, 2, 3 across the 30 questions.
+- **Self-check**: After generating all 30, count the distribution. If any index has fewer than 5 or more than 10, reshuffle.
 
 ### CRITICAL — Option length balancing
 **All four options for each question MUST be approximately the same length.**
@@ -57,12 +58,18 @@ For every question, follow this process:
    - If the correct answer is much longer than the others, expand the distractors — never shorten the correct answer to compensate.
 5. **Self-check**: Before writing each question, verify that `max(lengths) / min(lengths) < 1.4`. If not, rewrite the options.
 
+### CRITICAL -- No em-dashes
+- **NEVER use em-dashes (—) anywhere** in options, questions, or explanations.
+- Use `--` (double hyphen) instead. Example: `"nullptr -- the cast fails"` not `"nullptr — the cast fails"`.
+- Em-dashes are a telltale sign of AI-generated text and make the correct answer visually identifiable.
+- **Self-check**: Search your output for `\u2014`. If found, replace with `--`.
+
 ### Content quality rules
-- Questions must be **factually accurate** — the correct answer must be unambiguously correct.
-- Distractors must be **plausible but definitively wrong** — they should represent common misconceptions or near-misses.
+- Questions must be **factually accurate** -- the correct answer must be unambiguously correct.
+- Distractors must be **plausible but definitively wrong** -- they should represent common misconceptions or near-misses.
 - Include `code` snippets where appropriate (use backtick template literals).
 - Include a `link` to a reputable reference (cppreference, learncpp, MDN, Wikipedia, etc.) where possible.
-- The `explanation` should teach — explain **why** the correct answer is right and, ideally, why the most tempting distractor is wrong.
+- The `explanation` should teach -- explain **why** the correct answer is right and, ideally, why the most tempting distractor is wrong.
 - Avoid trick questions. Test understanding, not gotchas.
 
 ## Step 4 — Append to questions.ts
@@ -124,4 +131,31 @@ console.log('Length-imbalanced:',flagged);
 
 If any check fails, fix the issues before finishing.
 
-Also run `npx tsc --noEmit src/lib/questions.ts` to confirm no type errors.
+Then run these additional checks:
+
+```bash
+npx tsc --noEmit src/lib/questions.ts
+```
+
+```bash
+node -e "
+const src = require('fs').readFileSync('src/lib/questions.ts', 'utf8');
+// Check em-dashes
+const emDashes = (src.match(/\u2014/g) || []).length;
+console.log('Em-dashes found:', emDashes);
+// Check correctIndex distribution
+const ciAll = [...src.matchAll(/correctIndex:\s*(\d+)/g)];
+const dist = {0:0,1:0,2:0,3:0};
+ciAll.forEach(m => dist[parseInt(m[1])]++);
+const total = ciAll.length;
+console.log('correctIndex distribution:', dist);
+console.log('Index 1 percentage:', (dist[1]/total*100).toFixed(1)+'%');
+if (dist[1]/total > 0.35) console.log('WARNING: index 1 is overrepresented!');
+"
+```
+
+- **Em-dashes found** must be 0.
+- **Index 1 percentage** must be below 35%.
+- TypeScript must compile with no errors.
+
+If any check fails, fix the issues before finishing.
