@@ -14287,4 +14287,692 @@ export const questions: Question[] = [
       "If a noexcept function throws, the runtime calls std::terminate() (which by default calls std::abort()). The stack may or may not be unwound (implementation-defined). The compiler does NOT prevent this — it's a runtime contract. This is why noexcept enables optimizations: the compiler can skip generating exception handling code.",
     link: "https://en.cppreference.com/w/cpp/language/noexcept_spec.html",
   },
+
+  // ── C++ Keywords (Q852–Q881) ──
+  {
+    id: 852,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question: "What does the 'enum' keyword define in C++?",
+    code: `enum Color { Red, Green, Blue };`,
+    options: [
+      "A set of named integer constants grouped under one type",
+      "A dynamically allocated array of constant string values",
+      "A special template class for storing multiple data types",
+      "A macro that expands into a series of inline functions",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The 'enum' keyword defines an enumeration, which is a distinct type consisting of a set of named integral constants. In the example, Red=0, Green=1, Blue=2 by default.",
+    link: "https://en.cppreference.com/w/cpp/language/enum",
+  },
+  {
+    id: 853,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question: "What is the key difference between 'struct' and 'class' in C++?",
+    options: [
+      "Structs cannot have member functions but classes always can",
+      "Default access is public in struct and private in class",
+      "Classes support inheritance while structs do not at all",
+      "Structs are stack-only while classes are heap-allocated",
+    ],
+    correctIndex: 1,
+    explanation:
+      "In C++, the only fundamental difference between struct and class is the default access specifier: struct members are public by default, while class members are private by default. Both support inheritance, member functions, and all other features.",
+    link: "https://www.learncpp.com/cpp-tutorial/structs/",
+  },
+  {
+    id: 854,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question: "What happens when no 'break' statement is used inside a 'switch' case?",
+    code: `switch(x) {
+  case 1: cout << "A";
+  case 2: cout << "B";
+  case 3: cout << "C";
+}`,
+    options: [
+      "The program throws a runtime error due to missing break",
+      "Only the first matching case body is executed by default",
+      "Execution falls through to subsequent cases until a break",
+      "The compiler rejects code with missing break at each case",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Without a 'break' statement, execution falls through from the matched case into subsequent cases. If x is 1, the output would be 'ABC' because all three cases execute sequentially after the match.",
+    link: "https://en.cppreference.com/w/cpp/language/switch",
+  },
+  {
+    id: 855,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question: "What does the 'goto' keyword do in C++?",
+    code: `goto done;
+cout << "skipped";
+done:
+cout << "reached";`,
+    options: [
+      "It calls a function at the specified named entry point here",
+      "It triggers an exception handler at the given label target",
+      "It creates a new execution thread starting at a given label",
+      "It performs an unconditional jump to a named label location",
+    ],
+    correctIndex: 3,
+    explanation:
+      "The 'goto' keyword causes an unconditional jump to the statement marked by the specified label. In the example, 'skipped' is never printed because control jumps directly to the 'done' label.",
+    link: "https://en.cppreference.com/w/cpp/language/goto",
+  },
+  {
+    id: 856,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question: "What is the difference between 'break' and 'continue' in a loop?",
+    code: `for (int i=0; i<5; i++) {
+  if (i==2) continue;
+  if (i==4) break;
+  cout << i;
+}`,
+    options: [
+      "Continue exits the loop entirely, break skips to next iteration",
+      "Break restarts the loop from the beginning of the first element",
+      "Break exits the loop entirely, continue skips to next iteration",
+      "Continue terminates the program, break returns from a function",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The 'break' statement exits the enclosing loop entirely, while 'continue' skips the rest of the current iteration and proceeds to the next one. The output here is '013' — 2 is skipped by continue, and the loop exits at 4 due to break.",
+    link: "https://www.learncpp.com/cpp-tutorial/break-and-continue/",
+  },
+  {
+    id: 857,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question: "Which block handles an exception thrown by 'throw' in C++?",
+    code: `try {
+  throw runtime_error("fail");
+} catch (const runtime_error& e) {
+  cout << e.what();
+}`,
+    options: [
+      "The nearest enclosing if-else block that checks error codes",
+      "The matching catch block associated with the enclosing try",
+      "The finally block that always executes after the throw fires",
+      "The destructor of the object that originally threw the error",
+    ],
+    correctIndex: 1,
+    explanation:
+      "When 'throw' is executed, the runtime searches for the nearest enclosing try block with a matching catch handler. C++ does not have a 'finally' keyword — resource cleanup is handled via RAII and destructors.",
+    link: "https://en.cppreference.com/w/cpp/language/try_catch",
+  },
+  {
+    id: 858,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question: "What do the 'new' and 'delete' keywords do in C++?",
+    code: `int* p = new int(42);
+delete p;`,
+    options: [
+      "New declares a variable on the stack and delete removes scope",
+      "New creates a shared pointer and delete decrements ref count",
+      "New copies an object into a buffer and delete clears the data",
+      "New allocates heap memory and delete frees that memory back",
+    ],
+    correctIndex: 3,
+    explanation:
+      "The 'new' operator allocates memory on the heap and returns a pointer to it, optionally calling a constructor. The 'delete' operator frees that memory and calls the destructor. Failing to call delete leads to memory leaks.",
+    link: "https://en.cppreference.com/w/cpp/language/new",
+  },
+  {
+    id: 859,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question: "What does the 'this' pointer refer to inside a member function?",
+    code: `class Box {
+  int size;
+public:
+  void set(int size) {
+    this->size = size;
+  }
+};`,
+    options: [
+      "It points to the current object on which the method is called",
+      "It points to the static class definition stored in memory",
+      "It points to the parent class instance in the hierarchy chain",
+      "It points to the most recently created object of that class",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The 'this' pointer is an implicit pointer available in non-static member functions that points to the object on which the function was invoked. It is commonly used to disambiguate member variables from parameters with the same name.",
+    link: "https://en.cppreference.com/w/cpp/language/this",
+  },
+  {
+    id: 860,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question: "What does the 'return' keyword do in a function?",
+    code: `int add(int a, int b) {
+  return a + b;
+}`,
+    options: [
+      "It prints the result of the expression to standard output",
+      "It stores the expression value in a global result variable",
+      "It exits the function and provides a value back to caller",
+      "It pauses function execution until the caller resumes flow",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The 'return' keyword terminates execution of the current function and optionally returns a value to the caller. In functions with a non-void return type, omitting the return statement leads to undefined behavior.",
+    link: "https://en.cppreference.com/w/cpp/language/return",
+  },
+  {
+    id: 861,
+    difficulty: "Easy",
+    topic: "C++ Keywords",
+    question:
+      "What value does the first enumerator receive by default in a plain 'enum'?",
+    code: `enum Fruit { Apple, Banana, Cherry };`,
+    options: [
+      "The first enumerator is assigned the integer value of one",
+      "The first enumerator gets a random value chosen at compile",
+      "The first enumerator is left uninitialized until first used",
+      "The first enumerator is assigned the integer value of zero",
+    ],
+    correctIndex: 3,
+    explanation:
+      "In a C++ enum, the first enumerator is assigned 0 by default, and each subsequent enumerator is one more than the previous. So Apple=0, Banana=1, Cherry=2 unless explicitly overridden.",
+    link: "https://en.cppreference.com/w/cpp/language/enum",
+  },
+  {
+    id: 862,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question: "What does marking a class as `final` prevent?",
+    code: `class Base {};
+class Engine final : public Base {
+    int rpm_;
+public:
+    virtual void start() {}
+};
+class V8 : public Engine {};  // ???`,
+    options: [
+      "It prevents any class from inheriting from it — attempting to derive from a final class produces a compilation error, and it can also enable devirtualization optimizations",
+      "It prevents the class from being instantiated directly, making it abstract so only derived classes can create objects of types inheriting from it",
+      "It prevents the class from being copied or moved by implicitly deleting the copy constructor and move constructor, making instances permanently bound to their storage",
+      "It prevents member functions from being called outside the class, restricting all access to static methods only and disabling construction through any public constructor",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Marking a class `final` means no other class can inherit from it. In this example, `class V8 : public Engine` would fail to compile because Engine is final. The compiler can also use this information to devirtualize calls, since no further overrides are possible.",
+    link: "https://en.cppreference.com/w/cpp/language/final.html",
+  },
+  {
+    id: 863,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question:
+      "What happens when you `= delete` a specific overload of a non-member function?",
+    code: `void process(int x) { /* handle int */ }
+void process(double) = delete;
+
+int main() {
+    process(42);    // line A
+    process(3.14);  // line B
+}`,
+    options: [
+      "Both lines compile successfully because the deleted overload is simply removed from the overload set, so the double argument implicitly converts to int and calls process(int)",
+      "Line A compiles. Line B fails because overload resolution selects the deleted overload for a double argument, and calling a deleted function is a compilation error",
+      "Both lines fail because deleting any overload of a function name causes all overloads with that name to become inaccessible, poisoning the entire function identifier",
+      "Line A fails and line B compiles because `= delete` inverts the selection logic, making the non-deleted overload unreachable while the deleted overload acts as a fallback",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A deleted function still participates in overload resolution. When you call process(3.14), the compiler selects process(double) as the best match, then sees it is deleted and emits an error. This technique is used to prevent implicit conversions — the int overload works fine, but passing a double is caught at compile time.",
+    link: "https://en.cppreference.com/w/cpp/language/function.html#Deleted_functions",
+  },
+  {
+    id: 864,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question:
+      "What happens when you call a `constexpr` function with a non-constant argument?",
+    code: `constexpr int square(int x) { return x * x; }
+
+int main() {
+    int n;
+    std::cin >> n;
+    int result = square(n);  // ???
+}`,
+    options: [
+      "Compilation error because constexpr functions cannot accept runtime values — every argument must be a constant expression known at compile time for the call to be well-formed",
+      "Undefined behavior because the compiler generates only a compile-time version of the function, and calling it at runtime accesses an invalid code path that was never emitted",
+      "The compiler silently ignores the constexpr and removes it, then recompiles the function as a regular non-constexpr function with full runtime overhead for all future invocations",
+      "The function executes at runtime like a normal function — constexpr only guarantees compile-time evaluation when all arguments and the context require a constant expression",
+    ],
+    correctIndex: 3,
+    explanation:
+      "A constexpr function CAN run at runtime. When called with non-constant arguments (like user input), it simply executes as a regular function. It is only required to evaluate at compile time when used in a context that demands a constant expression (e.g., array size, template argument, constexpr variable initializer). This is the key difference from consteval.",
+    link: "https://en.cppreference.com/w/cpp/language/constexpr.html",
+  },
+  {
+    id: 865,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question:
+      "In template parameter lists, when does `typename` behave differently from `class`?",
+    code: `template<class T>     // version A
+void foo(T x);
+
+template<typename T>  // version B
+void bar(T x);
+
+template<template<typename> class C>  // version C
+void baz(C<int> x);`,
+    options: [
+      "They always differ: `class` restricts the parameter to class types only, while `typename` also permits primitive types like int, double, and char as template arguments",
+      "They are always identical in all contexts including template-template parameters, dependent names, and nested type aliases — there has never been any syntactic distinction",
+      "They differ only inside the template body: `typename` enables dependent name lookup for nested types, while `class` enables argument-dependent lookup for nested function calls",
+      "They are interchangeable for simple type parameters, but in template-template parameters (before C++17) only `class` was allowed — `typename` could not appear there",
+    ],
+    correctIndex: 3,
+    explanation:
+      "For ordinary type parameters, `typename` and `class` are completely interchangeable. However, before C++17, template-template parameters (like version C) required `class` — writing `template<template<typename> typename C>` was a syntax error. C++17 relaxed this to allow `typename` there too, but pre-C++17 code must use `class`.",
+    link: "https://en.cppreference.com/w/cpp/language/template_parameters.html",
+  },
+  {
+    id: 866,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question:
+      "What access does a class derived with `protected` inheritance have to the base's `public` members?",
+    code: `class Base {
+public:
+    void api() {}
+protected:
+    int data_;
+};
+
+class Mid : protected Base {};
+
+class Leaf : public Mid {
+    void test() {
+        api();       // line A
+        data_ = 5;   // line B
+    }
+};`,
+    options: [
+      "Both lines compile: protected inheritance makes the base's public and protected members become protected in Mid, so Leaf inherits them as protected and can access them",
+      "Both lines fail: protected inheritance blocks all access to every inherited member, making them inaccessible in the derived class body and also in any further-derived classes",
+      "Line A fails but line B compiles: protected inheritance converts public members to private in Mid, while protected members stay protected, so only data_ is reachable from Leaf",
+      "Line A compiles but line B fails: protected inheritance preserves public access for functions only, while data members are always downgraded to private in the derived class hierarchy",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Protected inheritance makes public and protected members of the base class become protected in the derived class. So Mid::api() and Mid::data_ are both protected. When Leaf inherits publicly from Mid, it can access protected members of Mid. Both lines compile. External code, however, cannot call Mid::api() because it is no longer public.",
+    link: "https://en.cppreference.com/w/cpp/language/derived_class.html",
+  },
+  {
+    id: 867,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question:
+      "When does `dynamic_cast` return `nullptr` instead of throwing an exception?",
+    code: `class Base { virtual void f() {} };
+class Derived : public Base {};
+
+Base* bp = new Base();
+Derived* dp = dynamic_cast<Derived*>(bp);  // line A
+Derived& dr = dynamic_cast<Derived&>(*bp); // line B`,
+    options: [
+      "dynamic_cast always throws std::bad_cast on failure regardless of whether the target type is a pointer or a reference, and it never returns nullptr in any situation",
+      "For pointers it throws std::bad_cast on failure. For references it returns a default-constructed reference wrapper, because references must always bind to a valid object at initialization",
+      "dynamic_cast always returns nullptr on failure for both pointers and references, and the programmer must check the result explicitly before using either form of the casted value",
+      "For pointers (line A) it returns nullptr on failure. For references (line B) it throws std::bad_cast, because a reference cannot be null and there is no sentinel value to return",
+    ],
+    correctIndex: 3,
+    explanation:
+      "dynamic_cast uses RTTI to check the actual type at runtime. When casting pointers, failure returns nullptr (you must check before dereferencing). When casting references, failure throws std::bad_cast since references cannot be null. Line A sets dp to nullptr because bp points to a Base, not a Derived. Line B throws.",
+    link: "https://en.cppreference.com/w/cpp/language/dynamic_cast.html",
+  },
+  {
+    id: 868,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question: "What does `decltype(auto)` deduce as the return type of this function?",
+    code: `int global = 42;
+
+decltype(auto) getRef() {
+    return (global);  // note the parentheses
+}
+
+int main() {
+    getRef() = 100;  // ???
+}`,
+    options: [
+      "The return type is `int` because decltype(auto) always strips references and cv-qualifiers from the deduced type, treating parenthesized expressions the same as bare identifiers",
+      "The return type is `int&&` because the parenthesized expression is an xvalue, and decltype(auto) deduces rvalue references for any expression that is not a simple variable name",
+      "The return type is `int&` because `decltype((global))` yields `int&` — a parenthesized lvalue is an lvalue expression, so decltype deduces a reference, and the assignment in main is valid",
+      "The code is ill-formed because decltype(auto) cannot be used with return statements containing parenthesized expressions — only plain variable names and function calls are supported",
+    ],
+    correctIndex: 2,
+    explanation:
+      "This is a subtle but important rule: `decltype(x)` where x is an unparenthesized name yields the declared type. But `decltype((x))` where the name is parenthesized yields a reference because `(x)` is treated as an lvalue expression, not an id-expression. With `decltype(auto)`, the return type becomes `int&`, so `getRef() = 100` modifies `global`.",
+    link: "https://en.cppreference.com/w/cpp/language/decltype.html",
+  },
+  {
+    id: 869,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question:
+      "Where can a `requires` clause be placed on a function template, and what happens if two placements are used simultaneously?",
+    code: `template<typename T>
+    requires std::integral<T>      // placement A
+T add(T a, T b)
+    requires (sizeof(T) >= 4)     // placement B
+{ return a + b; }`,
+    options: [
+      "Only placement A is valid — a requires clause must appear between the template parameter list and the function declaration, and placement B causes a compilation error",
+      "Only placement B is valid — a requires clause must appear after the function parameter list, and placement A before the return type causes a compilation error for all compilers",
+      "Both placements are valid and their constraints are combined with logical AND — the function is only available when T is integral AND sizeof(T) >= 4, both conditions must hold",
+      "Both placements are valid but their constraints are combined with logical OR — the function is available when T is integral OR sizeof(T) >= 4, either condition is sufficient",
+    ],
+    correctIndex: 2,
+    explanation:
+      "C++20 allows a requires clause both after the template-parameter-list and after the function-parameter-list. When both are present, the constraints are conjoined (logical AND). Here, T must be std::integral AND have sizeof >= 4. So int (4 bytes) works, but short (2 bytes) does not, even though short is integral.",
+    link: "https://en.cppreference.com/w/cpp/language/constraints.html",
+  },
+  {
+    id: 870,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question:
+      "What does `co_yield` do inside a coroutine, and how does it differ from `co_return`?",
+    code: `generator<int> range(int start, int end) {
+    for (int i = start; i < end; ++i)
+        co_yield i;   // line A
+    co_return;        // line B (optional)
+}`,
+    options: [
+      "co_yield terminates the coroutine permanently and returns a value, while co_return suspends it temporarily — co_return allows the coroutine to be resumed later to produce more values",
+      "co_yield and co_return are identical — both suspend the coroutine and produce a value. The only difference is stylistic convention: co_yield is used in loops and co_return outside loops",
+      "co_yield suspends the coroutine and produces a value that can be consumed by the caller, then the coroutine can be resumed later. co_return finishes the coroutine permanently",
+      "co_yield buffers all values internally until co_return is reached, then delivers them all at once to the caller as a complete collection rather than yielding one value at a time",
+    ],
+    correctIndex: 2,
+    explanation:
+      "co_yield suspends the coroutine and delivers a value to the caller via the promise object's yield_value() method. The coroutine can be resumed to produce the next value. co_return finalizes the coroutine — after co_return, the coroutine cannot be resumed. This enables lazy generators that produce values on demand.",
+    link: "https://en.cppreference.com/w/cpp/language/coroutines.html",
+  },
+  {
+    id: 871,
+    difficulty: "Medium",
+    topic: "C++ Keywords",
+    question: "What does `if constexpr` do that a regular `if` cannot?",
+    code: `template<typename T>
+std::string describe(T val) {
+    if constexpr (std::is_integral_v<T>)
+        return "integer: " + std::to_string(val);
+    else if constexpr (std::is_floating_point_v<T>)
+        return "float: " + std::to_string(val);
+    else
+        return val.describe();  // only valid for user types
+}`,
+    options: [
+      "if constexpr evaluates the condition at runtime but is faster than regular if because the compiler inserts branch prediction hints that optimize the CPU's speculative execution pipeline",
+      "if constexpr evaluates the condition at compile time and discards the not-taken branch entirely, so code in the discarded branch is not instantiated and does not need to be valid for T",
+      "if constexpr works identically to a regular if statement but is restricted to use inside templates only, where it provides no additional semantics beyond documenting compile-time intent",
+      "if constexpr forces both branches to be compiled and validated for all types, but selects which branch to execute at compile time, producing a compile error if either branch is ill-formed",
+    ],
+    correctIndex: 1,
+    explanation:
+      "if constexpr evaluates its condition at compile time. The key difference from a regular if: the discarded branch is not instantiated for the given template argument. Without if constexpr, calling val.describe() would cause a compilation error when T is int, because int has no describe() method. With if constexpr, that branch is simply dropped.",
+    link: "https://en.cppreference.com/w/cpp/language/if.html#Constexpr_if",
+  },
+  {
+    id: 872,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "What does `const volatile int* p` mean, and what restrictions does it impose?",
+    code: `const volatile int* p = (const volatile int*)0xFF00;
+int val = *p;   // read #1
+int val2 = *p;  // read #2
+// *p = 42;     // attempt to write`,
+    options: [
+      "The pointer itself is constant and volatile, so p cannot be reassigned and each use of p itself is re-read from memory, but the pointed-to int has no special qualifiers applied",
+      "The pointed-to int is both const and volatile: reads cannot be optimized away by the compiler (volatile), but writing through p is forbidden (const). Both reads above must actually occur",
+      "const and volatile are contradictory qualifiers that cancel each other out, so the declaration is equivalent to int* p and the compiler is free to optimize or reorder all accesses",
+      "The volatile qualifier only applies during multi-threaded access, so in a single-threaded program the compiler may still combine the two reads into one load instruction from memory",
+    ],
+    correctIndex: 1,
+    explanation:
+      "const volatile int* means 'pointer to an int that is both const and volatile'. const prevents writing through p (*p = 42 is ill-formed). volatile prevents the compiler from optimizing away or reordering reads — both reads must generate separate load instructions. The qualifiers are not contradictory: hardware registers are often read-only but change externally.",
+    link: "https://en.cppreference.com/w/cpp/language/cv.html",
+  },
+  {
+    id: 873,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "What is the difference between `noexcept` as a specifier and `noexcept` as an operator?",
+    code: `void f() noexcept;              // form A
+void g() noexcept(noexcept(f())); // form B
+
+constexpr bool b = noexcept(f()); // form C
+// Note: f() is NOT called in forms B or C`,
+    options: [
+      "Form A is the specifier (promises f won't throw). Forms B and C use the operator, which evaluates the expression at compile time and returns true if it is declared noexcept — without actually calling f()",
+      "All three forms are specifiers — the inner noexcept in form B simply forwards f's exception specification, and form C is a constexpr variable initialized by actually calling f() at compile time",
+      "The operator form (B and C) evaluates f() at runtime in a try block and returns true if no exception was thrown, making it a safe way to test whether functions throw during execution",
+      "Form A and B are both specifiers, while form C is invalid and will not compile because noexcept can only appear in function declarations and cannot be used as a standalone expression",
+    ],
+    correctIndex: 0,
+    explanation:
+      "noexcept has two roles: as a specifier (void f() noexcept) it promises the function won't throw. As an operator (noexcept(expr)) it's a compile-time check returning true if expr is non-throwing. The expression is an unevaluated operand — f() is never called. The conditional form noexcept(noexcept(f())) uses the operator result to conditionally apply the specifier.",
+    link: "https://en.cppreference.com/w/cpp/language/noexcept.html",
+  },
+  {
+    id: 874,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "When a base class uses `alignas`, does the derived class inherit that alignment requirement?",
+    code: `struct alignas(64) CacheLine {
+    int data;
+};
+
+struct Derived : CacheLine {
+    char extra;
+};
+
+static_assert(alignof(CacheLine) == 64);
+// What is alignof(Derived)?`,
+    options: [
+      "Derived does NOT inherit alignment — it reverts to the default alignment for its members, typically alignof(int) or alignof(char), unless alignas is explicitly restated on Derived class",
+      "Derived gets alignment 65, because the compiler adds the base alignment of 64 to the derived member's natural alignment of 1, computing the total alignment requirement additively",
+      "The alignment of Derived is implementation-defined with no guarantees — the standard says nothing about alignment inheritance, so portable code must always restate alignas explicitly",
+      "Derived inherits the alignas(64) requirement — its alignment is at least 64 because the base sub-object must be properly aligned, and the derived class alignment is never less than the base",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Alignment is inherited. The derived class must contain the base sub-object, which requires 64-byte alignment. The effective alignment of a class is the strictest (largest) alignment of all its sub-objects, base classes, and any alignas specifier. Since CacheLine requires 64-byte alignment, Derived also has at least 64-byte alignment.",
+    link: "https://en.cppreference.com/w/cpp/language/alignas.html",
+  },
+  {
+    id: 875,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "What does `[[no_unique_address]]` allow the compiler to do, and when does it have no effect?",
+    code: `struct Empty {};
+
+struct A {
+    [[no_unique_address]] Empty e;
+    int x;
+};
+
+struct B {
+    [[no_unique_address]] Empty e1;
+    [[no_unique_address]] Empty e2;
+    int x;
+};
+// sizeof(A) = ?   sizeof(B) = ?`,
+    options: [
+      "Both A and B have sizeof equal to sizeof(int), because the attribute eliminates all empty members from the layout entirely, regardless of type — they occupy zero storage in all cases",
+      "sizeof(A) equals sizeof(int) because e can share x's address. sizeof(B) is larger than sizeof(int) because e1 and e2 are the same type and must have distinct addresses from each other",
+      "The attribute is purely an optimizer hint with no effect on layout — sizeof(A) and sizeof(B) both equal sizeof(int) plus the padding needed for one byte per Empty member in the struct",
+      "sizeof(A) is sizeof(int)+1 and sizeof(B) is sizeof(int)+2 because each empty class always occupies exactly one byte and the no_unique_address attribute cannot change the physical layout",
+    ],
+    correctIndex: 1,
+    explanation:
+      "[[no_unique_address]] lets the compiler give an empty member zero size (overlapping with other members). In A, e can overlap with x, so sizeof(A) == sizeof(int). But in B, e1 and e2 are the same type — the C++ object model requires distinct objects of the same type to have distinct addresses. So e2 cannot overlap with e1, making B larger.",
+    link: "https://en.cppreference.com/w/cpp/language/attributes/no_unique_address.html",
+  },
+  {
+    id: 876,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "What is the type of a `u8` string literal in C++20, and why was this a breaking change?",
+    code: `auto s1 = u8"hello";        // C++17 vs C++20
+const char* p = u8"hello";  // Does this compile in C++20?
+
+// C++17: u8"hello" has type const char[6]
+// C++20: u8"hello" has type ???`,
+    options: [
+      "In C++20, u8 literals remain const char[] but gain a special encoding tag. The assignment to const char* still compiles, and char8_t is just an alias for unsigned char with no type distinction",
+      "In C++20, u8 literals become std::u8string objects rather than arrays, so auto deduces std::u8string and the const char* assignment fails because string objects cannot decay to raw pointers",
+      "In C++20, u8 literals are const char8_t[], which is a distinct type from const char[]. The assignment to const char* is ill-formed because char8_t does not implicitly convert to char in C++20",
+      "In C++20, u8 literals produce const unsigned char[] and char8_t is simply a typedef for unsigned char. The const char* assignment compiles with an implicit signed-to-unsigned conversion",
+    ],
+    correctIndex: 2,
+    explanation:
+      "C++20 introduced char8_t as a distinct type. u8 string literals changed from const char[N] to const char8_t[N]. This is a breaking change: code like 'const char* p = u8\"hello\"' that compiled in C++17 becomes ill-formed in C++20 because there is no implicit conversion from char8_t* to char*. char8_t is defined as having the same size/alignment as unsigned char but is a distinct type.",
+    link: "https://en.cppreference.com/w/cpp/language/string_literal.html",
+  },
+  {
+    id: 877,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "What is the key difference between `constinit` and `constexpr` for variables with static storage duration?",
+    code: `constexpr int a = 42;      // OK
+constinit int b = 42;      // OK
+
+// Later in the program:
+// a = 100;  // Error?
+// b = 100;  // Error?
+
+constinit const int c = 42;
+constinit thread_local int d = 0;`,
+    options: [
+      "constinit and constexpr are interchangeable for static duration variables — both require compile-time initialization and both make the variable immutable, so neither a nor b can be modified later",
+      "constinit is for thread_local variables exclusively, while constexpr works for any storage duration. Using constinit on a non-thread_local variable like b above is ill-formed in standard C++20",
+      "constexpr variables can only hold literal types, while constinit variables can hold any type including those with non-trivial destructors, as long as the initial value is a constant expression",
+      "constexpr makes the variable const and requires compile-time initialization. constinit only requires compile-time initialization but does NOT make the variable const — so b can be modified at runtime",
+    ],
+    correctIndex: 3,
+    explanation:
+      "constexpr on a variable implies const — the variable cannot be modified. constinit ensures the initializer is a constant expression (preventing the 'static initialization order fiasco') but does NOT imply const. So 'b = 100' is perfectly valid. constinit can be used with static or thread_local storage duration. Both prevent dynamic initialization, but only constexpr prevents mutation.",
+    link: "https://en.cppreference.com/w/cpp/language/constinit.html",
+  },
+  {
+    id: 878,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "What does the `export` keyword do in C++20 modules, and what can be exported?",
+    code: `// mymodule.cppm
+export module mymodule;
+
+export int publicFunc() { return 1; }
+int internalFunc() { return 2; }
+
+export class Widget { /* ... */ };
+
+export namespace api {
+    void doStuff();
+}`,
+    options: [
+      "export is optional syntactic sugar — all declarations in a module are automatically visible to importers, and export only serves as documentation to indicate the intended public interface",
+      "export can only be applied to functions and classes but not to namespaces or variables — exporting a namespace like api above is ill-formed and requires exporting each declaration individually",
+      "export makes declarations visible to importers of the module. Non-exported declarations like internalFunc exist in the module but are not reachable by name from importing translation units",
+      "export causes the compiler to emit a separate object file for each exported symbol, enabling lazy linking where only the symbols actually used by the importer are linked into the final binary",
+    ],
+    correctIndex: 2,
+    explanation:
+      "In C++20 modules, export controls visibility. Exported declarations are reachable by name when the module is imported. Non-exported declarations (like internalFunc) are part of the module but invisible to importers — similar to unnamed-namespace or static linkage in headers. You can export functions, classes, variables, namespaces, and even using-declarations. export applies to the module interface, not the ABI.",
+    link: "https://en.cppreference.com/w/cpp/language/modules.html",
+  },
+  {
+    id: 879,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "What is the difference between `decltype(x)` and `decltype((x))` when x is a local variable?",
+    code: `int x = 42;
+
+decltype(x)   a = x;   // type of a?
+decltype((x)) b = x;   // type of b?
+
+a = 100;  // effect on x?
+b = 100;  // effect on x?`,
+    options: [
+      "Both forms produce the same type int because the parentheses around x are redundant and have no semantic effect on decltype's type deduction rules for named variables",
+      "decltype(x) yields int (the declared type of x). decltype((x)) yields int& (an lvalue reference) because (x) is an lvalue expression, so b is a reference to x and b=100 modifies x",
+      "decltype(x) yields int and decltype((x)) yields int&& (an rvalue reference) because wrapping x in parentheses converts it into an xvalue expression that binds to rvalue references",
+      "decltype(x) yields int and decltype((x)) yields const int& because the parenthesized form creates a temporary copy that binds to a const reference per the language's lifetime rules",
+    ],
+    correctIndex: 1,
+    explanation:
+      "decltype has two rules: (1) if the operand is an unparenthesized id-expression, it yields the declared type. (2) otherwise, it yields a type reflecting the value category: lvalue -> T&, xvalue -> T&&, prvalue -> T. Since x is an lvalue, (x) is also an lvalue expression, so decltype((x)) is int&. This is a famous gotcha — the extra parentheses change the result from int to int&.",
+    link: "https://en.cppreference.com/w/cpp/language/decltype.html",
+  },
+  {
+    id: 880,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "How do `mutable` lambda captures interact with `constexpr` evaluation in C++?",
+    code: `auto f = [x = 0]() mutable { return ++x; };
+f(); f(); int result = f();  // result = 3
+
+constexpr auto g = [x = 0]() mutable { return ++x; };
+// constexpr int val = g();  // Does this compile?`,
+    options: [
+      "A mutable lambda can be constexpr, but calling it in a constant expression is ill-formed because the mutation of x violates the requirement that constexpr evaluation must not modify objects created before the evaluation",
+      "The mutable keyword on a lambda is incompatible with constexpr in all contexts — declaring g as constexpr above is itself a compile error, even before attempting to call g in a constant expression context",
+      "Both the declaration and the call compile: mutable lambdas in constexpr context create a fresh copy of captured state per constant evaluation, so each constexpr call independently starts with x equal to zero",
+      "A mutable constexpr lambda can only be called once during constant evaluation — the first call succeeds, but a second constexpr call is ill-formed because the lambda object has already been mutated",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A lambda can be constexpr even if marked mutable. The constexpr specifier on g is valid. However, calling g() in a constant expression fails: g.operator()() modifies the captured x, which was created outside the constant expression evaluation. Constant expressions cannot modify objects with lifetimes that began outside the evaluation. The lambda object g itself persists between calls, so its state is 'pre-existing'.",
+    link: "https://en.cppreference.com/w/cpp/language/lambda.html",
+  },
+  {
+    id: 881,
+    difficulty: "Hard",
+    topic: "C++ Keywords",
+    question:
+      "The `static` keyword has different meanings in different contexts. What does `static` do in each of these four uses?",
+    code: `static int fileVar = 1;         // (1) file scope
+void f() {
+    static int localVar = 2;    // (2) function scope
+}
+class C {
+    static int memberVar;       // (3) class scope
+};
+if (static int n = get(); n > 0) {} // (4) if-init`,
+    options: [
+      "All four uses give internal linkage: (1) limits fileVar to the current translation unit, (2) limits localVar to the enclosing function body, (3) limits memberVar to the class definition, and (4) restricts n to the if-block — static always means internal linkage regardless of context",
+      "(1) internal linkage only with no effect on lifetime, (2) persistent lifetime across calls but still has external linkage by default, (3) shared across all instances and given external linkage, and (4) n has static storage duration that persists well past the if-block into the surrounding function",
+      "(1) internal linkage (file-only visibility), (2) static storage duration (persists across calls, initialized once), (3) one instance shared by all objects (external linkage), (4) block-scope static storage with lifetime extending beyond the if statement",
+      "(1) prevents the variable from being modified after initialization like const does, (2) makes localVar a compile-time constant evaluated at compilation, (3) allocates memberVar on the stack rather than the heap for faster access, and (4) is purely syntactic sugar with no semantic effect on n",
+    ],
+    correctIndex: 2,
+    explanation:
+      "(1) file-scope static gives internal linkage — the symbol is invisible to other translation units. (2) function-scope static gives the variable static storage duration: it's initialized once (thread-safely in C++11+) and persists for the program's lifetime. (3) class-scope static means one copy shared across all instances, with external linkage (must be defined in one TU). (4) if-init with static makes n a block-scope variable with static storage duration — it outlives the if-block.",
+    link: "https://en.cppreference.com/w/cpp/language/storage_duration.html",
+  },
 ];
