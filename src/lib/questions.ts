@@ -32,6 +32,7 @@ export const TOPICS = [
   "Under the Hood",
   "Physics for Software Engineering",
   "C++ Keywords",
+  "Storage Durations",
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
@@ -17897,5 +17898,2500 @@ int main() {
     explanation:
       "In a std::map, each element is a std::pair<const Key, Value>. When using structured bindings with const auto&, the binding aliases the pair's members by reference. Here, key is a reference to the const std::string (the pair's first member), and val is a const reference to the int (the pair's second member, made const by the const auto& qualifier). No copies are made. The map stores elements in sorted key order, so the output is \"alpha1 beta2 \". Without the const, val would be a non-const reference allowing modification of the map's values.",
     link: "https://en.cppreference.com/w/cpp/language/structured_bindings",
+  },
+
+  // ── Memory Management (Q1002--Q1031) ──
+  {
+    id: 1002,
+    difficulty: "Easy",
+    topic: "Memory Management",
+    question:
+      "Where is a local variable like `int x = 5;` stored during function execution?",
+    options: [
+      "On the stack frame of the function",
+      "On the heap via dynamic allocation",
+      "In the program's static storage area",
+      "In the read-only code segment region",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Local variables declared inside a function are allocated on the stack. They are automatically created when the function is called and destroyed when it returns. Heap memory is used for dynamic allocations made with `new`.",
+    link: "https://www.learncpp.com/cpp-tutorial/the-stack-and-the-heap/",
+  },
+  {
+    id: 1003,
+    difficulty: "Easy",
+    topic: "Memory Management",
+    question: "What does the `new` operator do in C++?",
+    code: `int* p = new int(42);`,
+    options: [
+      "Declares a pointer variable on the stack only",
+      "Creates a reference to an existing local variable",
+      "Allocates memory on the heap and returns a pointer",
+      "Reserves memory on the stack and returns a pointer",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The `new` operator allocates memory on the heap (free store) and returns a pointer to that memory. In this example, it allocates space for one `int`, initializes it to 42, and returns a pointer to it.",
+    link: "https://en.cppreference.com/w/cpp/language/new",
+  },
+  {
+    id: 1004,
+    difficulty: "Easy",
+    topic: "Memory Management",
+    question: "What causes a memory leak in C++?",
+    code: `void f() {
+    int* p = new int(10);
+    // function returns here
+}`,
+    options: [
+      "Using a pointer after the memory is deleted",
+      "Forgetting to call delete on heap-allocated memory",
+      "Declaring too many local variables inside a function",
+      "Assigning nullptr to a pointer variable before use",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A memory leak occurs when heap-allocated memory is never freed with `delete`. In this code, `p` goes out of scope without `delete p;` being called, so the allocated integer is leaked and can never be reclaimed.",
+    link: "https://www.learncpp.com/cpp-tutorial/dynamic-memory-allocation-with-new-and-delete/",
+  },
+  {
+    id: 1005,
+    difficulty: "Easy",
+    topic: "Memory Management",
+    question: "What should you set a pointer to after calling `delete` on it?",
+    code: `int* p = new int(5);
+delete p;
+p = ???;`,
+    options: [
+      "Set it to the value 0 as an integer",
+      "Set it to a new heap allocation",
+      "Leave it unchanged to preserve the address",
+      "Set it to nullptr to avoid dangling use",
+    ],
+    correctIndex: 3,
+    explanation:
+      "After `delete`, the pointer still holds the old address, making it a dangling pointer. Setting it to `nullptr` prevents accidental use of freed memory, since dereferencing `nullptr` is easier to detect and debug than using a dangling pointer.",
+    link: "https://www.learncpp.com/cpp-tutorial/dynamic-memory-allocation-with-new-and-delete/",
+  },
+  {
+    id: 1006,
+    difficulty: "Easy",
+    topic: "Memory Management",
+    question: "What is a dangling pointer?",
+    options: [
+      "A pointer that refers to memory that has been freed",
+      "A pointer that has been set to nullptr explicitly",
+      "A pointer that was never assigned any valid address",
+      "A pointer that points to a large allocated buffer",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A dangling pointer is a pointer that still holds the address of memory that has already been deallocated with `delete`. Using a dangling pointer leads to undefined behavior because the memory it references is no longer valid.",
+    link: "https://www.learncpp.com/cpp-tutorial/dynamic-memory-allocation-with-new-and-delete/",
+  },
+  {
+    id: 1007,
+    difficulty: "Easy",
+    topic: "Memory Management",
+    question:
+      "What does `sizeof(ptr)` return when `ptr` is an `int*` on a 64-bit system?",
+    code: `int* ptr = new int[100];`,
+    options: [
+      "400 -- the total size of the array in bytes",
+      "100 -- the number of elements in the array",
+      "8 -- the size of the pointer itself in bytes",
+      "4 -- the size of a single int element in bytes",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The `sizeof` operator applied to a pointer returns the size of the pointer itself, not what it points to. On a 64-bit system, all pointers are typically 8 bytes regardless of the type they point to or the size of the allocated block.",
+    link: "https://en.cppreference.com/w/cpp/language/sizeof",
+  },
+  {
+    id: 1008,
+    difficulty: "Easy",
+    topic: "Memory Management",
+    question: "How should you deallocate memory created with `new int[10]`?",
+    code: `int* arr = new int[10];`,
+    options: [
+      "Call free(arr) to release the array memory",
+      "Call delete[] arr to release the entire array",
+      "Call delete arr to release the first element only",
+      "No action needed since arrays auto-deallocate",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Memory allocated with `new[]` must be deallocated with `delete[]`. Using plain `delete` instead of `delete[]` on an array allocation causes undefined behavior. The bracket form ensures all elements are properly cleaned up.",
+    link: "https://en.cppreference.com/w/cpp/language/delete",
+  },
+  {
+    id: 1009,
+    difficulty: "Easy",
+    topic: "Memory Management",
+    question: "What is the most common cause of a stack overflow error?",
+    options: [
+      "Allocating too many objects on the heap",
+      "Forgetting to free dynamically allocated memory",
+      "Using delete[] instead of delete on a pointer",
+      "Infinite or very deep recursion without a base case",
+    ],
+    correctIndex: 3,
+    explanation:
+      "A stack overflow occurs when the call stack exceeds its fixed size limit. The most common cause is infinite or excessively deep recursion, where each recursive call adds a new stack frame. Very large local arrays can also contribute to stack overflow.",
+    link: "https://www.learncpp.com/cpp-tutorial/the-stack-and-the-heap/",
+  },
+  {
+    id: 1010,
+    difficulty: "Easy",
+    topic: "Memory Management",
+    question: "What does RAII stand for, and what is its core idea?",
+    options: [
+      "Resource Acquisition Is Initialization -- tie resource lifetime to object lifetime",
+      "Runtime Allocation Is Immediate -- allocate all resources at program start",
+      "Reference Assignment Is Inherited -- pass resources through inheritance",
+      "Resource Access Is Indirect -- always use pointers to access resources",
+    ],
+    correctIndex: 0,
+    explanation:
+      "RAII (Resource Acquisition Is Initialization) is a C++ idiom where resources such as memory, file handles, or locks are acquired in a constructor and released in the destructor. This ties resource lifetime to object scope, preventing leaks automatically.",
+    link: "https://en.cppreference.com/w/cpp/language/raii",
+  },
+  {
+    id: 1011,
+    difficulty: "Easy",
+    topic: "Memory Management",
+    question:
+      "What is the main advantage of using `std::unique_ptr` over a raw pointer?",
+    code: `#include <memory>
+std::unique_ptr<int> p = std::make_unique<int>(42);`,
+    options: [
+      "It allows multiple owners to share the same object",
+      "It stores the pointer in static memory for faster access",
+      "It automatically deletes the managed object when it goes out of scope",
+      "It prevents the pointer from being dereferenced accidentally",
+    ],
+    correctIndex: 2,
+    explanation:
+      "`std::unique_ptr` is a smart pointer that owns and manages a heap object. When the `unique_ptr` goes out of scope, it automatically calls `delete` on the managed pointer, eliminating the risk of memory leaks without needing manual cleanup.",
+    link: "https://en.cppreference.com/w/cpp/memory/unique_ptr",
+  },
+  {
+    id: 1012,
+    difficulty: "Medium",
+    topic: "Memory Management",
+    question: "When is the managed object destroyed in this code?",
+    code: `auto a = std::make_shared<Widget>();
+auto b = a;
+auto c = a;
+b.reset();
+c.reset();`,
+    options: [
+      "The Widget is destroyed when b.reset() is called because b was the most recent copy made",
+      "The Widget is destroyed when c.reset() is called because a still holds one reference",
+      "The Widget is destroyed when a goes out of scope because it is the last remaining shared_ptr",
+      "The Widget is destroyed immediately after c.reset() because the reference count drops to zero",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::shared_ptr uses reference counting. After b.reset() and c.reset(), the count drops from 3 to 1. The object is destroyed only when the last shared_ptr (a) is destroyed or reset.",
+    link: "https://en.cppreference.com/w/cpp/memory/shared_ptr.html",
+  },
+  {
+    id: 1013,
+    difficulty: "Medium",
+    topic: "Memory Management",
+    question:
+      "What does calling lock() on a std::weak_ptr return when the managed object has already been destroyed?",
+    options: [
+      "It returns a shared_ptr whose get() method gives a dangling raw pointer to freed memory",
+      "It throws a std::bad_weak_ptr exception to signal that the object no longer exists",
+      "It returns an empty shared_ptr that evaluates to false in a boolean context check",
+      "It returns a shared_ptr that owns a default-constructed replacement object of that type",
+    ],
+    correctIndex: 2,
+    explanation:
+      "weak_ptr::lock() returns an empty shared_ptr (equivalent to nullptr) if the managed object has been destroyed. This is how weak_ptr safely checks whether the object still exists without risking a dangling reference.",
+    link: "https://en.cppreference.com/w/cpp/memory/weak_ptr/lock.html",
+  },
+  {
+    id: 1014,
+    difficulty: "Medium",
+    topic: "Memory Management",
+    question:
+      "Why is std::make_unique preferred over using raw new inside a function call like f(std::unique_ptr<A>(new A), g())?",
+    options: [
+      "make_unique allocates the control block and object together in one allocation for efficiency",
+      "make_unique guarantees exception safety because the allocation is wrapped before g() can throw",
+      "make_unique allows the unique_ptr to be implicitly copied to another unique_ptr if needed",
+      "make_unique uses placement new internally, which avoids calling the global allocator entirely",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Before C++17, the compiler could evaluate new A, then g(), then construct the unique_ptr. If g() throws after new A but before the unique_ptr takes ownership, memory leaks. make_unique wraps the allocation safely.",
+    link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique.html",
+  },
+  {
+    id: 1015,
+    difficulty: "Medium",
+    topic: "Memory Management",
+    question: "What happens when delete is called twice on the same raw pointer?",
+    code: `int* p = new int(42);
+delete p;
+delete p;  // second delete`,
+    options: [
+      "The second delete is safely ignored because the runtime marks freed blocks as invalid",
+      "It deallocates the next adjacent block on the heap and silently corrupts nearby allocations",
+      "It throws a std::runtime_error exception that can be caught with a try-catch block here",
+      "It causes undefined behavior -- the heap metadata may be corrupted or the program crashes",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Double free is undefined behavior. The heap allocator's internal bookkeeping may be corrupted, leading to crashes, silent data corruption, or security vulnerabilities. Always set pointers to nullptr after delete or use smart pointers.",
+    link: "https://en.cppreference.com/w/cpp/language/delete.html",
+  },
+  {
+    id: 1016,
+    difficulty: "Medium",
+    topic: "Memory Management",
+    question: "What does placement new do in this code?",
+    code: `alignas(Widget) unsigned char buf[sizeof(Widget)];
+Widget* w = new (buf) Widget(42);
+// ... use w ...
+w->~Widget();`,
+    options: [
+      "It allocates new heap memory at the address buf and copies the Widget data into that space",
+      "It allocates aligned heap memory of size sizeof(Widget) and ignores the provided buffer buf",
+      "It creates a temporary Widget on the stack and then moves it into the memory region at buf",
+      "It constructs a Widget object in the pre-allocated buffer buf without allocating new memory",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Placement new constructs an object at a specific memory address without performing any allocation. The programmer is responsible for ensuring proper alignment and calling the destructor manually when done.",
+    link: "https://en.cppreference.com/w/cpp/language/new.html",
+  },
+  {
+    id: 1017,
+    difficulty: "Medium",
+    topic: "Memory Management",
+    question:
+      "Why does memory alignment (as reported by alignof) matter for program performance?",
+    options: [
+      "Misaligned access causes a compile-time error on all platforms that support the alignof operator",
+      "Aligned data lets the CPU load values in single bus transactions instead of multiple slow ones",
+      "Alignment only matters for stack variables because heap allocations are always page-aligned",
+      "The alignof operator is purely informational and has no effect on runtime data access speed",
+    ],
+    correctIndex: 1,
+    explanation:
+      "CPUs access memory most efficiently when data is aligned to its natural boundary. Misaligned access may require two memory bus transactions or cause hardware exceptions on some architectures, significantly hurting performance.",
+    link: "https://en.cppreference.com/w/cpp/language/alignof.html",
+  },
+  {
+    id: 1018,
+    difficulty: "Medium",
+    topic: "Memory Management",
+    question:
+      "What is the purpose of the custom deleter in this unique_ptr declaration?",
+    code: `auto deleter = [](FILE* f) { if (f) fclose(f); };
+std::unique_ptr<FILE, decltype(deleter)> file(
+    fopen("log.txt", "w"), deleter
+);`,
+    options: [
+      "The custom deleter calls fclose instead of delete so the FILE handle is properly released",
+      "The custom deleter converts the FILE* to a shared_ptr so multiple owners can share the file",
+      "The custom deleter flushes the write buffer and syncs data to disk before the pointer is reset",
+      "The custom deleter is needed because unique_ptr cannot otherwise manage C-style struct types",
+    ],
+    correctIndex: 0,
+    explanation:
+      "By default, unique_ptr calls delete on destruction. For non-memory resources like FILE handles, a custom deleter ensures the correct cleanup function (fclose) is called instead of delete.",
+    link: "https://en.cppreference.com/w/cpp/memory/unique_ptr.html",
+  },
+  {
+    id: 1019,
+    difficulty: "Medium",
+    topic: "Memory Management",
+    question: "What does std::move accomplish when transferring a unique_ptr?",
+    code: `auto a = std::make_unique<Widget>(10);
+auto b = std::move(a);
+// What is the state of a now?`,
+    options: [
+      "a is now a null unique_ptr because ownership of the Widget was transferred entirely to b",
+      "a and b both point to the same Widget object and share ownership of the managed resource",
+      "a still owns the Widget but b holds a weak reference that does not affect the lifetime of it",
+      "The code fails to compile because std::move is not defined for unique_ptr template types",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::move casts a to an rvalue reference, enabling the move constructor of unique_ptr. After the move, a is left in a valid but empty state (nullptr), and b now owns the Widget exclusively.",
+    link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/unique_ptr.html",
+  },
+  {
+    id: 1020,
+    difficulty: "Medium",
+    topic: "Memory Management",
+    question:
+      "What causes memory fragmentation and how do memory pools help reduce it?",
+    options: [
+      "Fragmentation is caused by stack overflows; pools help by moving all allocations to the heap",
+      "Fragmentation is caused by using smart pointers; pools avoid it by using only raw new/delete",
+      "Fragmentation only affects virtual memory pages; pools bypass this by using physical addresses",
+      "Fragmentation occurs from repeated allocation and deallocation of varied sizes creating gaps",
+    ],
+    correctIndex: 3,
+    explanation:
+      "When objects of different sizes are allocated and freed over time, small gaps appear between live allocations. Memory pools pre-allocate fixed-size blocks, eliminating variable-size gaps and reducing fragmentation.",
+    link: "https://www.learncpp.com/cpp-tutorial/dynamic-memory-allocation-with-new-and-delete/",
+  },
+  {
+    id: 1021,
+    difficulty: "Medium",
+    topic: "Memory Management",
+    question:
+      "Which statement correctly describes a difference between operator new and malloc?",
+    options: [
+      "malloc calls the constructor and returns a typed pointer; operator new returns raw void*",
+      "operator new throws std::bad_alloc on failure; malloc returns nullptr on allocation failure",
+      "malloc is type-safe and throws exceptions on failure; operator new returns nullptr instead",
+      "There is no meaningful difference because operator new is just a thin wrapper over malloc",
+    ],
+    correctIndex: 1,
+    explanation:
+      "operator new throws std::bad_alloc when allocation fails (unless the nothrow variant is used), while malloc returns nullptr. Additionally, new expressions call constructors after allocating memory, which malloc does not.",
+    link: "https://en.cppreference.com/w/cpp/memory/new/operator_new.html",
+  },
+  {
+    id: 1022,
+    difficulty: "Hard",
+    topic: "Memory Management",
+    question:
+      "What does the control block of a std::shared_ptr typically contain, and where is it allocated?",
+    code: `auto sp = std::make_shared<Widget>(42);
+auto sp2 = sp;
+auto wp = std::weak_ptr<Widget>(sp);
+// How many control blocks exist?`,
+    options: [
+      "One heap-allocated block with strong count, weak count, and deleter",
+      "One stack-allocated block with only the strong reference counter",
+      "Two heap-allocated blocks -- one for strong count, one for weak",
+      "One heap-allocated block with strong count only, no weak count",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A shared_ptr's control block is a single heap-allocated object that stores the strong reference count, the weak reference count, and the deleter (plus optionally the allocator). make_shared allocates the control block and the managed object together in one allocation. Copying the shared_ptr and creating a weak_ptr all share the same control block.",
+    link: "https://en.cppreference.com/w/cpp/memory/shared_ptr",
+  },
+  {
+    id: 1023,
+    difficulty: "Hard",
+    topic: "Memory Management",
+    question:
+      "What happens if a class calls shared_ptr<MyClass>(this) inside a member function without using enable_shared_from_this?",
+    code: `struct Obj {
+  std::shared_ptr<Obj> get_self() {
+    return std::shared_ptr<Obj>(this);
+  }
+};
+auto p = std::make_shared<Obj>();
+auto q = p->get_self();`,
+    options: [
+      "It creates an alias pointer that shares the original control block",
+      "The compiler rejects this with a static_assert at compile time",
+      "It safely transfers ownership from the original shared_ptr to q",
+      "A second independent control block is created, causing double delete",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Constructing a shared_ptr directly from a raw this pointer creates a brand new control block, independent of the existing one from make_shared. Both control blocks believe they own the object, so when both reach zero references, the object is deleted twice -- undefined behavior. enable_shared_from_this solves this by letting the object find and share its existing control block.",
+    link: "https://en.cppreference.com/w/cpp/memory/enable_shared_from_this",
+  },
+  {
+    id: 1024,
+    difficulty: "Hard",
+    topic: "Memory Management",
+    question:
+      "What is the role of std::pmr::polymorphic_allocator compared to a classic std::allocator?",
+    code: `std::pmr::monotonic_buffer_resource pool;
+std::pmr::vector<int> v(&pool);
+v.push_back(1);
+v.push_back(2);
+// Where does v allocate its internal buffer?`,
+    options: [
+      "It uses type erasure to dispatch to a memory_resource at runtime",
+      "It is a template parameter so each resource creates a new type",
+      "It allocates using the default global new operator always",
+      "It allocates exclusively from the stack using alloca internally",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::pmr::polymorphic_allocator uses type erasure so that containers with different memory resources share the same type. It dispatches allocation and deallocation calls to the memory_resource provided at construction time via virtual function calls. This avoids the classic problem where std::vector<int, A1> and std::vector<int, A2> are incompatible types.",
+    link: "https://en.cppreference.com/w/cpp/memory/polymorphic_allocator",
+  },
+  {
+    id: 1025,
+    difficulty: "Hard",
+    topic: "Memory Management",
+    question:
+      "Why does the STL use std::allocator_traits<Alloc> instead of calling allocator methods directly?",
+    code: `template<typename Alloc>
+void example(Alloc& a) {
+  using Traits = std::allocator_traits<Alloc>;
+  auto p = Traits::allocate(a, 1);
+  Traits::construct(a, p, 42);
+  Traits::destroy(a, p);
+  Traits::deallocate(a, p, 1);
+}`,
+    options: [
+      "It forces the allocator to be a polymorphic type with vtable",
+      "It provides compile-time defaults so allocators need fewer members",
+      "It converts allocator calls to use operator new under the hood",
+      "It wraps allocators in shared_ptr for automatic lifetime tracking",
+    ],
+    correctIndex: 1,
+    explanation:
+      "allocator_traits provides sensible default implementations for methods that a custom allocator does not define. For example, if an allocator lacks construct(), allocator_traits provides a default using placement new. This means custom allocators only need to define allocate() and deallocate(), with traits supplying the rest -- greatly simplifying the allocator model.",
+    link: "https://en.cppreference.com/w/cpp/memory/allocator_traits",
+  },
+  {
+    id: 1026,
+    difficulty: "Hard",
+    topic: "Memory Management",
+    question:
+      "Is it legal to reuse the storage of a destroyed object by using placement new to create an object of a different type?",
+    code: `alignas(double) unsigned char buf[sizeof(double)];
+new (buf) int(42);
+int* ip = std::launder(reinterpret_cast<int*>(buf));
+*ip = 7;
+// Now placement-new a double in the same storage:
+new (buf) double(3.14);`,
+    options: [
+      "It is always undefined behavior to reuse storage for a new type",
+      "It is legal only if the old object is trivially destructible first",
+      "It is legal only when both types have identical size and alignment",
+      "It is legal if storage is suitably aligned and the old lifetime ended",
+    ],
+    correctIndex: 3,
+    explanation:
+      "The C++ standard allows you to reuse storage for a different type as long as the storage is suitably aligned and sized, and the previous object's lifetime has ended (either via explicit destructor call or because it was trivially destructible). The original pointer cannot be used to access the new object without std::launder, however.",
+    link: "https://en.cppreference.com/w/cpp/language/lifetime",
+  },
+  {
+    id: 1027,
+    difficulty: "Hard",
+    topic: "Memory Management",
+    question: "When is std::launder needed after placement new in existing storage?",
+    code: `struct A { const int x; };
+A* pa = new A{1};
+pa->~A();
+new (pa) A{2};
+// Is pa->x guaranteed to be 2?`,
+    options: [
+      "std::launder is never needed because placement new updates the pointer",
+      "std::launder is only needed for volatile-qualified members in the type",
+      "std::launder is needed here because a const member was changed in place",
+      "std::launder is needed only when the new object has a different type",
+    ],
+    correctIndex: 2,
+    explanation:
+      "When an object with const or reference members is destroyed and a new object is created at the same address via placement new, the compiler may assume const members have not changed and optimize reads using the old value. std::launder(pa)->x is required to tell the compiler it must re-read the value. Without it, pa->x may still yield 1 due to the compiler's const propagation optimization.",
+    link: "https://en.cppreference.com/w/cpp/utility/launder",
+  },
+  {
+    id: 1028,
+    difficulty: "Hard",
+    topic: "Memory Management",
+    question:
+      "What does std::atomic<std::shared_ptr<T>> (C++20) provide over the deprecated atomic free functions for shared_ptr?",
+    code: `std::atomic<std::shared_ptr<Config>> global_cfg;
+
+void writer() {
+  global_cfg.store(std::make_shared<Config>("v2"));
+}
+void reader() {
+  auto snap = global_cfg.load();
+  snap->use();
+}`,
+    options: [
+      "It avoids heap allocation by storing the shared_ptr in atomic memory",
+      "It makes the pointed-to Config object itself lock-free automatically",
+      "It guarantees the pointed-to object is never destroyed during a read",
+      "It provides a proper type with load/store/CAS, replacing the free API",
+    ],
+    correctIndex: 3,
+    explanation:
+      "C++20 introduced std::atomic<std::shared_ptr<T>> as a proper specialization that wraps a shared_ptr with atomic load, store, compare_exchange_weak, and compare_exchange_strong member functions. This replaces the older free functions (std::atomic_load, std::atomic_store for shared_ptr) which were deprecated in C++20. It does not make the pointee lock-free or prevent normal shared_ptr destruction semantics.",
+    link: "https://en.cppreference.com/w/cpp/memory/shared_ptr/atomic2",
+  },
+  {
+    id: 1029,
+    difficulty: "Hard",
+    topic: "Memory Management",
+    question:
+      "Does the default operator new in C++ act as a memory barrier with respect to other threads?",
+    code: `int* data = nullptr;
+std::atomic<bool> ready{false};
+
+// Thread 1:
+data = new int(42);
+ready.store(true, std::memory_order_release);
+
+// Thread 2:
+if (ready.load(std::memory_order_acquire))
+  assert(*data == 42);`,
+    options: [
+      "new is a full sequential barrier so the atomic is not needed here",
+      "new provides acquire-release ordering on all mainstream platforms",
+      "new has no ordering guarantees -- the explicit atomic provides them",
+      "new provides release semantics only and a matching acquire is needed",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The C++ standard does not specify any memory ordering guarantees for operator new itself. The allocation may involve internal synchronization (e.g., a mutex in the allocator), but this does not create happens-before relationships for user data. In the example, the atomic store with memory_order_release and the atomic load with memory_order_acquire are what establish the correct ordering so that Thread 2 sees the value 42.",
+    link: "https://en.cppreference.com/w/cpp/language/new",
+  },
+  {
+    id: 1030,
+    difficulty: "Hard",
+    topic: "Memory Management",
+    question:
+      "How does the Small Buffer Optimization (SBO) in std::string avoid heap allocation for short strings?",
+    code: `std::string s1 = "Hi";        // short
+std::string s2 = std::string(100, 'x'); // long
+std::cout << sizeof(s1) << " "
+          << sizeof(s2) << '\n';
+// Both print the same sizeof -- why?`,
+    options: [
+      "The compiler places short strings in static storage at compile time",
+      "It stores short strings in the string object's own internal buffer",
+      "It uses a global arena allocator shared by all short string objects",
+      "It uses mmap to map short strings into a read-only memory page area",
+    ],
+    correctIndex: 1,
+    explanation:
+      "With SBO, the std::string object itself contains a small inline buffer (commonly 15-22 bytes depending on the implementation). Strings that fit within this buffer are stored directly inside the string object on the stack, avoiding any heap allocation. Longer strings trigger a heap allocation. Because sizeof measures the object layout, it is the same regardless of whether the string is short or long.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-stdstring/",
+  },
+  {
+    id: 1031,
+    difficulty: "Hard",
+    topic: "Memory Management",
+    question:
+      "When would std::unique_ptr<T[]> be preferred over std::vector<T> for owning a dynamic array?",
+    code: `// Option A:
+auto arr = std::make_unique<int[]>(1'000'000);
+
+// Option B:
+std::vector<int> vec(1'000'000);
+
+// What is a key advantage of Option A?`,
+    options: [
+      "unique_ptr<T[]> has a fixed size with no capacity/size overhead cost",
+      "unique_ptr<T[]> supports push_back and resize unlike std::vector",
+      "unique_ptr<T[]> is faster to iterate because it has no indirection",
+      "unique_ptr<T[]> automatically initializes elements but vector cannot",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::unique_ptr<T[]> stores only a pointer (and optionally a deleter), whereas std::vector stores a pointer plus size and capacity fields. When you need a fixed-size dynamic array and will never resize, unique_ptr<T[]> has lower per-object overhead. Both support element access via operator[], but unique_ptr<T[]> lacks push_back, resize, and iterators that vector provides.",
+    link: "https://en.cppreference.com/w/cpp/memory/unique_ptr",
+  },
+
+  // ── Algorithms (Q1032--Q1061) ──
+  {
+    id: 1032,
+    difficulty: "Easy",
+    topic: "Algorithms",
+    question: "What is the average time complexity of std::sort?",
+    options: [
+      "O(n log n) -- it uses an introsort hybrid",
+      "O(n^2) -- it uses basic insertion sort",
+      "O(n) -- it uses a counting sort method",
+      "O(log n) -- it uses binary divide steps",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::sort uses introsort, a hybrid of quicksort, heapsort, and insertion sort. Its average and worst-case complexity is O(n log n), as guaranteed by the C++ standard.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/sort.html",
+  },
+  {
+    id: 1033,
+    difficulty: "Easy",
+    topic: "Algorithms",
+    question: "What does std::find return if the element is not found in the range?",
+    options: [
+      "A default-constructed iterator value",
+      "An iterator equal to the end iterator",
+      "A null pointer to signal not found",
+      "It throws a std::out_of_range error",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::find performs a linear search and returns an iterator to the first matching element. If no match is found, it returns the end iterator that was passed as the second argument.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/find.html",
+  },
+  {
+    id: 1034,
+    difficulty: "Easy",
+    topic: "Algorithms",
+    question: "What does std::count return for a given range and value?",
+    code: `std::vector<int> v = {3, 1, 4, 1, 5, 1};
+auto result = std::count(v.begin(), v.end(), 1);`,
+    options: [
+      "A boolean true if 1 exists in v",
+      "An iterator to the first 1 found",
+      "The number of elements equal to 1",
+      "The index of the last 1 in the v",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::count returns the number of elements in the range that are equal to the given value. In this example, 1 appears three times, so the result is 3.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/count.html",
+  },
+  {
+    id: 1035,
+    difficulty: "Easy",
+    topic: "Algorithms",
+    question: "Which header must you include to use std::accumulate?",
+    options: [
+      "You must include the <algorithm> header",
+      "You must include the <functional> header",
+      "You must include the <iterator> header file",
+      "You must include the <numeric> header file",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::accumulate is defined in the <numeric> header, not <algorithm>. It computes the sum (or a general fold) of elements in a range, starting from an initial value.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/accumulate.html",
+  },
+  {
+    id: 1036,
+    difficulty: "Easy",
+    topic: "Algorithms",
+    question: "What does std::reverse do to the elements in a range?",
+    code: `std::vector<int> v = {1, 2, 3, 4, 5};
+std::reverse(v.begin(), v.end());
+// What is v now?`,
+    options: [
+      "It reverses elements in-place: {5, 4, 3, 2, 1}",
+      "It returns a new reversed copy and leaves v alone",
+      "It sorts v in descending order: {5, 4, 3, 2, 1}",
+      "It rotates the elements left by one: {2, 3, 4, 5, 1}",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::reverse reverses the order of elements in the range [first, last) in-place. It does not return a new container. After the call, v becomes {5, 4, 3, 2, 1}.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/reverse.html",
+  },
+  {
+    id: 1037,
+    difficulty: "Easy",
+    topic: "Algorithms",
+    question: "What does std::max_element return when called on a non-empty range?",
+    options: [
+      "It returns the maximum value as an integer copy",
+      "An iterator pointing to the largest element found",
+      "A pair containing the min and the max elements",
+      "The index of the largest element in the container",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::max_element returns an iterator to the greatest element in the range [first, last). You can dereference the iterator to get the actual value. For the index, subtract begin() from the result.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/max_element.html",
+  },
+  {
+    id: 1038,
+    difficulty: "Easy",
+    topic: "Algorithms",
+    question: "What is a precondition for using std::binary_search on a range?",
+    options: [
+      "The container must support random access iterators only",
+      "The range must have no duplicate values at all inside",
+      "Each element must be a primitive type like int or char",
+      "The range must be sorted with respect to the comparator",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::binary_search requires the range to be sorted (or at least partitioned) with respect to the comparator used. It returns a bool indicating whether the value exists in the range.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/binary_search.html",
+  },
+  {
+    id: 1039,
+    difficulty: "Easy",
+    topic: "Algorithms",
+    question: "What does std::copy do with the elements in a source range?",
+    options: [
+      "It moves elements, leaving the source in a blank state",
+      "It swaps elements between the source and destination now",
+      "It copies elements from the source to the destination range",
+      "It removes duplicates and copies unique elements to dest",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::copy copies each element from the input range [first, last) to the output range starting at the destination iterator. The source range is not modified. For moving, use std::move instead.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/copy.html",
+  },
+  {
+    id: 1040,
+    difficulty: "Easy",
+    topic: "Algorithms",
+    question: "What does std::fill do to a given range?",
+    code: `std::vector<int> v(5);
+std::fill(v.begin(), v.end(), 42);
+// What is v now?`,
+    options: [
+      "Sets every element to 42: {42, 42, 42, 42, 42}",
+      "Appends 42 to the end giving v a size of six now",
+      "Fills only the first element with 42 and skips rest",
+      "Replaces elements greater than 42 and keeps the rest",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::fill assigns the given value to every element in the range [first, last). After the call, all five elements in v are set to 42.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/fill.html",
+  },
+  {
+    id: 1041,
+    difficulty: "Easy",
+    topic: "Algorithms",
+    question:
+      "How does std::swap exchange two values in modern C++ (C++11 and later)?",
+    options: [
+      "It always uses three copy assignments to swap values",
+      "It creates a deep clone of both objects then exchanges",
+      "It uses a temporary variable and two copy constructors",
+      "It uses move semantics to efficiently exchange the values",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Since C++11, std::swap is implemented using std::move, performing one move construction and two move assignments. This avoids expensive copies for types that support move semantics.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/swap.html",
+  },
+  {
+    id: 1042,
+    difficulty: "Medium",
+    topic: "Algorithms",
+    question:
+      "What does this lambda do when passed to std::sort as the third argument?",
+    code: `std::vector<int> v = {3, 1, 4, 1, 5};
+std::sort(v.begin(), v.end(),
+    [](int a, int b) { return a > b; });`,
+    options: [
+      "Sorts v in descending order -- the lambda returns true when a should come before b, and a > b means larger elements come first in the result",
+      "Sorts v in ascending order -- the lambda compares a > b which the algorithm interprets as requesting the standard ascending arrangement",
+      "Removes duplicate elements from v -- the lambda identifies which duplicate pairs to discard by checking if a is greater than b",
+      "Reverses v without sorting -- the comparator a > b tells std::sort to simply reverse the original element order in the container",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The comparator defines a strict weak ordering where a > b means larger values are ordered before smaller ones. std::sort places element a before b when the comparator returns true. So return a > b gives descending order, while the default return a < b gives ascending order.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/sort.html",
+  },
+  {
+    id: 1043,
+    difficulty: "Medium",
+    topic: "Algorithms",
+    question:
+      "What does std::partition return, and what guarantee does it provide about element ordering?",
+    code: `std::vector<int> v = {8, 2, 9, 1, 7, 3};
+auto it = std::partition(v.begin(), v.end(),
+    [](int x) { return x < 5; });`,
+    options: [
+      "An iterator to the smallest element -- std::partition finds the minimum value satisfying the predicate and returns its position",
+      "An iterator to the first element for which the predicate returns false -- elements before it satisfy the predicate, elements after do not",
+      "A pair of iterators marking the boundaries of matching and non-matching groups so you can iterate each partition independently",
+      "A boolean indicating whether any elements matched the predicate -- true if at least one element satisfied the condition given",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::partition rearranges elements so that all elements satisfying the predicate come before those that don't. It returns an iterator to the partition point -- the first element for which the predicate returns false. The relative order within each group is not guaranteed (use std::stable_partition if order matters). Complexity is O(n).",
+    link: "https://en.cppreference.com/w/cpp/algorithm/partition.html",
+  },
+  {
+    id: 1044,
+    difficulty: "Medium",
+    topic: "Algorithms",
+    question: "What is the output of this code using std::transform?",
+    code: `std::vector<int> a = {1, 2, 3};
+std::vector<int> b = {10, 20, 30};
+std::vector<int> c(3);
+std::transform(a.begin(), a.end(), b.begin(), c.begin(),
+    [](int x, int y) { return x + y; });
+// What is c?`,
+    options: [
+      "c = {10, 20, 30} -- the binary form of transform ignores the first range and copies only the second range directly into the output",
+      "c = {1, 2, 3, 10, 20, 30} -- transform concatenates both input ranges into the output range, appending one sequence after the other",
+      "c = {11, 22, 33} -- the binary form applies the lambda to corresponding pairs from both ranges and stores each result in the output",
+      "c = {30, 60, 90} -- transform multiplies corresponding pairs from each range by default when given two input ranges as arguments",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The binary form of std::transform takes elements pairwise from two input ranges and applies the binary operation. Here it computes 1+10=11, 2+20=22, 3+30=33. The output range must be large enough to hold the results. This is like a zip-with-function operation from functional programming.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/transform.html",
+  },
+  {
+    id: 1045,
+    difficulty: "Medium",
+    topic: "Algorithms",
+    question:
+      "Why must a range be sorted before calling std::unique to remove all duplicates?",
+    code: `std::vector<int> v = {3, 1, 3, 2, 1};
+// Without sorting: unique removes only consecutive duplicates
+auto it1 = std::unique(v.begin(), v.end());
+// v might be {3, 1, 3, 2, 1} -- no consecutive dups to remove
+
+std::sort(v.begin(), v.end());  // {1, 1, 2, 3, 3}
+auto it2 = std::unique(v.begin(), v.end());
+// v is {1, 2, 3, ?, ?} -- all dups removed`,
+    options: [
+      "std::unique only removes consecutive duplicate elements -- sorting groups identical values together so all duplicates become adjacent and can be found",
+      "std::unique uses binary search internally to locate duplicates, which requires sorted input -- unsorted ranges cause undefined behavior",
+      "std::unique modifies the comparison operator based on sort order -- without sorted input the comparator yields incorrect boolean results",
+      "Sorting is optional but improves performance from O(n squared) to O(n) -- std::unique works correctly on unsorted ranges but runs slowly",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::unique compares each element with its immediate predecessor and removes consecutive duplicates by shifting unique elements forward. Without sorting, duplicates scattered across the range won't be adjacent and won't be detected. After unique, call erase to actually shrink the container (the erase-unique idiom).",
+    link: "https://en.cppreference.com/w/cpp/algorithm/unique.html",
+  },
+  {
+    id: 1046,
+    difficulty: "Medium",
+    topic: "Algorithms",
+    question:
+      "What is the difference between std::lower_bound and std::upper_bound when searching for value 30?",
+    code: `std::vector<int> v = {10, 20, 30, 30, 30, 40, 50};
+auto lo = std::lower_bound(v.begin(), v.end(), 30);
+auto hi = std::upper_bound(v.begin(), v.end(), 30);
+// lo points to index 2, hi points to index 5`,
+    options: [
+      "lower_bound returns the last occurrence of 30 and upper_bound returns the first -- they scan from opposite ends of the sorted range",
+      "lower_bound returns the element just below 30 and upper_bound returns the element just above 30 -- they find the neighboring values",
+      "lower_bound points to the first element >= 30 and upper_bound points to the first element > 30 -- together they bracket the equal range of 30",
+      "lower_bound counts elements less than 30 and upper_bound counts elements greater than 30 -- they return integer counts rather than iterators",
+    ],
+    correctIndex: 2,
+    explanation:
+      "lower_bound finds the first position where 30 could be inserted without breaking the sort order (first element >= 30). upper_bound finds the last such position (first element > 30). The distance between them (hi - lo = 3) gives the count of 30s. Both use binary search with O(log n) complexity for random access iterators.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/lower_bound.html",
+  },
+  {
+    id: 1047,
+    difficulty: "Medium",
+    topic: "Algorithms",
+    question: "What guarantees does std::nth_element provide after execution?",
+    code: `std::vector<int> v = {9, 4, 7, 2, 5, 1, 8};
+std::nth_element(v.begin(), v.begin() + 3, v.end());
+// v[3] now holds the value that would be at index 3 if v were fully sorted`,
+    options: [
+      "It fully sorts the range in O(n log n) and then returns -- std::nth_element is an alias for std::sort that names the pivot position",
+      "It places the median element at position n and leaves all other elements in their original positions completely unchanged from input",
+      "It sorts only the first n elements in ascending order and leaves the rest completely unsorted in their original arrangement in the range",
+      "The element at the nth position is the one that would be there in a sorted range -- elements before are <= it, elements after are >= it",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::nth_element is a partial sorting algorithm with O(n) average complexity. It guarantees three things: (1) the element at nth position equals the sorted-order value, (2) all elements before nth are less than or equal to it, (3) all elements after are greater than or equal. It's ideal for finding medians or top-k elements without fully sorting.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/nth_element.html",
+  },
+  {
+    id: 1048,
+    difficulty: "Medium",
+    topic: "Algorithms",
+    question: "When should you prefer std::stable_sort over std::sort?",
+    code: `struct Employee { std::string name; int department; };
+std::vector<Employee> emps = {{"Alice",2}, {"Bob",1}, {"Carol",2}, {"Dave",1}};
+// Sort by department -- should Alice still appear before Carol in dept 2?
+std::stable_sort(emps.begin(), emps.end(),
+    [](const Employee& a, const Employee& b) {
+        return a.department < b.department;
+    });`,
+    options: [
+      "When you need equal elements to keep their original relative order -- stable_sort preserves the input order of equivalent elements",
+      "When you want the fastest possible sort -- stable_sort uses quicksort internally and is always faster than std::sort for all inputs",
+      "When sorting integers only -- stable_sort uses radix sort for integral types and falls back to comparison sort for other types",
+      "When the range is nearly sorted already -- stable_sort detects sorted runs and skips them, while std::sort always rescans everything",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::stable_sort preserves the relative order of elements that compare equal. In the example, Alice and Carol are both in department 2 -- stable_sort guarantees Alice stays before Carol. std::sort may reorder them. stable_sort uses merge sort (O(n log n) guaranteed) and needs O(n) extra memory, while std::sort uses introsort and is typically faster.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/stable_sort.html",
+  },
+  {
+    id: 1049,
+    difficulty: "Medium",
+    topic: "Algorithms",
+    question:
+      "Why is the erase-remove idiom necessary, and what does std::remove actually do to the container?",
+    code: `std::vector<int> v = {1, 2, 3, 2, 4, 2, 5};
+auto newEnd = std::remove(v.begin(), v.end(), 2);
+// v.size() is still 7 here!
+v.erase(newEnd, v.end());
+// Now v.size() is 4: {1, 3, 4, 5}`,
+    options: [
+      "std::remove physically deletes elements and reduces the container size -- erase is only needed to free the leftover memory allocation",
+      "std::remove shifts non-matching elements forward and returns a new logical end -- it cannot resize the container because it only sees iterators",
+      "std::remove marks elements for lazy deletion with a tombstone flag -- erase then walks the container to actually compact the flagged slots",
+      "std::remove swaps matching elements to the front of the range for inspection -- erase then removes the first n elements from the beginning",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::remove is an algorithm operating on iterators -- it has no knowledge of the container itself. It shifts elements that don't match the value forward, overwriting removed elements, and returns an iterator to the new logical end. The container's size is unchanged. You must call container.erase(newEnd, end()) to actually shrink it. C++20 introduced std::erase(container, value) as a shorthand.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/remove.html",
+  },
+  {
+    id: 1050,
+    difficulty: "Medium",
+    topic: "Algorithms",
+    question: "What happens if you pass unsorted ranges to std::set_intersection?",
+    code: `std::vector<int> a = {3, 1, 4, 1, 5};
+std::vector<int> b = {2, 7, 1, 8};
+std::vector<int> result;
+std::set_intersection(a.begin(), a.end(), b.begin(), b.end(),
+    std::back_inserter(result));
+// What is result?`,
+    options: [
+      "result = {1} -- the algorithm finds common elements by hashing both ranges into temporary sets and computing their intersection in O(n) time",
+      "result = {1, 1} -- the algorithm handles unsorted input by falling back to a nested loop approach that checks every possible pair of elements",
+      "The algorithm silently produces an empty result -- it detects unsorted input and returns early without writing any elements to the output range",
+      "The behavior is undefined -- std::set_intersection requires both ranges to be sorted. Unsorted input may produce missing or incorrect results",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::set_intersection, std::set_union, std::set_difference, and std::set_symmetric_difference all require both input ranges to be sorted with respect to the comparison. They use a merge-like O(n+m) linear scan that advances iterators based on ordering. Unsorted input violates the precondition, leading to undefined behavior.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/set_intersection.html",
+  },
+  {
+    id: 1051,
+    difficulty: "Medium",
+    topic: "Algorithms",
+    question:
+      "Why does std::sort require random access iterators while std::find works with input iterators?",
+    code: `std::list<int> lst = {5, 3, 1, 4, 2};
+// std::sort(lst.begin(), lst.end());  // ERROR: list has bidirectional iterators, not random access
+lst.sort();  // OK: list has its own sort member function
+
+auto it = std::find(lst.begin(), lst.end(), 4);  // OK: find only needs input iterators`,
+    options: [
+      "std::sort modifies elements in place while std::find is read-only -- mutating algorithms always require random access iterators by convention",
+      "std::find needs random access too but falls back to linear scan automatically -- the standard silently downgrades the iterator requirements",
+      "std::sort needs O(1) access to arbitrary positions for efficient partitioning and swapping, while std::find only advances sequentially forward",
+      "Both algorithms actually work with any iterator category -- the restriction on std::sort is an implementation detail that varies between compilers",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::sort uses introsort (quicksort + heapsort), which requires jumping to arbitrary positions via arithmetic like mid = begin + (end - begin) / 2. This needs random access iterators. std::find only scans sequentially with ++it, so input iterators suffice. std::list provides bidirectional iterators, so you must use its member function lst.sort() which uses merge sort internally.",
+    link: "https://en.cppreference.com/w/cpp/iterator/random_access_iterator.html",
+  },
+  {
+    id: 1052,
+    difficulty: "Hard",
+    topic: "Algorithms",
+    question:
+      "What hybrid algorithm does std::sort typically use internally, and why?",
+    code: `#include <algorithm>
+std::vector<int> v = {9, 3, 7, 1, 5, 8, 2, 6, 4};
+std::sort(v.begin(), v.end());
+// Internally: introsort = quicksort + heapsort + insertion sort`,
+    options: [
+      "Introsort -- starts with quicksort for cache efficiency, switches to heapsort when recursion exceeds 2*log2(n) to guarantee O(n log n) worst case, and uses insertion sort for small sub-arrays (typically n <= 16) due to low overhead",
+      "Pure quicksort with randomized pivot selection, always achieving O(n log n) average case and O(n squared) worst case. The implementation uses a random number generator to select the pivot element at each level of the recursion",
+      "Merge sort exclusively, because it offers guaranteed O(n log n) worst case and stability. The standard mandates a merge-based implementation since stable ordering of equal elements is required by the specification for std::sort",
+      "Timsort adapted from Python -- it scans for pre-sorted runs and merges them with galloping mode. The standard library adopted timsort because it achieves O(n) best case on nearly-sorted data and O(n log n) worst case",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Most implementations use introsort (Musser, 1997). It begins with quicksort for practical speed, monitors recursion depth, and switches to heapsort if depth exceeds 2*log2(n) -- preventing quicksort's O(n^2) worst case. For partitions smaller than about 16 elements, insertion sort finishes the job because its low overhead beats the recursive algorithms on tiny arrays.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/sort.html",
+  },
+  {
+    id: 1053,
+    difficulty: "Hard",
+    topic: "Algorithms",
+    question:
+      "What does the projection parameter in C++20 std::ranges::sort allow you to do?",
+    code: `#include <algorithm>
+#include <ranges>
+struct Employee { std::string name; int salary; };
+std::vector<Employee> staff = {{"Alice", 90000}, {"Bob", 75000}};
+std::ranges::sort(staff, std::ranges::less{}, &Employee::salary);
+// Sorted by salary ascending without writing a custom comparator`,
+    options: [
+      "It pre-filters elements so that only those satisfying the projection predicate are included in the sort operation. Elements that fail the projection check remain at their original positions while matching elements get sorted among themselves",
+      "It specifies an output range where sorted results are written instead of sorting in-place. The projection acts as an output iterator adaptor that maps each element to a location in the destination container for out-of-place sorting",
+      "It transforms each element through a callable before comparison, letting you sort by a member or computed value without writing a full comparator. The projection is applied transparently -- the original elements are rearranged, not the projected values",
+      "It controls the execution policy by projecting the sort across multiple CPU cores for parallel execution. The projection parameter is a thread-affinity hint that tells the scheduler which core group should process each partition of the range",
+    ],
+    correctIndex: 2,
+    explanation:
+      "A projection is a unary callable applied to each element before the comparator sees it. In the example, &Employee::salary extracts the salary field, so std::ranges::less compares salaries rather than Employee objects. This eliminates the need for verbose lambda comparators. Any callable works -- member pointers, lambdas, or function objects.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/ranges/sort.html",
+  },
+  {
+    id: 1054,
+    difficulty: "Hard",
+    topic: "Algorithms",
+    question: "When and why would you choose std::partial_sort over std::sort?",
+    code: `#include <algorithm>
+std::vector<int> v = {9, 4, 7, 1, 3, 8, 2, 6, 5};
+std::partial_sort(v.begin(), v.begin() + 3, v.end());
+// First 3 elements are {1, 2, 3}; remaining elements are unspecified order`,
+    options: [
+      "partial_sort is always faster for every input size because it uses radix sort internally and achieves O(n) time by distributing elements into digit-based buckets. It avoids comparisons entirely and processes integer keys one digit at a time",
+      "partial_sort is identical to std::sort but returns early after placing the first k elements. There is no algorithmic advantage -- both execute the same introsort steps, and partial_sort simply stops the algorithm at the kth iteration",
+      "partial_sort uses heapselect to place the smallest k elements in sorted order in O(n log k) time. When k is much smaller than n, this is significantly faster than a full O(n log n) sort -- ideal for top-k queries or leaderboard rankings",
+      "partial_sort sorts only even-indexed elements and leaves odd-indexed ones in place. The name refers to sorting a partial subset based on position parity, and the algorithm alternates between sorted and unsorted slots throughout the container",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::partial_sort builds a max-heap of the first k elements, then scans the rest -- if an element is smaller than the heap's max, it replaces the max and re-heapifies. This is O(n log k). When you need only the top-10 from 1 million elements, partial_sort (O(n log 10)) vastly outperforms full sort (O(n log n)).",
+    link: "https://en.cppreference.com/w/cpp/algorithm/partial_sort.html",
+  },
+  {
+    id: 1055,
+    difficulty: "Hard",
+    topic: "Algorithms",
+    question:
+      "What thread-safety requirement does std::execution::par impose on the callable passed to an algorithm?",
+    code: `#include <algorithm>
+#include <execution>
+#include <vector>
+std::vector<int> v(1000000, 1);
+int sum = 0;
+std::for_each(std::execution::par, v.begin(), v.end(),
+    [&sum](int x) { sum += x; });  // BUG: data race on sum
+// Correct: use std::reduce(std::execution::par, v.begin(), v.end());`,
+    options: [
+      "No requirements -- the runtime automatically serializes all writes using an internal global mutex, so any callable is safe to use. The standard library implementation wraps each element access in a lock to prevent concurrent modification",
+      "The callable must be marked constexpr so the compiler can evaluate it at compile time instead of at runtime. Parallel execution requires compile-time evaluation to divide work statically across threads before the program runs",
+      "The callable must avoid acquiring mutexes or doing any synchronization, because std::execution::par automatically manages all needed locks. The runtime assumes lock-free code and will deadlock if the callable uses its own synchronization",
+      "The callable must not cause data races -- element accesses from parallel threads are the user's responsibility to synchronize. Shared mutable state (like sum above) requires an atomic or mutex, or you should use std::reduce instead",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::execution::par may execute the callable on multiple threads simultaneously. The standard does NOT provide automatic synchronization -- the user must ensure thread safety. The example has a data race on sum because multiple threads increment it concurrently. The fix is to use std::reduce (which handles accumulation internally) or protect sum with std::atomic.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/execution_policy_tag.html",
+  },
+  {
+    id: 1056,
+    difficulty: "Hard",
+    topic: "Algorithms",
+    question:
+      "What is the key difference between std::reduce and std::accumulate that enables parallelism?",
+    code: `#include <numeric>
+#include <execution>
+std::vector<double> v = {1.0, 2.0, 3.0, 4.0};
+// accumulate: strictly left-to-right fold
+double a = std::accumulate(v.begin(), v.end(), 0.0);
+// reduce: may combine elements in any order
+double r = std::reduce(std::execution::par, v.begin(), v.end(), 0.0);`,
+    options: [
+      "std::reduce requires the operation to be associative and commutative because it may combine elements in any order or group sub-results arbitrarily. This flexibility allows parallel execution but means floating-point results may differ slightly from accumulate",
+      "std::reduce only works with integer types and will refuse to compile with floating-point arguments. The parallel reduction algorithm requires exact arithmetic guarantees that only integer types can provide to ensure deterministic results",
+      "There is no difference -- reduce is just an alias for accumulate introduced in C++17 for naming consistency with other languages. Both functions evaluate the fold in strict left-to-right order and produce bit-identical results for all input types",
+      "std::reduce returns a std::optional instead of a plain value to signal when the range is empty, while accumulate always returns the initial value for empty ranges. The optional wrapper is needed because parallel reduction cannot initialize from an empty set",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::accumulate always folds left-to-right: ((init op e0) op e1) op e2. std::reduce may partition the range and combine sub-results in any order, enabling parallel execution. This requires the operation to be associative and commutative. For floating-point, this means reduce may produce slightly different results due to different summation order (floating-point addition is not truly associative).",
+    link: "https://en.cppreference.com/w/cpp/algorithm/reduce.html",
+  },
+  {
+    id: 1057,
+    difficulty: "Hard",
+    topic: "Algorithms",
+    question:
+      "What goes wrong when a custom comparator violates strict weak ordering?",
+    code: `#include <algorithm>
+std::vector<int> v = {3, 1, 2, 1, 3};
+// BUG: using <= instead of < violates strict weak ordering
+std::sort(v.begin(), v.end(), [](int a, int b) {
+    return a <= b;  // irreflexivity violated: (x <= x) is true
+});`,
+    options: [
+      "The compiler will emit a diagnostic error at compile time because the comparator's return type is checked statically against the strict weak ordering axioms. Template constraints on std::sort verify irreflexivity during overload resolution",
+      "The sort produces a valid result but in descending order instead of ascending, because <= reverses the comparison polarity. The algorithm interprets less-or-equal as greater-than and reverses the direction of every swap it makes during partitioning",
+      "The sort silently works correctly for all inputs because modern implementations detect and compensate for non-strict comparators. The introsort algorithm includes a runtime fallback that normalizes any comparison function into a valid strict weak ordering",
+      "Undefined behavior -- the algorithm may infinite-loop, read out of bounds, or corrupt memory. std::sort assumes comp(x, x) is false (irreflexivity). With <=, equal elements compare true both ways, breaking the partitioning logic of introsort",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Strict weak ordering requires: irreflexivity (comp(x,x) == false), asymmetry (if comp(a,b) then !comp(b,a)), and transitivity. Using <= violates irreflexivity because x <= x is true. This can cause introsort's partition to never terminate or access memory outside the range. This is genuine undefined behavior -- not just wrong results -- and has caused real-world crashes and security vulnerabilities.",
+    link: "https://en.cppreference.com/w/cpp/named_req/Compare.html",
+  },
+  {
+    id: 1058,
+    difficulty: "Hard",
+    topic: "Algorithms",
+    question: "How does std::inplace_merge work and where is it used?",
+    code: `#include <algorithm>
+std::vector<int> v = {1, 3, 5, 2, 4, 6};
+// First half [1,3,5] and second half [2,4,6] are each sorted
+std::inplace_merge(v.begin(), v.begin() + 3, v.end());
+// v = {1, 2, 3, 4, 5, 6}`,
+    options: [
+      "It calls std::sort on the full range regardless of existing order, ignoring that the two halves are already sorted. The algorithm discards the sorted-halves precondition and performs a complete introsort pass over all elements from scratch",
+      "It merges two consecutively sorted sub-ranges within the same container in O(n) time with O(n) extra memory, or O(n log n) time in-place if memory allocation fails. This is the merge step used to implement bottom-up merge sort",
+      "It interleaves elements from two ranges by alternating -- taking one from the first half, then one from the second half, repeating until both halves are exhausted. The result is a round-robin shuffle rather than a sorted merge of the two halves",
+      "It only works on std::list and std::forward_list because merging requires node splicing for O(1) element movement. The algorithm modifies internal node pointers rather than copying values, which is only possible with node-based containers",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::inplace_merge merges two sorted, consecutive sub-ranges [first, middle) and [middle, last) into one sorted range. With sufficient memory it runs in O(n) comparisons and O(n) extra space. If memory allocation fails, it falls back to an O(n log n) rotation-based in-place merge. This is exactly the merge step of merge sort, making it a key building block for std::stable_sort.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/inplace_merge.html",
+  },
+  {
+    id: 1059,
+    difficulty: "Hard",
+    topic: "Algorithms",
+    question: "What does std::rotate do and what is its time complexity?",
+    code: `#include <algorithm>
+std::vector<int> v = {1, 2, 3, 4, 5};
+std::rotate(v.begin(), v.begin() + 2, v.end());
+// v = {3, 4, 5, 1, 2}
+// The element pointed to by middle becomes the first element`,
+    options: [
+      "It reverses the entire range and then reverses each half separately to achieve a circular shift effect. It runs in O(n) with O(1) extra space by performing at most 2n swaps, and returns an iterator to the new position of the original first element",
+      "It creates a temporary copy of the range, rearranges elements in the copy, and writes them back. This requires O(n) extra space for the temporary buffer and runs in O(n) time by copying each element twice -- once to the buffer and once back",
+      "It only works on deques and lists because rotation requires O(1) insertion at both ends. For vectors, it falls back to an O(n squared) algorithm that repeatedly moves the first element to the back position one step at a time using std::swap",
+      "It sorts the range in a circular manner by treating the container as a ring buffer and shifting the sort origin. The rotation is a byproduct of the sort algorithm reinterpreting iterator offsets relative to a new starting index in the buffer",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::rotate performs a left rotation so that the element at middle becomes the new first element. It runs in O(n) time with O(1) extra space. The classic implementation uses three reverses: reverse [first, middle), reverse [middle, last), reverse [first, last). It returns an iterator pointing to where the original first element ended up. Rotate is a fundamental building block used inside std::stable_partition and other algorithms.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/rotate.html",
+  },
+  {
+    id: 1060,
+    difficulty: "Hard",
+    topic: "Algorithms",
+    question: "How does lazy evaluation work in a C++20 ranges views pipeline?",
+    code: `#include <ranges>
+#include <vector>
+std::vector<int> v = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+auto result = v | std::views::filter([](int x) { return x % 2 == 0; })
+                | std::views::transform([](int x) { return x * x; })
+                | std::views::take(3);
+// result lazily yields: 4, 16, 36 -- stops after 3 matches`,
+    options: [
+      "Views are lazy -- no computation occurs until elements are iterated. Each element flows through the pipeline one at a time (filter then transform then take), and take(3) stops iteration after yielding 3 results, so elements 8 and 10 are never processed",
+      "The pipeline eagerly evaluates each stage into a temporary std::vector before passing results to the next stage. The filter creates a new vector of even numbers, then transform squares each one into another vector, and finally take selects the first three",
+      "Views execute all stages in parallel on separate threads, with each stage running concurrently on its own core. The pipe operator spawns a thread per stage and elements flow through a lock-free queue connecting the filter, transform, and take stages",
+      "The pipeline compiles down to a single std::copy_if call because the compiler fuses all view stages into one loop at compile time. Views are purely a compile-time abstraction that the optimizer always eliminates through mandatory stage fusion",
+    ],
+    correctIndex: 0,
+    explanation:
+      "C++20 range views are lazy adaptors that compose into a pipeline. When you iterate result, each element is pulled through the chain on demand: filter checks if the element is even, transform squares it, and take counts how many have been yielded. Once take has 3 results, iteration stops -- elements 8 and 10 are never touched. No intermediate containers are created. This is similar to lazy iterators in Rust or Python generators.",
+    link: "https://en.cppreference.com/w/cpp/ranges.html",
+  },
+  {
+    id: 1061,
+    difficulty: "Hard",
+    topic: "Algorithms",
+    question: "Which statement about constexpr algorithms in C++20 is correct?",
+    code: `#include <algorithm>
+#include <array>
+constexpr auto make_sorted() {
+    std::array<int, 5> a = {5, 3, 1, 4, 2};
+    std::sort(a.begin(), a.end());  // constexpr sort in C++20
+    return a;
+}
+constexpr auto sorted = make_sorted();  // computed at compile time
+static_assert(sorted[0] == 1);  // verified at compile time`,
+    options: [
+      "Only std::find and std::count are constexpr in C++20 -- sorting algorithms like std::sort cannot be constexpr because they require mutable iterators, and mutation is forbidden during constant evaluation in all C++ standards",
+      "Constexpr algorithms run at compile time only if marked with the consteval keyword instead of constexpr. Without consteval, the algorithms always execute at runtime regardless of whether the inputs are compile-time constants or not",
+      "C++20 made most non-parallel <algorithm> and <numeric> algorithms constexpr, allowing std::sort, std::transform, std::fill, and many others to execute at compile time. This works because C++20 also allows constexpr dynamic memory (with restrictions)",
+      "All algorithms became constexpr in C++17 -- the C++20 addition was only about parallel execution policies. The constexpr specifier was added to every algorithm in the standard library header as part of the C++17 constexpr lambda proposal",
+    ],
+    correctIndex: 2,
+    explanation:
+      "C++20 added constexpr to the vast majority of algorithms in <algorithm> and <numeric>. This was enabled by C++20 also permitting constexpr dynamic memory allocation (within constant evaluation). You can now sort, search, transform, and accumulate arrays at compile time. Parallel algorithms (those taking execution policies) are excluded because thread creation cannot happen at compile time.",
+    link: "https://en.cppreference.com/w/cpp/algorithm/sort.html",
+  },
+
+  // ── Type Casting (Q1062--Q1091) ──
+  {
+    id: 1062,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "What happens when you assign an int to a double variable in C++?",
+    code: `int x = 7;
+double d = x;`,
+    options: [
+      "The compiler performs an implicit conversion, promoting the int value to a double automatically with no data loss",
+      "The code fails to compile because C++ requires an explicit cast for every conversion between different numeric types",
+      "The int is truncated to fit the smaller double format, potentially discarding the least-significant bits of the value",
+      "The behavior is undefined because mixing int and double without a cast violates the strict type-safety rules of C++",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Assigning an int to a double is a safe implicit widening conversion. The compiler automatically promotes the integer value to double with no data loss, because double can represent all int values. No explicit cast is needed.",
+    link: "https://www.learncpp.com/cpp-tutorial/implicit-type-conversion/",
+  },
+  {
+    id: 1063,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "What does static_cast<int>(3.9) evaluate to?",
+    code: `double val = 3.9;
+int result = static_cast<int>(val);`,
+    options: [
+      "4 -- static_cast rounds floating-point values to the nearest integer using standard rounding rules before converting",
+      "3 -- static_cast truncates the fractional part, converting toward zero without any rounding applied to the value",
+      "A compilation error because static_cast cannot convert between double and int -- use dynamic_cast for numeric types",
+      "3.0 -- the cast has no effect since the compiler stores the result as a double even when assigned to an int variable",
+    ],
+    correctIndex: 1,
+    explanation:
+      "static_cast<int> on a floating-point value truncates toward zero, discarding the fractional part. So 3.9 becomes 3 and -3.9 would become -3. This is the same behavior as a C-style cast but makes the intent explicit.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast.html",
+  },
+  {
+    id: 1064,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question:
+      "Why is the C-style cast syntax (type)expr generally discouraged in modern C++?",
+    code: `double pi = 3.14;
+int n = (int)pi;  // C-style cast`,
+    options: [
+      "C-style casts run slower because they insert a runtime type-check that inspects the object before performing the conversion",
+      "C-style casts are rejected by all modern compilers when compiling in C++17 mode or later -- they only work up to C++14",
+      "C-style casts can silently combine static_cast, const_cast, and reinterpret_cast, making it hard to see what conversion occurs",
+      "C-style casts always cause undefined behavior because they bypass the compiler's type system and corrupt the stack frame",
+    ],
+    correctIndex: 2,
+    explanation:
+      "A C-style cast tries static_cast, then const_cast, then reinterpret_cast, picking the first that compiles. This hides the programmer's intent and can silently do a dangerous reinterpret_cast. Named casts make the intent explicit and are easier to search for in code.",
+    link: "https://www.learncpp.com/cpp-tutorial/explicit-type-conversion-casting-and-static-cast/",
+  },
+  {
+    id: 1065,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question:
+      "What is the risk of using static_cast to downcast a base pointer to a derived pointer?",
+    code: `struct Base { virtual ~Base() {} };
+struct Derived : Base { int extra; };
+
+Base* b = new Base();
+Derived* d = static_cast<Derived*>(b);`,
+    options: [
+      "It always throws std::bad_cast at runtime if the object is not actually a Derived instance, preventing misuse automatically",
+      "The compiler rejects the cast and emits an error because static_cast cannot convert between pointers in a class hierarchy",
+      "It succeeds but creates a deep copy of the Base object and then constructs a new Derived object from that copied data safely",
+      "It compiles without error but does no runtime check -- if the object is not really Derived, using the pointer is undefined behavior",
+    ],
+    correctIndex: 3,
+    explanation:
+      "static_cast trusts the programmer and performs no runtime type check. If the object pointed to is not actually a Derived, accessing the pointer leads to undefined behavior. Use dynamic_cast when you need a safe runtime-checked downcast.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast.html",
+  },
+  {
+    id: 1066,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "What is the purpose of const_cast in C++?",
+    code: `void legacy(char* s);
+const char* msg = "hello";
+legacy(const_cast<char*>(msg));`,
+    options: [
+      "It adds or removes const (or volatile) from a pointer or reference so you can pass data to APIs that lack const-correctness",
+      "It converts a pointer to a completely unrelated type by reinterpreting the stored address bits as the new pointer type",
+      "It performs a runtime-checked downcast on polymorphic types, returning nullptr if the object type does not match the target",
+      "It converts numeric types such as int to double or float to int, performing truncation or widening as needed at compile time",
+    ],
+    correctIndex: 0,
+    explanation:
+      "const_cast is the only named cast that can add or remove const or volatile qualifiers. It is commonly used to interface with legacy C functions that take non-const pointers but do not modify the data. Modifying a truly const object through the result is undefined behavior.",
+    link: "https://en.cppreference.com/w/cpp/language/const_cast.html",
+  },
+  {
+    id: 1067,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "What is a narrowing conversion in C++?",
+    code: `double big = 1e18;
+int n = big;  // narrowing: double to int`,
+    options: [
+      "A conversion that always succeeds but rounds the result to the nearest representable value in the destination type safely",
+      "A conversion where the destination type cannot represent all values of the source type, potentially losing data silently",
+      "Any conversion that changes the signedness of an integer, such as converting unsigned int to signed int or vice versa only",
+      "A conversion that the compiler rejects outright -- narrowing conversions never compile in any version of the C++ standard",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A narrowing conversion is one where the destination type cannot represent all possible values from the source. Examples: double to int, long long to int, int to unsigned. C++11 brace initialization {} forbids narrowing conversions, but traditional initialization still allows them with a potential warning.",
+    link: "https://www.learncpp.com/cpp-tutorial/implicit-type-conversion/",
+  },
+  {
+    id: 1068,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "What does dynamic_cast require in order to work on a class hierarchy?",
+    code: `struct Base { virtual ~Base() {} };
+struct Derived : Base {};
+Base* b = new Derived();
+Derived* d = dynamic_cast<Derived*>(b);`,
+    options: [
+      "The base class must have a template parameter -- dynamic_cast uses compile-time template metadata to verify the cast safely",
+      "The classes must be in the same translation unit -- dynamic_cast cannot cross object file boundaries during runtime checking",
+      "The base class must be polymorphic (have at least one virtual function) so RTTI information is available at runtime",
+      "The derived class must use the friend keyword to grant the base class access -- otherwise dynamic_cast is not permitted",
+    ],
+    correctIndex: 2,
+    explanation:
+      "dynamic_cast uses Runtime Type Information (RTTI) to verify downcasts at runtime. RTTI is only generated for polymorphic types -- classes with at least one virtual function. Without a virtual function, dynamic_cast on pointers to that class will not compile.",
+    link: "https://en.cppreference.com/w/cpp/language/dynamic_cast.html",
+  },
+  {
+    id: 1069,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question:
+      "What happens to a char value when it is used in an arithmetic expression with an int?",
+    code: `char c = 'A';  // ASCII 65
+int result = c + 1;`,
+    options: [
+      "The int is demoted to char first, then both operands are added as single-byte values before the result is widened back",
+      "The compiler rejects the expression because char and int are incompatible types that cannot appear in the same operation",
+      "The char is treated as a string literal and concatenated with the integer, producing a string such as \"A1\" at runtime",
+      "The char undergoes integer promotion to int before the addition, so the operation is performed entirely in int arithmetic",
+    ],
+    correctIndex: 3,
+    explanation:
+      "C++ integer promotion rules convert types smaller than int (char, short, bool) to int before arithmetic operations. So 'A' (65) is promoted to int, added to 1, yielding 66. This is an implicit conversion that happens automatically in every arithmetic expression.",
+    link: "https://en.cppreference.com/w/cpp/language/implicit_conversion.html",
+  },
+  {
+    id: 1070,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question:
+      "Which values are considered false when implicitly converted to bool in C++?",
+    code: `int a = 0;
+double b = 0.0;
+int* p = nullptr;
+if (!a && !b && !p)
+    std::cout << "all falsy";`,
+    options: [
+      "Zero (0), 0.0, and null pointers convert to false -- all other numeric values and valid pointers convert to true",
+      "Only the literal keyword false converts to false -- numeric zero and null pointers are treated as true by the compiler",
+      "Negative numbers convert to false while positive numbers convert to true -- zero is implementation-defined behavior",
+      "All integer values below 1 convert to false, meaning both 0 and all negative integers are treated as falsy values",
+    ],
+    correctIndex: 0,
+    explanation:
+      "In C++, the values that convert to false are: integer 0, floating-point 0.0, null pointers (nullptr), and null pointer-to-members. Everything else -- including negative numbers, non-zero values, and valid pointers -- converts to true.",
+    link: "https://en.cppreference.com/w/cpp/language/implicit_conversion.html",
+  },
+  {
+    id: 1071,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "What is the purpose of static_cast<void>(expr) in C++ code?",
+    code: `[[nodiscard]] int computeValue();
+static_cast<void>(computeValue());`,
+    options: [
+      "It converts the expression result to a void pointer, storing the address so the garbage collector can track the allocation",
+      "It calls the expression and then deletes the returned object automatically, acting as a shorthand for manual memory cleanup",
+      "It explicitly discards the return value, suppressing compiler warnings about ignoring a [[nodiscard]] function's result",
+      "It prevents the function from executing by casting the call to void, effectively turning the statement into a no-op entirely",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Casting to void is a standard idiom for deliberately ignoring a return value. When a function is marked [[nodiscard]], the compiler warns if you discard its result. Using static_cast<void>() tells both the compiler and human readers that you intentionally chose to ignore the value.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast.html",
+  },
+  {
+    id: 1072,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question: "What happens when dynamic_cast fails on a pointer versus a reference?",
+    code: `class Base { virtual ~Base() {} };
+class Derived : public Base {};
+
+Base* bp = new Base();
+Derived* dp = dynamic_cast<Derived*>(bp);  // pointer cast
+
+Base& br = *bp;
+Derived& dr = dynamic_cast<Derived&>(br);  // reference cast`,
+    options: [
+      "Pointer failure returns nullptr; reference failure throws std::bad_cast. Because references cannot be null, there is no way to signal failure inline, so the runtime throws an exception instead of returning an error value",
+      "Both pointer and reference casts return nullptr when the target type is wrong. The caller must check the return value for null regardless of whether the source operand is a pointer or a reference to the base class",
+      "Both pointer and reference casts throw std::bad_cast on failure. There is no nullptr return path for either form because the standard mandates exception-based error reporting for all dynamic_cast operations",
+      "Pointer failure throws std::runtime_error; reference failure returns a default-constructed object. The runtime constructs a temporary of the target type as a fallback when the reference cast cannot find the requested subobject",
+    ],
+    correctIndex: 0,
+    explanation:
+      "dynamic_cast has two failure modes depending on the operand. For pointers, a failed downcast returns nullptr -- you must check before dereferencing. For references, since there is no null reference, it throws std::bad_cast. This distinction is fundamental to writing correct dynamic_cast code.",
+    link: "https://en.cppreference.com/w/cpp/language/dynamic_cast.html",
+  },
+  {
+    id: 1073,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question: "When is reinterpret_cast legitimately needed in production C++ code?",
+    options: [
+      "For low-level tasks like serialization, hardware register access, or interfacing with C APIs that pass data through void pointers. It reinterprets the bit pattern without any value transformation or runtime checking",
+      "For downcasting in polymorphic class hierarchies, since reinterpret_cast queries RTTI at runtime to verify the type before adjusting the pointer offset. This makes it the safest cast for navigating inheritance trees",
+      "For converting between numeric types like int to double, because reinterpret_cast preserves the exact bit pattern during arithmetic conversions. The cast reinterprets the integer bits as an IEEE 754 floating-point value directly",
+      "For removing const qualifiers from pointers when calling legacy C functions that lack const annotations. The cast strips const while preserving the pointer value so the function can accept it",
+    ],
+    correctIndex: 0,
+    explanation:
+      "reinterpret_cast is for low-level operations where you need to treat a chunk of memory as a different type: serializing structs to byte arrays, accessing memory-mapped hardware registers, or converting between pointer and integer types. It performs no value transformation and is implementation-defined.",
+    link: "https://en.cppreference.com/w/cpp/language/reinterpret_cast.html",
+  },
+  {
+    id: 1074,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question:
+      "What is the key tradeoff between static_cast and dynamic_cast when downcasting a base pointer to a derived pointer?",
+    code: `class Base { virtual ~Base() {} };
+class Derived : public Base { int extra; };
+
+Base* b = getObject();
+Derived* d1 = static_cast<Derived*>(b);   // option A
+Derived* d2 = dynamic_cast<Derived*>(b);  // option B`,
+    options: [
+      "static_cast is always safer because the compiler rejects invalid downcasts at compile time. It analyzes the full program to verify that b truly points to Derived, whereas dynamic_cast skips this compile-time analysis entirely",
+      "dynamic_cast is always faster because it avoids computing pointer offsets. The runtime shortcut lets it skip the adjustment that static_cast must compute, making dynamic_cast the better default choice for all situations",
+      "They are identical in behavior -- both check RTTI at runtime and return nullptr on failure. The only difference is naming convention: static_cast is older syntax while dynamic_cast was added in C++11 for readability",
+      "static_cast is faster (no RTTI query) but trusts the programmer blindly -- wrong type means undefined behavior. dynamic_cast is slower (RTTI lookup) but returns nullptr on failure, so it is safer when the actual type is uncertain",
+    ],
+    correctIndex: 3,
+    explanation:
+      "static_cast downcasts adjust the pointer at compile time with zero overhead but no safety net -- if the object is not actually the target type, you get undefined behavior. dynamic_cast queries the RTTI at runtime, adding overhead but providing safety: nullptr on failure for pointers, std::bad_cast for references.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast.html",
+  },
+  {
+    id: 1075,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question:
+      "What happens when you use const_cast to modify an object that was originally declared const?",
+    code: `const int x = 42;
+int* p = const_cast<int*>(&x);
+*p = 99;
+std::cout << x;`,
+    options: [
+      "It prints 99 reliably because const_cast fully removes the const restriction, giving the pointer unrestricted write access. The compiler treats the pointed-to memory as mutable from that point forward in the program",
+      "It always prints 42 because the compiler caches const values in a register and never rereads them from memory. The underlying memory may change, but the compiler-optimized read always returns the original compile-time constant",
+      "It causes a compile-time error because const_cast cannot cast away const on fundamental types like int. The cast operator only works on pointers to class types where const is applied to member functions",
+      "It is undefined behavior -- modifying an object originally declared const through a const_cast pointer violates the language rules. The compiler may optimize assuming x never changes, so the result is unpredictable",
+    ],
+    correctIndex: 3,
+    explanation:
+      "const_cast legally removes const from a pointer or reference, but writing through it to an object that was declared const is undefined behavior per the standard. The compiler may place the value in read-only memory, fold it as a compile-time constant, or do anything else. const_cast is only safe for objects that are not originally const.",
+    link: "https://en.cppreference.com/w/cpp/language/const_cast.html",
+  },
+  {
+    id: 1076,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question:
+      "What does marking a conversion operator as explicit do in C++11 and later?",
+    code: `class Ratio {
+    int num, den;
+public:
+    Ratio(int n, int d) : num(n), den(d) {}
+    explicit operator double() const {
+        return static_cast<double>(num) / den;
+    }
+};`,
+    options: [
+      "The explicit keyword has no effect on conversion operators -- it only applies to constructors. Conversion operators are always callable implicitly regardless of how they are declared in the class definition",
+      "It prevents the conversion from being used implicitly in assignments and function calls. You must write static_cast<double>(r) or use direct initialization; however, contextual conversions to bool are still allowed",
+      "It makes the conversion operator private, accessible only inside member functions of the same class. External code cannot invoke the conversion at all, whether through implicit conversion or explicit cast syntax",
+      "It forces the compiler to emit a runtime check verifying the conversion will not lose precision. If the denominator is zero or the result overflows double, the program throws std::overflow_error automatically",
+    ],
+    correctIndex: 1,
+    explanation:
+      "An explicit conversion operator cannot be invoked implicitly -- you must use static_cast, direct initialization, or a C-style cast. This prevents surprising silent conversions. The one exception is contextual conversion to bool (e.g., in if-conditions), which is allowed even when operator bool() is explicit.",
+    link: "https://en.cppreference.com/w/cpp/language/cast_operator.html",
+  },
+  {
+    id: 1077,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question:
+      "When both a converting constructor and a conversion operator can achieve the same conversion, which one does the compiler prefer?",
+    code: `struct A {
+    operator int() const { return 1; }  // conversion operator
+};
+
+struct B {
+    B(int x) {}  // converting constructor
+};
+
+A a;
+B b = a;  // A -> int -> B: which path?`,
+    options: [
+      "Both paths are equally valid (A::operator int then B::B(int)), forming a single user-defined conversion sequence. If both a direct constructor from A and this two-step path exist, the call is ambiguous and the compiler rejects it",
+      "The compiler always prefers the conversion operator on the source type over any constructor on the destination type. Source-side conversions are ranked higher than destination-side conversions in every case",
+      "The compiler always prefers the converting constructor and ignores the conversion operator entirely. Constructors have higher priority than conversion operators in the overload resolution ranking rules",
+      "The compiler tries the converting constructor first and falls back to the conversion operator only if the constructor is marked explicit. The explicit keyword acts as a priority switch between the two mechanisms",
+    ],
+    correctIndex: 0,
+    explanation:
+      "C++ allows at most one user-defined conversion in an implicit conversion sequence. Here, A::operator int() followed by B::B(int) forms one such sequence. If B also had B(const A&), that would be another. When multiple paths exist, overload resolution picks the best match -- or flags it as ambiguous if no path is strictly better.",
+    link: "https://en.cppreference.com/w/cpp/language/implicit_conversion.html",
+  },
+  {
+    id: 1078,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question:
+      "What is the rule for safely round-tripping a pointer through void* using static_cast?",
+    code: `int x = 42;
+void* vp = static_cast<void*>(&x);
+int* ip = static_cast<int*>(vp);  // round-trip
+
+Derived d;
+Base* bp = &d;
+void* vp2 = static_cast<void*>(bp);
+Derived* dp = static_cast<Derived*>(vp2);  // safe?`,
+    options: [
+      "You can cast from void* to any type freely because the compiler stores hidden type metadata alongside the void pointer. The runtime uses this metadata to adjust the address and verify the target type automatically",
+      "You must always use dynamic_cast to convert from void* because static_cast cannot operate on void pointers at all. The language prohibits static_cast from producing or consuming void* in any context",
+      "You must cast back to the exact same type that was originally cast to void*. In the second example, vp2 holds a Base* address, so casting to Derived* may produce the wrong address if Base has an offset within Derived",
+      "Round-tripping through void* is always undefined behavior regardless of the types involved. The C++ standard forbids storing typed pointers in void* because the conversion erases alignment and size information",
+    ],
+    correctIndex: 2,
+    explanation:
+      "When you cast a pointer to void* and back, you must cast back to the exact same type. vp2 stores the address of the Base sub-object of d. If Base is at an offset within Derived (e.g., with virtual inheritance), static_cast<Derived*>(vp2) gets the wrong address. You should cast bp back to Base* first, then use dynamic_cast or static_cast for the downcast.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast.html",
+  },
+  {
+    id: 1079,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question:
+      "How do implicit and explicit conversions between enums and integers work in C++?",
+    code: `enum Color { Red, Green, Blue };
+enum class Shape { Circle, Square, Triangle };
+
+int a = Red;                             // line 1
+int b = Shape::Circle;                   // line 2
+int c = static_cast<int>(Shape::Circle); // line 3`,
+    options: [
+      "All three lines compile successfully because both unscoped and scoped enums convert to int implicitly. The enum class keyword only affects name scoping, not the implicit conversion rules for the underlying type",
+      "Line 1 compiles (unscoped enums convert to int implicitly), line 2 fails (scoped enums require an explicit cast), and line 3 compiles (static_cast performs the explicit conversion from scoped enum to int)",
+      "All three lines fail to compile because enum-to-int conversion always requires static_cast in C++11 and later. The language removed implicit enum conversions to prevent accidental mixing of enumerator values with integers",
+      "Lines 1 and 2 both fail while line 3 compiles, because all enum types -- whether scoped or unscoped -- require explicit casts to convert to integers. Only static_cast can extract the underlying integer value",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Unscoped enums (enum Color) implicitly convert to their underlying integer type -- line 1 is fine. Scoped enums (enum class Shape) do not implicitly convert to int -- line 2 is a compile error. You need static_cast to explicitly convert a scoped enum to int, as in line 3. This was a deliberate design choice to make scoped enums type-safe.",
+    link: "https://en.cppreference.com/w/cpp/language/enum.html",
+  },
+  {
+    id: 1080,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question: "How do you safely handle a failed dynamic_cast to a reference type?",
+    code: `class Base { virtual ~Base() {} };
+class Derived : public Base {};
+
+void process(Base& obj) {
+    try {
+        Derived& d = dynamic_cast<Derived&>(obj);
+        // use d
+    } catch (const std::bad_cast& e) {
+        // handle failure
+    }
+}`,
+    options: [
+      "You should check if the reference is null after the cast, the same way you would check a pointer. If dynamic_cast fails on a reference, it sets the result to a special null reference that you can test with an if-statement",
+      "dynamic_cast on references never fails -- it always returns a valid reference to a default-constructed temporary of the target type. The runtime creates the temporary on the stack and binds the reference to it automatically",
+      "You wrap the cast in a try-catch block and catch std::bad_cast. Since references cannot be null, there is no way to signal failure via a return value, so the runtime throws an exception when the cast is invalid",
+      "You must use the nothrow version: dynamic_cast<Derived&>(std::nothrow, obj), which returns a reference to a static sentinel object when the cast fails. The sentinel has all members zeroed out to indicate the failure",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Because C++ references cannot be null, dynamic_cast<Derived&>(obj) cannot return a failure sentinel. Instead, it throws std::bad_cast (defined in <typeinfo>) when the object is not of the target type. The standard idiom is to wrap the reference cast in a try-catch block, as shown in the code.",
+    link: "https://en.cppreference.com/w/cpp/types/bad_cast.html",
+  },
+  {
+    id: 1081,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question:
+      "Can you implicitly convert one struct type to another struct type with the same member layout in C++?",
+    code: `struct Point2D { double x; double y; };
+struct Vec2D   { double x; double y; };
+
+Point2D p = {1.0, 2.0};
+Vec2D v = p;  // does this compile?`,
+    options: [
+      "Yes, C++ performs structural typing -- if two structs have identical member names and types in the same order, they are interchangeable. The compiler generates implicit conversions between layout-compatible types automatically",
+      "Yes, but only if both structs are declared in the same translation unit. The compiler matches member layouts within a single file, but cannot verify structural equivalence across separate compilation units or header files",
+      "No, C++ uses nominal typing -- each struct is a distinct type regardless of layout. To convert between them, you must provide an explicit conversion: a converting constructor, a conversion operator, or a standalone conversion function",
+      "No, but you can use reinterpret_cast between them safely because the standard guarantees identical layout means identical memory representation. The cast reinterprets the bytes and is always well-defined for layout-compatible types",
+    ],
+    correctIndex: 2,
+    explanation:
+      "C++ is a nominally-typed language: type identity comes from the type's name, not its structure. Point2D and Vec2D are entirely separate types even though their members match. You must explicitly define a conversion path -- a constructor like Vec2D(const Point2D&), a conversion operator, or a free function. reinterpret_cast between them is technically undefined behavior.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-structs-members-and-member-selection/",
+  },
+  {
+    id: 1082,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question: "What happens when this code runs? Consider the strict aliasing rule.",
+    code: `#include <cstdint>
+
+float f = 3.14f;
+uint32_t bits = *reinterpret_cast<uint32_t*>(&f);
+std::cout << bits;`,
+    options: [
+      "It is undefined behavior -- reading a float through a uint32_t pointer violates strict aliasing",
+      "It prints the IEEE 754 bit pattern of 3.14f as an unsigned integer value",
+      "It triggers a compilation error because reinterpret_cast cannot convert float* to uint32_t*",
+      "It prints 3 because reinterpret_cast truncates the float value to its integer component",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The strict aliasing rule (C++ [basic.lval]) forbids accessing an object through a pointer to an unrelated type. Although reinterpret_cast compiles, dereferencing the resulting uint32_t* to read a float object is undefined behavior. The compiler may optimize based on the assumption that a uint32_t* and float* never alias. Use std::bit_cast or std::memcpy for well-defined type punning.",
+    link: "https://en.cppreference.com/w/cpp/language/reinterpret_cast.html",
+  },
+  {
+    id: 1083,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question:
+      "Which statement about std::bit_cast (C++20) is correct given this code?",
+    code: `#include <bit>
+#include <cstdint>
+
+float f = 1.0f;
+auto bits = std::bit_cast<uint32_t>(f);
+// bits == 0x3F800000`,
+    options: [
+      "bit_cast performs a runtime memcpy and is slower than reinterpret_cast for this conversion",
+      "bit_cast requires the source and destination to be the same size, trivially copyable types",
+      "bit_cast can convert between types of different sizes if the destination is larger than source",
+      "bit_cast is just syntactic sugar for reinterpret_cast and has the same aliasing constraints",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::bit_cast requires both source and destination types to be the same size and trivially copyable. Unlike reinterpret_cast, bit_cast is well-defined and does not violate strict aliasing. It is constexpr-friendly, meaning the compiler can evaluate it at compile time. It is not equivalent to reinterpret_cast, which would cause UB for type punning, and it cannot convert between differently sized types.",
+    link: "https://en.cppreference.com/w/cpp/numeric/bit_cast.html",
+  },
+  {
+    id: 1084,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question:
+      "In this diamond hierarchy with virtual inheritance, what does the dynamic_cast return?",
+    code: `struct Base { virtual ~Base() = default; };
+struct Left : virtual Base {};
+struct Right : virtual Base {};
+struct Diamond : Left, Right {};
+
+Diamond d;
+Left* lp = &d;
+Right* rp = dynamic_cast<Right*>(lp);`,
+    options: [
+      "rp is nullptr because Left and Right are unrelated sibling classes in the hierarchy",
+      "The cast fails at compile time because Left* cannot be dynamically cast to Right*",
+      "rp points to the Right subobject of d -- dynamic_cast performs a valid cross-cast",
+      "rp is nullptr because virtual inheritance blocks cross-casting between sibling bases",
+    ],
+    correctIndex: 2,
+    explanation:
+      "dynamic_cast can perform cross-casts between sibling classes in a hierarchy when the most-derived object contains both types. Here, lp points to a Diamond object which has both Left and Right subobjects. The runtime uses RTTI to find the Right subobject within the complete Diamond object. Virtual inheritance actually enables a single shared Base, making the diamond well-formed.",
+    link: "https://en.cppreference.com/w/cpp/language/dynamic_cast.html",
+  },
+  {
+    id: 1085,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question:
+      "A C-style cast (Type)expr tries multiple C++ casts in a defined order. Which sequence is correct?",
+    code: `struct B { virtual ~B() = default; };
+struct D : B { int x = 42; };
+
+B* bp = new D();
+D* dp = (D*)bp;  // What does the C-style cast resolve to?`,
+    options: [
+      "dynamic_cast, then static_cast, then const_cast, and finally reinterpret_cast in order",
+      "static_cast, then reinterpret_cast, then dynamic_cast, and const_cast is never attempted",
+      "reinterpret_cast first, then static_cast, then const_cast, and dynamic_cast is never tried",
+      "const_cast, then static_cast (with const_cast), then static_cast, then reinterpret_cast",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Per the C++ standard [expr.cast], a C-style cast tries in order: (1) const_cast, (2) static_cast followed by const_cast, (3) static_cast alone, (4) reinterpret_cast, (5) reinterpret_cast followed by const_cast. It never tries dynamic_cast. In this case, static_cast can perform the downcast, so (D*)bp behaves like static_cast<D*>(bp) -- which does not perform a runtime check. This is one reason C-style casts are discouraged.",
+    link: "https://en.cppreference.com/w/cpp/language/explicit_cast.html",
+  },
+  {
+    id: 1086,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question: "What does const_cast do with the volatile qualifier in this code?",
+    code: `volatile int sensor = 100;
+int* p = const_cast<int*>(&sensor);
+int val = *p;`,
+    options: [
+      "It compiles, but reading *p is undefined behavior since the object was declared volatile",
+      "Compilation error -- const_cast can only remove const, not volatile qualifiers from types",
+      "It compiles and is well-defined -- removing volatile just means the read might be optimized",
+      "It compiles and prints 100 -- volatile is only advisory, so removing it has no consequences",
+    ],
+    correctIndex: 0,
+    explanation:
+      "const_cast can remove both const and volatile qualifiers, so the code compiles. However, accessing a volatile-declared object through a non-volatile glvalue is undefined behavior per [basic.lval], just like modifying a const-declared object through a non-const pointer. The volatile qualifier guarantees that every access is observable; bypassing it breaks that contract and the compiler's assumption about observable behavior.",
+    link: "https://en.cppreference.com/w/cpp/language/const_cast.html",
+  },
+  {
+    id: 1087,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question:
+      "What does static_cast<Derived&>(*this) accomplish in this CRTP pattern?",
+    code: `template <typename Derived>
+struct Base {
+  void interface() {
+    static_cast<Derived&>(*this).impl();
+  }
+};
+struct Widget : Base<Widget> {
+  void impl() { std::cout << "Widget"; }
+};
+Widget w;
+w.interface();`,
+    options: [
+      "It performs a runtime-checked downcast equivalent to dynamic_cast with a safety guarantee",
+      "It triggers a compile error because you cannot static_cast a base reference to a derived type",
+      "It causes undefined behavior because Base has no virtual functions for safe downcasting",
+      "It is a compile-time-resolved downcast that enables static polymorphism without vtables",
+    ],
+    correctIndex: 3,
+    explanation:
+      "In CRTP, the base class is templated on the derived class. When interface() is called on a Widget object, *this is actually a Widget, so static_cast<Derived&>(*this) is a valid downcast. This pattern provides compile-time polymorphism -- the compiler resolves the call to Widget::impl() without needing a vtable. It is well-defined because the actual object is of the derived type, satisfying static_cast's precondition.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast.html",
+  },
+  {
+    id: 1088,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question:
+      "Which statement is correct about using static_cast between unrelated pointer types?",
+    code: `struct A { int a; };
+struct B { double b; };
+
+A obj;
+// Attempt 1: B* bp1 = static_cast<B*>(&obj);
+// Attempt 2: void* vp = static_cast<void*>(&obj);
+//            B* bp2 = static_cast<B*>(vp);`,
+    options: [
+      "Attempt 1 compiles and is well-defined; Attempt 2 fails because void* loses type information",
+      "Attempt 1 fails to compile; Attempt 2 compiles but dereferencing bp2 is undefined behavior",
+      "Both attempts compile and produce the same result -- static_cast allows any pointer conversion",
+      "Both attempts fail to compile because static_cast forbids all unrelated pointer conversions",
+    ],
+    correctIndex: 1,
+    explanation:
+      "static_cast between unrelated class pointer types is ill-formed -- Attempt 1 does not compile. However, any pointer can be converted to void* via static_cast, and void* can be converted back to any pointer type. Attempt 2 compiles, but dereferencing bp2 is undefined behavior because the void* round-trip lost the original type -- bp2 does not actually point to a B object, violating the precondition of static_cast from void*.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast.html",
+  },
+  {
+    id: 1089,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question: "Which of these type-punning methods is well-defined in standard C++?",
+    code: `float f = 3.14f;
+
+// Method A: union
+union { float fl; uint32_t ui; } u;
+u.fl = f; uint32_t a = u.ui;
+
+// Method B: memcpy
+uint32_t b;
+std::memcpy(&b, &f, sizeof(b));
+
+// Method C: bit_cast (C++20)
+auto c = std::bit_cast<uint32_t>(f);`,
+    options: [
+      "All three methods (A, B, C) are well-defined in C++; the union approach is the most portable",
+      "Only method A (union) is well-defined; memcpy and bit_cast both violate strict aliasing rules",
+      "Methods B (memcpy) and C (bit_cast) are well-defined; method A (union) is UB in standard C++",
+      "Only method C (bit_cast) is well-defined; both union type punning and memcpy cause UB in C++",
+    ],
+    correctIndex: 2,
+    explanation:
+      "In C++, reading a union member other than the last one written is undefined behavior (unlike C, where it is implementation-defined). std::memcpy is well-defined because it copies raw bytes without violating aliasing rules -- both source and destination are accessed through char-like types internally. std::bit_cast (C++20) is also well-defined and provides a constexpr-friendly, type-safe alternative. The union approach, while commonly used, is technically UB in C++.",
+    link: "https://en.cppreference.com/w/cpp/numeric/bit_cast.html",
+  },
+  {
+    id: 1090,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question:
+      "How does the functional-style cast int(x) differ from the C-style cast (int)x?",
+    code: `double x = 3.99;
+int a = int(x);     // functional-style cast
+int b = (int)x;     // C-style cast
+
+struct S { int val; };
+// int c = int(someStruct);  // Would this work?`,
+    options: [
+      "int(x) only works with single-word type names and calls constructors; (int)x can use any type",
+      "They are always identical -- int(x) is exactly the same as (int)x in every possible context",
+      "int(x) is equivalent to static_cast<int>(x) while (int)x follows the C-style resolution order",
+      "int(x) is safer because it only permits explicit conversions; (int)x can silently reinterpret",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A functional-style cast Type(expr) is defined as equivalent to (Type)expr, but it can only be used with simple type specifiers (single-word type names or typedef names). It cannot be used with multi-word types like unsigned long or pointer types like int*. For a single argument, it behaves identically to the C-style cast, going through the same resolution order. Its key limitation is syntactic, not semantic -- it requires a single-token type name.",
+    link: "https://en.cppreference.com/w/cpp/language/explicit_cast.html",
+  },
+  {
+    id: 1091,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question: "Which overload does the compiler select, and why?",
+    code: `void process(double d)  { std::cout << "double"; }
+void process(long l)    { std::cout << "long"; }
+void process(char* p)   { std::cout << "char*"; }
+
+process(0);`,
+    options: [
+      "It calls process(char*) because 0 is a null pointer constant that converts to any pointer type",
+      "It is ambiguous and fails to compile -- 0 converts equally well to double, long, and char*",
+      "It calls process(long) because 0 is an int, and int-to-long is an integral promotion over others",
+      "It calls process(double) because arithmetic conversions are preferred over pointer conversions",
+    ],
+    correctIndex: 1,
+    explanation:
+      "The integer literal 0 can be implicitly converted to double (floating-point conversion), to long (integral conversion), and to char* (null pointer conversion). All three are standard conversion sequences of the same rank (Conversion rank, not Promotion). Since no conversion is better than the others per the overload resolution ranking rules, the call is ambiguous and the program is ill-formed. Note that int-to-long is an integral conversion, not a promotion (promotion only goes to int or unsigned int).",
+    link: "https://en.cppreference.com/w/cpp/language/overload_resolution.html",
+  },
+
+  // ── Storage Durations (Q1092--Q1121) ──
+  {
+    id: 1092,
+    difficulty: "Easy",
+    topic: "Storage Durations",
+    question: "What does automatic storage duration mean in C++?",
+    options: [
+      "The variable is created at declaration and destroyed when its scope ends",
+      "The variable is allocated on the heap and freed by a garbage collector",
+      "The variable persists for the lifetime of the program after creation",
+      "The variable is shared between threads and freed when all threads end",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Automatic storage duration means the variable is created when its declaration is reached and automatically destroyed when execution leaves the enclosing scope, typically the closing brace of the block where it was declared.",
+    link: "https://en.cppreference.com/w/cpp/language/storage_duration.html",
+  },
+  {
+    id: 1093,
+    difficulty: "Easy",
+    topic: "Storage Durations",
+    question: "Which variables have static storage duration in C++?",
+    options: [
+      "Local variables declared inside a for-loop body",
+      "Global variables and variables declared with static",
+      "Variables created with new and freed with delete",
+      "Function parameters passed by value or reference",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Variables declared at namespace scope (globals) and variables declared with the static keyword have static storage duration. They are initialized before or during program startup and destroyed after main() returns.",
+    link: "https://en.cppreference.com/w/cpp/language/storage_duration.html",
+  },
+  {
+    id: 1094,
+    difficulty: "Easy",
+    topic: "Storage Durations",
+    question: "What is dynamic storage duration in C++?",
+    code: `int* p = new int(42);
+// ... use *p ...
+delete p;`,
+    options: [
+      "The object exists until the enclosing block scope ends",
+      "The object exists until the thread that created it exits",
+      "The object exists until it is explicitly deleted by the programmer",
+      "The object exists until the program terminates at end of main",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Dynamic storage duration means the object is allocated on the heap with new and lives until the programmer explicitly frees it with delete. Failing to delete it results in a memory leak.",
+    link: "https://en.cppreference.com/w/cpp/language/storage_duration.html",
+  },
+  {
+    id: 1095,
+    difficulty: "Easy",
+    topic: "Storage Durations",
+    question: "What does the thread_local keyword provide in C++?",
+    code: `thread_local int count = 0;`,
+    options: [
+      "It gives each thread its own independent copy of the variable",
+      "It makes the variable shared and visible to every thread",
+      "It locks the variable so only one thread can access it at a time",
+      "It allocates the variable on the heap using dynamic allocation",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A variable declared thread_local has thread storage duration, meaning each thread gets its own separate copy. The copy is created when the thread starts and destroyed when the thread ends.",
+    link: "https://en.cppreference.com/w/cpp/language/storage_duration.html",
+  },
+  {
+    id: 1096,
+    difficulty: "Easy",
+    topic: "Storage Durations",
+    question: "When is a local variable destroyed in C++?",
+    code: `void greet() {
+    std::string msg = "hello";
+    std::cout << msg;
+}  // what happens to msg?`,
+    options: [
+      "When the garbage collector detects it is no longer referenced",
+      "Only when the program terminates and the process memory is freed",
+      "At the end of the enclosing scope where it was declared",
+      "When the programmer explicitly calls a cleanup function on it",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Local variables have automatic storage duration. They are destroyed -- and their destructors called -- when execution exits the scope (the closing brace) in which they were declared.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-local-scope/",
+  },
+  {
+    id: 1097,
+    difficulty: "Easy",
+    topic: "Storage Durations",
+    question: "When are global variables with static storage duration initialized?",
+    code: `int g = 42;  // namespace scope
+
+int main() {
+    std::cout << g;
+}`,
+    options: [
+      "They are initialized the first time a function references them",
+      "They are initialized after main() returns during cleanup phase",
+      "They are initialized lazily when the thread they belong to starts",
+      "They are initialized before main() begins executing the program",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Global variables with static storage duration undergo initialization before main() starts. Zero-initialization happens first, then constant initialization, and finally dynamic initialization -- all prior to main().",
+    link: "https://en.cppreference.com/w/cpp/language/initialization.html",
+  },
+  {
+    id: 1098,
+    difficulty: "Easy",
+    topic: "Storage Durations",
+    question: "What is the key behavior of a static local variable?",
+    code: `int counter() {
+    static int n = 0;
+    return ++n;
+}`,
+    options: [
+      "It is re-created and re-initialized every time the function is called",
+      "It is destroyed at the end of the function and recreated on next call",
+      "It is allocated on the heap and requires manual deletion after use",
+      "It is initialized once on first call and persists across all calls",
+    ],
+    correctIndex: 3,
+    explanation:
+      "A static local variable is initialized the first time execution reaches its declaration. After that, it retains its value between function calls and is only destroyed when the program ends.",
+    link: "https://www.learncpp.com/cpp-tutorial/static-local-variables/",
+  },
+  {
+    id: 1099,
+    difficulty: "Easy",
+    topic: "Storage Durations",
+    question: "How long does an object created with new live in C++?",
+    code: `auto* widget = new Widget();
+// ... widget is used ...`,
+    options: [
+      "Until the program terminates and the OS reclaims all process memory",
+      "Until the scope where the pointer was declared ends and it is popped",
+      "Until delete is called on it or the program ends without freeing it",
+      "Until the garbage collector determines it is no longer reachable",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Objects allocated with new have dynamic storage duration. They persist in memory until the programmer explicitly calls delete. If delete is never called, the memory leaks until the OS reclaims it at program exit.",
+    link: "https://en.cppreference.com/w/cpp/language/new.html",
+  },
+  {
+    id: 1100,
+    difficulty: "Easy",
+    topic: "Storage Durations",
+    question: "Can an object's lifetime exceed the scope where it was created?",
+    code: `int* makeInt() {
+    int* p = new int(7);
+    return p;
+}`,
+    options: [
+      "No -- scope and lifetime are identical for all C++ objects",
+      "No -- every object is destroyed when its declaring scope ends",
+      "Yes -- but only for objects allocated with automatic duration",
+      "Yes -- dynamically allocated objects outlive their creation scope",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Scope and lifetime are distinct concepts. A dynamically allocated object (created with new) lives until explicitly deleted, which can be well after the scope of the pointer variable that holds its address has ended.",
+    link: "https://www.learncpp.com/cpp-tutorial/dynamic-memory-allocation-with-new-and-delete/",
+  },
+  {
+    id: 1101,
+    difficulty: "Easy",
+    topic: "Storage Durations",
+    question: "When is a temporary object destroyed in C++?",
+    code: `std::string result = std::string("Hello") + " World";`,
+    options: [
+      "At the point where the garbage collector next runs its sweep cycle",
+      "At the end of the full expression in which the temporary was created",
+      "Only when the function containing the expression returns to caller",
+      "When the programmer calls delete on the temporary object explicitly",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Temporary objects in C++ are destroyed at the end of the full expression that created them, unless their lifetime is extended by binding to a const reference or an rvalue reference.",
+    link: "https://en.cppreference.com/w/cpp/language/lifetime.html",
+  },
+  {
+    id: 1102,
+    difficulty: "Medium",
+    topic: "Storage Durations",
+    question:
+      "Two global variables in separate translation units depend on each other's initialization. What is the core issue?",
+    code: `// file_a.cpp
+extern int b;
+int a = b + 1;
+
+// file_b.cpp
+extern int a;
+int b = a + 1;`,
+    options: [
+      "The initialization order of globals across translation units is unspecified, so a or b may read zero",
+      "The linker will detect the circular dependency and produce a compile-time error for both files",
+      "Both variables are zero-initialized first, then both are value-initialized to 1 in sorted order",
+      "The compiler picks alphabetical order by filename, so file_a.cpp always initializes variable a first",
+    ],
+    correctIndex: 0,
+    explanation:
+      "This is the Static Initialization Order Fiasco (SIOF). The C++ standard does not define the initialization order of non-local static variables across different translation units. One variable may read the other before it has been dynamically initialized, seeing zero instead of the intended value.",
+    link: "https://en.cppreference.com/w/cpp/language/initialization.html",
+  },
+  {
+    id: 1103,
+    difficulty: "Medium",
+    topic: "Storage Durations",
+    question:
+      "What guarantee does the constinit specifier provide when applied to a variable with static storage duration?",
+    code: `constinit int global_count = 42;`,
+    options: [
+      "It makes the variable immutable after initialization, equivalent to declaring it as const here",
+      "It forces the variable to be stored in read-only memory alongside string literals in the binary",
+      "It guarantees the variable is initialized at compile time, preventing the static init order fiasco",
+      "It ensures the variable is initialized before main only if it has no dynamic dependencies at all",
+    ],
+    correctIndex: 2,
+    explanation:
+      "constinit (C++20) ensures that a variable with static or thread-local storage duration is constant-initialized. If the initializer is not a constant expression, the program is ill-formed. This eliminates the risk of the static initialization order fiasco for that variable, but unlike constexpr, the variable remains mutable after initialization.",
+    link: "https://en.cppreference.com/w/cpp/language/constinit.html",
+  },
+  {
+    id: 1104,
+    difficulty: "Medium",
+    topic: "Storage Durations",
+    question:
+      "What happens to the lifetime of the temporary string object in this code?",
+    code: `const std::string& ref = std::string("hello");
+std::cout << ref;`,
+    options: [
+      "The temporary is destroyed immediately and ref becomes a dangling reference before the output",
+      "The temporary's lifetime is extended to match the lifetime of the const reference variable ref",
+      "The temporary is copied into ref's storage, so ref is not actually a reference to a temporary",
+      "The temporary persists until the end of the program because it has static storage duration now",
+    ],
+    correctIndex: 1,
+    explanation:
+      "When a temporary is bound to a const lvalue reference, the temporary's lifetime is extended to match the lifetime of the reference. This is a special rule in C++ that prevents the dangling reference problem in this specific case. The temporary string lives as long as ref does.",
+    link: "https://en.cppreference.com/w/cpp/language/lifetime.html",
+  },
+  {
+    id: 1105,
+    difficulty: "Medium",
+    topic: "Storage Durations",
+    question:
+      "How does a variable declared as both thread_local and static behave inside a function?",
+    code: `void countCalls() {
+  static thread_local int n = 0;
+  ++n;
+  std::cout << n << '\n';
+}`,
+    options: [
+      "The variable n is shared across all threads because static always overrides thread_local here",
+      "The variable n is reinitialized to zero on every function call regardless of the thread used",
+      "The combination is ill-formed and produces a compilation error due to conflicting specifiers",
+      "Each thread gets its own persistent copy of n that survives across multiple calls to countCalls",
+    ],
+    correctIndex: 3,
+    explanation:
+      "When thread_local is combined with static inside a function, the variable has thread storage duration. Each thread gets its own independent copy of n, and that copy persists across multiple calls to the function within that same thread. The static keyword is implied by thread_local for block-scope variables.",
+    link: "https://en.cppreference.com/w/cpp/language/storage_duration.html",
+  },
+  {
+    id: 1106,
+    difficulty: "Medium",
+    topic: "Storage Durations",
+    question:
+      "What is the programmer's obligation when using placement new to construct an object in a pre-allocated buffer?",
+    code: `alignas(Sensor) unsigned char buf[sizeof(Sensor)];
+Sensor* s = new (buf) Sensor("temp");
+// ... use s ...
+// what must happen before buf is reused?`,
+    options: [
+      "The destructor must be called explicitly because placement new does not register automatic cleanup",
+      "The delete operator must be called on s to free the underlying buffer and destroy the Sensor",
+      "Nothing is required because the Sensor is destroyed automatically when buf goes out of scope",
+      "The programmer must call std::destroy_at followed by operator delete on the buffer's address",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Placement new constructs an object in existing memory without allocating. Since no allocation occurred, calling delete would be wrong. The programmer must explicitly call the destructor (s->~Sensor() or std::destroy_at(s)) to end the object's lifetime. The buffer itself is managed separately.",
+    link: "https://en.cppreference.com/w/cpp/language/new.html",
+  },
+  {
+    id: 1107,
+    difficulty: "Medium",
+    topic: "Storage Durations",
+    question:
+      "In C++17 and later, what happens to the temporary object in this return statement?",
+    code: `Widget makeWidget() {
+  return Widget(42);
+}
+
+Widget w = makeWidget();`,
+    options: [
+      "A temporary Widget is constructed, then move-constructed into w, then the temporary is destroyed",
+      "A temporary Widget is constructed, then copy-constructed into w if the move constructor is deleted",
+      "The Widget is constructed directly into w's storage -- no temporary object ever exists at runtime",
+      "The compiler creates the temporary in makeWidget's frame, then memcpy's the bytes into w's slot",
+    ],
+    correctIndex: 2,
+    explanation:
+      "C++17 mandates copy elision (guaranteed RVO) for prvalue expressions. The Widget(42) is constructed directly in the storage for w. No temporary object is ever created, no move or copy constructor is called, and the Widget's lifetime begins directly at w's location.",
+    link: "https://en.cppreference.com/w/cpp/language/copy_elision.html",
+  },
+  {
+    id: 1108,
+    difficulty: "Medium",
+    topic: "Storage Durations",
+    question:
+      "What is wrong with this function and what kind of bug does it introduce?",
+    code: `int& getLocal() {
+  int x = 42;
+  return x;
+}
+
+int main() {
+  int& ref = getLocal();
+  std::cout << ref;
+}`,
+    options: [
+      "The code is valid because x is copied into the reference before the function returns to main",
+      "Returning a reference to local x creates a dangling reference -- using ref is undefined behavior",
+      "The function fails to compile because non-const references cannot bind to local integer variables",
+      "The reference ref is valid but holds a stale value that is always zero after the function returns",
+    ],
+    correctIndex: 1,
+    explanation:
+      "The local variable x has automatic storage duration and is destroyed when getLocal() returns. The returned reference refers to memory that no longer holds a valid object. Accessing ref in main() is undefined behavior -- it may appear to work, crash, or produce garbage values.",
+    link: "https://en.cppreference.com/w/cpp/language/reference.html",
+  },
+  {
+    id: 1109,
+    difficulty: "Medium",
+    topic: "Storage Durations",
+    question:
+      "When is the static member variable Widget::count initialized in this program?",
+    code: `// widget.h
+class Widget {
+public:
+  static int count;
+  Widget() { ++count; }
+};
+
+// widget.cpp
+int Widget::count = 0;`,
+    options: [
+      "It is initialized each time a new Widget object is constructed, resetting count to zero first",
+      "It is initialized lazily when Widget::count is first accessed by any function at runtime later",
+      "It is initialized the first time the Widget constructor runs, just before incrementing the value",
+      "It is initialized before main runs as part of static storage duration initialization of globals",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Static member variables have static storage duration. Widget::count is defined at namespace scope in widget.cpp, so it is zero-initialized during static initialization before main() begins. Since the initializer is a constant expression (0), this is constant initialization, which happens at compile/load time.",
+    link: "https://en.cppreference.com/w/cpp/language/static.html",
+  },
+  {
+    id: 1110,
+    difficulty: "Medium",
+    topic: "Storage Durations",
+    question:
+      "What is the bug in this code that captures a local variable by reference in a lambda?",
+    code: `std::function<int()> makeCounter() {
+  int n = 0;
+  return [&n]() { return ++n; };
+}
+
+auto counter = makeCounter();
+std::cout << counter();`,
+    options: [
+      "The lambda captures n by reference, but n is destroyed when makeCounter returns -- calling counter() is UB",
+      "The lambda fails to compile because std::function cannot store lambdas that capture local variables",
+      "The lambda makes a copy of n despite the & syntax, so each call always returns 1 instead of counting",
+      "The lambda correctly extends the lifetime of n because std::function manages the captured references",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The local variable n has automatic storage duration and is destroyed at the end of makeCounter(). The lambda captures n by reference, creating a dangling reference. Calling counter() after makeCounter returns accesses destroyed storage, which is undefined behavior. Capturing by value ([n] with mutable) would fix this.",
+    link: "https://en.cppreference.com/w/cpp/language/lambda.html",
+  },
+  {
+    id: 1111,
+    difficulty: "Medium",
+    topic: "Storage Durations",
+    question:
+      "When does the contained std::string object's lifetime end in this std::optional usage?",
+    code: `std::optional<std::string> opt = "hello";
+std::cout << *opt << '\n';
+opt.reset();
+std::cout << "done\n";`,
+    options: [
+      "The string's lifetime ends when opt goes out of scope because reset only marks it as disengaged",
+      "The string's lifetime ends at program termination because optional uses static storage internally",
+      "The string is destroyed immediately when opt.reset() is called, before the second cout executes",
+      "The string is destroyed only if the optional's destructor runs, so reset does not destroy it here",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::optional::reset() disengages the optional and destroys the contained object immediately by calling its destructor. After reset(), the optional is empty and has_value() returns false. The string's lifetime ends right at the reset() call, not when opt itself is destroyed.",
+    link: "https://en.cppreference.com/w/cpp/utility/optional/reset.html",
+  },
+  {
+    id: 1112,
+    difficulty: "Hard",
+    topic: "Storage Durations",
+    question:
+      "Two translation units each define a namespace-scope variable that depends on the other during dynamic initialization. What does the C++ standard say about the initialization order?",
+    code: `// file_a.cpp
+extern int b;
+int a = b * 2;  // depends on b from file_b.cpp
+
+// file_b.cpp
+extern int a;
+int b = a + 3;  // depends on a from file_a.cpp`,
+    options: [
+      "The order is unspecified across translation units, so the values of a and b are indeterminate",
+      "The linker always initializes translation units in alphabetical filename order, making it safe",
+      "The compiler detects the circular dependency and issues a mandatory diagnostic at compile time",
+      "Zero-initialization resolves the cycle because both variables get value 0 before dynamic init",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The C++ standard does not define the order of dynamic initialization of non-local variables across translation units. This is the classic 'static initialization order fiasco' -- the result depends on which TU's dynamic initialization runs first, leading to indeterminate values.",
+    link: "https://en.cppreference.com/w/cpp/language/initialization#Non-local_variables",
+  },
+  {
+    id: 1113,
+    difficulty: "Hard",
+    topic: "Storage Durations",
+    question:
+      "What does the constinit specifier (C++20) guarantee about a variable, and what happens if the guarantee cannot be met?",
+    code: `int computeValue();
+constinit int x = computeValue();  // computeValue is not constexpr`,
+    options: [
+      "constinit forces constant initialization; if that is impossible the program compiles but traps at runtime",
+      "constinit forces constant initialization; if that is impossible the compiler issues a hard error",
+      "constinit makes the variable implicitly constexpr and immutable for the entire duration of the program",
+      "constinit defers initialization until first use, similar to a block-scope static local variable",
+    ],
+    correctIndex: 1,
+    explanation:
+      "constinit requires that the variable is initialized during the constant initialization phase. If the initializer is not a constant expression, the program is ill-formed and the compiler must emit a diagnostic (error). Unlike constexpr, constinit does not make the variable const.",
+    link: "https://en.cppreference.com/w/cpp/language/constinit",
+  },
+  {
+    id: 1114,
+    difficulty: "Hard",
+    topic: "Storage Durations",
+    question:
+      "What guarantee does the C++ standard provide about initialization of block-scope static variables in a multithreaded program?",
+    code: `Widget& getInstance() {
+    static Widget w;  // first call initializes w
+    return w;
+}`,
+    options: [
+      "The standard provides no thread-safety guarantees; a mutex must always wrap the static declaration",
+      "Initialization is thread-safe only if the constructor is declared noexcept and trivially copyable",
+      "Since C++11, the implementation must guarantee that the variable is initialized exactly once safely",
+      "Thread safety is guaranteed only when compiling with the -pthread flag or equivalent option",
+    ],
+    correctIndex: 2,
+    explanation:
+      "C++11 and later require that if multiple threads attempt to initialize the same block-scope static variable concurrently, exactly one thread performs the initialization and the others block until it completes. This is sometimes called 'magic statics' or the Meyers singleton pattern.",
+    link: "https://en.cppreference.com/w/cpp/language/storage_duration#Static_local_variables",
+  },
+  {
+    id: 1115,
+    difficulty: "Hard",
+    topic: "Storage Durations",
+    question:
+      "What is the destruction order of thread_local objects relative to objects with static storage duration when a thread exits?",
+    code: `struct Logger {
+    ~Logger() { /* writes to global log */ }
+};
+
+Logger& globalLog() {
+    static Logger instance;
+    return instance;
+}
+
+thread_local int perThreadCounter = 0;`,
+    options: [
+      "thread_local objects in a thread are destroyed before any static-duration objects are destroyed",
+      "static objects are always destroyed first, then thread_local objects are destroyed afterward",
+      "The standard does not fully specify the interleaving, so using statics in thread_local dtors is risky",
+      "thread_local and static objects are destroyed simultaneously in an implementation-defined batch",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The standard specifies that thread_local objects are destroyed on thread exit and static objects during program termination, but the relative ordering when a non-main thread's thread_local destructor accesses a static object is not fully guaranteed. Accessing a static object from a thread_local destructor risks use-after-destruction.",
+    link: "https://en.cppreference.com/w/cpp/language/storage_duration#Storage_duration",
+  },
+  {
+    id: 1116,
+    difficulty: "Hard",
+    topic: "Storage Durations",
+    question:
+      "What are the two initialization phases for non-local variables with static storage duration, and in what order do they occur?",
+    options: [
+      "First dynamic initialization runs all constructors, then constant initialization fixes constexpr values",
+      "First zero/constant initialization occurs at compile time or load time, then dynamic initialization runs",
+      "First the linker resolves all extern symbols, then the runtime initializes all static variables at once",
+      "First value-initialization sets all members to defaults, then aggregate initialization fills in values",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Static storage duration variables undergo two phases: (1) static initialization, which includes zero-initialization and constant initialization (performed before any dynamic initialization), followed by (2) dynamic initialization, which executes non-trivial constructors and non-constant initializers.",
+    link: "https://en.cppreference.com/w/cpp/language/initialization#Non-local_variables",
+  },
+  {
+    id: 1117,
+    difficulty: "Hard",
+    topic: "Storage Durations",
+    question: "What is the value of globalArr[2] before main() starts executing?",
+    code: `// at namespace scope
+int globalArr[5];
+struct S { int x; double y; };
+S globalS;`,
+    options: [
+      "It is value-initialized to zero only if the array element type has a user-defined default constructor",
+      "It is indeterminate because arrays of built-in types are never automatically zero-initialized at all",
+      "It depends on the compiler -- zero-initialization of global arrays is an optional QoI optimization",
+      "It is zero because objects with static storage duration are zero-initialized before any other init",
+    ],
+    correctIndex: 3,
+    explanation:
+      "All objects with static storage duration are zero-initialized as part of static initialization, which happens before dynamic initialization and before main(). For int arrays, every element is guaranteed to be 0. Similarly, globalS.x is 0 and globalS.y is 0.0.",
+    link: "https://en.cppreference.com/w/cpp/language/zero_initialization",
+  },
+  {
+    id: 1118,
+    difficulty: "Hard",
+    topic: "Storage Durations",
+    question:
+      "What is the lifetime of the temporary std::string in this code, and is reading from p safe?",
+    code: `const char* p = std::string("hello").c_str();
+std::cout << p;  // safe or dangling?`,
+    options: [
+      "The temporary lives until p goes out of scope because c_str() implicitly extends its lifetime",
+      "The temporary lives until the end of the enclosing block because it is bound to a const pointer",
+      "The temporary is destroyed at the end of the full-expression, so p is a dangling pointer here",
+      "The temporary is moved into static storage by the compiler as a small-string optimization step",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The temporary std::string is destroyed at the end of the full-expression (the semicolon on line 1). The pointer returned by c_str() becomes dangling immediately. Lifetime extension applies only when a reference (not a pointer) is directly bound to a temporary prvalue.",
+    link: "https://en.cppreference.com/w/cpp/language/lifetime#Temporary_object_lifetime",
+  },
+  {
+    id: 1119,
+    difficulty: "Hard",
+    topic: "Storage Durations",
+    question:
+      "A namespace-scope variable is declared static. How does this affect its linkage and its storage duration?",
+    code: `// in utils.cpp
+static int counter = 0;  // namespace-scope static`,
+    options: [
+      "It has internal linkage restricted to this TU, but its storage duration is still static as usual",
+      "It has external linkage visible to other TUs, and static only affects the storage duration here",
+      "It has no linkage at all (like a local variable), and it is destroyed when the function returns",
+      "It has internal linkage and automatic storage duration, so it is re-created each time the TU loads",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The static keyword at namespace scope gives the variable internal linkage, meaning it is not visible to other translation units. Its storage duration remains static (it exists for the entire program). The two meanings of 'static' -- linkage specifier vs. storage duration -- are distinct but both apply here.",
+    link: "https://en.cppreference.com/w/cpp/language/storage_duration#Linkage",
+  },
+  {
+    id: 1120,
+    difficulty: "Hard",
+    topic: "Storage Durations",
+    question:
+      "What happens if the constructor of a block-scope static variable throws an exception?",
+    code: `Widget& get() {
+    static Widget w(42);  // ctor may throw
+    return w;
+}
+
+try { get(); } catch (...) {}
+try { get(); } catch (...) {}  // second call`,
+    options: [
+      "The first call throws and the variable is left in a partially constructed, permanent error state",
+      "The runtime marks the variable as initialized anyway, so subsequent calls return a default object",
+      "A compiler error is emitted because block-scope statics must have a noexcept constructor always",
+      "Initialization is reattempted on the next entry to the block, since the variable was never completed",
+    ],
+    correctIndex: 3,
+    explanation:
+      "If the initialization of a block-scope static variable throws, the variable is not considered initialized. The next time control passes through the declaration, initialization is attempted again. This continues until the constructor succeeds without throwing.",
+    link: "https://en.cppreference.com/w/cpp/language/storage_duration#Static_local_variables",
+  },
+  {
+    id: 1121,
+    difficulty: "Hard",
+    topic: "Storage Durations",
+    question:
+      "How does constinit differ from constexpr when applied to a variable with static storage duration?",
+    code: `constexpr int a = 42;    // constexpr variable
+constinit int b = 42;    // constinit variable
+
+void f() {
+    ++b;   // is this legal?
+    // ++a; // is this legal?
+}`,
+    options: [
+      "constexpr makes the variable const and requires a constant initializer; constinit only requires a constant initializer",
+      "constinit makes the variable const and requires a constant initializer; constexpr only requires a constant initializer",
+      "Both constexpr and constinit make the variable const, but constinit also allows thread_local storage",
+      "Both constexpr and constinit allow mutation after initialization, but constinit skips zero-init phase",
+    ],
+    correctIndex: 0,
+    explanation:
+      "constexpr on a variable implies const -- the variable cannot be modified after initialization. constinit only requires that the initializer is a constant expression (preventing dynamic initialization) but does not make the variable const. So ++b is legal but ++a is ill-formed.",
+    link: "https://en.cppreference.com/w/cpp/language/constinit",
   },
 ];
