@@ -1,22 +1,26 @@
 ---
-name: generate-quiz
-description: Generate 30 balanced MCQs on a topic and append them to questions.ts
-argument-hint: <topic-name>
+name: generate-quiz-general
+description: Generate 30 balanced MCQs on a topic chosen by the AI based on coverage gaps
 ---
 
-# Generate 30 MCQs for: $ARGUMENTS
+# Generate 30 MCQs — AI-chosen topic
 
-## Step 1 — Gather context
+## Step 1 — Gather context and choose a topic
 
 1. Read `src/lib/questions.ts` to find:
    - The current **max question ID** (scan all `id: N` values).
-   - The **TOPICS** array — check if `$ARGUMENTS` already exists there.
+   - The **TOPICS** array and the **count of questions per topic**.
    - The format and style of existing questions (indentation, field order, etc.).
 2. New questions start at **max ID + 1**.
+3. **Choose the topic** using this priority order:
+   - **First priority**: Pick an existing topic that has the fewest questions (least coverage).
+   - **Second priority**: If all existing topics have roughly equal coverage (within 10 of each other), introduce a **new** C++ topic that is not yet in the TOPICS array. Good candidates include: Concurrency, Exceptions, Namespaces, Preprocessor, Enumerations, Lambdas, Iterators, Move Semantics, RAII, Operator Overloading, Function Overloading, Inheritance, Unions, Bitwise Operations, Constexpr, Concepts, Ranges, Coroutines, Modules, or any other core C++ topic missing from the list.
+   - **Never** pick the topic that already has the most questions.
+4. Print which topic was chosen and why (e.g., "Chose 'Exceptions' — only 30 questions vs average of 55").
 
 ## Step 2 — Topic handling
 
-- If `$ARGUMENTS` matches an existing topic in the TOPICS array, use that exact string.
+- If the chosen topic matches an existing topic in the TOPICS array, use that exact string.
 - If it is a **new** topic, add it to the `TOPICS` array in `src/lib/questions.ts` (in alphabetical order among the existing entries).
 
 ## Step 3 — Generate 30 questions
@@ -84,7 +88,7 @@ For every question, follow this process:
 
 ## Step 4 — Append to questions.ts
 
-1. Add a section comment before the new questions: `// ── $ARGUMENTS (Q{firstId}–Q{lastId}) ──`
+1. Add a section comment before the new questions: `// ── {CHOSEN_TOPIC} (Q{firstId}–Q{lastId}) ──`
 2. Append all 30 questions to the `questions` array in `src/lib/questions.ts`.
 3. If the topic is new, also update the TOPICS array (Step 2).
 
