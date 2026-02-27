@@ -22054,4 +22054,4028 @@ v.push_back(42);`,
       "std::pmr::polymorphic_allocator holds a pointer to std::pmr::memory_resource, which is an abstract base class with virtual functions do_allocate(), do_deallocate(), and do_is_equal(). Any concrete memory resource such as monotonic_buffer_resource or synchronized_pool_resource inherits from memory_resource and overrides these virtual functions. This is classic runtime polymorphism: the allocator does not need to know the concrete resource type, so containers using polymorphic_allocator all share the same type regardless of which memory resource backs them.",
     link: "https://en.cppreference.com/w/cpp/memory/polymorphic_allocator",
   },
+// ── I/O & Filesystem (Q1182--Q1211) ──
+  {
+    id: 1182,
+    difficulty: "Easy",
+    topic: "I/O & Filesystem",
+    question:
+      "Which C++ stream class is specifically designed for reading data from files?",
+    options: [
+      "std::ifstream, defined in the <fstream> header for file input operations",
+      "std::ofstream, defined in the <fstream> header for file output operations",
+      "std::stringstream, defined in the <sstream> header for string parsing",
+      "std::ostream, defined in the <iostream> header for general output tasks",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::ifstream (input file stream) is the class dedicated to reading from files. std::ofstream is for writing, std::stringstream operates on strings, and std::ostream is a general output base class.",
+    link: "https://en.cppreference.com/w/cpp/io/basic_ifstream",
+  },
+  {
+    id: 1183,
+    difficulty: "Easy",
+    topic: "I/O & Filesystem",
+    question: "What does std::endl do when used with an output stream?",
+    options: [
+      "It inserts a newline character and then flushes the output buffer immediately",
+      "It inserts a newline character without performing any flush of the buffer",
+      "It clears the entire contents of the stream buffer without adding characters",
+      "It resets the stream state flags and repositions the write pointer to start",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::endl inserts a newline character into the stream and then calls flush() on it. This is different from just writing the newline character, which does not force the buffer to be flushed.",
+    link: "https://en.cppreference.com/w/cpp/io/manip/endl",
+  },
+  {
+    id: 1184,
+    difficulty: "Easy",
+    topic: "I/O & Filesystem",
+    question:
+      "Which function reads an entire line of text from an input stream into a std::string?",
+    options: [
+      "std::getline reads characters from the stream until the delimiter is found",
+      "stream.get reads a single character from the stream on each invocation",
+      "stream.read extracts a fixed number of characters into a character buffer",
+      "stream.peek returns the next character from the stream without extracting it",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::getline(stream, string) reads all characters up to and including the delimiter (newline by default), stores everything except the delimiter in the string, and discards the delimiter from the stream.",
+    link: "https://en.cppreference.com/w/cpp/string/basic_string/getline",
+  },
+  {
+    id: 1185,
+    difficulty: "Easy",
+    topic: "I/O & Filesystem",
+    question: "What is the purpose of the std::ios::binary flag when opening a file?",
+    options: [
+      "It enables the stream to encode all written data into a binary number format",
+      "It prevents the operating system from performing newline character translation",
+      "It forces the file to be opened in read-only mode regardless of other flags",
+      "It compresses file content automatically to reduce the total size on storage",
+    ],
+    correctIndex: 1,
+    explanation:
+      "On some platforms, text mode translates newline characters (e.g., converting between \\n and \\r\\n on Windows). Opening with std::ios::binary suppresses this translation, which is important for non-text data.",
+    link: "https://en.cppreference.com/w/cpp/io/ios_base/openmode",
+  },
+  {
+    id: 1186,
+    difficulty: "Easy",
+    topic: "I/O & Filesystem",
+    question:
+      "Which manipulator sets the output to display floating-point numbers in fixed notation?",
+    options: [
+      "std::scientific forces the stream to use scientific exponential number notation",
+      "std::setprecision controls the total digit count but does not set the notation",
+      "std::fixed forces the stream to use fixed-point decimal notation for output",
+      "std::defaultfloat restores the stream to its default floating-point formatting",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::fixed sets the floatfield format flag so that floating-point numbers are displayed in fixed-point notation. After setting std::fixed, std::setprecision controls the number of digits after the decimal point.",
+    link: "https://en.cppreference.com/w/cpp/io/manip/fixed",
+  },
+  {
+    id: 1187,
+    difficulty: "Easy",
+    topic: "I/O & Filesystem",
+    question:
+      "What happens when you try to read from an std::ifstream that failed to open a file?",
+    options: [
+      "The program throws a std::runtime_error exception with a descriptive message",
+      "The stream enters a fail state and all subsequent read operations return zero",
+      "The read operations silently succeed but produce empty or default-initialized values",
+      "The stream sets its failbit and all subsequent extraction operations will also fail",
+    ],
+    correctIndex: 3,
+    explanation:
+      "If the file cannot be opened, the stream sets its failbit internally. Any extraction attempted on this stream will also fail. You should always check whether the file opened successfully using the stream boolean conversion or the is_open() method.",
+    link: "https://en.cppreference.com/w/cpp/io/basic_ifstream/open",
+  },
+  {
+    id: 1188,
+    difficulty: "Easy",
+    topic: "I/O & Filesystem",
+    question: "Which header must be included to use std::setw and std::setprecision?",
+    options: [
+      "The <iomanip> header provides parameterized stream formatting manipulators",
+      "The <iostream> header provides only the basic stream objects and operations",
+      "The <fstream> header provides file stream classes for reading and writing files",
+      "The <sstream> header provides string-based stream classes for text processing",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The parameterized manipulators like std::setw, std::setprecision, std::setfill, and std::setbase are defined in the <iomanip> header. The <iostream> header provides std::cout and non-parameterized manipulators.",
+    link: "https://en.cppreference.com/w/cpp/header/iomanip",
+  },
+  {
+    id: 1189,
+    difficulty: "Easy",
+    topic: "I/O & Filesystem",
+    question: "What does the is_open() member function check on a file stream object?",
+    options: [
+      "It checks whether the stream has reached the end-of-file position already",
+      "It checks whether a file is currently associated with the stream successfully",
+      "It checks whether the stream buffer still has unread data available in it",
+      "It checks whether the file on disk exists at the path given during creation",
+    ],
+    correctIndex: 1,
+    explanation:
+      "is_open() returns true if the file stream has a file successfully associated with it. This is the recommended way to verify that a call to open() or the constructor actually succeeded.",
+    link: "https://en.cppreference.com/w/cpp/io/basic_fstream/is_open",
+  },
+  {
+    id: 1190,
+    difficulty: "Easy",
+    topic: "I/O & Filesystem",
+    question: "Which operator is used to write data to an output stream in C++?",
+    options: [
+      "The >> extraction operator reads formatted input from a given stream object",
+      "The << insertion operator writes formatted output to a given stream object",
+      "The = assignment operator copies one stream object state into another object",
+      "The () function-call operator invokes the stream as a callable output object",
+    ],
+    correctIndex: 1,
+    explanation:
+      "The << operator (insertion operator) is overloaded for output streams. It converts its right operand to text and inserts the characters into the stream. The >> operator performs the reverse, extracting formatted input.",
+    link: "https://en.cppreference.com/w/cpp/io/basic_ostream/operator_ltlt",
+  },
+  {
+    id: 1191,
+    difficulty: "Easy",
+    topic: "I/O & Filesystem",
+    question:
+      "What does std::cin.ignore() do by default when called with no arguments?",
+    options: [
+      "It extracts and discards exactly one character from the standard input stream",
+      "It clears all error flags on the stream to allow further extraction attempts",
+      "It discards every remaining character in the stream buffer until it is empty",
+      "It peeks at the next character without extracting or discarding any of them",
+    ],
+    correctIndex: 0,
+    explanation:
+      "When called with no arguments, std::cin.ignore() extracts and discards a single character from the input stream. To discard more characters, you can pass a count and an optional delimiter character.",
+    link: "https://en.cppreference.com/w/cpp/io/basic_istream/ignore",
+  },
+  {
+    id: 1192,
+    difficulty: "Medium",
+    topic: "I/O & Filesystem",
+    question: "What is the output of this code that uses std::stringstream?",
+    code: `#include <sstream>
+#include <iostream>
+
+std::stringstream ss("42 3.14 hello");
+int i; double d; std::string s;
+ss >> i >> d >> s;
+std::cout << i << " " << s;`,
+    options: [
+      "The program outputs \"42 hello\" after extracting all three values correctly",
+      "The program outputs \"42 3.14\" because the string extraction is not attempted",
+      "The program outputs \"0 hello\" because integer extraction from text will fail",
+      "The program fails to compile because stringstream cannot parse multiple types",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::stringstream supports the same formatted extraction as std::cin. The >> operator extracts 42 as an int, 3.14 as a double, and \"hello\" as a string. The output prints the int and string.",
+    link: "https://en.cppreference.com/w/cpp/io/basic_stringstream",
+  },
+  {
+    id: 1193,
+    difficulty: "Medium",
+    topic: "I/O & Filesystem",
+    question:
+      "What happens to the contents of a file when you open it with std::ios::app mode?",
+    options: [
+      "All existing content is erased before any new data is written to the file",
+      "The write position is set to the end so new data is appended after existing content",
+      "The file is opened in read-only mode and write operations will silently be ignored",
+      "The existing content is loaded into a memory buffer and overwritten from the start",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::ios::app (append mode) moves the write position to the end of the file before every write operation. This ensures that existing content is preserved and new data always goes at the end.",
+    link: "https://en.cppreference.com/w/cpp/io/ios_base/openmode",
+  },
+  {
+    id: 1194,
+    difficulty: "Medium",
+    topic: "I/O & Filesystem",
+    question:
+      "How do you properly clear an error state on std::cin so extraction can resume?",
+    options: [
+      "Call std::cin.clear() to reset the state flags then discard the invalid input",
+      "Call std::cin.flush() which resets the error flags and empties the read buffer",
+      "Assign std::cin to a new istream object to obtain a completely fresh state",
+      "Call std::cin.reset() which is the standard method for clearing stream errors",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::cin.clear() resets the stream state flags (failbit, badbit, eofbit) back to goodbit. After clearing, you typically need to also discard the bad input using ignore() before attempting further reads.",
+    link: "https://en.cppreference.com/w/cpp/io/basic_ios/clear",
+  },
+  {
+    id: 1195,
+    difficulty: "Medium",
+    topic: "I/O & Filesystem",
+    question: "What does std::setw(10) affect when used with the insertion operator?",
+    options: [
+      "It sets the minimum field width for only the very next formatted output operation",
+      "It sets the minimum field width for all subsequent formatted output operations",
+      "It sets the maximum number of characters that can be inserted into the stream",
+      "It pads the output buffer with exactly ten space characters before writing data",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::setw is a non-sticky manipulator. It sets the minimum field width for the next formatted output operation only, after which the width resets to 0. Other manipulators like std::setprecision are sticky.",
+    link: "https://en.cppreference.com/w/cpp/io/manip/setw",
+  },
+  {
+    id: 1196,
+    difficulty: "Medium",
+    topic: "I/O & Filesystem",
+    question:
+      "Which method would you use to get the current read position in an input file stream?",
+    options: [
+      "tellg() returns the current position of the get pointer in the input stream",
+      "tellp() returns the current position of the put pointer in the output stream",
+      "seekg() moves the get pointer to a new position within the input stream data",
+      "seekp() moves the put pointer to a new position within the output stream data",
+    ],
+    correctIndex: 0,
+    explanation:
+      "tellg() (tell-get) returns the current position of the input (get) pointer as a std::streampos value. tellp() is for the output (put) pointer. seekg() and seekp() reposition their respective pointers.",
+    link: "https://en.cppreference.com/w/cpp/io/basic_istream/tellg",
+  },
+  {
+    id: 1197,
+    difficulty: "Medium",
+    topic: "I/O & Filesystem",
+    question:
+      "What is the difference between std::ios::trunc and std::ios::app when opening an output file?",
+    options: [
+      "trunc erases existing content on open while app preserves content and appends new data",
+      "trunc opens the file for reading only while app opens the file for writing operations only",
+      "trunc appends data at the end of the file while app erases the file before each new write",
+      "trunc and app are aliases for the same behavior and can be used interchangeably in code",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::ios::trunc truncates the file to zero length when opened, discarding all existing content. std::ios::app preserves existing content and moves the write position to the end before each write operation.",
+    link: "https://en.cppreference.com/w/cpp/io/ios_base/openmode",
+  },
+  {
+    id: 1198,
+    difficulty: "Medium",
+    topic: "I/O & Filesystem",
+    question:
+      "What does this code output when reading a file with std::istreambuf_iterator?",
+    code: `#include <fstream>
+#include <string>
+#include <iterator>
+// file.txt contains "Hello World"
+std::ifstream ifs("file.txt");
+std::string content(
+  (std::istreambuf_iterator<char>(ifs)),
+  std::istreambuf_iterator<char>()
+);
+std::cout << content.size();`,
+    options: [
+      "It outputs 11 because istreambuf_iterator reads all characters including the space",
+      "It outputs 5 because istreambuf_iterator stops reading at the first whitespace found",
+      "It outputs 0 because istreambuf_iterator requires binary mode to read file contents",
+      "It causes a compilation error because istreambuf_iterator cannot initialize a string",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::istreambuf_iterator reads characters directly from the stream buffer without skipping whitespace. It reads every character until EOF, so \"Hello World\" (11 characters including the space) is fully captured.",
+    link: "https://en.cppreference.com/w/cpp/io/istreambuf_iterator",
+  },
+  {
+    id: 1199,
+    difficulty: "Medium",
+    topic: "I/O & Filesystem",
+    question:
+      "How does std::filesystem::exists() behave when given a path to a broken symbolic link?",
+    options: [
+      "It returns false because the target of the symbolic link does not exist on disk",
+      "It returns true because the symbolic link file itself still exists on the filesystem",
+      "It throws a std::filesystem::filesystem_error exception for the broken link case",
+      "It returns true and sets a warning flag that can be queried through an error code",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::filesystem::exists() follows symbolic links by default. If the symlink target does not exist, exists() returns false. To check whether the symlink itself exists, use std::filesystem::symlink_status() instead.",
+    link: "https://en.cppreference.com/w/cpp/filesystem/exists",
+  },
+  {
+    id: 1200,
+    difficulty: "Medium",
+    topic: "I/O & Filesystem",
+    question:
+      "What is the purpose of the std::ios::ate open mode flag for file streams?",
+    options: [
+      "It opens the file and positions the stream pointer at the end but allows seeking back",
+      "It opens the file and appends all writes to the end without allowing any repositioning",
+      "It opens the file in text mode and converts all line endings to the native platform form",
+      "It opens the file exclusively so that no other process can access it simultaneously",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::ios::ate (at-end) positions the stream pointer at the end of the file immediately after opening. Unlike app mode, ate allows you to seek to any position afterward for reading or writing.",
+    link: "https://en.cppreference.com/w/cpp/io/ios_base/openmode",
+  },
+  {
+    id: 1201,
+    difficulty: "Medium",
+    topic: "I/O & Filesystem",
+    question:
+      "What does the std::noskipws manipulator do when applied to an input stream?",
+    options: [
+      "It causes the stream to throw an exception when whitespace characters are encountered",
+      "It tells the extraction operator to skip all whitespace including embedded newlines",
+      "It prevents the extraction operator from automatically skipping leading whitespace",
+      "It converts all whitespace characters into underscore characters during extraction",
+    ],
+    correctIndex: 2,
+    explanation:
+      "By default, formatted input with >> skips leading whitespace. Applying std::noskipws disables this behavior, causing the extraction operator to process whitespace characters instead of skipping them.",
+    link: "https://en.cppreference.com/w/cpp/io/manip/skipws",
+  },
+  {
+    id: 1202,
+    difficulty: "Hard",
+    topic: "I/O & Filesystem",
+    question:
+      "What happens when you write a custom streambuf that overrides overflow() but not xsputn()?",
+    options: [
+      "The default xsputn calls overflow for each character so single-character output still works",
+      "All multi-character writes silently produce no output because xsputn returns zero always",
+      "The compiler rejects the class because xsputn is a pure virtual function requiring override",
+      "The stream falls back to using the C stdio functions for all multi-character write requests",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The default implementation of std::streambuf::xsputn() writes characters one at a time by calling sputc(), which in turn calls overflow() when the buffer is full. So overriding overflow() alone is sufficient for correctness, though not optimal for performance.",
+    link: "https://en.cppreference.com/w/cpp/io/basic_streambuf/sputn",
+  },
+  {
+    id: 1203,
+    difficulty: "Hard",
+    topic: "I/O & Filesystem",
+    question:
+      "Why can reading a large file with repeated std::getline() calls be slower than using read() with a buffer?",
+    options: [
+      "getline scans every character looking for the delimiter which prevents large block reads",
+      "getline automatically flushes the output stream after reading each individual line of data",
+      "getline allocates a new string object on the heap for every single line that it extracts",
+      "getline uses a mutex lock internally making it slower on systems with multiple CPU cores",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::getline must examine each character individually to detect the line delimiter. This character-by-character processing prevents the stream from performing large, efficient block reads. Using read() with a pre-allocated buffer allows the OS to transfer data in larger chunks.",
+    link: "https://en.cppreference.com/w/cpp/string/basic_string/getline",
+  },
+  {
+    id: 1204,
+    difficulty: "Hard",
+    topic: "I/O & Filesystem",
+    question:
+      "What subtle issue can arise when mixing std::cout and std::printf in the same program?",
+    options: [
+      "The compiler will reject the program because C and C++ I/O cannot coexist together",
+      "Output from cout and printf may appear interleaved unless sync_with_stdio is enabled",
+      "printf will always execute before cout regardless of the order they appear in the code",
+      "All cout output is silently discarded when any printf call exists in the translation unit",
+    ],
+    correctIndex: 1,
+    explanation:
+      "C++ streams and C stdio have separate buffers. By default, std::ios_base::sync_with_stdio(true) keeps them synchronized. If you disable synchronization for performance, output from cout and printf may become interleaved unpredictably.",
+    link: "https://en.cppreference.com/w/cpp/io/ios_base/sync_with_stdio",
+  },
+  {
+    id: 1205,
+    difficulty: "Hard",
+    topic: "I/O & Filesystem",
+    question:
+      "What is the behavior of std::filesystem::recursive_directory_iterator when it encounters a permission-denied directory?",
+    options: [
+      "It throws a filesystem_error exception immediately and stops the entire iteration process",
+      "It silently skips that directory and all its contents then continues with sibling entries",
+      "It depends on the directory_options: skip_permission_denied makes it skip that entry",
+      "It logs a warning message to std::cerr and then continues iterating remaining entries",
+    ],
+    correctIndex: 2,
+    explanation:
+      "By default, recursive_directory_iterator throws filesystem_error on permission denied. Passing directory_options::skip_permission_denied to the constructor makes it skip inaccessible directories and continue iteration.",
+    link: "https://en.cppreference.com/w/cpp/filesystem/recursive_directory_iterator",
+  },
+  {
+    id: 1206,
+    difficulty: "Hard",
+    topic: "I/O & Filesystem",
+    question:
+      "What is the purpose of std::streambuf::pubsetbuf() and when might it have no effect?",
+    options: [
+      "It requests the stream use a user-provided buffer, but implementations may ignore it",
+      "It always forces the stream to use the provided buffer on every conforming compiler",
+      "It sets the internal locale facet buffer used for character encoding conversions only",
+      "It adjusts the maximum character count the stream will cache before writing to disk",
+    ],
+    correctIndex: 0,
+    explanation:
+      "pubsetbuf() calls the protected virtual function setbuf(), which requests the stream to use a caller-provided character buffer. However, the C++ standard allows implementations to ignore this request entirely. Some standard library implementations treat it as a no-op.",
+    link: "https://en.cppreference.com/w/cpp/io/basic_streambuf/pubsetbuf",
+  },
+  {
+    id: 1207,
+    difficulty: "Hard",
+    topic: "I/O & Filesystem",
+    question:
+      "What does std::filesystem::weakly_canonical() do that canonical() does not?",
+    options: [
+      "It resolves the existing prefix of a path and normalizes the rest without requiring existence",
+      "It returns the path unchanged without resolving any symbolic links or relative components",
+      "It canonicalizes the path but uses weak_ptr internally to avoid circular symlink references",
+      "It performs the same resolution as canonical but caches the result for faster future lookups",
+    ],
+    correctIndex: 0,
+    explanation:
+      "weakly_canonical() resolves symlinks and normalizes the portion of the path that exists, then appends the remaining non-existent portion in normalized form. canonical() requires the entire path to exist and throws if it does not.",
+    link: "https://en.cppreference.com/w/cpp/filesystem/weakly_canonical",
+  },
+  {
+    id: 1208,
+    difficulty: "Hard",
+    topic: "I/O & Filesystem",
+    question:
+      "What problem does std::unitbuf solve and which standard stream uses it by default?",
+    options: [
+      "It flushes the stream after every output operation, and std::cerr uses it by default",
+      "It buffers output in fixed-size units for efficiency, and std::cout uses it by default",
+      "It enables thread-safe output by locking on each write, and std::clog uses it by default",
+      "It converts output encoding to UTF-8 automatically, and std::wcerr uses it by default",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::unitbuf causes the stream to flush its buffer after every output operation. std::cerr has unitbuf set by default so that error messages appear immediately. std::clog does not have unitbuf set, so it is buffered.",
+    link: "https://en.cppreference.com/w/cpp/io/manip/unitbuf",
+  },
+  {
+    id: 1209,
+    difficulty: "Hard",
+    topic: "I/O & Filesystem",
+    question:
+      "How does std::filesystem::space() report the available storage for a given path?",
+    options: [
+      "It returns a space_info struct containing capacity, free space, and available space fields",
+      "It returns a single integer representing the total bytes available for the current user",
+      "It writes the space information to a provided output stream in human-readable text format",
+      "It returns a pair of values representing the total capacity and currently used byte count",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::filesystem::space() returns a std::filesystem::space_info struct with three fields: capacity (total size), free (free space), and available (space available to non-privileged users, which may be less than free due to quotas).",
+    link: "https://en.cppreference.com/w/cpp/filesystem/space",
+  },
+  {
+    id: 1210,
+    difficulty: "Hard",
+    topic: "I/O & Filesystem",
+    question:
+      "What role does the std::codecvt facet play in C++ file stream I/O operations?",
+    options: [
+      "It performs character encoding conversion between the internal and external representations",
+      "It controls the alignment and padding of formatted numeric output in the stream operations",
+      "It determines how whitespace characters are classified when parsing formatted input values",
+      "It manages the buffering strategy used by file streams to optimize sequential disk access",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The std::codecvt locale facet converts between the internal character encoding used by the program and the external encoding stored in the file. For example, a wchar_t file stream uses codecvt to convert between wide characters internally and a multibyte encoding on disk.",
+    link: "https://en.cppreference.com/w/cpp/locale/codecvt",
+  },
+  {
+    id: 1211,
+    difficulty: "Hard",
+    topic: "I/O & Filesystem",
+    question:
+      "What happens when you call std::filesystem::rename() to move a file across different filesystems?",
+    options: [
+      "It always succeeds by automatically copying the file then deleting the original source",
+      "The behavior is implementation-defined and may fail with an error on cross-device moves",
+      "It succeeds only if both filesystems use the same underlying format like NTFS or ext4",
+      "It transparently creates a symbolic link at the destination pointing back to the source",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::filesystem::rename() maps to the operating system rename function, which typically cannot move files across filesystem boundaries. On POSIX systems, this produces an EXDEV error. To move cross-device, you must copy the file and then remove the original.",
+    link: "https://en.cppreference.com/w/cpp/filesystem/rename",
+  },
+
+  // ── Build Systems (Q1212--Q1241) ──
+  {
+    id: 1212,
+    difficulty: "Easy",
+    topic: "Build Systems",
+    question: "What is the role of a linker in the C++ build process?",
+    options: [
+      "It combines compiled object files and resolves symbol references into an executable",
+      "It translates C++ source code into assembly language for the target architecture",
+      "It checks the syntax of source files and reports any grammatical errors that exist",
+      "It runs preprocessor directives and expands all macro definitions before compiling",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The linker takes one or more object files produced by the compiler and combines them into a single executable or library. It resolves external symbol references, ensuring that function calls and variable references point to the correct definitions.",
+    link: "https://en.cppreference.com/w/cpp/language/translation_phases",
+  },
+  {
+    id: 1213,
+    difficulty: "Easy",
+    topic: "Build Systems",
+    question: "What does the CMake command add_executable() do?",
+    options: [
+      "It links an existing library target to a previously defined executable in the project",
+      "It defines a new executable target and specifies which source files it is built from",
+      "It sets the compiler flags that should be applied when building all project targets",
+      "It installs a compiled executable to the system path for global command line access",
+    ],
+    correctIndex: 1,
+    explanation:
+      "add_executable(target_name source1.cpp source2.cpp ...) creates a new build target that produces an executable binary. CMake then generates the appropriate build system rules to compile and link the specified source files.",
+    link: "https://cmake.org/cmake/help/latest/command/add_executable.html",
+  },
+  {
+    id: 1214,
+    difficulty: "Easy",
+    topic: "Build Systems",
+    question: "What file does CMake use as its primary project configuration input?",
+    options: [
+      "A file named Makefile that contains the direct build rules for each source file",
+      "A file named build.ninja that specifies the parallel compilation graph for targets",
+      "A file named CMakeLists.txt that describes the project structure and build targets",
+      "A file named configure.ac that automates the detection of system build capabilities",
+    ],
+    correctIndex: 2,
+    explanation:
+      "CMake reads CMakeLists.txt files to understand the project structure. These files contain commands like project(), add_executable(), and target_link_libraries() that describe how the project should be built.",
+    link: "https://cmake.org/cmake/help/latest/manual/cmake-language.7.html",
+  },
+  {
+    id: 1215,
+    difficulty: "Easy",
+    topic: "Build Systems",
+    question: "What is a header guard and why is it used in C++ header files?",
+    options: [
+      "It is a compiler flag that optimizes header parsing speed during large project builds",
+      "It is a linker directive that prevents duplicate symbol definitions in object files",
+      "It is a CMake macro that automatically generates include paths for header directories",
+      "It is a preprocessor pattern that prevents the same header from being included twice",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Header guards use #ifndef/#define/#endif preprocessor directives to ensure a header file is only processed once per translation unit. Without them, multiple inclusions of the same header can cause redefinition errors.",
+    link: "https://www.learncpp.com/cpp-tutorial/header-guards/",
+  },
+  {
+    id: 1216,
+    difficulty: "Easy",
+    topic: "Build Systems",
+    question:
+      "What is the purpose of the -o flag when invoking g++ from the command line?",
+    options: [
+      "It specifies the name of the output file that the compiler or linker will produce",
+      "It enables all available optimization levels for maximum runtime performance gains",
+      "It turns on all compiler warnings including those that are disabled by default rules",
+      "It links the program against the standard C++ library for input and output features",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The -o flag tells g++ what to name the output file. For example, g++ main.cpp -o myprogram produces an executable named myprogram instead of the default a.out.",
+    link: "https://gcc.gnu.org/onlinedocs/gcc/Overall-Options.html",
+  },
+  {
+    id: 1217,
+    difficulty: "Easy",
+    topic: "Build Systems",
+    question: "What does a Makefile target represent in a Make-based build system?",
+    options: [
+      "A list of compiler flags that should be used when compiling any source file in project",
+      "A file or action to be built along with its dependencies and the commands to produce it",
+      "A directory where the final compiled binaries and libraries are placed after the build",
+      "An environment variable that stores the path to the project source code root location",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A Makefile target typically represents a file to be created or an action to be performed. Each target lists its prerequisites and the recipe commands needed to produce the target from those prerequisites.",
+    link: "https://www.gnu.org/software/make/manual/make.html#Rules",
+  },
+  {
+    id: 1218,
+    difficulty: "Easy",
+    topic: "Build Systems",
+    question: "What does the g++ -c flag do during compilation?",
+    options: [
+      "It links object files together into a final executable without running the preprocessor",
+      "It runs the preprocessor only and outputs the expanded source without any compilation",
+      "It compiles the source file into an object file without performing the linking step",
+      "It checks the source code for syntax errors and warnings without producing any output",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The -c flag tells g++ to compile and assemble but not link. It produces an object file (.o) for each source file, which can later be linked together into an executable or library.",
+    link: "https://gcc.gnu.org/onlinedocs/gcc/Overall-Options.html",
+  },
+  {
+    id: 1219,
+    difficulty: "Easy",
+    topic: "Build Systems",
+    question: "What is the difference between a static library and a shared library?",
+    options: [
+      "Static libraries can only contain template code while shared libraries contain all types",
+      "Static libraries are loaded at runtime by the OS while shared libraries are linked at build",
+      "Static libraries require CMake to build while shared libraries work with any build system",
+      "Static libraries are copied into the executable at link time while shared ones load at runtime",
+    ],
+    correctIndex: 3,
+    explanation:
+      "A static library (.a or .lib) is merged directly into the executable during linking, increasing its size. A shared library (.so or .dll) remains separate and is loaded by the operating system when the program runs.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-the-compiler-linker-and-libraries/",
+  },
+  {
+    id: 1220,
+    difficulty: "Easy",
+    topic: "Build Systems",
+    question: "What is the purpose of the #include preprocessor directive in C++?",
+    options: [
+      "It compiles the referenced file separately and links the resulting object into the program",
+      "It copies the entire contents of the specified file into the current translation unit source",
+      "It creates a symbolic reference to the file that the linker resolves at the final build stage",
+      "It registers the file with the build system so that changes trigger automatic recompilation",
+    ],
+    correctIndex: 1,
+    explanation:
+      "The #include directive is processed by the preprocessor, which literally replaces the directive with the entire contents of the specified file. This textual inclusion happens before the compiler sees the code.",
+    link: "https://en.cppreference.com/w/cpp/preprocessor/include",
+  },
+  {
+    id: 1221,
+    difficulty: "Easy",
+    topic: "Build Systems",
+    question: "What does the -Wall flag do when passed to g++ or clang++?",
+    options: [
+      "It treats every compiler warning as a fatal error and stops the build immediately",
+      "It disables all warnings to produce clean output during the compilation process",
+      "It enables all possible warnings including experimental and vendor-specific checks",
+      "It enables a standard set of commonly useful warning messages during compilation",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Despite its name, -Wall does not enable all warnings. It enables a large, commonly useful subset of warnings. To get more warnings, you can add -Wextra and -Wpedantic.",
+    link: "https://gcc.gnu.org/onlinedocs/gcc/Warning-Options.html",
+  },
+  {
+    id: 1222,
+    difficulty: "Medium",
+    topic: "Build Systems",
+    question:
+      "What is the difference between PUBLIC, PRIVATE, and INTERFACE in CMake target_link_libraries()?",
+    options: [
+      "PUBLIC links only at runtime, PRIVATE links only at compile time, INTERFACE links at both",
+      "PUBLIC is for executables only, PRIVATE is for static libraries, INTERFACE is for shared ones",
+      "PUBLIC propagates to dependents, PRIVATE is internal only, INTERFACE propagates but is not used by the target itself",
+      "PUBLIC means the library is required, PRIVATE means it is optional, INTERFACE means it is header-only always",
+    ],
+    correctIndex: 2,
+    explanation:
+      "In modern CMake, PUBLIC means the dependency is used by the target and propagated to anything that links against it. PRIVATE means it is used only by the target. INTERFACE means it is not used by the target itself but is propagated to dependents.",
+    link: "https://cmake.org/cmake/help/latest/command/target_link_libraries.html",
+  },
+  {
+    id: 1223,
+    difficulty: "Medium",
+    topic: "Build Systems",
+    question:
+      "What advantage does the Ninja build system have over Make for large C++ projects?",
+    options: [
+      "Ninja is designed for speed with minimal overhead and faster incremental build times",
+      "Ninja supports recursive builds natively while Make requires manual subdirectory setup",
+      "Ninja can compile source files without needing any prior configuration or build script",
+      "Ninja automatically detects all source files in a directory without explicit file listing",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Ninja is optimized for speed. It has simpler semantics than Make, avoids re-evaluating rules unnecessarily, and uses efficient data structures for dependency tracking. This makes it significantly faster for incremental builds on large projects.",
+    link: "https://ninja-build.org/manual.html",
+  },
+  {
+    id: 1224,
+    difficulty: "Medium",
+    topic: "Build Systems",
+    question:
+      "What is a translation unit in C++ and how does it relate to the build process?",
+    options: [
+      "It is the final linked executable file that results from combining all compiled objects",
+      "It is a single source file after preprocessing with all includes expanded and macros resolved",
+      "It is a CMake target that represents one logical component within a larger build project",
+      "It is the intermediate assembly code generated by the compiler before the assembler runs",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A translation unit is the basic unit of compilation in C++. It consists of a single source file plus all the headers and files it includes, after the preprocessor has expanded all directives. Each translation unit is compiled independently into an object file.",
+    link: "https://en.cppreference.com/w/cpp/language/translation_phases",
+  },
+  {
+    id: 1225,
+    difficulty: "Medium",
+    topic: "Build Systems",
+    question:
+      "What does the CMake command find_package() do when configuring a project?",
+    options: [
+      "It downloads and compiles the requested package from a remote repository automatically",
+      "It creates a new library target from source files found in the system package directory",
+      "It generates header files for the package so that the project can include them directly",
+      "It searches for an installed library and sets variables or targets for linking against it",
+    ],
+    correctIndex: 3,
+    explanation:
+      "find_package() locates an installed library on the system by searching standard paths and using Find modules or package config files. When successful, it typically provides imported targets or variables containing include directories and library paths.",
+    link: "https://cmake.org/cmake/help/latest/command/find_package.html",
+  },
+  {
+    id: 1226,
+    difficulty: "Medium",
+    topic: "Build Systems",
+    question: "Why might you use ccache with a C++ build system?",
+    options: [
+      "It caches previous compilation results and reuses them when the same input is compiled again",
+      "It compresses object files to reduce disk space usage during large project build operations",
+      "It distributes compilation tasks across multiple machines on a network for parallel building",
+      "It validates that compiled binaries match their source code checksums for build verification",
+    ],
+    correctIndex: 0,
+    explanation:
+      "ccache is a compiler cache that stores compilation results. When a file is recompiled with the same preprocessed content and flags, ccache returns the cached result instead of invoking the compiler, dramatically speeding up rebuilds.",
+    link: "https://ccache.dev/manual/latest.html",
+  },
+  {
+    id: 1227,
+    difficulty: "Medium",
+    topic: "Build Systems",
+    question:
+      "What is the One Definition Rule and how does it affect the build process?",
+    options: [
+      "It requires that every function is defined in exactly one header file for proper compilation",
+      "It mandates that each source file can only define one class to keep translation units simple",
+      "It states that each entity must have exactly one definition across all translation units linked",
+      "It ensures that every library target in CMake contains at most one public header for clarity",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The One Definition Rule (ODR) requires that non-inline functions and variables have exactly one definition across the entire program. Violating ODR leads to linker errors or undefined behavior. Inline functions and templates are exceptions, allowing definitions in multiple translation units if they are identical.",
+    link: "https://en.cppreference.com/w/cpp/language/definition",
+  },
+  {
+    id: 1228,
+    difficulty: "Medium",
+    topic: "Build Systems",
+    question:
+      "What is the purpose of CMake generator expressions like $<TARGET_FILE:tgt>?",
+    options: [
+      "They define new build targets dynamically at configure time based on platform detection",
+      "They provide values that are evaluated at build time rather than during CMake configuration",
+      "They generate source code files automatically from template inputs during the build process",
+      "They create conditional compilation flags that the preprocessor evaluates in source headers",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Generator expressions are evaluated during build system generation or at build time, not during the CMake configure step. This allows values like output paths, compiler IDs, and configuration types to be resolved when the actual build runs.",
+    link: "https://cmake.org/cmake/help/latest/manual/cmake-generator-expressions.7.html",
+  },
+  {
+    id: 1229,
+    difficulty: "Medium",
+    topic: "Build Systems",
+    question: "What does the -std=c++17 flag specify when passed to g++ or clang++?",
+    options: [
+      "It tells the compiler to use the C++17 standard for language features and library support",
+      "It enables only the experimental C++17 features that are not yet part of the final standard",
+      "It optimizes the compiled code specifically for hardware architectures released after 2017",
+      "It links the program against the C++17 version of the standard library implementation only",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The -std=c++17 flag tells the compiler to compile the code according to the C++17 standard. This enables C++17 language features like structured bindings, if constexpr, and std::optional, while disabling extensions from later standards.",
+    link: "https://gcc.gnu.org/onlinedocs/gcc/C-Dialect-Options.html",
+  },
+  {
+    id: 1230,
+    difficulty: "Medium",
+    topic: "Build Systems",
+    question: "What problem does cmake_minimum_required() prevent in a CMake project?",
+    options: [
+      "It prevents the build from running on operating systems that are older than the specified version",
+      "It prevents the compiler from using language standards that are older than a minimum requirement",
+      "It prevents using CMake features unavailable in older versions and sets the correct policy defaults",
+      "It prevents third-party libraries from being linked if they were built with an incompatible version",
+    ],
+    correctIndex: 2,
+    explanation:
+      "cmake_minimum_required(VERSION x.y) ensures the project is built with at least that CMake version. It also sets policy defaults appropriate for that version, which affects how various CMake commands behave. Without it, behavior may vary unpredictably across CMake versions.",
+    link: "https://cmake.org/cmake/help/latest/command/cmake_minimum_required.html",
+  },
+  {
+    id: 1231,
+    difficulty: "Medium",
+    topic: "Build Systems",
+    question:
+      "What is the effect of the -O2 optimization flag compared to -O0 when compiling with g++?",
+    options: [
+      "-O2 only removes unused variables while -O0 performs full dead code elimination analysis",
+      "-O2 disables all debug information while -O0 generates full debug symbols automatically",
+      "-O2 enables link-time optimization across all files while -O0 limits it to single files",
+      "-O2 enables many optimizations like inlining and loop unrolling while -O0 disables them all",
+    ],
+    correctIndex: 3,
+    explanation:
+      "-O0 means no optimization and is the default, producing code that closely matches the source for easy debugging. -O2 enables a wide range of optimizations including function inlining, loop unrolling, and dead code elimination that improve runtime performance.",
+    link: "https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html",
+  },
+  {
+    id: 1232,
+    difficulty: "Hard",
+    topic: "Build Systems",
+    question:
+      "What is an undefined reference linker error and what typically causes it?",
+    options: [
+      "It occurs when two object files define the same symbol and the linker cannot choose between them",
+      "It occurs when a symbol is declared but its definition is missing from all provided object files",
+      "It occurs when a header file is included but the corresponding source file has syntax errors",
+      "It occurs when the compiler cannot find a template specialization for the requested type usage",
+    ],
+    correctIndex: 1,
+    explanation:
+      "An undefined reference error means the linker found a declaration of a symbol that was used but could not find its definition in any of the object files or libraries provided. Common causes include forgetting to compile a source file or forgetting to link a required library.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-the-compiler-linker-and-libraries/",
+  },
+  {
+    id: 1233,
+    difficulty: "Hard",
+    topic: "Build Systems",
+    question:
+      "How does CMake's FetchContent module differ from using find_package() for dependencies?",
+    options: [
+      "FetchContent downloads and builds dependencies as part of your project at configure time",
+      "FetchContent only searches for pre-installed system packages using standard search paths",
+      "FetchContent requires the dependency to provide a CMake config file for proper integration",
+      "FetchContent defers dependency resolution to build time and delegates it to the linker step",
+    ],
+    correctIndex: 0,
+    explanation:
+      "FetchContent downloads source code from a URL or repository during CMake configuration and makes it available as part of the build. Unlike find_package(), which locates already-installed libraries, FetchContent builds the dependency from source alongside your project.",
+    link: "https://cmake.org/cmake/help/latest/module/FetchContent.html",
+  },
+  {
+    id: 1234,
+    difficulty: "Hard",
+    topic: "Build Systems",
+    question:
+      "What is link-time optimization and how does it improve compiled code performance?",
+    options: [
+      "It parallelizes the linking stage across multiple CPU cores to reduce total build duration",
+      "It reorders object files in memory to minimize cache misses when loading the final binary",
+      "It strips unused debug symbols from the binary to reduce the executable file size on disk",
+      "It optimizes across translation unit boundaries by analyzing all object files during linking",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Link-time optimization (LTO) allows the compiler to perform optimizations across translation unit boundaries during the linking phase. Normally, optimizations like inlining are limited to a single translation unit. LTO enables cross-file inlining and dead code elimination.",
+    link: "https://gcc.gnu.org/onlinedocs/gcc/Optimize-Options.html",
+  },
+  {
+    id: 1235,
+    difficulty: "Hard",
+    topic: "Build Systems",
+    question:
+      "What is the purpose of the RPATH setting in a CMake project that uses shared libraries?",
+    options: [
+      "It specifies the include search path that the preprocessor uses to locate header files",
+      "It defines the directory where CMake stores intermediate object files during compilation",
+      "It embeds a library search path in the executable so shared libraries are found at runtime",
+      "It sets the output directory where the final compiled executable binary will be placed",
+    ],
+    correctIndex: 2,
+    explanation:
+      "RPATH is a path embedded in an ELF executable or shared library that tells the dynamic linker where to search for shared libraries at runtime. CMake manages RPATH settings so that executables can find their shared library dependencies without requiring system-wide installation.",
+    link: "https://cmake.org/cmake/help/latest/variable/CMAKE_INSTALL_RPATH.html",
+  },
+  {
+    id: 1236,
+    difficulty: "Hard",
+    topic: "Build Systems",
+    question:
+      "What is a unity build and what trade-off does it make in the C++ build process?",
+    options: [
+      "It concatenates multiple source files into one translation unit to reduce total build time",
+      "It compiles every source file in complete isolation to maximize build reproducibility results",
+      "It distributes compilation across networked machines to parallelize the entire build process",
+      "It precompiles all header files into a single binary cache to speed up include resolution",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A unity build combines multiple source files into a single translation unit by including them all from one file. This reduces redundant header parsing and can significantly speed up full builds, but may introduce issues with static variables and unnamed namespaces clashing across files.",
+    link: "https://cmake.org/cmake/help/latest/variable/CMAKE_UNITY_BUILD.html",
+  },
+  {
+    id: 1237,
+    difficulty: "Hard",
+    topic: "Build Systems",
+    question:
+      "Why can changing a widely-included header file cause very long rebuild times in large projects?",
+    options: [
+      "The linker must re-resolve all symbol references even if only type declarations were modified",
+      "The build system regenerates all Makefiles from scratch whenever any header file is changed",
+      "Every translation unit that includes the header must be recompiled due to dependency tracking",
+      "The preprocessor rescans every source file in the project to check for new macro definitions",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Build systems track header dependencies. When a header changes, every source file that directly or transitively includes it is considered out of date and must be recompiled. For a widely-included header, this can mean recompiling most of the project.",
+    link: "https://www.learncpp.com/cpp-tutorial/header-files/",
+  },
+  {
+    id: 1238,
+    difficulty: "Hard",
+    topic: "Build Systems",
+    question: "What does the CMake INTERFACE library type allow you to create?",
+    options: [
+      "A library that is compiled only when explicitly requested by a dependent target in the project",
+      "A header-only library target that carries compile definitions and include paths for dependents",
+      "A shared library that exposes its symbols only through a C-compatible application binary interface",
+      "A static library that automatically inlines all of its functions into every dependent target",
+    ],
+    correctIndex: 1,
+    explanation:
+      "An INTERFACE library in CMake has no compiled source files of its own. It exists purely to carry usage requirements like include directories, compile definitions, and link dependencies that propagate to any target that links against it. This is ideal for header-only libraries.",
+    link: "https://cmake.org/cmake/help/latest/command/add_library.html#interface-libraries",
+  },
+  {
+    id: 1239,
+    difficulty: "Hard",
+    topic: "Build Systems",
+    question:
+      "What problem do precompiled headers solve and what is their main limitation?",
+    options: [
+      "They cache linked binaries to skip relinking, but they become invalid after any flag change",
+      "They store parsed template instantiations, but they only work with single translation units",
+      "They eliminate the need for header guards entirely, but they require a specific file naming rule",
+      "They speed up compilation by caching parsed headers, but they must be kept synchronized with usage",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Precompiled headers store the parsed state of frequently included headers so the compiler does not reparse them for every translation unit. The main limitation is that they must be kept in sync: if the precompiled header contents do not match what a source file expects, subtle errors can occur.",
+    link: "https://cmake.org/cmake/help/latest/command/target_precompile_headers.html",
+  },
+  {
+    id: 1240,
+    difficulty: "Hard",
+    topic: "Build Systems",
+    question:
+      "What does the -fsanitize=address compiler flag enable and when should it be used?",
+    options: [
+      "It enables static analysis that checks source code for potential bugs without running it",
+      "It enables AddressSanitizer which detects memory errors like buffer overflows at runtime",
+      "It enables automatic memory leak repair by inserting deallocation calls where they are needed",
+      "It enables compile-time address validation that verifies pointer arithmetic is always valid",
+    ],
+    correctIndex: 1,
+    explanation:
+      "AddressSanitizer (ASan) instruments the compiled code to detect memory errors at runtime, including buffer overflows, use-after-free, and stack-use-after-scope. It is invaluable during development and testing but adds significant runtime overhead.",
+    link: "https://gcc.gnu.org/onlinedocs/gcc/Instrumentation-Options.html",
+  },
+  {
+    id: 1241,
+    difficulty: "Hard",
+    topic: "Build Systems",
+    question:
+      "What is the purpose of the CMAKE_EXPORT_COMPILE_COMMANDS variable in CMake?",
+    options: [
+      "It exports a list of all linked libraries for each target into a dependency manifest file",
+      "It generates a summary of all compiler warnings encountered during the most recent build",
+      "It generates a compile_commands.json file that tools like clang-tidy and IDEs can consume",
+      "It creates a build log file that records the timestamps and durations of each compile step",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Setting CMAKE_EXPORT_COMPILE_COMMANDS to ON causes CMake to generate a compile_commands.json file in the build directory. This JSON compilation database lists the exact compiler invocation for each source file, which is used by clang-tidy, clangd, and other tooling for accurate code analysis.",
+    link: "https://cmake.org/cmake/help/latest/variable/CMAKE_EXPORT_COMPILE_COMMANDS.html",
+  },
+
+  // ── Error Handling (Q1242--Q1271) ──
+  {
+    id: 1242,
+    difficulty: "Easy",
+    topic: "Error Handling",
+    question:
+      "What keyword is used to signal an error condition by throwing an exception in C++?",
+    options: [
+      "The throw keyword creates an exception object and begins the stack unwinding process",
+      "The catch keyword creates an exception object and begins the stack unwinding process",
+      "The raise keyword creates an exception object and begins the stack unwinding process",
+      "The error keyword creates an exception object and begins the stack unwinding process",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The throw keyword is used to raise an exception in C++. When executed, it creates an exception object and initiates stack unwinding, transferring control to the nearest matching catch handler.",
+    link: "https://en.cppreference.com/w/cpp/language/throw",
+  },
+  {
+    id: 1243,
+    difficulty: "Easy",
+    topic: "Error Handling",
+    question:
+      "What is the base class for most standard library exception types in C++?",
+    options: [
+      "std::error_code serves as the root of the standard exception class hierarchy",
+      "std::exception serves as the root of the standard exception class hierarchy",
+      "std::runtime_error serves as the root of the standard exception class hierarchy",
+      "std::logic_error serves as the root of the standard exception class hierarchy",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::exception is the base class from which all standard exception types derive. It provides a virtual what() method that returns a description of the error. std::runtime_error and std::logic_error are derived classes.",
+    link: "https://en.cppreference.com/w/cpp/error/exception",
+  },
+  {
+    id: 1244,
+    difficulty: "Easy",
+    topic: "Error Handling",
+    question: "What does the catch(...) syntax do in a try-catch block?",
+    options: [
+      "It catches only exceptions derived from std::exception and ignores all other types thrown",
+      "It catches only integer and string exceptions that are thrown without a class wrapper type",
+      "It catches any exception regardless of type, acting as a universal exception handler block",
+      "It catches only the most recently thrown exception and silently discards all previous ones",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The catch(...) handler, known as a catch-all, matches any thrown exception regardless of its type. It is often used as a last resort to ensure no exception goes unhandled, though it cannot access the exception object directly.",
+    link: "https://en.cppreference.com/w/cpp/language/try_catch",
+  },
+  {
+    id: 1245,
+    difficulty: "Easy",
+    topic: "Error Handling",
+    question:
+      "What member function does std::exception provide to describe the error?",
+    options: [
+      "The message() virtual function returns a C-style string describing the exception cause",
+      "The describe() virtual function returns a C-style string describing the exception cause",
+      "The reason() virtual function returns a C-style string describing the exception cause",
+      "The what() virtual function returns a C-style string describing the exception cause",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::exception provides a virtual what() method that returns a const char* description of the error. Derived classes override this to provide specific error messages.",
+    link: "https://en.cppreference.com/w/cpp/error/exception/what",
+  },
+  {
+    id: 1246,
+    difficulty: "Easy",
+    topic: "Error Handling",
+    question:
+      "What is the difference between std::runtime_error and std::logic_error?",
+    options: [
+      "runtime_error represents errors detectable only at runtime while logic_error represents programming mistakes",
+      "runtime_error is thrown by the compiler during builds while logic_error is thrown during program execution",
+      "runtime_error catches all exception types automatically while logic_error catches only typed exceptions",
+      "runtime_error requires an error code parameter while logic_error requires only a string message argument",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::runtime_error is for errors that can only be detected during execution, such as file not found or network failure. std::logic_error is for errors resulting from faulty logic that could theoretically be detected before running, such as invalid arguments.",
+    link: "https://en.cppreference.com/w/cpp/error/runtime_error",
+  },
+  {
+    id: 1247,
+    difficulty: "Easy",
+    topic: "Error Handling",
+    question:
+      "What happens if an exception is thrown but no matching catch handler exists?",
+    options: [
+      "The exception is silently ignored and the program continues executing from the throw point",
+      "The program calls std::terminate which by default aborts the program with an error message",
+      "The exception is automatically converted to an integer error code and stored in a global var",
+      "The program restarts from the main function and attempts to re-execute from the beginning",
+    ],
+    correctIndex: 1,
+    explanation:
+      "If no matching catch handler is found after unwinding the entire call stack, std::terminate() is called. By default, this calls std::abort(), ending the program. You can customize this behavior by installing a custom terminate handler.",
+    link: "https://en.cppreference.com/w/cpp/error/terminate",
+  },
+  {
+    id: 1248,
+    difficulty: "Easy",
+    topic: "Error Handling",
+    question:
+      "Why should you catch exceptions by const reference rather than by value?",
+    options: [
+      "Catching by value is a syntax error that the compiler will reject during compilation",
+      "Catching by value causes the exception to be rethrown automatically after the handler runs",
+      "Catching by value converts the exception to a different type that loses the error message",
+      "Catching by value can cause object slicing if a derived exception type was originally thrown",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Catching by value copies the exception object, which can slice off derived class information if the actual exception is a subclass of the caught type. Catching by const reference preserves the full dynamic type and avoids unnecessary copies.",
+    link: "https://www.learncpp.com/cpp-tutorial/exceptions-classes-and-inheritance/",
+  },
+  {
+    id: 1249,
+    difficulty: "Easy",
+    topic: "Error Handling",
+    question:
+      "What does the noexcept specifier indicate when placed on a function declaration?",
+    options: [
+      "It tells the compiler to wrap the function body in an implicit try-catch block automatically",
+      "It allows the function to throw exceptions but suppresses all warning messages about them",
+      "It promises that the function will not throw any exceptions during its normal execution path",
+      "It converts any thrown exceptions into error codes that the caller must check after the call",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The noexcept specifier declares that a function will not throw exceptions. If an exception does escape a noexcept function, std::terminate() is called. This allows the compiler to optimize based on the guarantee.",
+    link: "https://en.cppreference.com/w/cpp/language/noexcept_spec",
+  },
+  {
+    id: 1250,
+    difficulty: "Easy",
+    topic: "Error Handling",
+    question:
+      "What does std::out_of_range indicate when thrown by a standard library container?",
+    options: [
+      "It indicates that the container has run out of available memory for storing new elements",
+      "It indicates that an index or key used to access an element was outside the valid range",
+      "It indicates that the container iterator has been invalidated by a recent modification call",
+      "It indicates that the container was used after being moved from and is in an empty state",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::out_of_range is thrown by functions like std::vector::at() and std::string::at() when the provided index exceeds the valid range. Unlike operator[], at() performs bounds checking and throws this exception on violation.",
+    link: "https://en.cppreference.com/w/cpp/error/out_of_range",
+  },
+  {
+    id: 1251,
+    difficulty: "Easy",
+    topic: "Error Handling",
+    question: "What is the purpose of a try block in C++ exception handling?",
+    options: [
+      "It automatically corrects any errors that occur and continues execution without interruption",
+      "It defines a custom error code that can be returned to the calling function upon failure",
+      "It defines a region of code where thrown exceptions are monitored for matching catch handlers",
+      "It prevents the compiler from generating any error messages for the enclosed code section",
+    ],
+    correctIndex: 2,
+    explanation:
+      "A try block marks a section of code that may throw exceptions. If an exception is thrown within the try block, control transfers to the first matching catch handler that follows it. Without a try block, exceptions propagate up the call stack.",
+    link: "https://en.cppreference.com/w/cpp/language/try_catch",
+  },
+  {
+    id: 1252,
+    difficulty: "Medium",
+    topic: "Error Handling",
+    question: "What is stack unwinding and when does it occur in C++?",
+    options: [
+      "It is the process of allocating stack frames for nested function calls during normal execution",
+      "It is the optimization that removes unused local variables from the stack at compile time",
+      "It is the mechanism that copies stack data to the heap when a function returns a large object",
+      "It is the process of destroying local objects in reverse order as exceptions propagate upward",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Stack unwinding occurs when an exception is thrown. The runtime destroys all local objects in the current scope in reverse order of construction, then moves to the calling function and repeats until a matching catch handler is found.",
+    link: "https://en.cppreference.com/w/cpp/language/throw#Stack_unwinding",
+  },
+  {
+    id: 1253,
+    difficulty: "Medium",
+    topic: "Error Handling",
+    question:
+      "What does the throw; statement with no operand do inside a catch block?",
+    options: [
+      "It rethrows the currently caught exception without creating a new copy of the object",
+      "It throws a new default-constructed std::exception to replace the currently caught one",
+      "It terminates the catch block immediately and resumes execution after the try-catch block",
+      "It throws a null exception that signals to the caller that the error has been fully handled",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A bare throw; inside a catch block rethrows the exact same exception object that was caught, preserving its original dynamic type. This is useful when you want to perform partial handling and then let a higher-level handler deal with the exception.",
+    link: "https://en.cppreference.com/w/cpp/language/throw",
+  },
+  {
+    id: 1254,
+    difficulty: "Medium",
+    topic: "Error Handling",
+    question: "Why should destructors generally be noexcept in C++?",
+    options: [
+      "Because the compiler silently discards exceptions from destructors without any side effects",
+      "Because throwing from a destructor during stack unwinding causes std::terminate to be called",
+      "Because destructors cannot syntactically contain throw statements according to the standard",
+      "Because exception objects are always destroyed before the destructor of any class is invoked",
+    ],
+    correctIndex: 1,
+    explanation:
+      "If a destructor throws while stack unwinding is already in progress from another exception, the program calls std::terminate(). Since C++11, destructors are implicitly noexcept unless explicitly declared otherwise. This makes it critical to ensure destructors never throw.",
+    link: "https://en.cppreference.com/w/cpp/language/destructor",
+  },
+  {
+    id: 1255,
+    difficulty: "Medium",
+    topic: "Error Handling",
+    question: "What is RAII and how does it relate to exception safety in C++?",
+    options: [
+      "It is a design pattern that uses global error handlers to manage resource cleanup on failure",
+      "It is a compiler optimization that eliminates resource cleanup code when exceptions are disabled",
+      "It ties resource lifetime to object lifetime so destructors automatically clean up on exceptions",
+      "It is a runtime system that tracks all allocated resources and frees them when exceptions occur",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Resource Acquisition Is Initialization (RAII) binds resource management to object lifetime. When an exception causes stack unwinding, destructors of local RAII objects are called automatically, ensuring resources like memory, file handles, and locks are properly released.",
+    link: "https://en.cppreference.com/w/cpp/language/raii",
+  },
+  {
+    id: 1256,
+    difficulty: "Medium",
+    topic: "Error Handling",
+    question: "What are the three levels of exception safety guarantees in C++?",
+    options: [
+      "Basic guarantee preserves invariants, strong guarantee rolls back state, nothrow never throws",
+      "Weak guarantee catches all errors, medium guarantee logs errors, full guarantee prevents errors",
+      "Level one handles runtime errors, level two handles logic errors, level three handles both types",
+      "Minimal guarantee frees memory, standard guarantee closes files, complete guarantee does both",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The three levels are: basic (invariants preserved, no leaks, but state may change), strong (operation either succeeds completely or has no effect, like a transaction), and nothrow (operation guaranteed not to throw, like destructors and swap).",
+    link: "https://en.cppreference.com/w/cpp/language/exceptions#Exception_safety",
+  },
+  {
+    id: 1257,
+    difficulty: "Medium",
+    topic: "Error Handling",
+    question:
+      "What does std::current_exception() return and when is it typically used?",
+    options: [
+      "It returns a reference to the active exception and is used to modify the exception in place",
+      "It returns the error code of the active exception and is used for logging in catch handlers",
+      "It returns a string description of the active exception and is used for debug output messages",
+      "It returns an exception_ptr to the active exception and is used to transport exceptions across threads",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::current_exception() captures the currently handled exception as a std::exception_ptr, which can be stored, copied, and rethrown later using std::rethrow_exception(). This is commonly used to transport exceptions from worker threads to the main thread.",
+    link: "https://en.cppreference.com/w/cpp/error/current_exception",
+  },
+  {
+    id: 1258,
+    difficulty: "Medium",
+    topic: "Error Handling",
+    question: "What happens if you call std::terminate() in a C++ program?",
+    options: [
+      "It throws a std::termination_error exception that can be caught by a global handler",
+      "It calls the currently installed terminate handler which by default calls std::abort",
+      "It gracefully shuts down all threads and flushes all output buffers before exiting",
+      "It returns a special error code to the operating system without stopping the program",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::terminate() invokes the currently installed terminate handler function. By default, this handler calls std::abort(), which terminates the program immediately. You can install a custom handler using std::set_terminate() for logging or cleanup.",
+    link: "https://en.cppreference.com/w/cpp/error/terminate",
+  },
+  {
+    id: 1259,
+    difficulty: "Medium",
+    topic: "Error Handling",
+    question:
+      "How does std::error_code differ from throwing an exception for error reporting?",
+    options: [
+      "error_code automatically unwinds the stack while exceptions require manual cleanup code",
+      "error_code can only represent system errors while exceptions can represent any error type",
+      "error_code is a lightweight value type returned from functions while exceptions use stack unwinding",
+      "error_code is deprecated in modern C++ while exceptions are the only recommended error approach",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::error_code is a lightweight, non-throwing mechanism for reporting errors. It stores an integer code and a category, and is returned from functions as an output parameter or return value. Unlike exceptions, it has no stack unwinding overhead.",
+    link: "https://en.cppreference.com/w/cpp/error/error_code",
+  },
+  {
+    id: 1260,
+    difficulty: "Medium",
+    topic: "Error Handling",
+    question: "What is a function try block and where is it most commonly used?",
+    options: [
+      "It wraps the entire function body including the initializer list in a single try-catch block",
+      "It replaces the normal function body with a block that automatically catches all exceptions",
+      "It marks a function as safe to call from multiple threads by catching concurrent exceptions",
+      "It creates a separate stack frame for exception handling to isolate errors from normal flow",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A function try block places the try keyword before the function body and can catch exceptions thrown during member initialization in constructors. This is the only way to catch exceptions from the constructor initializer list.",
+    link: "https://en.cppreference.com/w/cpp/language/function-try-block",
+  },
+  {
+    id: 1261,
+    difficulty: "Medium",
+    topic: "Error Handling",
+    question: "What does the noexcept operator do when used in an expression context?",
+    options: [
+      "It catches any exception thrown by the expression and converts it into a boolean false value",
+      "It forces the expression to never throw by wrapping it in an implicit try-catch block around it",
+      "It removes the noexcept specifier from a function pointer to allow exceptions to propagate out",
+      "It evaluates at compile time whether the given expression is declared as non-throwing or not",
+    ],
+    correctIndex: 3,
+    explanation:
+      "The noexcept operator is a compile-time check that returns true if the expression is declared noexcept and false otherwise. This is useful in template code to conditionally mark functions noexcept based on whether their operations can throw.",
+    link: "https://en.cppreference.com/w/cpp/language/noexcept",
+  },
+  {
+    id: 1262,
+    difficulty: "Hard",
+    topic: "Error Handling",
+    question:
+      "What is std::nested_exception and how does it help with error handling?",
+    options: [
+      "It creates a chain of catch blocks that are automatically tried in sequence until one matches",
+      "It converts multiple simultaneous exceptions into a single exception with a combined message",
+      "It allows capturing a current exception inside a new one to preserve the full error chain context",
+      "It provides nested try blocks that each handle a specific exception type from an inner scope",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::nested_exception captures the currently active exception via std::current_exception() and stores it. When combined with std::throw_with_nested(), it allows building exception chains where each level adds context while preserving the original cause.",
+    link: "https://en.cppreference.com/w/cpp/error/nested_exception",
+  },
+  {
+    id: 1263,
+    difficulty: "Hard",
+    topic: "Error Handling",
+    question:
+      "Why does throwing an exception from a move constructor potentially violate the strong exception guarantee?",
+    options: [
+      "The source object may be left in a partially moved-from state that cannot be restored to original",
+      "The compiler automatically converts move operations to copies when exceptions are enabled",
+      "Move constructors are implicitly noexcept so any throw statement in them is a compilation error",
+      "The destination object holds a copy of the data so the source object remains fully unchanged",
+    ],
+    correctIndex: 0,
+    explanation:
+      "If a move constructor throws after partially transferring resources, the source object may be in an inconsistent state and the destination is incomplete. This is why containers like std::vector prefer copy over move when the move constructor is not noexcept.",
+    link: "https://en.cppreference.com/w/cpp/utility/move_if_noexcept",
+  },
+  {
+    id: 1264,
+    difficulty: "Hard",
+    topic: "Error Handling",
+    question:
+      "How does std::expected from C++23 improve error handling compared to exceptions?",
+    options: [
+      "It replaces all exception types with integer error codes that are faster to compare and process",
+      "It encodes success or failure in the return type so errors are handled without stack unwinding",
+      "It automatically retries failed operations a configurable number of times before reporting errors",
+      "It provides compile-time error checking that prevents any runtime errors from ever being thrown",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::expected<T, E> holds either a value of type T on success or an error of type E on failure, directly in the return type. This avoids the overhead of stack unwinding and makes error paths explicit in the function signature, similar to Rust's Result type.",
+    link: "https://en.cppreference.com/w/cpp/utility/expected",
+  },
+  {
+    id: 1265,
+    difficulty: "Hard",
+    topic: "Error Handling",
+    question:
+      "What problem does std::exception_ptr solve that a simple catch and rethrow cannot?",
+    options: [
+      "It allows exceptions to be thrown with higher priority so they are caught before other types",
+      "It enables exceptions to be serialized to disk and reconstructed in a later program session",
+      "It provides type-safe downcasting of exception objects without using dynamic_cast operations",
+      "It allows exceptions to be stored and transported across thread boundaries for later rethrowing",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::exception_ptr can hold any exception in a type-erased wrapper that is safely copyable across threads. This is essential for propagating exceptions from std::async, std::future, and thread pools back to the calling thread.",
+    link: "https://en.cppreference.com/w/cpp/error/exception_ptr",
+  },
+  {
+    id: 1266,
+    difficulty: "Hard",
+    topic: "Error Handling",
+    question:
+      "What is the copy-and-swap idiom and how does it provide the strong exception guarantee?",
+    options: [
+      "It performs modifications on a copy first, then swaps with the original using a nothrow swap",
+      "It copies the exception object before rethrowing to prevent the original from being destroyed",
+      "It swaps the catch block order so the most specific exception types are handled before general",
+      "It copies all function arguments into temporary variables to isolate them from thrown exceptions",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The copy-and-swap idiom works by: 1) creating a copy of the data (which may throw), 2) modifying the copy, and 3) swapping the copy with the current state using a non-throwing swap. If the copy or modification throws, the original object remains unchanged.",
+    link: "https://en.cppreference.com/w/cpp/language/operators#Assignment_operator",
+  },
+  {
+    id: 1267,
+    difficulty: "Hard",
+    topic: "Error Handling",
+    question:
+      "What is the purpose of std::error_category and how does it extend the error code system?",
+    options: [
+      "It groups exception types into categories so catch blocks can match entire families at once",
+      "It assigns severity levels to error codes so the program can prioritize which errors to handle",
+      "It defines a domain of error codes with custom messages so different libraries avoid code conflicts",
+      "It maps error codes to exception types so error codes can be automatically converted to throws",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::error_category is an abstract base class that defines a category of error codes. Each category provides its own name and message mappings. This prevents conflicts between error codes from different libraries that might use the same integer values.",
+    link: "https://en.cppreference.com/w/cpp/error/error_category",
+  },
+  {
+    id: 1268,
+    difficulty: "Hard",
+    topic: "Error Handling",
+    question:
+      "Why does std::vector use move_if_noexcept when reallocating its internal storage?",
+    options: [
+      "Moving elements is always faster than copying so it uses move unconditionally for performance",
+      "It must preserve the strong guarantee so it only moves elements whose move cannot throw",
+      "It checks at runtime whether each element was successfully moved before proceeding to the next",
+      "It avoids calling destructors on moved-from elements to prevent double-free memory corruption",
+    ],
+    correctIndex: 1,
+    explanation:
+      "During reallocation, std::vector must maintain the strong exception guarantee. If a move constructor could throw, a partial move would leave some elements in the old buffer and some in the new one, with no way to recover. Using copy instead is safe because the originals remain intact.",
+    link: "https://en.cppreference.com/w/cpp/utility/move_if_noexcept",
+  },
+  {
+    id: 1269,
+    difficulty: "Hard",
+    topic: "Error Handling",
+    question:
+      "What happens when an exception is thrown during the construction of a subobject in a class?",
+    options: [
+      "The entire object is constructed with default values and the exception is silently suppressed",
+      "The compiler inserts retry logic that attempts to reconstruct the failed subobject once more",
+      "All subobjects including the failed one have their destructors called in reverse creation order",
+      "Only the fully constructed subobjects have their destructors called before the exception propagates",
+    ],
+    correctIndex: 3,
+    explanation:
+      "C++ guarantees that destructors are only called for subobjects that were fully constructed. If the third member's constructor throws, the first two members (already constructed) are destroyed in reverse order, but the third and any subsequent members are not.",
+    link: "https://en.cppreference.com/w/cpp/language/destructor#Exceptions",
+  },
+  {
+    id: 1270,
+    difficulty: "Hard",
+    topic: "Error Handling",
+    question:
+      "How does std::system_error relate to std::error_code in the C++ error handling system?",
+    options: [
+      "system_error replaces error_code entirely and should be used instead in all modern C++ code",
+      "system_error is a lightweight value type while error_code is the exception class that wraps it",
+      "system_error is an exception class that carries an error_code to provide structured error details",
+      "system_error converts error_code values into human-readable strings for display purposes only",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::system_error derives from std::runtime_error and carries a std::error_code. This bridges the gap between exception-based and error-code-based error handling, allowing functions that detect system errors to throw exceptions with structured, queryable error information.",
+    link: "https://en.cppreference.com/w/cpp/error/system_error",
+  },
+  {
+    id: 1271,
+    difficulty: "Hard",
+    topic: "Error Handling",
+    question:
+      "What guarantee does the standard provide about the order of catch handlers being evaluated?",
+    options: [
+      "Catch handlers are sorted by specificity at compile time so the most derived type is tried first",
+      "Catch handlers are evaluated in the order they appear and the first matching handler is selected",
+      "Catch handlers are evaluated in reverse order so the last handler in the source code runs first",
+      "Catch handlers are evaluated based on the exception type hierarchy from base class to derived",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Catch handlers are tried in the order they appear in the source code. The first handler whose type matches the thrown exception is selected. This is why more specific catch handlers should appear before more general ones to avoid unreachable handlers.",
+    link: "https://en.cppreference.com/w/cpp/language/try_catch",
+  },
+
+  // ── C++20 Features (Q1272--Q1301) ──
+  {
+    id: 1272,
+    difficulty: "Easy",
+    topic: "C++20 Features",
+    question: "What does the C++20 std::span type represent?",
+    options: [
+      "A dynamically resizable container that owns its elements and manages their memory lifetime",
+      "A fixed-size array allocated on the heap with automatic bounds checking on every access",
+      "A non-owning view over a contiguous sequence of elements such as an array or a vector",
+      "A thread-safe wrapper around std::vector that synchronizes all concurrent read and write ops",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::span provides a lightweight, non-owning view over a contiguous sequence of objects. It does not own the data it points to, similar to std::string_view for strings. It can be constructed from arrays, vectors, or any contiguous range.",
+    link: "https://en.cppreference.com/w/cpp/container/span",
+  },
+  {
+    id: 1273,
+    difficulty: "Easy",
+    topic: "C++20 Features",
+    question:
+      "What new initialization syntax does C++20 designated initializers provide for aggregates?",
+    options: [
+      "It allows naming specific members during initialization like Point{.x = 1, .y = 2} in order",
+      "It allows initializing members in any arbitrary order regardless of their declaration sequence",
+      "It allows skipping the constructor entirely and directly writing values into object memory",
+      "It allows using string literals as member names to initialize fields dynamically at runtime",
+    ],
+    correctIndex: 0,
+    explanation:
+      "C++20 designated initializers let you specify which aggregate members to initialize by name, using the .member = value syntax. Unlike C, C++ requires designators to appear in the same order as the members are declared in the struct.",
+    link: "https://en.cppreference.com/w/cpp/language/aggregate_initialization",
+  },
+  {
+    id: 1274,
+    difficulty: "Easy",
+    topic: "C++20 Features",
+    question:
+      "What does the C++20 contains() member function do for std::map and std::set?",
+    options: [
+      "It returns an iterator to the element if found or an end iterator if the element is missing",
+      "It returns a boolean indicating whether the container holds an element with the given key",
+      "It inserts the element into the container if it is not already present and returns a boolean",
+      "It removes the element with the given key from the container and returns whether it existed",
+    ],
+    correctIndex: 1,
+    explanation:
+      "contains() is a C++20 convenience method that returns true if the container has an element with the specified key. Before C++20, you had to use find() != end() or count() != 0, which were less readable.",
+    link: "https://en.cppreference.com/w/cpp/container/map/contains",
+  },
+  {
+    id: 1275,
+    difficulty: "Easy",
+    topic: "C++20 Features",
+    question: "What is the purpose of the C++20 std::format library?",
+    options: [
+      "It provides compile-time string concatenation for building constant expression string values",
+      "It converts binary data into human-readable hexadecimal text for debugging output purposes",
+      "It validates that string literals conform to a specific encoding format like UTF-8 or ASCII",
+      "It provides type-safe string formatting similar to printf but with compile-time format checks",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::format provides Python-style string formatting with type safety. Format strings are checked at compile time, preventing the type mismatches that plague printf. It supports custom formatters and is generally faster than iostream-based formatting.",
+    link: "https://en.cppreference.com/w/cpp/utility/format/format",
+  },
+  {
+    id: 1276,
+    difficulty: "Easy",
+    topic: "C++20 Features",
+    question:
+      "What does the C++20 starts_with() member function check on a std::string?",
+    options: [
+      "It checks whether the string begins with a specified prefix and returns true or false",
+      "It checks whether the string contains the specified substring at any position within it",
+      "It removes the specified prefix from the beginning of the string and returns the result",
+      "It inserts the specified prefix at the beginning of the string and returns a new string",
+    ],
+    correctIndex: 0,
+    explanation:
+      "C++20 added starts_with() and ends_with() to std::string and std::string_view. starts_with() returns true if the string begins with the given prefix. Previously, this required manual comparison with substr() or find().",
+    link: "https://en.cppreference.com/w/cpp/string/basic_string/starts_with",
+  },
+  {
+    id: 1277,
+    difficulty: "Easy",
+    topic: "C++20 Features",
+    question: "What does the C++20 [[likely]] attribute hint to the compiler?",
+    options: [
+      "It guarantees that the annotated branch will always be taken during every program execution",
+      "It tells the compiler to eliminate the annotated branch entirely as dead unreachable code",
+      "It hints that the annotated branch is the common case so the compiler can optimize for it",
+      "It forces the compiler to inline all function calls that appear within the annotated branch",
+    ],
+    correctIndex: 2,
+    explanation:
+      "[[likely]] and [[unlikely]] are C++20 attributes that provide branch prediction hints. The compiler may use these hints to optimize code layout, placing the likely path in the fast execution path and reducing branch mispredictions.",
+    link: "https://en.cppreference.com/w/cpp/language/attributes/likely",
+  },
+  {
+    id: 1278,
+    difficulty: "Easy",
+    topic: "C++20 Features",
+    question:
+      "What does the C++20 std::erase_if algorithm do for standard containers?",
+    options: [
+      "It sorts the container elements so that elements matching the predicate appear at the end",
+      "It counts how many elements in the container satisfy the given predicate condition value",
+      "It copies elements that do not match the predicate into a new container and returns that",
+      "It removes all elements satisfying a predicate from the container in a single function call",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::erase_if is a C++20 uniform erasure function that removes all elements matching a predicate from a container. It replaces the erase-remove idiom for vectors and provides consistent syntax across all standard containers.",
+    link: "https://en.cppreference.com/w/cpp/container/vector/erase2",
+  },
+  {
+    id: 1279,
+    difficulty: "Easy",
+    topic: "C++20 Features",
+    question: "What does the C++20 using enum declaration allow you to do?",
+    options: [
+      "It converts a scoped enum to an unscoped enum permanently for the entire translation unit",
+      "It imports all enumerators of a scoped enum into the current scope to use without the prefix",
+      "It creates a type alias for the enum so you can refer to it by a shorter name in the code",
+      "It merges two separate enum types into a single combined enum with all enumerators together",
+    ],
+    correctIndex: 1,
+    explanation:
+      "The using enum declaration in C++20 brings all enumerators of a scoped enum into the current scope. This means you can write Color::Red as just Red within that scope, reducing verbosity while still keeping the enum class type safety.",
+    link: "https://en.cppreference.com/w/cpp/language/enum#Using-enum-declaration",
+  },
+  {
+    id: 1280,
+    difficulty: "Easy",
+    topic: "C++20 Features",
+    question:
+      "What change did C++20 make to the range-based for loop with an init-statement?",
+    options: [
+      "It allows declaring a variable in the for loop header like for (auto v = getVec(); auto& e : v)",
+      "It allows iterating over multiple containers simultaneously using a comma-separated range list",
+      "It allows specifying a step size to skip elements during iteration like for (auto& e : v : 2)",
+      "It allows reversing the iteration order automatically using a reverse keyword in the loop head",
+    ],
+    correctIndex: 0,
+    explanation:
+      "C++20 added init-statement support to range-based for loops. You can declare and initialize a variable before the range expression, keeping temporary objects alive for the loop duration without leaking them into the enclosing scope.",
+    link: "https://en.cppreference.com/w/cpp/language/range-for",
+  },
+  {
+    id: 1281,
+    difficulty: "Easy",
+    topic: "C++20 Features",
+    question:
+      "What does the C++20 [[nodiscard]] attribute with a message parameter do?",
+    options: [
+      "It prevents the function from being called more than once and displays the message on reuse",
+      "It warns if the return value is discarded and includes the custom message in the warning text",
+      "It marks the function as deprecated and displays the message when the function is referenced",
+      "It causes a compilation error if the function is called without assigning its return value",
+    ],
+    correctIndex: 1,
+    explanation:
+      "C++20 extended [[nodiscard]] to accept an optional string message. When the return value is discarded, the compiler warning includes this message, helping explain why the return value matters.",
+    link: "https://en.cppreference.com/w/cpp/language/attributes/nodiscard",
+  },
+  {
+    id: 1282,
+    difficulty: "Medium",
+    topic: "C++20 Features",
+    question:
+      "What are C++20 concepts and what problem do they solve for template programming?",
+    options: [
+      "They are runtime type checks that validate template arguments when the program is executed",
+      "They are compiler plugins that generate template specializations automatically for all types",
+      "They are named constraints on template parameters that produce clear errors on violations",
+      "They are documentation annotations that have no effect on compilation or type checking logic",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Concepts are named sets of requirements that constrain template parameters. They replace SFINAE-based techniques with readable syntax and produce clear, early error messages when a type does not satisfy the required constraints.",
+    link: "https://en.cppreference.com/w/cpp/language/constraints",
+  },
+  {
+    id: 1283,
+    difficulty: "Medium",
+    topic: "C++20 Features",
+    question: "What does the requires clause do when placed on a function template?",
+    options: [
+      "It tells the linker which object files are required for the function to resolve correctly",
+      "It defines a precondition that is checked at runtime and throws if the condition is false",
+      "It specifies which header files must be included before the function can be instantiated",
+      "It constrains the template so it only participates in overload resolution when the condition holds",
+    ],
+    correctIndex: 3,
+    explanation:
+      "A requires clause adds a compile-time constraint to a template. If the constraint is not satisfied for a given set of template arguments, the template is removed from the overload set instead of causing a hard compilation error.",
+    link: "https://en.cppreference.com/w/cpp/language/constraints#Requires_clauses",
+  },
+  {
+    id: 1284,
+    difficulty: "Medium",
+    topic: "C++20 Features",
+    question:
+      "What is the three-way comparison operator <=> commonly called and what does it return?",
+    options: [
+      "It is called the spaceship operator and returns an ordering category like strong_ordering",
+      "It is called the rocket operator and returns a boolean indicating whether the values are equal",
+      "It is called the arrow operator and returns a pointer to the comparison result stored in memory",
+      "It is called the bridge operator and returns an integer where negative means less and positive greater",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The <=> operator is nicknamed the spaceship operator. It returns one of three ordering types: std::strong_ordering, std::weak_ordering, or std::partial_ordering, which encode whether the left operand is less than, equal to, or greater than the right.",
+    link: "https://en.cppreference.com/w/cpp/language/operator_comparison#Three-way_comparison",
+  },
+  {
+    id: 1285,
+    difficulty: "Medium",
+    topic: "C++20 Features",
+    question:
+      "How do C++20 ranges differ from the traditional STL algorithm approach?",
+    options: [
+      "Ranges execute algorithms in parallel by default while traditional algorithms are sequential",
+      "Ranges work directly on containers and support lazy composition through views and adaptors",
+      "Ranges only support input iterators while traditional algorithms support all iterator categories",
+      "Ranges are evaluated at compile time while traditional algorithms are always evaluated at runtime",
+    ],
+    correctIndex: 1,
+    explanation:
+      "C++20 ranges can operate directly on containers instead of requiring iterator pairs. They support lazy evaluation through views, which are composable adaptors that transform data without creating intermediate containers.",
+    link: "https://en.cppreference.com/w/cpp/ranges",
+  },
+  {
+    id: 1286,
+    difficulty: "Medium",
+    topic: "C++20 Features",
+    question: "What is a C++20 coroutine and what keywords does it use?",
+    options: [
+      "It is a parallel execution unit that uses co_start, co_stop, and co_join to manage threads",
+      "It is a compile-time function that uses co_eval, co_assert, and co_check for static analysis",
+      "It is a suspendable function that uses co_await, co_yield, and co_return for lazy execution",
+      "It is a recursive function that uses co_call, co_base, and co_recurse for stack management",
+    ],
+    correctIndex: 2,
+    explanation:
+      "C++20 coroutines are functions that can be suspended and resumed. co_await suspends until an awaitable completes, co_yield produces a value and suspends, and co_return completes the coroutine. They enable generators, async I/O, and other lazy patterns.",
+    link: "https://en.cppreference.com/w/cpp/language/coroutines",
+  },
+  {
+    id: 1287,
+    difficulty: "Medium",
+    topic: "C++20 Features",
+    question: "What does std::views::filter do in the C++20 ranges library?",
+    options: [
+      "It creates a new vector containing only the elements that satisfy the given predicate value",
+      "It sorts the range elements so that elements satisfying the predicate come before the others",
+      "It counts the number of elements in the range that satisfy the given predicate and returns it",
+      "It creates a lazy view that skips elements not satisfying the predicate during iteration only",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::views::filter creates a view adaptor that lazily filters elements. No new container is created; instead, elements that do not match the predicate are simply skipped when the view is iterated. This avoids unnecessary memory allocation.",
+    link: "https://en.cppreference.com/w/cpp/ranges/filter_view",
+  },
+  {
+    id: 1288,
+    difficulty: "Medium",
+    topic: "C++20 Features",
+    question:
+      "What is the purpose of consteval in C++20 and how does it differ from constexpr?",
+    options: [
+      "consteval requires the function to be evaluated at compile time while constexpr allows runtime",
+      "consteval allows the function to modify global state while constexpr prohibits side effects",
+      "consteval permits virtual function calls while constexpr restricts them to non-virtual only",
+      "consteval generates inline assembly code while constexpr generates standard machine code output",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A consteval function (immediate function) must produce a compile-time constant. Unlike constexpr, which allows both compile-time and runtime evaluation, calling a consteval function in a non-constant context is a compilation error.",
+    link: "https://en.cppreference.com/w/cpp/language/consteval",
+  },
+  {
+    id: 1289,
+    difficulty: "Medium",
+    topic: "C++20 Features",
+    question: "What does constinit guarantee about a variable in C++20?",
+    options: [
+      "It guarantees the variable is immutable and cannot be modified after its initial assignment",
+      "It guarantees the variable is initialized at compile time, preventing static initialization order issues",
+      "It guarantees the variable is allocated on the stack rather than in static or global memory segments",
+      "It guarantees the variable is visible only within the current translation unit and not exported",
+    ],
+    correctIndex: 1,
+    explanation:
+      "constinit ensures a variable with static or thread storage duration is initialized at compile time (constant initialization). Unlike constexpr, the variable itself is not const and can be modified later. It prevents the static initialization order fiasco.",
+    link: "https://en.cppreference.com/w/cpp/language/constinit",
+  },
+  {
+    id: 1290,
+    difficulty: "Medium",
+    topic: "C++20 Features",
+    question: "What does std::views::transform do in the C++20 ranges library?",
+    options: [
+      "It modifies each element of the underlying container in place by applying the given function",
+      "It creates a sorted copy of the range with elements reordered by the transformation function",
+      "It creates a lazy view where each element is the result of applying a function to the original",
+      "It partitions the range into two groups based on the return value of the transformation call",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::views::transform creates a view that lazily applies a function to each element of the underlying range. The original data is not modified; the transformed values are computed on-the-fly during iteration.",
+    link: "https://en.cppreference.com/w/cpp/ranges/transform_view",
+  },
+  {
+    id: 1291,
+    difficulty: "Medium",
+    topic: "C++20 Features",
+    question: "What is the C++20 std::source_location class used for?",
+    options: [
+      "It stores the URL of the source code repository for runtime version tracking and logging",
+      "It provides the filesystem path to the executable binary that is currently running on disk",
+      "It records the memory address where a particular variable was allocated during construction",
+      "It captures the file name, line number, and function name at the point where it is created",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::source_location replaces the __FILE__, __LINE__, and __func__ preprocessor macros with a proper C++ type. It captures the source file name, line number, column number, and function name at the call site, making it useful for logging and diagnostics.",
+    link: "https://en.cppreference.com/w/cpp/utility/source_location",
+  },
+  {
+    id: 1292,
+    difficulty: "Hard",
+    topic: "C++20 Features",
+    question:
+      "What is CTAD for aggregates in C++20 and how does it simplify template usage?",
+    options: [
+      "It deduces class template arguments from aggregate initialization without explicit type params",
+      "It automatically generates default constructors for aggregate types that lack user declarations",
+      "It converts aggregate types into non-aggregate classes by adding implicit copy constructors",
+      "It detects aggregate initialization errors at compile time and reports them as static warnings",
+    ],
+    correctIndex: 0,
+    explanation:
+      "C++20 extended class template argument deduction (CTAD) to work with aggregates. For example, std::array arr = {1, 2, 3} can deduce std::array<int, 3> without explicit template arguments, making aggregate template usage more concise.",
+    link: "https://en.cppreference.com/w/cpp/language/class_template_argument_deduction",
+  },
+  {
+    id: 1293,
+    difficulty: "Hard",
+    topic: "C++20 Features",
+    question:
+      "How does subsumption work when the compiler selects between two constrained function overloads?",
+    options: [
+      "The compiler selects the overload with the fewest constraints since simpler signatures are preferred",
+      "The compiler selects the more constrained overload if its constraints logically imply the other",
+      "The compiler rejects the call as ambiguous whenever two overloads have different constraints applied",
+      "The compiler selects the overload that was declared first in the source file translation unit order",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Subsumption is the partial ordering of constraints. If constraint A implies constraint B (A subsumes B), the overload with constraint A is more constrained and is preferred. This allows writing a general overload and a more specific one without ambiguity.",
+    link: "https://en.cppreference.com/w/cpp/language/constraints#Partial_ordering_of_constraints",
+  },
+  {
+    id: 1294,
+    difficulty: "Hard",
+    topic: "C++20 Features",
+    question:
+      "What is the difference between std::strong_ordering and std::weak_ordering?",
+    options: [
+      "strong_ordering allows NaN comparisons while weak_ordering treats NaN as equal to every value",
+      "strong_ordering is for floating-point types while weak_ordering is only for integer types in C++",
+      "strong_ordering means equal values are indistinguishable while weak_ordering allows equivalent but distinct values",
+      "strong_ordering performs comparisons at compile time while weak_ordering defers them until runtime",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::strong_ordering implies substitutability: if a == b, then f(a) == f(b) for any function f. std::weak_ordering allows equivalence without substitutability, meaning two values can compare equal but be distinguishable by some operation, like case-insensitive string comparison.",
+    link: "https://en.cppreference.com/w/cpp/utility/compare/strong_ordering",
+  },
+  {
+    id: 1295,
+    difficulty: "Hard",
+    topic: "C++20 Features",
+    question: "What is the role of a promise_type in the C++20 coroutine framework?",
+    options: [
+      "It stores the coroutine arguments so they persist across suspension and resumption points",
+      "It manages the thread pool that schedules coroutine resumption on available worker threads",
+      "It provides the memory allocator that is used to allocate the coroutine frame on the heap",
+      "It controls the coroutine behavior by defining how values are yielded, returned, and awaited",
+    ],
+    correctIndex: 3,
+    explanation:
+      "The promise_type is a nested type within the coroutine return type that the compiler uses to manage the coroutine. It defines initial_suspend(), final_suspend(), yield_value(), return_value(), and unhandled_exception(), giving full control over coroutine lifecycle.",
+    link: "https://en.cppreference.com/w/cpp/coroutine/coroutine_traits",
+  },
+  {
+    id: 1296,
+    difficulty: "Hard",
+    topic: "C++20 Features",
+    question:
+      "What is a requires expression and how is it used to check type properties at compile time?",
+    options: [
+      "It is a compile-time predicate that tests whether a set of expressions are valid for given types",
+      "It is a runtime assertion that throws an exception if the specified type requirements are not met",
+      "It is a preprocessor directive that conditionally includes code based on type trait evaluations",
+      "It is a linker annotation that verifies all template instantiations satisfy the stated constraints",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A requires expression evaluates to true or false at compile time based on whether the enclosed expressions are well-formed for the given types. It can check simple expressions, type requirements, compound requirements with return type constraints, and nested requirements.",
+    link: "https://en.cppreference.com/w/cpp/language/requires",
+  },
+  {
+    id: 1297,
+    difficulty: "Hard",
+    topic: "C++20 Features",
+    question:
+      "How do C++20 modules improve compilation compared to the traditional header include model?",
+    options: [
+      "Modules compile headers in parallel across multiple threads while includes are single-threaded",
+      "Modules are parsed once and their interface is cached, avoiding redundant reparsing per include",
+      "Modules automatically inline all function definitions while includes require explicit inline hints",
+      "Modules convert all templates to concrete types at import time while includes defer instantiation",
+    ],
+    correctIndex: 1,
+    explanation:
+      "C++20 modules are compiled once into a binary module interface that is imported rather than textually included. This eliminates redundant parsing of the same header across translation units, macro leakage, and include order dependencies.",
+    link: "https://en.cppreference.com/w/cpp/language/modules",
+  },
+  {
+    id: 1298,
+    difficulty: "Hard",
+    topic: "C++20 Features",
+    question: "What does std::jthread provide over std::thread in C++20?",
+    options: [
+      "It provides a lock-free message queue for communication between the spawned thread and parent",
+      "It provides built-in thread prioritization so high-priority threads are scheduled before others",
+      "It provides automatic joining in its destructor and cooperative cancellation via stop tokens",
+      "It provides automatic load balancing by distributing work across all available processor cores",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::jthread (joining thread) automatically calls join() in its destructor, preventing the program from terminating if a thread is not joined. It also integrates with std::stop_token for cooperative cancellation, allowing threads to be politely asked to stop.",
+    link: "https://en.cppreference.com/w/cpp/thread/jthread",
+  },
+  {
+    id: 1299,
+    difficulty: "Hard",
+    topic: "C++20 Features",
+    question:
+      "What is an abbreviated function template in C++20 and how is it written?",
+    options: [
+      "It uses the template keyword followed by a single type parameter in angle brackets inline",
+      "It uses decltype in the parameter list to deduce the template type from the arguments given",
+      "It uses the typename keyword directly in the function signature to declare type parameters",
+      "It uses auto in the parameter list, making each auto parameter an implicit template parameter",
+    ],
+    correctIndex: 3,
+    explanation:
+      "In C++20, using auto in a function parameter list creates an abbreviated function template. Each auto parameter introduces an implicit template parameter, so void f(auto x) is equivalent to template<typename T> void f(T x).",
+    link: "https://en.cppreference.com/w/cpp/language/function_template#Abbreviated_function_template",
+  },
+  {
+    id: 1300,
+    difficulty: "Hard",
+    topic: "C++20 Features",
+    question: "What is the purpose of std::counting_semaphore introduced in C++20?",
+    options: [
+      "It limits concurrent access to a resource by maintaining a count of available permits to acquire",
+      "It counts the number of threads currently waiting on a mutex and reports it for diagnostics use",
+      "It automatically terminates threads that exceed a configurable maximum execution time limit value",
+      "It provides an atomic counter that threads can increment and decrement without lock contention",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::counting_semaphore manages a count of available resources. Threads call acquire() to decrement the count (blocking if zero) and release() to increment it. std::binary_semaphore is a specialization with a maximum count of one.",
+    link: "https://en.cppreference.com/w/cpp/thread/counting_semaphore",
+  },
+  {
+    id: 1301,
+    difficulty: "Hard",
+    topic: "C++20 Features",
+    question:
+      "What does std::ranges::to from C++23 accomplish that C++20 ranges views cannot do alone?",
+    options: [
+      "It converts a view into a parallel execution policy so elements are processed concurrently",
+      "It materializes a lazy view into an owning container like a vector or set in a single call",
+      "It converts a range of one element type into a range of a different type using implicit casts",
+      "It validates that all elements in a view satisfy a concept constraint before iteration begins",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::ranges::to (added in C++23 but closely related to C++20 ranges) converts a lazy view pipeline into a concrete owning container. For example, view | std::ranges::to<std::vector>() materializes the view into a vector without manual loops.",
+    link: "https://en.cppreference.com/w/cpp/ranges/to",
+  },
+
+  // ── Templates (Q1302--Q1331) ──
+  {
+    id: 1302,
+    difficulty: "Easy",
+    topic: "Templates",
+    question: "What is a function template in C++?",
+    options: [
+      "A function that can only accept integer arguments and returns a fixed type every time",
+      "A function that is compiled once and then copied for each call site in the final binary",
+      "A function defined inside a class that can only be called on objects of that specific class",
+      "A blueprint for creating functions that work with different types specified at compile time",
+    ],
+    correctIndex: 3,
+    explanation:
+      "A function template is a pattern that the compiler uses to generate type-specific functions. When you call the template with a specific type, the compiler instantiates a version of the function for that type. This is done at compile time, not runtime.",
+    link: "https://en.cppreference.com/w/cpp/language/function_template",
+  },
+  {
+    id: 1303,
+    difficulty: "Easy",
+    topic: "Templates",
+    question:
+      "What keyword is used to declare a template parameter that represents a type?",
+    options: [
+      "The typename keyword declares a template parameter that can be substituted with any type",
+      "The typedef keyword declares a template parameter that can be substituted with any type",
+      "The typeid keyword declares a template parameter that can be substituted with any type",
+      "The typecast keyword declares a template parameter that can be substituted with any type",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The typename keyword (or equivalently, class) is used in a template parameter list to declare a type parameter. For example, template<typename T> declares T as a type that will be provided when the template is instantiated.",
+    link: "https://en.cppreference.com/w/cpp/language/template_parameters",
+  },
+  {
+    id: 1304,
+    difficulty: "Easy",
+    topic: "Templates",
+    question: "What is template instantiation in C++?",
+    options: [
+      "It is the process of inheriting template methods from a base class into a derived class object",
+      "It is the process where the compiler generates a concrete function or class from a template",
+      "It is the process of converting template code into machine language during the linking phase",
+      "It is the process of loading template definitions from a shared library at program startup",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Template instantiation occurs when the compiler creates a concrete version of a template for specific template arguments. For example, using std::vector<int> causes the compiler to instantiate the vector template with int as the element type.",
+    link: "https://en.cppreference.com/w/cpp/language/template_specialization",
+  },
+  {
+    id: 1305,
+    difficulty: "Easy",
+    topic: "Templates",
+    question:
+      "What is a class template in C++ and how is it different from a regular class?",
+    options: [
+      "A class template is a class that can only hold primitive types like int, float, and char values",
+      "A class template is an abstract class that requires derived classes to implement all of its methods",
+      "A class template is a blueprint parameterized by types that generates concrete classes on demand",
+      "A class template is a class that stores its member data using void pointers for type flexibility",
+    ],
+    correctIndex: 2,
+    explanation:
+      "A class template defines a family of classes. The compiler generates a specific class when you provide template arguments, such as std::vector<double>. Each instantiation is a distinct type with its own member functions and data layout.",
+    link: "https://en.cppreference.com/w/cpp/language/class_template",
+  },
+  {
+    id: 1306,
+    difficulty: "Easy",
+    topic: "Templates",
+    question:
+      "What does the compiler do when it encounters a call to a function template?",
+    options: [
+      "It deduces the template arguments from the function call arguments and generates the function",
+      "It calls a generic version of the function that handles all types through a virtual dispatch table",
+      "It delays compilation of the function until the program is executed and the types are known then",
+      "It replaces the function call with inline assembly instructions specific to the argument type used",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Template argument deduction is the process by which the compiler determines the template arguments from the types of the function arguments. After deduction, the compiler instantiates the function for those specific types.",
+    link: "https://en.cppreference.com/w/cpp/language/template_argument_deduction",
+  },
+  {
+    id: 1307,
+    difficulty: "Easy",
+    topic: "Templates",
+    question:
+      "Why must template definitions typically be placed in header files rather than source files?",
+    options: [
+      "Because template code runs faster when it is placed in header files due to inlining optimizations",
+      "Because the standard requires templates to be declared in headers and forbids source file placement",
+      "Because source files cannot contain the template keyword according to the compiler restrictions",
+      "Because the compiler needs to see the full definition to instantiate the template in each unit",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Templates are instantiated at compile time in each translation unit that uses them. The compiler needs the complete definition, not just a declaration, to generate code for a specific set of template arguments. Placing definitions in headers ensures visibility.",
+    link: "https://www.learncpp.com/cpp-tutorial/template-classes/",
+  },
+  {
+    id: 1308,
+    difficulty: "Easy",
+    topic: "Templates",
+    question: "What is a non-type template parameter in C++?",
+    options: [
+      "It is a parameter that accepts only class types and rejects all primitive or built-in types",
+      "It is a template parameter that takes a value such as an integer rather than a type argument",
+      "It is a parameter that disables type checking for the template to allow any argument to pass",
+      "It is a placeholder that the compiler removes during optimization and replaces with a constant",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Non-type template parameters allow templates to be parameterized by values rather than types. For example, template<int N> allows you to write std::array<int, 5> where 5 is a compile-time constant passed as a non-type template argument.",
+    link: "https://en.cppreference.com/w/cpp/language/template_parameters#Non-type_template_parameter",
+  },
+  {
+    id: 1309,
+    difficulty: "Easy",
+    topic: "Templates",
+    question:
+      "What happens if you explicitly specify template arguments when calling a function template?",
+    options: [
+      "The compiler ignores the explicit arguments and always deduces the types from the call site",
+      "The program compiles but throws a runtime exception if the explicit types do not match the args",
+      "The compiler uses the specified types instead of deducing them from the function call arguments",
+      "The function becomes a regular non-template function that only accepts those specific type args",
+    ],
+    correctIndex: 2,
+    explanation:
+      "You can explicitly specify template arguments using angle brackets, like add<double>(1, 2). This overrides template argument deduction and forces the compiler to use the specified types, which can be useful to resolve ambiguity or force conversions.",
+    link: "https://en.cppreference.com/w/cpp/language/template_argument_deduction#Explicit_instantiation",
+  },
+  {
+    id: 1310,
+    difficulty: "Easy",
+    topic: "Templates",
+    question:
+      "What is the purpose of the template<> prefix with empty angle brackets?",
+    options: [
+      "It introduces a full specialization of a previously declared template for specific arguments",
+      "It declares a template that takes no parameters and behaves like a regular function or class",
+      "It deletes all existing instantiations of the template to force fresh compilation of each one",
+      "It marks the template as deprecated so the compiler warns when it is used in new source code",
+    ],
+    correctIndex: 0,
+    explanation:
+      "template<> with empty angle brackets introduces an explicit full specialization. This provides a custom implementation of a template for a specific set of template arguments, overriding the general template definition.",
+    link: "https://en.cppreference.com/w/cpp/language/template_specialization",
+  },
+  {
+    id: 1311,
+    difficulty: "Easy",
+    topic: "Templates",
+    question: "Can a template have multiple type parameters in C++?",
+    options: [
+      "No, templates are limited to exactly one type parameter by the C++ standard specification",
+      "Yes, but all parameters must be the same type so they share a single deduced type argument",
+      "No, multiple parameters require separate template declarations for each individual type used",
+      "Yes, you can declare multiple parameters like template<typename T, typename U> in one list",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Templates can have any number of parameters, both type and non-type. For example, std::map<Key, Value> uses two type parameters. Each parameter is independently deduced or explicitly specified.",
+    link: "https://en.cppreference.com/w/cpp/language/template_parameters",
+  },
+  {
+    id: 1312,
+    difficulty: "Medium",
+    topic: "Templates",
+    question: "What is template specialization and when would you use it?",
+    options: [
+      "It restricts a template to work only with primitive types by adding a static_assert check",
+      "It provides a custom implementation of a template for specific types that need different behavior",
+      "It forces the compiler to generate all possible instantiations of a template at build time",
+      "It converts a template function into a virtual function for runtime polymorphism dispatch",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Template specialization lets you provide an alternative definition for a template when particular types are used. For example, std::vector<bool> is a specialization that stores bits rather than full bool objects.",
+    link: "https://en.cppreference.com/w/cpp/language/template_specialization",
+  },
+  {
+    id: 1313,
+    difficulty: "Medium",
+    topic: "Templates",
+    question:
+      "What is partial template specialization and which template types support it?",
+    options: [
+      "It specializes only the function body while keeping the original parameter list unchanged always",
+      "It specializes templates for a single argument and is available for both functions and classes",
+      "It specializes a class template for a subset of its arguments and is not available for functions",
+      "It specializes the return type of a template function while keeping the parameters fully generic",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Partial specialization provides a custom implementation for a class template when some but not all template arguments match a pattern. C++ allows partial specialization for class templates but not for function templates, where overloading is used instead.",
+    link: "https://en.cppreference.com/w/cpp/language/partial_specialization",
+  },
+  {
+    id: 1314,
+    difficulty: "Medium",
+    topic: "Templates",
+    question:
+      "What is SFINAE and what role does it play in template overload resolution?",
+    options: [
+      "Substitution Failure Is Not An Error: invalid substitutions silently remove overload candidates",
+      "Standard Function Instantiation And Name Evaluation: it names functions during template linking",
+      "Static Failure In Named Argument Expressions: it catches type errors at the linking stage only",
+      "Selective Function Inclusion After Namespace Expansion: it filters functions by their namespace",
+    ],
+    correctIndex: 0,
+    explanation:
+      "SFINAE means that if substituting template arguments into a function template produces an invalid type or expression, the template is simply removed from the overload set rather than causing a compilation error. This enables techniques like std::enable_if.",
+    link: "https://en.cppreference.com/w/cpp/language/sfinae",
+  },
+  {
+    id: 1315,
+    difficulty: "Medium",
+    topic: "Templates",
+    question: "What is a variadic template and what syntax does it use?",
+    options: [
+      "It is a template that accepts exactly two parameters using the pair<T1, T2> syntax declaration",
+      "It is a template that only works with variable-length arrays using the VLA[] bracket syntax",
+      "It is a template restricted to numeric types using the arithmetic<T...> syntax for constraints",
+      "It is a template that accepts zero or more arguments using the typename... parameter pack syntax",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Variadic templates use the ... syntax to accept a variable number of template arguments. For example, template<typename... Args> can match any number of type arguments. Parameter packs are expanded using pack expansion syntax.",
+    link: "https://en.cppreference.com/w/cpp/language/parameter_pack",
+  },
+  {
+    id: 1316,
+    difficulty: "Medium",
+    topic: "Templates",
+    question:
+      "What does std::enable_if do and how is it typically used with templates?",
+    options: [
+      "It enables runtime type identification for template arguments so they can be inspected later",
+      "It conditionally enables a template overload based on a compile-time boolean condition value",
+      "It enables automatic template argument deduction for functions that normally require explicit args",
+      "It enables templates to be exported across translation units without requiring header inclusion",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::enable_if<condition, T> provides a type member T only when the condition is true. When false, substitution fails, triggering SFINAE. This is used to conditionally enable function template overloads based on type traits.",
+    link: "https://en.cppreference.com/w/cpp/types/enable_if",
+  },
+  {
+    id: 1317,
+    difficulty: "Medium",
+    topic: "Templates",
+    question:
+      "What is the difference between implicit and explicit template instantiation?",
+    options: [
+      "Implicit uses runtime reflection while explicit uses compile-time code generation for templates",
+      "Implicit requires the template keyword at the call site while explicit uses angle brackets only",
+      "Implicit happens automatically when used while explicit is triggered by a deliberate declaration",
+      "Implicit generates debug symbols while explicit generates optimized code without debug information",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Implicit instantiation occurs automatically when the compiler encounters a use of a template with specific arguments. Explicit instantiation uses template class MyClass<int>; to force the compiler to generate the code in a specific translation unit, which can reduce compile times.",
+    link: "https://en.cppreference.com/w/cpp/language/class_template#Explicit_instantiation",
+  },
+  {
+    id: 1318,
+    difficulty: "Medium",
+    topic: "Templates",
+    question:
+      "What is a dependent name in template code and why does it require special handling?",
+    options: [
+      "It is a name whose meaning depends on template parameters and may need typename to disambiguate",
+      "It is a name that references a global variable from within a template function body at runtime",
+      "It is a function name that is resolved through argument-dependent lookup across all namespaces",
+      "It is a name imported from a base class that shadows a local variable in the template function",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A dependent name is one whose interpretation depends on a template parameter. The compiler cannot determine whether T::value_type is a type or a value during the first pass, so you must add the typename keyword to indicate it is a type.",
+    link: "https://en.cppreference.com/w/cpp/language/dependent_name",
+  },
+  {
+    id: 1319,
+    difficulty: "Medium",
+    topic: "Templates",
+    question: "What is a template alias introduced with the using keyword in C++11?",
+    options: [
+      "It creates a new template that inherits all members from the original template class hierarchy",
+      "It renames a template parameter within the body of a function to improve code readability",
+      "It imports all specializations of a template from another namespace into the current one directly",
+      "It creates a new name for a template or a partially applied template with some arguments fixed",
+    ],
+    correctIndex: 3,
+    explanation:
+      "A template alias defined with using creates a new name for a template, optionally fixing some parameters. For example, template<typename T> using Vec = std::vector<T, MyAllocator<T>>; creates a shorthand that always uses a custom allocator.",
+    link: "https://en.cppreference.com/w/cpp/language/type_alias",
+  },
+  {
+    id: 1320,
+    difficulty: "Medium",
+    topic: "Templates",
+    question: "What is two-phase name lookup in C++ template compilation?",
+    options: [
+      "The compiler resolves all names twice to ensure consistency between debug and release builds",
+      "Non-dependent names are resolved at definition time and dependent names at instantiation time",
+      "Names are first resolved in the local scope and then in the global scope during compilation",
+      "The compiler checks name validity during parsing and again during linking for duplicate symbols",
+    ],
+    correctIndex: 1,
+    explanation:
+      "In two-phase lookup, the compiler resolves non-dependent names during the first phase when the template is parsed. Dependent names (those that depend on template parameters) are resolved during the second phase when the template is instantiated with specific arguments.",
+    link: "https://en.cppreference.com/w/cpp/language/two-phase_lookup",
+  },
+  {
+    id: 1321,
+    difficulty: "Medium",
+    topic: "Templates",
+    question:
+      "What does the template keyword do when used inside a template to access a dependent member template?",
+    options: [
+      "It declares a new nested template inside the current template that overrides the base version",
+      "It exports the member template so it can be used from outside the class without qualification",
+      "It tells the compiler that the following name is a template rather than a comparison operator",
+      "It forces the member template to be instantiated immediately rather than at the point of use",
+    ],
+    correctIndex: 2,
+    explanation:
+      "When accessing a dependent member template like obj.template foo<int>(), the template keyword is needed to tell the compiler that the < following foo is the start of template arguments, not a less-than comparison. Without it, the code is parsed incorrectly.",
+    link: "https://en.cppreference.com/w/cpp/language/dependent_name#The_template_disambiguator",
+  },
+  {
+    id: 1322,
+    difficulty: "Hard",
+    topic: "Templates",
+    question:
+      "What is the Curiously Recurring Template Pattern and what does it achieve?",
+    options: [
+      "A class derives from a template instantiated with itself to enable static polymorphism at compile time",
+      "A template recursively instantiates itself with decreasing arguments to compute values at compile time",
+      "A class template uses its own name as a default argument for one of its type parameters in the list",
+      "A function template calls itself with different types to generate all possible overload combinations",
+    ],
+    correctIndex: 0,
+    explanation:
+      "CRTP involves a class Derived inheriting from Base<Derived>. The base class can call derived class methods through static_cast<Derived*>(this), achieving polymorphism without virtual functions. This is used in libraries like Boost.Operators and std::enable_shared_from_this.",
+    link: "https://en.cppreference.com/w/cpp/language/crtp",
+  },
+  {
+    id: 1323,
+    difficulty: "Hard",
+    topic: "Templates",
+    question:
+      "How does if constexpr differ from a regular if statement inside a template function?",
+    options: [
+      "if constexpr evaluates the condition at runtime but optimizes away the unused branch afterward",
+      "if constexpr discards the false branch at compile time so it does not need to be valid code",
+      "if constexpr requires both branches to type-check correctly even if one is never instantiated",
+      "if constexpr is limited to boolean literals while regular if accepts any boolean expression value",
+    ],
+    correctIndex: 1,
+    explanation:
+      "if constexpr evaluates its condition at compile time. The branch not taken is discarded entirely and is not instantiated, so it does not need to be valid for the current template arguments. This replaces many SFINAE and tag dispatch patterns.",
+    link: "https://en.cppreference.com/w/cpp/language/if#Constexpr_if",
+  },
+  {
+    id: 1324,
+    difficulty: "Hard",
+    topic: "Templates",
+    question:
+      "What is a fold expression in C++17 and how does it simplify variadic template code?",
+    options: [
+      "It folds a parameter pack into a tuple by converting each argument into a tuple element value",
+      "It folds a template hierarchy by merging base class methods into the most derived class body",
+      "It applies a binary operator to all elements of a parameter pack in a single compact expression",
+      "It reduces the compile time of variadic templates by folding identical instantiations together",
+    ],
+    correctIndex: 2,
+    explanation:
+      "A fold expression like (args + ...) applies the + operator across all elements of the parameter pack args. C++17 supports four forms: unary left fold, unary right fold, binary left fold, and binary right fold, replacing recursive template expansion patterns.",
+    link: "https://en.cppreference.com/w/cpp/language/fold",
+  },
+  {
+    id: 1325,
+    difficulty: "Hard",
+    topic: "Templates",
+    question: "What is template metaprogramming and what makes it Turing-complete?",
+    options: [
+      "It generates runtime reflection data for templates so they can inspect their own type arguments",
+      "It converts template definitions into optimized assembly code using pattern matching at link time",
+      "It provides a visual debugging interface for stepping through template instantiation sequences",
+      "It uses template instantiation to perform computation at compile time through recursive specialization",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Template metaprogramming exploits the fact that template instantiation is Turing-complete. Using recursive template specializations and constexpr, you can compute values, select types, and generate code at compile time. The classic example is computing factorials at compile time.",
+    link: "https://en.cppreference.com/w/cpp/language/template_metaprogramming",
+  },
+  {
+    id: 1326,
+    difficulty: "Hard",
+    topic: "Templates",
+    question: "What problem does std::void_t solve in template metaprogramming?",
+    options: [
+      "It maps any well-formed type arguments to void, enabling simple SFINAE-based type trait detection",
+      "It creates a void pointer wrapper that provides type-safe access to erased template type arguments",
+      "It converts any template instantiation error into a void return type instead of a compile failure",
+      "It provides a placeholder type for unused template parameters to suppress compiler warning messages",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::void_t<T...> is an alias for void that succeeds only if all type arguments are well-formed. It simplifies writing type traits by leveraging SFINAE: if the types in void_t are invalid, the specialization is discarded.",
+    link: "https://en.cppreference.com/w/cpp/types/void_t",
+  },
+  {
+    id: 1327,
+    difficulty: "Hard",
+    topic: "Templates",
+    question: "What is the purpose of std::declval<T>() in template metaprogramming?",
+    options: [
+      "It constructs a temporary object of type T and returns it for use in runtime expressions",
+      "It declares a global variable of type T that persists across all template instantiations",
+      "It produces an unevaluated reference to T for use in decltype expressions without constructing T",
+      "It validates that type T has a default constructor and returns a boolean result at compile time",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::declval<T>() returns a reference to T in unevaluated contexts like decltype and sizeof. It allows examining the result type of expressions involving T without requiring T to be constructible. Calling it in an evaluated context is ill-formed.",
+    link: "https://en.cppreference.com/w/cpp/utility/declval",
+  },
+  {
+    id: 1328,
+    difficulty: "Hard",
+    topic: "Templates",
+    question:
+      "What is tag dispatch and how does it relate to template function overloading?",
+    options: [
+      "It uses string tags at runtime to select which template specialization should handle a request",
+      "It uses empty struct types as function parameters to select overloads at compile time via traits",
+      "It attaches metadata tags to template parameters for reflection and serialization at link time",
+      "It dispatches template instantiation requests to different compilation threads for parallel builds",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Tag dispatch uses empty tag types (like std::true_type and std::false_type) as additional function parameters to select the correct overload at compile time. A dispatching function calls the appropriate overload by passing a tag derived from a type trait.",
+    link: "https://www.learncpp.com/cpp-tutorial/class-template-specialization/",
+  },
+  {
+    id: 1329,
+    difficulty: "Hard",
+    topic: "Templates",
+    question: "What are template template parameters and when are they useful?",
+    options: [
+      "They are parameters that accept only fully specialized templates with all arguments provided already",
+      "They are parameters that allow passing values of any type to a template function at runtime only",
+      "They are parameters that duplicate a template definition to create two independent copies of it",
+      "They are parameters that accept a template itself as an argument rather than a concrete type value",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Template template parameters let you pass an uninstantiated template as a template argument. For example, template<template<typename> class Container> lets you write generic code that works with any single-parameter container template like std::vector or std::list.",
+    link: "https://en.cppreference.com/w/cpp/language/template_parameters#Template_template_parameter",
+  },
+  {
+    id: 1330,
+    difficulty: "Hard",
+    topic: "Templates",
+    question:
+      "What is explicit instantiation declaration (extern template) and why is it used?",
+    options: [
+      "It prevents implicit instantiation in the current unit to reduce compile times and code bloat",
+      "It exports a template definition to other translation units so they can access it without headers",
+      "It forces the compiler to check all possible template instantiations for correctness at once",
+      "It marks a template as external linkage so it can be shared across dynamically loaded libraries",
+    ],
+    correctIndex: 0,
+    explanation:
+      "extern template class MyClass<int>; tells the compiler not to instantiate that template in the current translation unit. The instantiation must exist in exactly one other unit. This avoids redundant instantiations across many files, reducing compile time and object file size.",
+    link: "https://en.cppreference.com/w/cpp/language/class_template#Explicit_instantiation",
+  },
+  {
+    id: 1331,
+    difficulty: "Hard",
+    topic: "Templates",
+    question: "What is expression SFINAE and how does it extend traditional SFINAE?",
+    options: [
+      "It detects whether an expression throws an exception at runtime and selects an overload based on that",
+      "It checks whether an expression compiles faster than a threshold and rejects slow instantiations",
+      "It checks whether an arbitrary expression is well-formed in a substituted context beyond just types",
+      "It evaluates expressions at compile time and substitutes the result as a non-type template argument",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Expression SFINAE extends SFINAE beyond type formation to check whether expressions are valid. For example, decltype(std::declval<T>() + std::declval<U>()) triggers SFINAE if T and U cannot be added. This enables checking for the existence of operators and member functions.",
+    link: "https://en.cppreference.com/w/cpp/language/sfinae#Expression_SFINAE",
+  },
+
+  // ── Multithreading (Q1332--Q1361) ──
+  {
+    id: 1332,
+    difficulty: "Easy",
+    topic: "Multithreading",
+    question: "What does std::thread represent in C++?",
+    options: [
+      "A lightweight process with its own separate virtual memory space and file descriptor table",
+      "A single thread of execution that runs a callable object concurrently with other threads",
+      "A coroutine that can be suspended and resumed at specific yield points in the function",
+      "A task queue that schedules work items for execution on a shared pool of worker threads",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::thread represents a single thread of execution. It takes a callable (function, lambda, or functor) and runs it concurrently with the calling thread. Each std::thread manages an OS-level thread.",
+    link: "https://en.cppreference.com/w/cpp/thread/thread",
+  },
+  {
+    id: 1333,
+    difficulty: "Easy",
+    topic: "Multithreading",
+    question:
+      "What happens if a std::thread object is destroyed without calling join() or detach()?",
+    options: [
+      "The thread continues running silently in the background until the main function returns",
+      "The thread is automatically joined and the destructor waits for the thread to finish first",
+      "The thread is automatically detached and continues running independently of the main thread",
+      "The destructor calls std::terminate which aborts the entire program with an error message",
+    ],
+    correctIndex: 3,
+    explanation:
+      "If a joinable std::thread is destroyed without being joined or detached, the destructor calls std::terminate(), crashing the program. This design forces you to explicitly decide whether to wait for or abandon the thread.",
+    link: "https://en.cppreference.com/w/cpp/thread/thread/~thread",
+  },
+  {
+    id: 1334,
+    difficulty: "Easy",
+    topic: "Multithreading",
+    question: "What is the difference between join() and detach() on a std::thread?",
+    options: [
+      "join() blocks until the thread finishes while detach() lets the thread run independently",
+      "join() starts the thread running while detach() pauses the thread until it is resumed later",
+      "join() combines two threads into one while detach() splits one thread into two new threads",
+      "join() shares data between threads while detach() copies data to prevent shared access issues",
+    ],
+    correctIndex: 0,
+    explanation:
+      "join() causes the calling thread to block and wait until the target thread completes execution. detach() separates the thread from the std::thread object, allowing it to continue running independently. After detaching, you can no longer join or query the thread.",
+    link: "https://en.cppreference.com/w/cpp/thread/thread/join",
+  },
+  {
+    id: 1335,
+    difficulty: "Easy",
+    topic: "Multithreading",
+    question: "What is a data race in C++ multithreaded programming?",
+    options: [
+      "It is a performance issue where threads compete for CPU time and slow each other down",
+      "It is a compiler error that occurs when two threads include the same header file simultaneously",
+      "It is undefined behavior when two threads access shared data and at least one thread writes",
+      "It is a deadlock situation where two threads wait for each other to release their mutex locks",
+    ],
+    correctIndex: 2,
+    explanation:
+      "A data race occurs when two or more threads access the same memory location concurrently, at least one access is a write, and there is no synchronization between them. Data races cause undefined behavior in C++.",
+    link: "https://en.cppreference.com/w/cpp/language/memory_model#Threads_and_data_races",
+  },
+  {
+    id: 1336,
+    difficulty: "Easy",
+    topic: "Multithreading",
+    question: "What does std::lock_guard do when constructed with a mutex?",
+    options: [
+      "It tries to lock the mutex and returns immediately with a boolean indicating success or failure",
+      "It locks the mutex immediately and automatically unlocks it when the guard goes out of scope",
+      "It creates a copy of the mutex so that multiple threads can each have their own lock instance",
+      "It registers the mutex with a global manager that prevents deadlocks across all program threads",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::lock_guard is an RAII wrapper that locks a mutex in its constructor and unlocks it in its destructor. This ensures the mutex is always released, even if an exception is thrown within the protected scope.",
+    link: "https://en.cppreference.com/w/cpp/thread/lock_guard",
+  },
+  {
+    id: 1337,
+    difficulty: "Easy",
+    topic: "Multithreading",
+    question:
+      "What does the volatile keyword guarantee about multithreaded access in C++?",
+    options: [
+      "It provides no thread safety guarantees and does not prevent data races between threads",
+      "It makes all reads and writes to the variable atomic and visible to all threads immediately",
+      "It prevents the compiler from reordering operations so threads always see consistent values",
+      "It creates a memory barrier that synchronizes the variable across all processor cache lines",
+    ],
+    correctIndex: 0,
+    explanation:
+      "In C++, volatile prevents the compiler from optimizing away reads and writes, but it provides no atomicity, ordering, or visibility guarantees for multithreaded access. For thread safety, use std::atomic or mutexes.",
+    link: "https://en.cppreference.com/w/cpp/language/cv",
+  },
+  {
+    id: 1338,
+    difficulty: "Easy",
+    topic: "Multithreading",
+    question: "What does std::async do in C++?",
+    options: [
+      "It creates a raw OS thread that must be manually joined or detached by the calling code",
+      "It sends a network request asynchronously and returns the response body as a string value",
+      "It schedules a function for execution on the GPU using the available compute shader pipeline",
+      "It launches a function potentially on another thread and returns a future to retrieve the result",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::async runs a callable asynchronously, potentially on a new thread, and returns a std::future that will hold the result. The launch policy can be std::launch::async (new thread) or std::launch::deferred (lazy evaluation on get()).",
+    link: "https://en.cppreference.com/w/cpp/thread/async",
+  },
+  {
+    id: 1339,
+    difficulty: "Easy",
+    topic: "Multithreading",
+    question: "What does std::future represent in C++ concurrency?",
+    options: [
+      "It represents a thread pool that manages and reuses threads for submitted tasks automatically",
+      "It represents a timer that fires a callback function after a specified duration has elapsed",
+      "It represents a value that will become available at some point from an asynchronous operation",
+      "It represents a lock-free queue that multiple producer and consumer threads can use safely",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::future provides a mechanism to access the result of an asynchronous operation. Calling get() on a future blocks until the result is available. It works with std::async, std::promise, and std::packaged_task.",
+    link: "https://en.cppreference.com/w/cpp/thread/future",
+  },
+  {
+    id: 1340,
+    difficulty: "Easy",
+    topic: "Multithreading",
+    question: "What is a deadlock in concurrent programming?",
+    options: [
+      "It is when a thread consumes all available memory and prevents other threads from allocating",
+      "It is when two or more threads are each waiting for the other to release a resource they need",
+      "It is when a thread runs an infinite loop and never yields execution time to other threads",
+      "It is when the operating system kills a thread that has exceeded its maximum execution time",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A deadlock occurs when two or more threads are blocked indefinitely, each holding a resource that another thread needs while waiting for a resource held by the other. Classic prevention strategies include always acquiring locks in a consistent order.",
+    link: "https://en.wikipedia.org/wiki/Deadlock",
+  },
+  {
+    id: 1341,
+    difficulty: "Easy",
+    topic: "Multithreading",
+    question: "What header must be included to use std::thread in C++?",
+    options: [
+      "The <thread> header provides the std::thread class and related thread management utilities",
+      "The <mutex> header provides the std::thread class along with all synchronization primitives",
+      "The <future> header provides the std::thread class and the asynchronous execution facilities",
+      "The <atomic> header provides the std::thread class together with lock-free data structures",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::thread is declared in the <thread> header. Other threading facilities are in separate headers: <mutex> for mutexes and locks, <future> for async and futures, <atomic> for atomic types, and <condition_variable> for condition variables.",
+    link: "https://en.cppreference.com/w/cpp/header/thread",
+  },
+  {
+    id: 1342,
+    difficulty: "Medium",
+    topic: "Multithreading",
+    question:
+      "What is the purpose of std::condition_variable and how is it typically used?",
+    options: [
+      "It provides atomic read-modify-write operations on shared variables without using any locks",
+      "It enforces a maximum number of threads that can execute a critical section simultaneously",
+      "It allows threads to wait until another thread signals that a specific condition has been met",
+      "It creates a barrier that blocks all threads until a specified count of them have arrived",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::condition_variable enables one thread to wait until another thread notifies it that some condition is true. It must be used with a std::unique_lock<std::mutex>. The waiting thread releases the lock while blocked and reacquires it when woken.",
+    link: "https://en.cppreference.com/w/cpp/thread/condition_variable",
+  },
+  {
+    id: 1343,
+    difficulty: "Medium",
+    topic: "Multithreading",
+    question:
+      "Why should you always check the condition in a loop when using std::condition_variable::wait()?",
+    options: [
+      "Because the condition variable may be destroyed while the thread is still waiting on it",
+      "Because the mutex may be released by another thread while the wait call is in progress",
+      "Because the compiler may optimize away single checks and skip the wait call entirely",
+      "Because spurious wakeups can occur and the thread may be woken without the condition being true",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Condition variables can experience spurious wakeups where wait() returns even though no thread called notify. Using a predicate loop ensures the thread only proceeds when the condition is genuinely true. The overload wait(lock, predicate) handles this automatically.",
+    link: "https://en.cppreference.com/w/cpp/thread/condition_variable/wait",
+  },
+  {
+    id: 1344,
+    difficulty: "Medium",
+    topic: "Multithreading",
+    question:
+      "What memory ordering does std::memory_order_relaxed provide for atomic operations?",
+    options: [
+      "It guarantees atomicity of the operation but provides no ordering with respect to other accesses",
+      "It ensures all preceding writes in the current thread are visible before the atomic operation",
+      "It creates a full memory barrier that prevents all reordering of reads and writes around it",
+      "It ensures that the atomic operation is visible to all threads before any subsequent operations",
+    ],
+    correctIndex: 0,
+    explanation:
+      "memory_order_relaxed guarantees only atomicity: the operation will not be torn. It provides no synchronization or ordering constraints with respect to other memory operations. This is the cheapest ordering but should only be used when no inter-thread ordering is needed.",
+    link: "https://en.cppreference.com/w/cpp/atomic/memory_order#Relaxed_ordering",
+  },
+  {
+    id: 1345,
+    difficulty: "Medium",
+    topic: "Multithreading",
+    question: "What is the difference between std::unique_lock and std::lock_guard?",
+    options: [
+      "unique_lock only works with recursive mutexes while lock_guard works with all mutex types",
+      "unique_lock supports deferred locking and manual lock/unlock while lock_guard does not",
+      "unique_lock is faster because it avoids the overhead of RAII cleanup in its destructor call",
+      "unique_lock can be shared across threads while lock_guard is limited to a single thread only",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::unique_lock is more flexible than std::lock_guard. It supports deferred locking (not locking in the constructor), manual lock()/unlock(), timed locking, and can be moved between scopes. It is required for use with condition_variable::wait().",
+    link: "https://en.cppreference.com/w/cpp/thread/unique_lock",
+  },
+  {
+    id: 1346,
+    difficulty: "Medium",
+    topic: "Multithreading",
+    question: "What does std::promise do and how does it relate to std::future?",
+    options: [
+      "It provides a thread-safe queue that multiple producers can push values into for consumers",
+      "It wraps a callable object so its return value can be retrieved from a different thread later",
+      "It provides a channel for a thread to set a value or exception that a future will deliver",
+      "It creates a pool of futures that can be waited on simultaneously using a single blocking call",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::promise is the writing end of a promise-future pair. A thread holding the promise calls set_value() or set_exception() to provide the result. Another thread holding the associated std::future calls get() to retrieve it, blocking if necessary.",
+    link: "https://en.cppreference.com/w/cpp/thread/promise",
+  },
+  {
+    id: 1347,
+    difficulty: "Medium",
+    topic: "Multithreading",
+    question: "What does std::atomic::compare_exchange_strong() do?",
+    options: [
+      "It unconditionally stores a new value and returns the value that was previously stored there",
+      "It increments the atomic value by the given amount and returns the value before the increment",
+      "It loads the current value and stores it into a separate output variable without modification",
+      "It atomically compares the stored value with expected and writes desired only if they match",
+    ],
+    correctIndex: 3,
+    explanation:
+      "compare_exchange_strong atomically compares the current value with expected. If they are equal, it writes the desired value. If not, it loads the current value into expected. This is the fundamental building block for lock-free algorithms.",
+    link: "https://en.cppreference.com/w/cpp/atomic/atomic/compare_exchange",
+  },
+  {
+    id: 1348,
+    difficulty: "Medium",
+    topic: "Multithreading",
+    question: "What is std::shared_mutex and when would you use it?",
+    options: [
+      "It allows multiple readers to hold the lock simultaneously but only one writer at a time",
+      "It allows multiple writers to modify data simultaneously but only one reader at a time",
+      "It shares a single mutex instance across multiple processes through shared memory regions",
+      "It automatically distributes lock ownership among threads to prevent priority inversion",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::shared_mutex supports two lock modes: shared (read) and exclusive (write). Multiple threads can hold shared locks simultaneously for reading, but an exclusive lock requires no other locks be held. This improves throughput for read-heavy workloads.",
+    link: "https://en.cppreference.com/w/cpp/thread/shared_mutex",
+  },
+  {
+    id: 1349,
+    difficulty: "Medium",
+    topic: "Multithreading",
+    question: "What does std::call_once guarantee when used with std::once_flag?",
+    options: [
+      "It guarantees that the callable is executed on the main thread regardless of which thread calls it",
+      "It guarantees that the callable is executed exactly once even if multiple threads call it concurrently",
+      "It guarantees that the callable completes within a specified timeout or throws a timeout exception",
+      "It guarantees that the callable is executed in a lock-free manner without using any mutex internally",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::call_once ensures that a callable is invoked exactly once across all threads, even if multiple threads call it simultaneously. Only one thread executes the callable; all others block until it completes. This is commonly used for lazy initialization.",
+    link: "https://en.cppreference.com/w/cpp/thread/call_once",
+  },
+  {
+    id: 1350,
+    difficulty: "Medium",
+    topic: "Multithreading",
+    question:
+      "What does the std::launch::deferred policy do when passed to std::async?",
+    options: [
+      "It launches the function on a new thread immediately but defers joining until get() is called",
+      "It queues the function for execution on a background thread pool managed by the runtime system",
+      "It defers execution of the function until get() or wait() is called on the returned future object",
+      "It launches the function on the calling thread immediately and stores the result in the future",
+    ],
+    correctIndex: 2,
+    explanation:
+      "With std::launch::deferred, the function is not executed until get() or wait() is called on the future. It runs in the calling thread at that point, not in a separate thread. This provides lazy evaluation semantics.",
+    link: "https://en.cppreference.com/w/cpp/thread/launch",
+  },
+  {
+    id: 1351,
+    difficulty: "Medium",
+    topic: "Multithreading",
+    question: "What is thread_local storage duration and what does it guarantee?",
+    options: [
+      "It creates a variable that is shared between all threads but protected by an automatic mutex",
+      "It creates a variable on the heap that persists until the thread explicitly frees the memory",
+      "It creates a variable that can only be accessed by the main thread and is invisible to others",
+      "It creates a separate copy of the variable for each thread so modifications are not shared",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Variables declared with thread_local have a unique instance per thread. Each thread gets its own copy, initialized independently. The variable is created when the thread starts and destroyed when the thread exits.",
+    link: "https://en.cppreference.com/w/cpp/language/storage_duration#thread_local",
+  },
+  {
+    id: 1352,
+    difficulty: "Hard",
+    topic: "Multithreading",
+    question:
+      "What is the difference between memory_order_acquire and memory_order_release?",
+    options: [
+      "acquire prevents reads/writes from being reordered before it; release prevents them after it",
+      "acquire flushes the CPU write buffer to memory; release invalidates the CPU read cache lines",
+      "acquire is used only for load operations on mutexes; release is used only for store on atomics",
+      "acquire synchronizes with all threads globally; release synchronizes only with the next acquire",
+    ],
+    correctIndex: 0,
+    explanation:
+      "memory_order_acquire on a load ensures that no reads or writes in the current thread can be reordered before it. memory_order_release on a store ensures no reads or writes can be reordered after it. Together they form an acquire-release pair for synchronization.",
+    link: "https://en.cppreference.com/w/cpp/atomic/memory_order",
+  },
+  {
+    id: 1353,
+    difficulty: "Hard",
+    topic: "Multithreading",
+    question: "What problem does the ABA problem describe in lock-free programming?",
+    options: [
+      "A thread reads value A, another thread locks the same variable with B, causing a deadlock state",
+      "A thread reads A, another changes it to B then back to A, so compare-exchange incorrectly succeeds",
+      "A thread allocates memory at address A, another frees it and gets address B, causing a use-after-free",
+      "A thread writes value A twice in a row which the atomic hardware incorrectly treats as a single write",
+    ],
+    correctIndex: 1,
+    explanation:
+      "The ABA problem occurs in lock-free algorithms using compare-and-swap. A thread reads value A, gets preempted, and another thread changes the value from A to B and back to A. When the first thread resumes, its CAS succeeds even though the value was modified in between.",
+    link: "https://en.wikipedia.org/wiki/ABA_problem",
+  },
+  {
+    id: 1354,
+    difficulty: "Hard",
+    topic: "Multithreading",
+    question:
+      "What does memory_order_seq_cst guarantee that acquire/release does not?",
+    options: [
+      "It guarantees that atomic operations complete within a bounded number of CPU clock cycles",
+      "It guarantees that all threads observe atomic operations in the same order as the source code",
+      "It guarantees a single total order of all seq_cst operations that all threads agree upon",
+      "It guarantees that the compiler will never reorder any instructions in the entire translation unit",
+    ],
+    correctIndex: 2,
+    explanation:
+      "memory_order_seq_cst provides the strongest ordering: all sequentially consistent operations across all threads appear to occur in a single total order. Acquire/release only creates pairwise synchronization between specific threads, not a global order.",
+    link: "https://en.cppreference.com/w/cpp/atomic/memory_order#Sequentially-consistent_ordering",
+  },
+  {
+    id: 1355,
+    difficulty: "Hard",
+    topic: "Multithreading",
+    question: "What is a memory fence and how does std::atomic_thread_fence() work?",
+    options: [
+      "It prevents threads from accessing memory regions that belong to other threads in the process",
+      "It forces the CPU to complete all pending I/O operations before any thread can continue running",
+      "It allocates a guard page in memory that triggers a signal if any thread reads or writes past it",
+      "It enforces ordering constraints on memory operations without being tied to a specific variable",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::atomic_thread_fence() is a standalone memory barrier that enforces ordering constraints on all memory operations before and after it, without being associated with a particular atomic variable. It is useful when you need to order non-atomic accesses relative to atomic ones.",
+    link: "https://en.cppreference.com/w/cpp/atomic/atomic_thread_fence",
+  },
+  {
+    id: 1356,
+    difficulty: "Hard",
+    topic: "Multithreading",
+    question: "What is a lock-free data structure and what guarantee does it provide?",
+    options: [
+      "It guarantees system-wide progress so at least one thread makes forward progress in any scenario",
+      "It guarantees that no thread will ever block and all operations complete in constant time always",
+      "It guarantees that all operations complete in the same order regardless of thread scheduling",
+      "It guarantees that memory is never allocated dynamically so there are no heap contention issues",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A lock-free data structure guarantees that at least one thread makes progress in a finite number of steps, regardless of what other threads are doing. This is stronger than blocking algorithms but weaker than wait-free, which guarantees every thread makes progress.",
+    link: "https://en.wikipedia.org/wiki/Non-blocking_algorithm#Lock-freedom",
+  },
+  {
+    id: 1357,
+    difficulty: "Hard",
+    topic: "Multithreading",
+    question:
+      "What is false sharing and how does it affect multithreaded performance?",
+    options: [
+      "It occurs when threads share a mutex they do not actually need, adding unnecessary contention",
+      "It occurs when threads read stale cached values because they forgot to use atomic operations",
+      "It occurs when unrelated variables on the same cache line cause unnecessary cache invalidations",
+      "It occurs when threads accidentally write to memory owned by another thread through stale pointers",
+    ],
+    correctIndex: 2,
+    explanation:
+      "False sharing happens when threads modify different variables that happen to reside on the same CPU cache line. Each write invalidates the cache line for all other cores, causing expensive cache coherence traffic even though the threads are not logically sharing data.",
+    link: "https://en.wikipedia.org/wiki/False_sharing",
+  },
+  {
+    id: 1358,
+    difficulty: "Hard",
+    topic: "Multithreading",
+    question: "How does std::latch differ from std::barrier introduced in C++20?",
+    options: [
+      "latch can be incremented after construction while barrier has a fixed count set at creation time",
+      "latch is single-use and counts down to zero while barrier resets and can be reused across phases",
+      "latch supports timed waits with a timeout while barrier only supports indefinite blocking waits",
+      "latch synchronizes threads across processes while barrier only works within a single process scope",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::latch is a single-use synchronization primitive: threads count it down to zero and waiting threads are released. std::barrier is reusable: after all threads arrive, it resets to its initial count for the next phase, making it suitable for iterative parallel algorithms.",
+    link: "https://en.cppreference.com/w/cpp/thread/latch",
+  },
+  {
+    id: 1359,
+    difficulty: "Hard",
+    topic: "Multithreading",
+    question:
+      "What does the happens-before relationship guarantee in the C++ memory model?",
+    options: [
+      "If operation A happens-before B, then the effects of A are visible and ordered before B executes",
+      "If operation A happens-before B, then A always completes in fewer CPU cycles than B takes to run",
+      "If operation A happens-before B, then A and B are guaranteed to execute on different CPU cores",
+      "If operation A happens-before B, then A was written before B in the original source code file",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The happens-before relationship is the foundation of the C++ memory model. If A happens-before B, then A's effects (writes) are guaranteed to be visible to B. This relationship is established through sequencing rules, synchronization operations, and transitivity.",
+    link: "https://en.cppreference.com/w/cpp/atomic/memory_order#Happens-before",
+  },
+  {
+    id: 1360,
+    difficulty: "Hard",
+    topic: "Multithreading",
+    question:
+      "What is priority inversion and how can it affect real-time multithreaded systems?",
+    options: [
+      "It occurs when a high-priority thread starves because the scheduler always runs lower ones first",
+      "It occurs when thread priorities are ignored by the OS and all threads receive equal CPU time",
+      "It occurs when two threads with the same priority deadlock because neither can preempt the other",
+      "It occurs when a low-priority thread holds a lock needed by a high-priority thread that must wait",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Priority inversion happens when a high-priority thread is blocked waiting for a resource held by a low-priority thread, while a medium-priority thread preempts the low-priority one. Solutions include priority inheritance, where the low-priority thread temporarily inherits the higher priority.",
+    link: "https://en.wikipedia.org/wiki/Priority_inversion",
+  },
+  {
+    id: 1361,
+    difficulty: "Hard",
+    topic: "Multithreading",
+    question:
+      "What is the double-checked locking pattern and why was it broken before C++11?",
+    options: [
+      "It checks for null twice inside a lock to avoid redundant allocations but was broken by deadlocks",
+      "It uses two separate mutexes to protect initialization but was broken by inconsistent lock ordering",
+      "It checks a flag before and after locking to avoid locking overhead but was broken by reordering",
+      "It locks a mutex twice to ensure recursive safety but was broken by non-recursive mutex semantics",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Double-checked locking checks a condition before acquiring a lock and again after. Before C++11, the compiler and CPU could reorder the pointer assignment before construction was complete, allowing another thread to see a non-null pointer to an unconstructed object.",
+    link: "https://en.wikipedia.org/wiki/Double-checked_locking",
+  },
+
+  // ── Variant & Type Traits (Q1362--Q1391) ──
+  {
+    id: 1362,
+    difficulty: "Easy",
+    topic: "Variant & Type Traits",
+    question: "What does std::is_integral<T>::value evaluate to for the type int?",
+    options: [
+      "It evaluates to false because int is a primitive type rather than a proper integral class type",
+      "It evaluates to a compile-time integer representing the size of the int type in bytes on disk",
+      "It evaluates to true because int is one of the built-in integral types recognized by the trait",
+      "It evaluates to an enum constant that identifies which specific integral category int belongs to",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::is_integral is a type trait that checks whether a type is an integral type (bool, char, int, long, etc.). For int, it evaluates to true. Since C++17, you can use the shorthand std::is_integral_v<int> instead.",
+    link: "https://en.cppreference.com/w/cpp/types/is_integral",
+  },
+  {
+    id: 1363,
+    difficulty: "Easy",
+    topic: "Variant & Type Traits",
+    question: "What does std::holds_alternative<T>(v) check on a std::variant?",
+    options: [
+      "It checks whether the variant currently holds a value of the specified type T at this moment",
+      "It checks whether the type T is one of the possible types in the variant template parameter list",
+      "It checks whether the variant has been initialized with any value since it was first constructed",
+      "It checks whether the variant can be safely converted to type T without losing any stored data",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::holds_alternative<T>(v) returns true if the variant v currently contains a value of type T. It is a compile-time safe way to check the active alternative before calling std::get<T>(v).",
+    link: "https://en.cppreference.com/w/cpp/utility/variant/holds_alternative",
+  },
+  {
+    id: 1364,
+    difficulty: "Easy",
+    topic: "Variant & Type Traits",
+    question:
+      "What exception does std::get<T>(variant) throw if the variant does not hold type T?",
+    options: [
+      "It throws std::runtime_error with a message describing the type mismatch that was detected",
+      "It throws std::invalid_argument indicating that the requested type is not the active alternative",
+      "It throws std::out_of_range indicating that the type index is beyond the valid range of types",
+      "It throws std::bad_variant_access indicating that the variant does not hold the requested type",
+    ],
+    correctIndex: 3,
+    explanation:
+      "If you call std::get<T>(v) and the variant does not currently hold a value of type T, it throws std::bad_variant_access. To avoid exceptions, use std::get_if<T>(&v) which returns a pointer (nullptr if wrong type).",
+    link: "https://en.cppreference.com/w/cpp/utility/variant/get",
+  },
+  {
+    id: 1365,
+    difficulty: "Easy",
+    topic: "Variant & Type Traits",
+    question: "What does std::is_same<T, U>::value check at compile time?",
+    options: [
+      "It checks whether type T can be implicitly converted to type U without any data loss at all",
+      "It checks whether types T and U are exactly the same type including all qualifiers and refs",
+      "It checks whether types T and U have the same size in bytes when stored in memory on the stack",
+      "It checks whether types T and U share a common base class in their class inheritance hierarchy",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::is_same<T, U> evaluates to true only if T and U are exactly the same type. Note that const int and int are different types, as are int& and int. Use std::remove_cv and std::remove_reference to strip qualifiers before comparing.",
+    link: "https://en.cppreference.com/w/cpp/types/is_same",
+  },
+  {
+    id: 1366,
+    difficulty: "Easy",
+    topic: "Variant & Type Traits",
+    question:
+      "What does the _v suffix mean on type trait names like std::is_integral_v<T>?",
+    options: [
+      "It is a variable template shorthand that directly gives the bool value without writing ::value",
+      "It indicates a volatile-qualified version of the trait that handles volatile types specifically",
+      "It indicates a vector version of the trait that can check multiple types in a single expression",
+      "It indicates a validated version of the trait that throws an exception if the check is false",
+    ],
+    correctIndex: 0,
+    explanation:
+      "Since C++17, type traits provide _v variable template shortcuts. std::is_integral_v<T> is equivalent to std::is_integral<T>::value but is shorter and more readable. Similarly, _t suffixes provide type aliases.",
+    link: "https://en.cppreference.com/w/cpp/types/is_integral",
+  },
+  {
+    id: 1367,
+    difficulty: "Easy",
+    topic: "Variant & Type Traits",
+    question: "What does std::remove_const<T>::type produce when T is const int?",
+    options: [
+      "It produces const int because remove_const only works on pointer types and not direct types",
+      "It produces a compile-time error because const int cannot have its const qualifier removed",
+      "It produces int by stripping the top-level const qualifier from the type passed to the trait",
+      "It produces volatile int by replacing the const qualifier with a volatile qualifier instead",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::remove_const removes the top-level const qualifier from a type. So remove_const<const int>::type is int. Note it only removes top-level const: remove_const<const int*>::type is still const int* because the const is on the pointed-to type.",
+    link: "https://en.cppreference.com/w/cpp/types/remove_cv",
+  },
+  {
+    id: 1368,
+    difficulty: "Easy",
+    topic: "Variant & Type Traits",
+    question: "What value does std::variant::index() return?",
+    options: [
+      "It returns the total number of alternative types that the variant can possibly hold at any time",
+      "It returns the zero-based index of the type that the variant currently holds as its active value",
+      "It returns the memory offset in bytes where the variant stores its currently held value in memory",
+      "It returns the hash code of the currently held type for use in unordered containers as a key",
+    ],
+    correctIndex: 1,
+    explanation:
+      "index() returns the zero-based position of the currently active type in the variant's template parameter list. For std::variant<int, string, double>, if it holds a string, index() returns 1.",
+    link: "https://en.cppreference.com/w/cpp/utility/variant/index",
+  },
+  {
+    id: 1369,
+    difficulty: "Easy",
+    topic: "Variant & Type Traits",
+    question: "What does std::is_floating_point<T> check about a type?",
+    options: [
+      "It checks whether the type is a pointer to a floating-point number stored on the heap memory",
+      "It checks whether the type supports the addition operator for combining two numeric values",
+      "It checks whether the type is an integer type that can be implicitly converted to float safely",
+      "It checks whether the type is float, double, or long double including their cv-qualified forms",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::is_floating_point checks if a type is one of the three standard floating-point types: float, double, or long double (including const/volatile variants). It evaluates to false for integral types and user-defined types.",
+    link: "https://en.cppreference.com/w/cpp/types/is_floating_point",
+  },
+  {
+    id: 1370,
+    difficulty: "Easy",
+    topic: "Variant & Type Traits",
+    question:
+      "What does std::get_if<T>(variant_ptr) return when the variant holds a different type?",
+    options: [
+      "It returns nullptr indicating that the variant does not currently hold the requested type value",
+      "It returns a default-constructed value of type T as a fallback when the type does not match",
+      "It throws std::bad_variant_access because the variant does not contain the requested type now",
+      "It returns a pointer to the first alternative type regardless of which type is currently active",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::get_if<T> takes a pointer to a variant and returns a pointer to the held value if it matches type T, or nullptr otherwise. This is the non-throwing alternative to std::get<T>, suitable for checking without exceptions.",
+    link: "https://en.cppreference.com/w/cpp/utility/variant/get_if",
+  },
+  {
+    id: 1371,
+    difficulty: "Easy",
+    topic: "Variant & Type Traits",
+    question: "What does std::is_pointer<T> evaluate to for the type int*?",
+    options: [
+      "It evaluates to false because int* is a raw pointer and the trait only recognizes smart pointers",
+      "It evaluates to the size of the pointer in bytes which varies depending on the target platform",
+      "It evaluates to true because int* is a pointer type matching the trait detection criteria exactly",
+      "It evaluates to a type alias representing the pointed-to type which in this case would be int",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::is_pointer checks whether a type is a pointer type (including pointers to functions and void). For int*, it evaluates to true. Note that smart pointers like std::shared_ptr are not raw pointers, so the trait returns false for them.",
+    link: "https://en.cppreference.com/w/cpp/types/is_pointer",
+  },
+  {
+    id: 1372,
+    difficulty: "Medium",
+    topic: "Variant & Type Traits",
+    question: "How does std::visit work with a visitor that uses an overload set?",
+    options: [
+      "It calls all overloads sequentially and returns the result of the last one that was executed",
+      "It selects the correct overload at runtime based on which type the variant currently holds",
+      "It requires explicit type casting of the variant before passing it to the visitor function",
+      "It calls the visitor once with the variant object itself rather than with the contained value",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::visit applies the visitor callable to the value held by the variant. At runtime, it determines which type is active and dispatches to the appropriate overload. The visitor must handle all possible types or the code will not compile.",
+    link: "https://en.cppreference.com/w/cpp/utility/variant/visit",
+  },
+  {
+    id: 1373,
+    difficulty: "Medium",
+    topic: "Variant & Type Traits",
+    question: "What does std::decay<T>::type produce and when is it useful?",
+    options: [
+      "It converts any type to void so it can be used as a placeholder in template parameter lists",
+      "It removes all smart pointer wrappers and returns the raw underlying pointed-to type directly",
+      "It converts all types to their unsigned equivalents by stripping the signed qualifier from them",
+      "It applies array-to-pointer and function-to-pointer conversions and removes top-level cv-qualifiers",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::decay mimics the type transformations that occur when passing arguments by value: arrays decay to pointers, functions decay to function pointers, and top-level const/volatile and references are removed. It is useful for storing values in containers.",
+    link: "https://en.cppreference.com/w/cpp/types/decay",
+  },
+  {
+    id: 1374,
+    difficulty: "Medium",
+    topic: "Variant & Type Traits",
+    question: "What is the overloaded lambda pattern commonly used with std::visit?",
+    options: [
+      "It combines multiple lambdas into one callable using an overload struct that inherits from each",
+      "It uses a switch statement inside a single lambda to dispatch based on the variant index value",
+      "It creates a chain of if-else blocks that check each type using dynamic_cast before calling",
+      "It wraps each lambda in a std::function and stores them in a vector for sequential invocation",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The overloaded pattern uses a helper struct template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; }; that inherits from multiple lambdas. This creates a single visitor with overloaded operator() for each type in the variant.",
+    link: "https://en.cppreference.com/w/cpp/utility/variant/visit",
+  },
+  {
+    id: 1375,
+    difficulty: "Medium",
+    topic: "Variant & Type Traits",
+    question:
+      "What does std::conditional<B, T, F>::type produce depending on the boolean B?",
+    options: [
+      "It produces a boolean value that equals true when T is convertible to F and false otherwise",
+      "It produces a variant type that can hold either T or F depending on a runtime condition value",
+      "It produces type T when B is true and type F when B is false as a compile-time type selection",
+      "It produces a pair containing both T and F so the caller can choose which to use at runtime",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::conditional is a compile-time type selector. When the boolean condition is true, the nested type is T; when false, it is F. This is useful in template metaprogramming to select between types based on compile-time conditions.",
+    link: "https://en.cppreference.com/w/cpp/types/conditional",
+  },
+  {
+    id: 1376,
+    difficulty: "Medium",
+    topic: "Variant & Type Traits",
+    question:
+      "What happens when a std::variant enters the valueless_by_exception state?",
+    options: [
+      "The variant silently holds a default-constructed value of its first alternative type as fallback",
+      "The variant holds no value and any access attempt throws std::bad_variant_access immediately",
+      "The variant is automatically destroyed and its memory is released back to the system allocator",
+      "The variant resets to the last successfully held value and ignores the exception that occurred",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A variant can become valueless_by_exception if an assignment or emplacement throws after destroying the old value but before constructing the new one. In this state, index() returns variant_npos and accessing the value throws std::bad_variant_access.",
+    link: "https://en.cppreference.com/w/cpp/utility/variant/valueless_by_exception",
+  },
+  {
+    id: 1377,
+    difficulty: "Medium",
+    topic: "Variant & Type Traits",
+    question:
+      "What does std::is_constructible<T, Args...>::value check at compile time?",
+    options: [
+      "It checks whether T can be constructed from the given argument types Args in a valid expression",
+      "It checks whether T has been explicitly constructed at least once somewhere in the current program",
+      "It checks whether T is a class type that has a user-declared constructor rather than a default one",
+      "It checks whether the constructor of T is marked noexcept for the given argument types provided",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::is_constructible checks if an object of type T can be constructed from the specified argument types. For example, is_constructible<std::string, const char*>::value is true because std::string has a constructor accepting const char*.",
+    link: "https://en.cppreference.com/w/cpp/types/is_constructible",
+  },
+  {
+    id: 1378,
+    difficulty: "Medium",
+    topic: "Variant & Type Traits",
+    question:
+      "How does std::variant compare to a C-style union for type-safe storage?",
+    options: [
+      "variant uses more memory because it stores all alternative values simultaneously in its buffer",
+      "variant is slower at runtime because it uses virtual dispatch to access the stored value inside",
+      "variant does not support non-trivial types like std::string while union supports all types freely",
+      "variant tracks which type is active and manages construction and destruction automatically",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Unlike a C union, std::variant knows which type is currently stored, manages constructors and destructors correctly, and prevents accessing the wrong type. A union does none of this, making it easy to trigger undefined behavior.",
+    link: "https://en.cppreference.com/w/cpp/utility/variant",
+  },
+  {
+    id: 1379,
+    difficulty: "Medium",
+    topic: "Variant & Type Traits",
+    question: "What does std::is_base_of<Base, Derived>::value check?",
+    options: [
+      "It checks whether Base and Derived are the same type or differ only in their cv-qualifiers",
+      "It checks whether Derived can be implicitly converted to Base through a conversion operator",
+      "It checks whether Derived is a class that inherits from Base either directly or indirectly",
+      "It checks whether Base has a virtual destructor that allows safe polymorphic deletion of Derived",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::is_base_of<Base, Derived> evaluates to true if Derived inherits from Base (directly or through intermediate classes), or if they are the same non-union class type. It works with both public and private inheritance.",
+    link: "https://en.cppreference.com/w/cpp/types/is_base_of",
+  },
+  {
+    id: 1380,
+    difficulty: "Medium",
+    topic: "Variant & Type Traits",
+    question:
+      "What does std::common_type<T, U>::type produce for the types int and double?",
+    options: [
+      "It produces int because int has a smaller size and is considered the more restrictive type here",
+      "It produces double because that is the type that both int and double can implicitly convert to",
+      "It produces a std::variant<int, double> that can hold either type at runtime without data loss",
+      "It produces long double because that is the only type guaranteed to hold both int and double values",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::common_type determines the type that all given types can be implicitly converted to. For int and double, this is double, following the same implicit conversion rules as the ternary operator.",
+    link: "https://en.cppreference.com/w/cpp/types/common_type",
+  },
+  {
+    id: 1381,
+    difficulty: "Medium",
+    topic: "Variant & Type Traits",
+    question: "What does std::is_trivially_copyable<T> tell you about a type?",
+    options: [
+      "It tells you the type can be safely copied with memcpy and has no custom copy logic at all",
+      "It tells you the type has exactly one data member that is a primitive type like int or float",
+      "It tells you the type can be constructed without any arguments using a trivial default constructor",
+      "It tells you the type occupies exactly one byte of memory and has no padding between its members",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A trivially copyable type has no non-trivial copy/move constructors or assignment operators, and no non-trivial destructor. This means memcpy can safely duplicate objects of this type, which is important for serialization and low-level memory operations.",
+    link: "https://en.cppreference.com/w/cpp/types/is_trivially_copyable",
+  },
+  {
+    id: 1382,
+    difficulty: "Hard",
+    topic: "Variant & Type Traits",
+    question:
+      "How does std::variant implement type-safe storage without dynamic allocation?",
+    options: [
+      "It uses a union of smart pointers where each pointer type corresponds to one alternative type",
+      "It stores a function pointer table that maps type indices to construction and access functions",
+      "It allocates a separate stack frame for each alternative type and switches between them at runtime",
+      "It uses an aligned union storage sized to the largest alternative plus an index to track the type",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::variant internally uses aligned storage (like std::aligned_union) large enough to hold the largest alternative type, plus a discriminator (index) to track which type is active. This avoids heap allocation while supporting arbitrary types.",
+    link: "https://en.cppreference.com/w/cpp/utility/variant",
+  },
+  {
+    id: 1383,
+    difficulty: "Hard",
+    topic: "Variant & Type Traits",
+    question:
+      "What does std::conjunction<Traits...> provide over simply writing (Traits::value && ...)?",
+    options: [
+      "It short-circuits so that traits after the first false are not instantiated, saving compile time",
+      "It evaluates all traits in parallel using multithreaded template instantiation for faster builds",
+      "It provides a runtime error message listing which specific trait in the conjunction was false",
+      "It automatically converts the result to a std::bool_constant type for use in template arguments",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::conjunction performs short-circuit evaluation at the template level. Once a trait evaluates to false, remaining traits are not instantiated. This saves compile time and avoids instantiation errors in traits that would be ill-formed for the given types.",
+    link: "https://en.cppreference.com/w/cpp/types/conjunction",
+  },
+  {
+    id: 1384,
+    difficulty: "Hard",
+    topic: "Variant & Type Traits",
+    question:
+      "What problem does std::monostate solve when used as the first type in a std::variant?",
+    options: [
+      "It provides a thread-safe empty state that prevents data races when the variant is shared",
+      "It enables the variant to store temporary values during type transitions between alternatives",
+      "It allows default construction of a variant whose first type has no default constructor itself",
+      "It marks the variant as immutable so its held value cannot be changed after initial assignment",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::monostate is an empty type with a default constructor. Placing it first in a variant like variant<monostate, NoDefaultCtor> allows the variant to be default-constructed (to monostate) even when other types lack default constructors.",
+    link: "https://en.cppreference.com/w/cpp/utility/variant/monostate",
+  },
+  {
+    id: 1385,
+    difficulty: "Hard",
+    topic: "Variant & Type Traits",
+    question:
+      "What does std::is_nothrow_move_constructible<T> enable the standard library to do?",
+    options: [
+      "It enables containers to skip calling destructors on moved-from objects to improve performance",
+      "It enables containers to use move instead of copy during reallocation for better efficiency",
+      "It enables the compiler to eliminate all exception handling code from move constructor calls",
+      "It enables containers to allocate move-constructed objects on the stack instead of the heap",
+    ],
+    correctIndex: 1,
+    explanation:
+      "When std::is_nothrow_move_constructible is true, containers like std::vector use move operations during reallocation instead of safer but slower copies. This is the same trait checked by std::move_if_noexcept.",
+    link: "https://en.cppreference.com/w/cpp/types/is_move_constructible",
+  },
+  {
+    id: 1386,
+    difficulty: "Hard",
+    topic: "Variant & Type Traits",
+    question: "How does std::visit handle visiting multiple variants simultaneously?",
+    options: [
+      "It visits each variant sequentially and passes the results as a tuple to the visitor function",
+      "It requires all variants to hold the same type and passes them together to a single overload",
+      "It creates a separate visitor call for each variant and combines the results using std::reduce",
+      "It generates a dispatch table for the Cartesian product of all variant alternatives at compile time",
+    ],
+    correctIndex: 3,
+    explanation:
+      "When visiting N variants, std::visit generates a dispatch table covering all possible combinations of active types. For two variants with 3 and 4 types respectively, this creates a 3x4=12 entry table. The visitor must handle all combinations.",
+    link: "https://en.cppreference.com/w/cpp/utility/variant/visit",
+  },
+  {
+    id: 1387,
+    difficulty: "Hard",
+    topic: "Variant & Type Traits",
+    question:
+      "What is the difference between std::is_convertible<From, To> and std::is_constructible<To, From>?",
+    options: [
+      "is_convertible checks explicit conversions while is_constructible checks only implicit conversions",
+      "is_convertible works only for class types while is_constructible works for all types in the system",
+      "is_convertible checks implicit conversion while is_constructible checks if To can be direct-initialized",
+      "is_convertible evaluates at runtime while is_constructible evaluates at compile time during parsing",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::is_convertible checks if From can be implicitly converted to To (as if in a return statement). std::is_constructible checks if To can be constructed from From (including explicit constructors). A type with an explicit constructor passes is_constructible but fails is_convertible.",
+    link: "https://en.cppreference.com/w/cpp/types/is_convertible",
+  },
+  {
+    id: 1388,
+    difficulty: "Hard",
+    topic: "Variant & Type Traits",
+    question:
+      "What does std::invoke_result<F, Args...>::type determine at compile time?",
+    options: [
+      "It determines the return type of calling callable F with arguments of types Args without calling it",
+      "It determines whether callable F can be invoked with Args and returns a boolean true or false",
+      "It determines the number of arguments that callable F accepts in its parameter list declaration",
+      "It determines the exception specification of callable F when invoked with the given argument types",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::invoke_result deduces the return type of invoking a callable F with arguments of types Args. It replaced std::result_of in C++17. It works with function pointers, lambdas, member function pointers, and any callable object.",
+    link: "https://en.cppreference.com/w/cpp/types/result_of",
+  },
+  {
+    id: 1389,
+    difficulty: "Hard",
+    topic: "Variant & Type Traits",
+    question:
+      "What does std::is_trivially_destructible<T> imply about memory management for type T?",
+    options: [
+      "It implies that objects of type T must be explicitly destroyed by calling their destructor manually",
+      "It implies that the destructor is a no-op so objects can be abandoned without cleanup overhead",
+      "It implies that type T uses reference counting internally and releases memory when count hits zero",
+      "It implies that type T allocates all memory on the stack and never touches the heap for storage",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A trivially destructible type has a destructor that performs no action. This means objects of this type can be left without calling the destructor, which is important for optimizations in containers and memory pools that skip destruction for trivial types.",
+    link: "https://en.cppreference.com/w/cpp/types/is_destructible",
+  },
+  {
+    id: 1390,
+    difficulty: "Hard",
+    topic: "Variant & Type Traits",
+    question:
+      "How can you write a custom type trait that checks if a type has a specific member function?",
+    options: [
+      "Use dynamic_cast at runtime to test whether the type supports the member function call interface",
+      "Use a macro that expands to a static assertion checking the existence of the member at link time",
+      "Use typeid to compare the type against a known type that has the member function declared in it",
+      "Use std::void_t with a decltype expression that calls the member inside a SFINAE template check",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Custom type traits typically use std::void_t with SFINAE. A primary template inherits from std::false_type, and a specialization using void_t<decltype(std::declval<T>().method())> inherits from std::true_type, succeeding only if the member exists.",
+    link: "https://en.cppreference.com/w/cpp/types/void_t",
+  },
+  {
+    id: 1391,
+    difficulty: "Hard",
+    topic: "Variant & Type Traits",
+    question:
+      "What is the purpose of std::aligned_storage and why was it deprecated in C++23?",
+    options: [
+      "It provided heap-allocated storage for variant types but was replaced by std::variant entirely",
+      "It provided thread-safe storage for atomic types but was replaced by std::atomic_ref in C++20",
+      "It provided raw aligned memory for placement new but was deprecated due to strict aliasing risks",
+      "It provided type-erased storage for any types but was replaced by std::any in the C++17 standard",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::aligned_storage provided a properly aligned, uninitialized block of memory for manual object construction via placement new. It was deprecated in C++23 because using it correctly requires careful handling of strict aliasing rules, and alignas with std::byte arrays is a safer alternative.",
+    link: "https://en.cppreference.com/w/cpp/types/aligned_storage",
+  },
+
+  // ── Modern C++ (Q1392--Q1421) ──
+  {
+    id: 1392,
+    difficulty: "Easy",
+    topic: "Modern C++",
+    question:
+      "What does the `auto` keyword do when used in a variable declaration in C++11?",
+    options: [
+      "It declares the variable as having automatic storage duration within the current function scope",
+      "It marks the variable for automatic memory cleanup using the built-in garbage collector system",
+      "It instructs the compiler to deduce the variable type from the initializer expression provided",
+      "It creates a type alias that automatically updates whenever the assigned value type is changed",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The auto keyword tells the compiler to deduce the type of the variable from its initializer. It does not relate to storage duration or garbage collection. For example, auto x = 5; deduces x as int.",
+    link: "https://en.cppreference.com/w/cpp/language/auto",
+  },
+  {
+    id: 1393,
+    difficulty: "Easy",
+    topic: "Modern C++",
+    question: "What does `nullptr` replace in modern C++?",
+    options: [
+      "It replaces the use of NULL and the integer 0 as null pointer constants with a type-safe alternative",
+      "It replaces raw pointer declarations by automatically converting each of them into smart pointer types",
+      "It replaces manual memory deallocation by automatically freeing all of the dynamically allocated objects",
+      "It replaces void pointer casts by providing an implicit conversion pathway to any concrete pointer type",
+    ],
+    correctIndex: 0,
+    explanation:
+      "nullptr is a keyword that represents a null pointer literal with its own type (std::nullptr_t). It replaces the error-prone practice of using NULL or 0 as null pointer constants, which could be ambiguous in overload resolution.",
+    link: "https://en.cppreference.com/w/cpp/language/nullptr",
+  },
+  {
+    id: 1394,
+    difficulty: "Easy",
+    topic: "Modern C++",
+    question:
+      "What is the correct syntax for a range-based for loop introduced in C++11?",
+    code: `std::vector<int> v = {1, 2, 3};`,
+    options: [
+      "for (int i = 0; i < v.size(); i++) which iterates using an index counter variable throughout",
+      "for (auto it = v.begin(); it != v.end(); it++) which uses iterator-based traversal of elements",
+      "foreach (auto x in v) which uses the foreach keyword to traverse all of the stored elements",
+      "for (auto x : v) which uses the colon syntax to iterate over each element of the container",
+    ],
+    correctIndex: 3,
+    explanation:
+      "The range-based for loop uses the syntax for (declaration : range). It iterates over each element in the container. The foreach keyword does not exist in C++, and the other options show traditional loop styles.",
+    link: "https://en.cppreference.com/w/cpp/language/range-for",
+  },
+  {
+    id: 1395,
+    difficulty: "Easy",
+    topic: "Modern C++",
+    question: "What does `std::move` actually do to its argument?",
+    options: [
+      "It physically relocates the object data from one memory address to a completely different memory address",
+      "It performs an unconditional cast to an rvalue reference, enabling move semantics to then be applied",
+      "It transfers ownership of the underlying resource and then automatically sets the source to nullptr",
+      "It swaps the internal contents between two objects and then resets the source object to a blank state",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::move does not actually move anything. It is simply an unconditional cast to an rvalue reference (T&&), which makes the object eligible for move semantics. The actual moving happens when a move constructor or move assignment operator receives the rvalue reference.",
+    link: "https://en.cppreference.com/w/cpp/utility/move",
+  },
+  {
+    id: 1396,
+    difficulty: "Easy",
+    topic: "Modern C++",
+    question: "What kind of ownership does `std::unique_ptr` provide?",
+    options: [
+      "Exclusive ownership where only one unique_ptr instance can own the managed object at any given time",
+      "Shared ownership where multiple unique_ptr instances are allowed to point to the same managed object",
+      "Weak ownership where the unique_ptr does not contribute to any of the reference counting operations",
+      "Temporary ownership where the unique_ptr automatically expires after reaching a configurable timeout",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::unique_ptr provides exclusive (sole) ownership of a dynamically allocated object. It cannot be copied, only moved, ensuring that exactly one unique_ptr owns the object at any time. When the unique_ptr is destroyed, the managed object is deleted.",
+    link: "https://en.cppreference.com/w/cpp/memory/unique_ptr",
+  },
+  {
+    id: 1397,
+    difficulty: "Easy",
+    topic: "Modern C++",
+    question: "What is the purpose of the `override` keyword in C++11?",
+    options: [
+      "It forces the compiler to generate a default implementation of the virtual function body automatically",
+      "It allows a derived class to change the return type of the base class function it is now replacing",
+      "It explicitly indicates that a function is meant to override a virtual function in the base class",
+      "It prevents further derived classes from providing their own version of that virtual function body",
+    ],
+    correctIndex: 2,
+    explanation:
+      "The override keyword explicitly marks a function as overriding a base class virtual function. If the function does not actually override anything (e.g., due to a signature mismatch), the compiler generates an error. This helps catch bugs that would otherwise be silent.",
+    link: "https://en.cppreference.com/w/cpp/language/override",
+  },
+  {
+    id: 1398,
+    difficulty: "Easy",
+    topic: "Modern C++",
+    question:
+      "What is the primary advantage of using brace initialization (uniform initialization) in C++11?",
+    options: [
+      "It allows initializing all variables without specifying any type name for the declaration statement",
+      "It automatically selects the most efficient constructor overload based on the argument values given",
+      "It enables implicit narrowing conversions between numeric types and simplifies all casting operations",
+      "It prevents narrowing conversions and provides consistent syntax for every initialization context",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Brace initialization (using {}) prevents narrowing conversions (e.g., double to int) that would silently lose data. It also provides a uniform syntax that works for all types: primitives, aggregates, and classes with constructors.",
+    link: "https://en.cppreference.com/w/cpp/language/list_initialization",
+  },
+  {
+    id: 1399,
+    difficulty: "Easy",
+    topic: "Modern C++",
+    question:
+      "What does the `constexpr` specifier indicate about a function or variable?",
+    options: [
+      "It declares that the function or variable is only accessible from within a constant expression scope",
+      "It indicates that the value or return value can be evaluated and computed at compile time if possible",
+      "It declares that the function will be inlined at every call site to reduce the runtime call overhead",
+      "It declares that the variable is stored in read-only memory and causes an error if modified anywhere",
+    ],
+    correctIndex: 1,
+    explanation:
+      "constexpr tells the compiler that the function or variable can be evaluated at compile time. A constexpr function must satisfy certain constraints (e.g., no undefined behavior), and the compiler may compute the result during compilation rather than at runtime.",
+    link: "https://en.cppreference.com/w/cpp/language/constexpr",
+  },
+  {
+    id: 1400,
+    difficulty: "Easy",
+    topic: "Modern C++",
+    question:
+      "What does the `final` keyword prevent when applied to a class in C++11?",
+    options: [
+      "It prevents any other class from inheriting from the class that has been declared as final",
+      "It prevents the class from being instantiated directly and requires using a derived subclass",
+      "It prevents modification of all data members by making the entire class effectively constant",
+      "It prevents the class from being copied or moved by implicitly deleting those operators",
+    ],
+    correctIndex: 0,
+    explanation:
+      "When applied to a class, the final keyword prevents any further derivation from that class. Any attempt to inherit from a final class results in a compilation error. It can also be applied to virtual functions to prevent them from being overridden in derived classes.",
+    link: "https://en.cppreference.com/w/cpp/language/final",
+  },
+  {
+    id: 1401,
+    difficulty: "Easy",
+    topic: "Modern C++",
+    question: "What is a lambda expression in C++11?",
+    options: [
+      "A named function template that the compiler generates from a prototype specified inline in the code",
+      "A macro expansion mechanism that replaces function calls with their body text at preprocessing time",
+      "An anonymous function object that can be defined inline and that captures variables from its scope",
+      "A coroutine construct that allows functions to suspend their execution and resume at a later point",
+    ],
+    correctIndex: 2,
+    explanation:
+      "A lambda expression creates an anonymous function object (closure) that can capture variables from its enclosing scope. The syntax is [capture](params) -> ret { body }. Lambdas are widely used with STL algorithms and for callbacks.",
+    link: "https://en.cppreference.com/w/cpp/language/lambda",
+  },
+  {
+    id: 1402,
+    difficulty: "Medium",
+    topic: "Modern C++",
+    question: "What do structured bindings, introduced in C++17, allow you to do?",
+    code: `auto [x, y] = std::make_pair(1, 2);`,
+    options: [
+      "Destructure only arrays and C-style structs into named variables at the exact point of declaration",
+      "Create type aliases for each member of a class so they can be used as shorter local identifier names",
+      "Automatically convert a tuple into a parameter pack so it can be forwarded to some other function",
+      "Decompose objects like pairs, tuples, and structs into individually named variables in a single step",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Structured bindings allow you to decompose an object (pair, tuple, struct, or array) into individual named variables in a single declaration. They work with any type that supports std::tuple_size and std::get, or has accessible public members.",
+    link: "https://en.cppreference.com/w/cpp/language/structured_bindings",
+  },
+  {
+    id: 1403,
+    difficulty: "Medium",
+    topic: "Modern C++",
+    question: "What problem does `std::optional<T>`, introduced in C++17, solve?",
+    options: [
+      "It represents a value that may or may not be present, avoiding the need for any special sentinel values",
+      "It enforces that a value must always be initialized before use, thereby preventing undefined behavior",
+      "It provides thread-safe access to a shared value by wrapping it with an internal mutex lock guard",
+      "It creates a lazy evaluation wrapper that delays construction of the value until it is first accessed",
+    ],
+    correctIndex: 0,
+    explanation:
+      "std::optional<T> holds either a value of type T or nothing (std::nullopt). It replaces the need for sentinel values like -1 or nullptr to represent 'no value'. Unlike pointers, it does not involve heap allocation and clearly expresses intent.",
+    link: "https://en.cppreference.com/w/cpp/utility/optional",
+  },
+  {
+    id: 1404,
+    difficulty: "Medium",
+    topic: "Modern C++",
+    question:
+      "What is the primary purpose of rvalue references (declared with `&&`) in C++11?",
+    options: [
+      "They create constant references that can bind to temporaries and also extend the temporary lifetime",
+      "They allow functions to restrict their parameters so that they accept only literal values not variables",
+      "They enable move semantics by allowing functions to detect and transfer temporary object resources",
+      "They provide universal references that can bind to both lvalue and rvalue expression categories",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Rvalue references (T&&) enable move semantics by allowing functions to distinguish between temporary objects (rvalues) and persistent objects (lvalues). Move constructors and move assignment operators take rvalue references, enabling efficient resource transfer from temporaries.",
+    link: "https://en.cppreference.com/w/cpp/language/reference",
+  },
+  {
+    id: 1405,
+    difficulty: "Medium",
+    topic: "Modern C++",
+    question:
+      "What is the difference between `[=]` and `[&]` in a C++11 lambda capture clause?",
+    options: [
+      "Capture by value copies only const variables while capture by reference captures all mutable ones",
+      "Capture by value copies all accessible local variables while capture by reference aliases them all",
+      "Capture by value binds to global variables only while capture by reference binds to local variables",
+      "Capture by value creates deep copies of all pointer types while capture by reference shares memory",
+    ],
+    correctIndex: 1,
+    explanation:
+      "[=] captures all local variables by value (making copies), while [&] captures all local variables by reference (creating aliases). With [=], modifying a captured variable inside the lambda does not affect the original (unless the lambda is mutable). With [&], changes are reflected in the original.",
+    link: "https://en.cppreference.com/w/cpp/language/lambda",
+  },
+  {
+    id: 1406,
+    difficulty: "Medium",
+    topic: "Modern C++",
+    question:
+      "What is the main advantage of using `std::string_view` introduced in C++17?",
+    options: [
+      "It provides a mutable view into a string that allows efficient in-place modification of each character",
+      "It automatically manages the lifetime of the underlying string data using reference counting inside",
+      "It converts all string types into a common format that enables cross-platform text encoding support",
+      "It provides a lightweight non-owning reference to a string and avoids unnecessary copy operations",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::string_view is a non-owning, read-only reference to a contiguous sequence of characters. It avoids copying string data, making it efficient for passing strings to functions. Since it does not own the data, the underlying string must outlive the string_view.",
+    link: "https://en.cppreference.com/w/cpp/string/basic_string_view",
+  },
+  {
+    id: 1407,
+    difficulty: "Medium",
+    topic: "Modern C++",
+    question:
+      "What does `if constexpr` in C++17 do differently from a regular `if` statement?",
+    options: [
+      "It evaluates the condition at compile time and completely discards the branch that is not taken",
+      "It converts both the taken and untaken branch paths into branchless instructions for optimization",
+      "It forces the condition to use only constexpr variables and rejects any runtime value arguments",
+      "It caches the result of the first evaluation and reuses that same cached result on later calls",
+    ],
+    correctIndex: 0,
+    explanation:
+      "if constexpr evaluates the condition at compile time. The branch that is not taken is discarded entirely and does not need to be valid code for the given template arguments. This is especially useful in templates to avoid instantiating code paths that would not compile for certain types.",
+    link: "https://en.cppreference.com/w/cpp/language/if",
+  },
+  {
+    id: 1408,
+    difficulty: "Medium",
+    topic: "Modern C++",
+    question:
+      "Why is `std::make_shared<T>(args)` generally preferred over `std::shared_ptr<T>(new T(args))`?",
+    options: [
+      "It enables the shared pointer to use stack allocation instead of heap allocation for small objects",
+      "It allows the shared pointer to bypass reference counting and use garbage collection for cleanup",
+      "It combines the control block and object into a single allocation, which improves cache locality",
+      "It automatically selects between shared and unique pointer semantics based on context of the usage",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::make_shared performs a single heap allocation for both the object and the control block (which holds the reference count). Using new T separately allocates the object first, then the shared_ptr allocates another block for the control data, resulting in two allocations and worse cache locality.",
+    link: "https://en.cppreference.com/w/cpp/memory/shared_ptr/make_shared",
+  },
+  {
+    id: 1409,
+    difficulty: "Medium",
+    topic: "Modern C++",
+    question:
+      "What does the `noexcept` specifier do when applied to a function in C++11?",
+    options: [
+      "It causes the compiler to wrap the entire function body in a try-catch block that silently ignores errors",
+      "It indicates that the function will not throw exceptions, allowing the compiler to optimize further",
+      "It converts all exceptions thrown inside the function into error codes returned to the caller directly",
+      "It restricts the function from calling any other functions that have not also been marked as noexcept",
+    ],
+    correctIndex: 1,
+    explanation:
+      "noexcept declares that a function will not throw exceptions. If it does throw, std::terminate is called. The compiler can use this guarantee to optimize code, and certain standard library operations (like std::vector reallocation) prefer noexcept move operations for exception safety.",
+    link: "https://en.cppreference.com/w/cpp/language/noexcept_spec",
+  },
+  {
+    id: 1410,
+    difficulty: "Medium",
+    topic: "Modern C++",
+    question: "What is Class Template Argument Deduction (CTAD), introduced in C++17?",
+    code: `std::pair p(1, 2.0); // What feature allows omitting <int, double>?`,
+    options: [
+      "The compiler deduces template arguments from constructor arguments so you can omit them entirely",
+      "The compiler generates a new class specialization based on the types of variables in the context",
+      "The compiler replaces the template class with a concrete class matching the nearest overload set",
+      "The compiler infers the return type of template member functions from the return value statement",
+    ],
+    correctIndex: 0,
+    explanation:
+      "CTAD allows the compiler to deduce class template arguments from the arguments passed to the constructor, so you can write std::pair p(1, 2.0) instead of std::pair<int, double> p(1, 2.0). This works for standard library types and user-defined types with appropriate deduction guides.",
+    link: "https://en.cppreference.com/w/cpp/language/class_template_argument_deduction",
+  },
+  {
+    id: 1411,
+    difficulty: "Medium",
+    topic: "Modern C++",
+    question:
+      "What advantage does a scoped enumeration (`enum class`) have over a traditional `enum`?",
+    options: [
+      "It allows enumerators to hold string values in addition to the underlying integer representation",
+      "It generates comparison operators automatically so that enumerators can be sorted by their names",
+      "It permits enumerators from different enum types to share the same name in a single enclosing scope",
+      "It prevents implicit conversions to integers and keeps enumerator names scoped to the enum itself",
+    ],
+    correctIndex: 3,
+    explanation:
+      "enum class (scoped enumeration) has two main advantages: enumerators do not implicitly convert to integers (you must use static_cast), and enumerator names are scoped within the enum (accessed via EnumName::Value), preventing name collisions with other enumerators.",
+    link: "https://en.cppreference.com/w/cpp/language/enum",
+  },
+  {
+    id: 1412,
+    difficulty: "Hard",
+    topic: "Modern C++",
+    question:
+      "What problem does `std::forward` solve in the context of perfect forwarding?",
+    options: [
+      "It prevents argument type decay by preserving array and function types during template forwarding",
+      "It forces all arguments into rvalue references to guarantee that move semantics always get applied",
+      "It preserves whether an argument was an lvalue or rvalue so the correct overload gets called next",
+      "It converts all forwarded arguments to const references to prevent any unintended modifications",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::forward conditionally casts its argument to an rvalue reference only if the original argument was an rvalue. In a forwarding reference (T&&), T is deduced as an lvalue reference for lvalues and as a non-reference for rvalues. std::forward uses this to preserve the original value category when passing to another function.",
+    link: "https://en.cppreference.com/w/cpp/utility/forward",
+  },
+  {
+    id: 1413,
+    difficulty: "Hard",
+    topic: "Modern C++",
+    question:
+      "What do fold expressions, introduced in C++17, allow you to do with parameter packs?",
+    code: `template<typename... Args>
+auto sum(Args... args) { return (... + args); }`,
+    options: [
+      "They expand parameter packs into recursive template instantiations that process each element in turn",
+      "They apply a binary operator across all elements in a parameter pack without writing any recursion",
+      "They convert parameter packs into initializer lists that are then passed to a standard library call",
+      "They unpack all variadic arguments into separate function calls that each handle a single argument",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Fold expressions provide a concise way to apply a binary operator over all elements of a parameter pack. The syntax (... op args) is a left fold, and (args op ...) is a right fold. Before C++17, you needed recursive template instantiation to achieve the same result.",
+    link: "https://en.cppreference.com/w/cpp/language/fold",
+  },
+  {
+    id: 1414,
+    difficulty: "Hard",
+    topic: "Modern C++",
+    question: "What do user-defined literals in C++11 allow a programmer to create?",
+    code: `constexpr long double operator""_deg(long double d) {
+  return d * 3.14159265 / 180;
+}`,
+    options: [
+      "Custom suffixes for literals that invoke a specific function to produce a typed value from the input",
+      "New fundamental types that can be used in arithmetic expressions alongside built-in numeric types",
+      "Compile-time string parsers that convert string literals into structured data at preprocessing time",
+      "Overloaded assignment operators that convert raw literals to user-defined class instances implicitly",
+    ],
+    correctIndex: 0,
+    explanation:
+      "User-defined literals allow you to define custom suffixes (like _deg, _km, _s) that transform literal values by calling a function. The suffix must start with an underscore. This enables expressive syntax like 90.0_deg or 5_km while being type-safe.",
+    link: "https://en.cppreference.com/w/cpp/language/user_literal",
+  },
+  {
+    id: 1415,
+    difficulty: "Hard",
+    topic: "Modern C++",
+    question: "How does `std::any` in C++17 store values of arbitrary types?",
+    options: [
+      "It stores a void pointer to the original object and relies on the programmer to cast back correctly",
+      "It serializes the value into a byte array and deserializes it when the stored value is retrieved",
+      "It uses a union of all primitive types combined with a template wrapper for user-defined class types",
+      "It uses type erasure to store any copyable type and performs a type check when the value is accessed",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::any uses type erasure internally to store a value of any copy-constructible type. It stores type information alongside the value, and std::any_cast<T> checks this information at runtime, throwing std::bad_any_cast if the types do not match. Small objects may be stored inline (small buffer optimization).",
+    link: "https://en.cppreference.com/w/cpp/utility/any",
+  },
+  {
+    id: 1416,
+    difficulty: "Hard",
+    topic: "Modern C++",
+    question: "What change did C++17 make to aggregate initialization rules?",
+    options: [
+      "It allowed aggregates to have virtual functions provided they had no user-declared constructor bodies",
+      "It required every aggregate member to provide a default member initializer for the class to qualify",
+      "It extended aggregates to include classes with public base classes, enabling direct initialization",
+      "It allowed aggregates to contain private data members if all members shared the same access level",
+    ],
+    correctIndex: 2,
+    explanation:
+      "C++17 extended the definition of an aggregate to include classes with public, non-virtual base classes. This means you can use aggregate initialization syntax to initialize the base class members directly: struct Derived : Base { int x; }; Derived d{{base_args}, x_val};",
+    link: "https://en.cppreference.com/w/cpp/language/aggregate_initialization",
+  },
+  {
+    id: 1417,
+    difficulty: "Hard",
+    topic: "Modern C++",
+    question:
+      "According to the C++11 reference collapsing rules, what does `T& &&` collapse to?",
+    options: [
+      "It collapses to T&& because the rightmost reference type always takes priority in the combination",
+      "It collapses to T& because an lvalue reference in any combination always produces an lvalue result",
+      "It causes a compilation error because mixing lvalue and rvalue references is not permitted by rules",
+      "It collapses to const T& because the compiler adds const qualification to resolve the ambiguity",
+    ],
+    correctIndex: 1,
+    explanation:
+      "The reference collapsing rules state that if either reference is an lvalue reference, the result is an lvalue reference (T&). Only when both are rvalue references (T&& &&) does the result collapse to T&&. This is fundamental to how forwarding references and std::forward work.",
+    link: "https://en.cppreference.com/w/cpp/language/reference",
+  },
+  {
+    id: 1418,
+    difficulty: "Hard",
+    topic: "Modern C++",
+    question:
+      "What does `std::invoke` from C++17 provide that a regular function call does not?",
+    options: [
+      "It enables calling functions asynchronously by wrapping them in a future that runs on another thread",
+      "It offers a uniform way to call any callable such as functions, lambdas, and member function pointers",
+      "It adds automatic exception handling to every call by wrapping the invocation in a try-catch block",
+      "It defers the function call until the return value is actually needed, implementing lazy evaluation",
+    ],
+    correctIndex: 1,
+    explanation:
+      "std::invoke provides a uniform calling syntax for all callable types: regular functions, function pointers, member function pointers, member data pointers, lambdas, and function objects. Without it, calling a member function pointer requires special syntax like (obj.*pmf)(args), while std::invoke(pmf, obj, args) works uniformly.",
+    link: "https://en.cppreference.com/w/cpp/utility/functional/invoke",
+  },
+  {
+    id: 1419,
+    difficulty: "Hard",
+    topic: "Modern C++",
+    question:
+      "What does guaranteed copy elision in C++17 mean for returning objects by value?",
+    options: [
+      "The compiler must move the local object to the caller by using an implicit move constructor call",
+      "The compiler may choose to either copy or move the return value depending on the optimization flags",
+      "The local object must first be constructed and then bit-copied into the return value storage area",
+      "The object is constructed directly in the caller storage, so no copy or move constructor is needed",
+    ],
+    correctIndex: 3,
+    explanation:
+      "C++17 guarantees that in certain cases (like returning a prvalue), no copy or move occurs at all. The object is constructed directly in the memory where the caller expects it. This means types that are not copyable or movable can still be returned by value from functions.",
+    link: "https://en.cppreference.com/w/cpp/language/copy_elision",
+  },
+  {
+    id: 1420,
+    difficulty: "Hard",
+    topic: "Modern C++",
+    question:
+      "What do inline variables, introduced in C++17, allow that was previously difficult?",
+    options: [
+      "They allow variables to be allocated on the stack instead of the heap, which improves access speed",
+      "They allow global variables to be optimized away entirely by the linker when they are never needed",
+      "They allow a variable defined in a header to be shared across multiple translation units without error",
+      "They allow const member variables to be modified after construction using a special inline accessor",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Inline variables allow a variable to be defined in a header file and included in multiple translation units without causing multiple definition errors. The linker ensures only one instance exists. This is especially useful for static data members of classes defined in headers.",
+    link: "https://en.cppreference.com/w/cpp/language/inline",
+  },
+  {
+    id: 1421,
+    difficulty: "Hard",
+    topic: "Modern C++",
+    question: "What is the purpose of a user-defined deduction guide in C++17?",
+    code: `template<typename T>
+MyContainer(T, T) -> MyContainer<T>;`,
+    options: [
+      "It specifies how the compiler should optimize the generated template code for a given type argument",
+      "It tells the compiler how to deduce class template arguments from constructor arguments during CTAD",
+      "It provides a fallback constructor that the compiler uses when no matching constructor overload exists",
+      "It defines an implicit conversion sequence from one template specialization to a different one overall",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A user-defined deduction guide tells the compiler how to map constructor argument types to class template parameters for CTAD. Without a deduction guide, CTAD uses the constructors directly. Deduction guides are needed when the desired template arguments cannot be deduced from the constructors alone.",
+    link: "https://en.cppreference.com/w/cpp/language/class_template_argument_deduction",
+  },
 ];
