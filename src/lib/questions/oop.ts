@@ -1283,4 +1283,150 @@ export const questions: Question[] = [
       "Copy initialization (=) conceptually constructs a temporary and then copy/move-constructs the target. Even though copy elision (guaranteed since C++17 for prvalues) eliminates the actual copy, pre-C++17 the copy/move constructor must be accessible. Direct initialization has no such requirement.",
     link: "https://en.cppreference.com/w/cpp/language/direct_initialization.html",
   },
+
+  // ── OOP fundamentals (Q1548–Q1556) ──
+  {
+    id: 1548,
+    difficulty: "Easy",
+    topic: "OOP",
+    question: "What is a class in C++?",
+    options: [
+      "A user-defined type that bundles data members and member functions into a single unit",
+      "A built-in keyword that allocates memory on the heap for a group of related variables",
+      "A special function template that generates different versions of code at compile time",
+      "A namespace-like construct that only allows static functions and forbids member variables",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A class is a user-defined type that combines data members (attributes) and member functions (methods) into one cohesive unit. Classes serve as blueprints for creating objects and are the foundation of object-oriented programming in C++.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-classes/",
+  },
+  {
+    id: 1549,
+    difficulty: "Easy",
+    topic: "OOP",
+    question: "What is an object in C++?",
+    options: [
+      "A compile-time constant that the preprocessor substitutes before compilation begins",
+      "A synonym for a pointer that stores the address of a dynamically allocated variable",
+      "A specific instance of a class that occupies memory and holds its own member data",
+      "A header file that declares function prototypes and type definitions for a module",
+    ],
+    correctIndex: 2,
+    explanation:
+      "An object is a specific instance of a class. When you declare a variable of a class type, the compiler allocates memory for that object's data members. Each object maintains its own copy of non-static data members, while sharing the class's member function definitions.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-classes/",
+  },
+  {
+    id: 1550,
+    difficulty: "Easy",
+    topic: "OOP",
+    question: "What is inheritance in C++?",
+    options: [
+      "A technique that hides internal data by declaring all member variables as private fields",
+      "A mechanism that allows a class to acquire the members and behavior of another class",
+      "A compile-time process that inlines all function calls to eliminate virtual dispatch cost",
+      "A design pattern that restricts a class to only one instance throughout the application",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Inheritance is a mechanism where a new class (derived class) is created from an existing class (base class), automatically acquiring its data members and member functions. This enables code reuse and establishes an is-a relationship between the derived and base classes.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-inheritance/",
+  },
+  {
+    id: 1551,
+    difficulty: "Easy",
+    topic: "OOP",
+    question: "What is polymorphism in C++?",
+    options: [
+      "A feature that prevents derived classes from overriding base class member functions",
+      "A restriction that limits each class to inheriting from exactly one base class only",
+      "A compiler optimization that removes unused virtual functions from the final binary",
+      "The ability to treat objects of different types through a common interface at runtime",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Polymorphism allows objects of different derived classes to be treated uniformly through a base class pointer or reference. When a virtual function is called through a base pointer, the correct derived class version is invoked at runtime via dynamic dispatch, enabling flexible and extensible code.",
+    link: "https://www.learncpp.com/cpp-tutorial/virtual-functions/",
+  },
+  {
+    id: 1552,
+    difficulty: "Easy",
+    topic: "OOP",
+    question: "What is abstraction in object-oriented programming?",
+    options: [
+      "The requirement that every class must inherit from at least one abstract base class type",
+      "The process of converting all member variables from private access to public access level",
+      "A compiler technique that merges multiple small classes into a single optimized structure",
+      "The practice of exposing only essential details while hiding complex implementation logic",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Abstraction is the practice of exposing only the relevant interface to users while hiding the complex implementation details. In C++, abstraction is achieved through access specifiers, abstract classes, and well-designed public interfaces that let users interact with objects without knowing their internal workings.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-object-oriented-programming/",
+  },
+  {
+    id: 1553,
+    difficulty: "Easy",
+    topic: "OOP",
+    question: "What is a constructor in C++?",
+    options: [
+      "A regular member function that must be called manually after an object is allocated",
+      "A static function that returns a pointer to a newly allocated object on the free store",
+      "A special member function that is automatically called when an object is first created",
+      "A friend function that initializes private members of a class from outside the scope",
+    ],
+    correctIndex: 2,
+    explanation:
+      "A constructor is a special member function with the same name as the class and no return type. It is called automatically when an object is created, allowing you to initialize member variables and acquire resources. A class can have multiple constructors with different parameter lists.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-constructors/",
+  },
+  {
+    id: 1554,
+    difficulty: "Easy",
+    topic: "OOP",
+    question: "What is a virtual function in C++?",
+    options: [
+      "A function declared in a derived class that cannot be called through a base class pointer",
+      "A function declared with the virtual keyword that enables runtime polymorphic dispatch",
+      "A function that is automatically inlined by the compiler to avoid function call overhead",
+      "A function that only exists at compile time and is removed from the final binary output",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A virtual function is a member function declared with the virtual keyword in a base class. When called through a base class pointer or reference, the most-derived override is invoked at runtime. This dynamic dispatch mechanism is the foundation of runtime polymorphism in C++.",
+    link: "https://www.learncpp.com/cpp-tutorial/virtual-functions/",
+  },
+  {
+    id: 1555,
+    difficulty: "Medium",
+    topic: "OOP",
+    question: "What is an abstract class in C++?",
+    options: [
+      "A class that has no member variables and only provides static utility function methods",
+      "A class that is marked with the abstract keyword and can only exist on the heap memory",
+      "A class that cannot be instantiated because it contains at least one pure virtual function",
+      "A class that is declared inside another class and can only be accessed by its enclosing one",
+    ],
+    correctIndex: 2,
+    explanation:
+      "An abstract class contains at least one pure virtual function (declared with = 0). It cannot be instantiated directly and serves as an interface that derived classes must implement. Unlike some other languages, C++ does not have an explicit abstract keyword.",
+    link: "https://www.learncpp.com/cpp-tutorial/pure-virtual-functions-abstract-base-classes-and-interface-classes/",
+  },
+  {
+    id: 1556,
+    difficulty: "Medium",
+    topic: "OOP",
+    question: "What is operator overloading in C++?",
+    options: [
+      "A technique that restricts built-in operators to only work with primitive data types",
+      "A feature that lets you redefine how built-in operators work with user-defined types",
+      "A compiler pass that optimizes repeated use of the same operator into a single call",
+      "A mechanism that converts all operator expressions into equivalent function templates",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Operator overloading allows you to define custom behavior for built-in operators like +, -, ==, and << when used with your own class types. This makes user-defined types feel natural to use with the same syntax as built-in types. Most operators can be overloaded, with a few exceptions like :: and sizeof.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-operator-overloading/",
+  },
 ];
