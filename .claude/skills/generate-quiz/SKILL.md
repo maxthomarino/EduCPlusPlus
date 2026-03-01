@@ -8,16 +8,22 @@ argument-hint: <topic-name>
 
 ## Step 1 — Gather context
 
-1. Read `src/lib/questions.ts` to find:
-   - The current **max question ID** (scan all `id: N` values).
+1. Read `src/lib/questions/index.ts` to find:
    - The **TOPICS** array — check if `$ARGUMENTS` already exists there.
-   - The format and style of existing questions (indentation, field order, etc.).
-2. New questions start at **max ID + 1**.
+   - The format and style of existing questions (read one topic file for reference).
+2. Find the current **max question ID** by running:
+   ```bash
+   node -e "const fs=require('fs'),path=require('path'),dir='src/lib/questions';const ids=fs.readdirSync(dir).filter(f=>f.endsWith('.ts')&&f!=='index.ts'&&f!=='types.ts').flatMap(f=>[...fs.readFileSync(path.join(dir,f),'utf8').matchAll(/id:\s*(\d+)/g)].map(m=>+m[1]));console.log('Max ID:',Math.max(...ids),'Total:',ids.length)"
+   ```
+3. New questions start at **max ID + 1**.
 
 ## Step 2 — Topic handling
 
 - If `$ARGUMENTS` matches an existing topic in the TOPICS array, use that exact string.
-- If it is a **new** topic, add it to the `TOPICS` array in `src/lib/questions.ts` (in alphabetical order among the existing entries).
+- If it is a **new** topic:
+  1. Add it to the `TOPICS` array in `src/lib/questions/index.ts` (in alphabetical order).
+  2. Create a new topic file `src/lib/questions/<kebab-case>.ts` with the standard structure.
+  3. Add the import and spread to `src/lib/questions/index.ts`.
 
 ## Step 3 — Generate 30 questions
 
@@ -82,11 +88,12 @@ For every question, follow this process:
 - The `explanation` should teach -- explain **why** the correct answer is right and, ideally, why the most tempting distractor is wrong.
 - Avoid trick questions. Test understanding, not gotchas.
 
-## Step 4 — Append to questions.ts
+## Step 4 — Append to the topic file
 
-1. Add a section comment before the new questions: `// ── $ARGUMENTS (Q{firstId}–Q{lastId}) ──`
-2. Append all 30 questions to the `questions` array in `src/lib/questions.ts`.
-3. If the topic is new, also update the TOPICS array (Step 2).
+1. Find the existing topic file in `src/lib/questions/` (e.g., `cpp-idioms.ts` for "C++ Idioms").
+2. Add a section comment before the new questions: `// ── $ARGUMENTS (Q{firstId}–Q{lastId}) ──`
+3. Append all 30 questions to the `questions` array in that topic file.
+4. If the topic is new, also complete the steps in Step 2 (create file, update index.ts).
 
 ## Step 5 — Validate
 
@@ -94,7 +101,8 @@ After writing, run this validation:
 
 ```bash
 node -e "
-const src = require('fs').readFileSync('src/lib/questions.ts', 'utf8');
+const fs=require('fs'),path=require('path'),dir='src/lib/questions';
+const src=fs.readdirSync(dir).filter(f=>f.endsWith('.ts')&&f!=='index.ts'&&f!=='types.ts').map(f=>fs.readFileSync(path.join(dir,f),'utf8')).join('\n');
 const ids = [...src.matchAll(/id:\s*(\d+)/g)].map(m=>parseInt(m[1]));
 const idRegex = /\{\s*id:\s*(\d+),/g;
 let m; const positions = [];
@@ -144,12 +152,13 @@ If any check fails, fix the issues before finishing.
 Then run these additional checks:
 
 ```bash
-npx tsc --noEmit src/lib/questions.ts
+npx tsc --noEmit src/lib/questions/index.ts
 ```
 
 ```bash
 node -e "
-const src = require('fs').readFileSync('src/lib/questions.ts', 'utf8');
+const fs=require('fs'),path=require('path'),dir='src/lib/questions';
+const src=fs.readdirSync(dir).filter(f=>f.endsWith('.ts')&&f!=='index.ts'&&f!=='types.ts').map(f=>fs.readFileSync(path.join(dir,f),'utf8')).join('\n');
 // Check em-dashes
 const emDashes = (src.match(/\u2014/g) || []).length;
 console.log('Em-dashes found:', emDashes);

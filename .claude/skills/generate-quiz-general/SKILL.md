@@ -7,12 +7,14 @@ description: Generate 30 balanced MCQs on a topic chosen by the AI based on cove
 
 ## Step 1 — Gather context and choose a topic
 
-1. Read `src/lib/questions.ts` to find:
-   - The current **max question ID** (scan all `id: N` values).
-   - The **TOPICS** array and the **count of questions per topic**.
-   - The format and style of existing questions (indentation, field order, etc.).
-2. New questions start at **max ID + 1**.
-3. **Choose the topic** using this priority order:
+1. Read `src/lib/questions/index.ts` to find the **TOPICS** array.
+2. Find the current **max question ID** and **count per topic** by running:
+   ```bash
+   node -e "const fs=require('fs'),path=require('path'),dir='src/lib/questions';const counts={};let maxId=0;fs.readdirSync(dir).filter(f=>f.endsWith('.ts')&&f!=='index.ts'&&f!=='types.ts').forEach(f=>{const src=fs.readFileSync(path.join(dir,f),'utf8');const ids=[...src.matchAll(/id:\s*(\d+)/g)].map(m=>+m[1]);const topics=[...src.matchAll(/topic:\s*\"([^\"]+)\"/g)].map(m=>m[1]);const t=topics[0]||f;counts[t]=ids.length;maxId=Math.max(maxId,...ids)});console.log('Max ID:',maxId);console.log('Per topic:');Object.entries(counts).sort((a,b)=>a[1]-b[1]).forEach(([t,c])=>console.log(' ',c,t))"
+   ```
+3. Read one topic file for format/style reference.
+4. New questions start at **max ID + 1**.
+5. **Choose the topic** using this priority order:
    - **First priority**: Pick an existing topic that has the fewest questions (least coverage).
    - **Second priority**: If all existing topics have roughly equal coverage (within 10 of each other), introduce a **new** C++ topic that is not yet in the TOPICS array. Good candidates include: Concurrency, Exceptions, Namespaces, Preprocessor, Enumerations, Lambdas, Iterators, Move Semantics, RAII, Operator Overloading, Function Overloading, Inheritance, Unions, Bitwise Operations, Constexpr, Concepts, Ranges, Coroutines, Modules, or any other core C++ topic missing from the list.
    - **Never** pick the topic that already has the most questions.
@@ -21,7 +23,10 @@ description: Generate 30 balanced MCQs on a topic chosen by the AI based on cove
 ## Step 2 — Topic handling
 
 - If the chosen topic matches an existing topic in the TOPICS array, use that exact string.
-- If it is a **new** topic, add it to the `TOPICS` array in `src/lib/questions.ts` (in alphabetical order among the existing entries).
+- If it is a **new** topic:
+  1. Add it to the `TOPICS` array in `src/lib/questions/index.ts` (in alphabetical order).
+  2. Create a new topic file `src/lib/questions/<kebab-case>.ts` with the standard structure.
+  3. Add the import and spread to `src/lib/questions/index.ts`.
 
 ## Step 3 — Generate 30 questions
 
@@ -86,11 +91,12 @@ For every question, follow this process:
 - The `explanation` should teach -- explain **why** the correct answer is right and, ideally, why the most tempting distractor is wrong.
 - Avoid trick questions. Test understanding, not gotchas.
 
-## Step 4 — Append to questions.ts
+## Step 4 — Append to the topic file
 
-1. Add a section comment before the new questions: `// ── {CHOSEN_TOPIC} (Q{firstId}–Q{lastId}) ──`
-2. Append all 30 questions to the `questions` array in `src/lib/questions.ts`.
-3. If the topic is new, also update the TOPICS array (Step 2).
+1. Find the existing topic file in `src/lib/questions/` (e.g., `cpp-idioms.ts` for "C++ Idioms").
+2. Add a section comment before the new questions: `// ── {CHOSEN_TOPIC} (Q{firstId}–Q{lastId}) ──`
+3. Append all 30 questions to the `questions` array in that topic file.
+4. If the topic is new, also complete the steps in Step 2 (create file, update index.ts).
 
 ## Step 5 — Validate
 
@@ -98,7 +104,8 @@ After writing, run this validation:
 
 ```bash
 node -e "
-const src = require('fs').readFileSync('src/lib/questions.ts', 'utf8');
+const fs=require('fs'),path=require('path'),dir='src/lib/questions';
+const src=fs.readdirSync(dir).filter(f=>f.endsWith('.ts')&&f!=='index.ts'&&f!=='types.ts').map(f=>fs.readFileSync(path.join(dir,f),'utf8')).join('\n');
 const ids = [...src.matchAll(/id:\s*(\d+)/g)].map(m=>parseInt(m[1]));
 const idRegex = /\{\s*id:\s*(\d+),/g;
 let m; const positions = [];
@@ -148,12 +155,13 @@ If any check fails, fix the issues before finishing.
 Then run these additional checks:
 
 ```bash
-npx tsc --noEmit src/lib/questions.ts
+npx tsc --noEmit src/lib/questions/index.ts
 ```
 
 ```bash
 node -e "
-const src = require('fs').readFileSync('src/lib/questions.ts', 'utf8');
+const fs=require('fs'),path=require('path'),dir='src/lib/questions';
+const src=fs.readdirSync(dir).filter(f=>f.endsWith('.ts')&&f!=='index.ts'&&f!=='types.ts').map(f=>fs.readFileSync(path.join(dir,f),'utf8')).join('\n');
 // Check em-dashes
 const emDashes = (src.match(/\u2014/g) || []).length;
 console.log('Em-dashes found:', emDashes);
