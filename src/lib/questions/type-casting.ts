@@ -964,4 +964,551 @@ process(0);`,
       "The integer literal 0 can be implicitly converted to double (floating-point conversion), to long (integral conversion), and to char* (null pointer conversion). All three are standard conversion sequences of the same rank (Conversion rank, not Promotion). Since no conversion is better than the others per the overload resolution ranking rules, the call is ambiguous and the program is ill-formed. Note that int-to-long is an integral conversion, not a promotion (promotion only goes to int or unsigned int).",
     link: "https://en.cppreference.com/w/cpp/language/overload_resolution.html",
   },
+
+  // ── Type Casting (Q1512–Q1541) ──
+  {
+    id: 1512,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "What does static_cast do in C++?",
+    options: [
+      "It performs a compile-time checked conversion between related types",
+      "It performs a runtime checked conversion using RTTI polymorphism",
+      "It removes const or volatile qualifiers from a variable type",
+      "It reinterprets the underlying bit pattern of one type as another",
+    ],
+    correctIndex: 0,
+    explanation:
+      "static_cast performs well-defined, compile-time conversions between related types such as numeric promotions, pointer upcasts in class hierarchies, and explicit conversions. It does not use RTTI and does not change constness or reinterpret bits.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast",
+  },
+  {
+    id: 1513,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "Which cast operator should be used to convert an int to a double?",
+    options: [
+      "reinterpret_cast because it converts between unrelated types directly",
+      "dynamic_cast because it safely checks the conversion at runtime",
+      "const_cast because it adjusts the type qualifier of the value",
+      "static_cast because it handles well-defined numeric conversions",
+    ],
+    correctIndex: 3,
+    explanation:
+      "static_cast is the correct choice for numeric conversions like int to double. These are well-defined implicit conversions that static_cast makes explicit. dynamic_cast is for polymorphic hierarchies, const_cast is for constness, and reinterpret_cast is for low-level bit reinterpretation.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast",
+  },
+  {
+    id: 1514,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "What is the purpose of dynamic_cast in C++?",
+    options: [
+      "It converts between numeric types like int and double at compile time",
+      "It safely casts pointers or references within a polymorphic hierarchy",
+      "It removes the const qualifier from a pointer to allow modification",
+      "It reinterprets the raw bit pattern of a pointer to a different type",
+    ],
+    correctIndex: 1,
+    explanation:
+      "dynamic_cast is designed to safely cast pointers and references within polymorphic class hierarchies. It uses RTTI to verify the cast at runtime, returning nullptr for pointer casts or throwing std::bad_cast for reference casts if the conversion is invalid.",
+    link: "https://en.cppreference.com/w/cpp/language/dynamic_cast",
+  },
+  {
+    id: 1515,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "What does const_cast do in C++?",
+    options: [
+      "It converts a value from one numeric type to another numeric type",
+      "It performs a runtime-checked downcast in a class hierarchy safely",
+      "It reinterprets the memory layout of one type as a different type",
+      "It adds or removes const or volatile qualifiers from an expression",
+    ],
+    correctIndex: 3,
+    explanation:
+      "const_cast is the only C++ cast that can add or remove the const and volatile qualifiers from a type. It cannot change the underlying type itself. Modifying an originally const object through const_cast results in undefined behavior.",
+    link: "https://en.cppreference.com/w/cpp/language/const_cast",
+  },
+  {
+    id: 1516,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "What is the role of reinterpret_cast in C++?",
+    options: [
+      "It performs safe runtime-checked conversions within class hierarchies",
+      "It handles standard numeric conversions between arithmetic types only",
+      "It converts the bit pattern of a pointer or value to an unrelated type",
+      "It removes the const qualifier from a pointer to a constant object",
+    ],
+    correctIndex: 2,
+    explanation:
+      "reinterpret_cast performs low-level reinterpretation of the bit pattern of one type as another. It is typically used for pointer-to-integer conversions or casting between unrelated pointer types. The result is implementation-defined and should be used with caution.",
+    link: "https://en.cppreference.com/w/cpp/language/reinterpret_cast",
+  },
+  {
+    id: 1517,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "Why are C++ named casts preferred over C-style casts?",
+    options: [
+      "Named casts run faster than C-style casts due to compiler optimizations",
+      "Named casts make the programmer's intent explicit and are easier to find",
+      "C-style casts cannot perform numeric conversions between built-in types",
+      "C-style casts always produce undefined behavior in modern C++ compilers",
+    ],
+    correctIndex: 1,
+    explanation:
+      "C++ named casts are preferred because they clearly express the programmer's intent, making code more readable and easier to search for in code reviews. C-style casts can silently perform any combination of static_cast, const_cast, and reinterpret_cast, hiding potentially dangerous conversions.",
+    link: "https://www.learncpp.com/cpp-tutorial/explicit-type-conversion-casting-and-static-cast/",
+  },
+  {
+    id: 1518,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "What is an implicit conversion in C++?",
+    options: [
+      "A conversion that the compiler performs automatically without a cast",
+      "A conversion that requires a static_cast to be written by the coder",
+      "A conversion that only works with pointers in polymorphic hierarchies",
+      "A conversion that reinterprets the bit pattern without changing value",
+    ],
+    correctIndex: 0,
+    explanation:
+      "An implicit conversion is one the compiler performs automatically when a value of one type is used in a context that expects another compatible type. Common examples include int to double, derived pointer to base pointer, and array to pointer decay.",
+    link: "https://en.cppreference.com/w/cpp/language/implicit_conversion",
+  },
+  {
+    id: 1519,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "Which of the following is a valid use of static_cast?",
+    code: `double pi = 3.14159;
+int truncated = /* cast here */;`,
+    options: [
+      "int truncated = dynamic_cast<int>(pi) to safely check the conversion",
+      "int truncated = const_cast<int>(pi) to remove the const from a double",
+      "int truncated = static_cast<int>(pi) to explicitly truncate the value",
+      "int truncated = reinterpret_cast<int>(pi) to reinterpret as an integer",
+    ],
+    correctIndex: 2,
+    explanation:
+      "static_cast<int>(pi) explicitly converts the double to int, truncating the fractional part. dynamic_cast only works with polymorphic pointers and references. const_cast only modifies cv-qualifiers. reinterpret_cast cannot convert between floating-point and integer types.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast",
+  },
+  {
+    id: 1520,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "What happens when dynamic_cast fails on a pointer type?",
+    options: [
+      "It throws a std::bad_cast exception to signal the invalid conversion",
+      "It causes undefined behavior and potentially crashes the application",
+      "It triggers a compile-time error because the cast cannot be validated",
+      "It returns a nullptr to indicate that the conversion was not valid",
+    ],
+    correctIndex: 3,
+    explanation:
+      "When dynamic_cast fails on a pointer, it returns nullptr rather than throwing an exception. This allows the programmer to check the result before using the pointer. When dynamic_cast fails on a reference, it throws std::bad_cast instead, since references cannot be null.",
+    link: "https://en.cppreference.com/w/cpp/language/dynamic_cast",
+  },
+  {
+    id: 1521,
+    difficulty: "Easy",
+    topic: "Type Casting",
+    question: "What does a C-style cast like (int)3.14 do in C++?",
+    options: [
+      "It only removes const qualifiers like const_cast does in every case",
+      "It tries static_cast first, then const_cast, then reinterpret_cast",
+      "It always performs a safe runtime-checked cast like dynamic_cast does",
+      "It only works with pointer types and fails on arithmetic conversions",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A C-style cast in C++ tries the named casts in a specific order: it first attempts a const_cast, then a static_cast, then static_cast followed by const_cast, then reinterpret_cast, and finally reinterpret_cast followed by const_cast. This makes it powerful but potentially dangerous since it can silently perform unsafe conversions.",
+    link: "https://en.cppreference.com/w/cpp/language/explicit_cast",
+  },
+  {
+    id: 1522,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question: "What is the result of this code?",
+    code: `float f = 3.14f;
+int i = static_cast<int>(f);
+std::cout << i;`,
+    options: [
+      "It prints 3 because static_cast truncates the fractional part of the float",
+      "It prints 4 because static_cast rounds the float to the nearest integer",
+      "It prints 3.14 because static_cast preserves the original floating value",
+      "It causes a compilation error because float cannot be cast to int safely",
+    ],
+    correctIndex: 0,
+    explanation:
+      "static_cast<int>(f) truncates the decimal part, converting 3.14f to 3. C++ numeric conversions from floating-point to integer always truncate toward zero, they do not round to the nearest integer.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast",
+  },
+  {
+    id: 1523,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question: "When is static_cast used for pointer conversions in a class hierarchy?",
+    options: [
+      "Only for upcasting from derived to base, and it performs runtime checks",
+      "For both upcasting and downcasting, but without any runtime type checks",
+      "Only for downcasting from base to derived, and it always throws on error",
+      "For casting between completely unrelated class types without restriction",
+    ],
+    correctIndex: 1,
+    explanation:
+      "static_cast can perform both upcasts and downcasts in a class hierarchy, but it does not perform any runtime type checking. Upcasts are always safe, but downcasts are only valid if the object actually is of the target type. If the object is not the right type, the behavior is undefined.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast",
+  },
+  {
+    id: 1524,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question: "What is the output of this code?",
+    code: `struct Base { virtual ~Base() {} };
+struct Derived : Base { int x = 42; };
+
+Base* b = new Base();
+Derived* d = dynamic_cast<Derived*>(b);
+std::cout << (d == nullptr ? "null" : "valid");`,
+    options: [
+      "It prints valid because dynamic_cast always succeeds on related types",
+      "It causes undefined behavior because b does not point to a Derived obj",
+      "It prints null because b does not actually point to a Derived object",
+      "It fails to compile because Base and Derived are not related by a cast",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Since b points to a Base object and not a Derived object, the dynamic_cast fails and returns nullptr. dynamic_cast checks the runtime type using RTTI and safely returns nullptr when the pointed-to object is not of the target type.",
+    link: "https://en.cppreference.com/w/cpp/language/dynamic_cast",
+  },
+  {
+    id: 1525,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question: "What happens when dynamic_cast fails on a reference type?",
+    options: [
+      "It returns a null reference that can be checked with a comparison",
+      "It causes undefined behavior and may corrupt the program state",
+      "It silently produces a default-constructed object of the target type",
+      "It throws a std::bad_cast exception because references cannot be null",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Since references cannot be null, a failed dynamic_cast on a reference throws a std::bad_cast exception instead of returning nullptr. This is the key difference from pointer-based dynamic_cast, which returns nullptr on failure.",
+    link: "https://en.cppreference.com/w/cpp/language/dynamic_cast",
+  },
+  {
+    id: 1526,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question: "What is a narrowing conversion in C++?",
+    options: [
+      "A conversion that widens a smaller type into a larger type with no loss",
+      "A conversion that changes constness of a variable without altering type",
+      "A conversion that casts between unrelated pointer types using low level",
+      "A conversion that may lose data, such as converting double to int value",
+    ],
+    correctIndex: 3,
+    explanation:
+      "A narrowing conversion is one where the destination type cannot represent all values of the source type, potentially losing information. Examples include double to int, long to short, and int to char. C++11 brace initialization prohibits narrowing conversions.",
+    link: "https://en.cppreference.com/w/cpp/language/list_initialization",
+  },
+  {
+    id: 1527,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question: "What is the output of this code?",
+    code: `int x = 65;
+char c = static_cast<char>(x);
+std::cout << c;`,
+    options: [
+      "It prints 65 because static_cast preserves the original integer value",
+      "It causes undefined behavior because int cannot be safely cast to char",
+      "It prints A because 65 is the ASCII code for the uppercase letter A",
+      "It fails to compile because static_cast does not allow int to char cast",
+    ],
+    correctIndex: 2,
+    explanation:
+      "static_cast<char>(65) converts the integer 65 to its corresponding ASCII character, which is 'A'. When a char is printed with std::cout, it displays the character rather than the numeric value. This is a well-defined conversion via static_cast.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast",
+  },
+  {
+    id: 1528,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question: "Which scenario correctly requires the use of const_cast?",
+    options: [
+      "Calling a legacy C function that takes a non-const char pointer with a const string",
+      "Converting a floating-point number to an integer type for arithmetic truncation only",
+      "Downcasting a base class pointer to a derived class pointer in a class hierarchy",
+      "Reinterpreting an integer value as a pointer for low-level memory-mapped hardware",
+    ],
+    correctIndex: 0,
+    explanation:
+      "const_cast is typically needed when interfacing with legacy APIs that do not use const-correct signatures. If a C function takes char* but you have a const char*, you can use const_cast to remove the const qualifier, provided the function does not actually modify the string.",
+    link: "https://en.cppreference.com/w/cpp/language/const_cast",
+  },
+  {
+    id: 1529,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question:
+      "What is the difference between static_cast and a C-style cast for downcasting?",
+    options: [
+      "static_cast performs a runtime check while C-style cast does not check at all",
+      "C-style cast can silently apply reinterpret_cast while static_cast cannot do so",
+      "static_cast only works on references while C-style cast only works on pointers",
+      "There is no difference because both produce exactly the same compiled machine code",
+    ],
+    correctIndex: 1,
+    explanation:
+      "A key danger of C-style casts is that they can silently fall through to reinterpret_cast if static_cast fails, potentially performing a dangerous bit-level reinterpretation. static_cast will produce a compile error instead, making it safer for downcasts in class hierarchies.",
+    link: "https://www.learncpp.com/cpp-tutorial/explicit-type-conversion-casting-and-static-cast/",
+  },
+  {
+    id: 1530,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question: "What is the purpose of the explicit keyword on a constructor?",
+    options: [
+      "It allows the constructor to accept any number of arguments at runtime",
+      "It forces the constructor to perform a dynamic_cast on all its arguments",
+      "It prevents the compiler from using the constructor for implicit conversions",
+      "It makes the constructor virtual so derived classes can override it later",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Marking a constructor as explicit prevents the compiler from using it for implicit type conversions. Without explicit, a single-argument constructor can be invoked implicitly to convert one type to another, which can lead to surprising and unintended conversions.",
+    link: "https://en.cppreference.com/w/cpp/language/explicit",
+  },
+  {
+    id: 1531,
+    difficulty: "Medium",
+    topic: "Type Casting",
+    question: "Which statement about conversion operators is correct?",
+    code: `struct Wrapper {
+    int val;
+    operator int() const { return val; }
+};`,
+    options: [
+      "The operator int function allows Wrapper to be implicitly converted to int",
+      "The operator int function requires an explicit static_cast to trigger always",
+      "Conversion operators must always return void and modify the object in place",
+      "Conversion operators cannot be defined for built-in types like int or double",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A conversion operator like operator int() allows the class to be implicitly converted to the target type. When a Wrapper object is used where an int is expected, the compiler automatically calls this operator. To prevent implicit use, the operator can be marked explicit.",
+    link: "https://en.cppreference.com/w/cpp/language/cast_operator",
+  },
+  {
+    id: 1532,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question: "What is the output of this code?",
+    code: `struct Base { virtual ~Base() = default; };
+struct A : Base {};
+struct B : Base {};
+
+A a;
+Base& ref = a;
+B& b = dynamic_cast<B&>(ref);`,
+    options: [
+      "It compiles and b is a valid reference to the A object stored in ref",
+      "It causes undefined behavior because A and B are unrelated leaf classes",
+      "It throws std::bad_cast because ref does not actually refer to a B obj",
+      "It fails to compile because dynamic_cast cannot be used with references",
+    ],
+    correctIndex: 2,
+    explanation:
+      "Since ref actually refers to an A object and not a B object, the dynamic_cast to B& fails at runtime. Because this is a reference cast and not a pointer cast, it throws a std::bad_cast exception rather than returning nullptr.",
+    link: "https://en.cppreference.com/w/cpp/language/dynamic_cast",
+  },
+  {
+    id: 1533,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question: "What is the result of this code?",
+    code: `const int original = 100;
+int* ptr = const_cast<int*>(&original);
+*ptr = 200;
+std::cout << original;`,
+    options: [
+      "It prints 200 because const_cast allows the modification of any object",
+      "It prints 100 because the compiler substituted the value at compile time",
+      "It always prints 0 because writing through const_cast resets the memory",
+      "It is undefined behavior because the original object was declared const",
+    ],
+    correctIndex: 3,
+    explanation:
+      "Modifying an object that was originally declared const through a const_cast pointer is undefined behavior according to the C++ standard. The compiler may have placed original in read-only memory, substituted its value at compile time, or produced any other result.",
+    link: "https://en.cppreference.com/w/cpp/language/const_cast",
+  },
+  {
+    id: 1534,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question:
+      "What does reinterpret_cast guarantee about round-trip pointer conversions?",
+    options: [
+      "Converting a pointer to an integer and back always yields the same pointer value",
+      "Converting between any two pointer types always preserves the pointed-to object",
+      "It guarantees that the converted value is valid for dereferencing in all contexts",
+      "There are no guarantees at all because reinterpret_cast is always fully undefined",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The C++ standard guarantees that a pointer converted to an integer type of sufficient size via reinterpret_cast, and then converted back, yields the original pointer value. However, dereferencing a reinterpret_cast pointer to an unrelated type generally violates strict aliasing rules.",
+    link: "https://en.cppreference.com/w/cpp/language/reinterpret_cast",
+  },
+  {
+    id: 1535,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question: "What is the strict aliasing rule and how does it relate to casts?",
+    options: [
+      "It requires that all casts use static_cast to be considered valid in standard C++",
+      "It forbids accessing an object through a pointer of a different type with exceptions",
+      "It mandates that dynamic_cast must always be used when casting between class types",
+      "It prevents const_cast from being used on objects that are stored in static memory",
+    ],
+    correctIndex: 1,
+    explanation:
+      "The strict aliasing rule states that accessing an object through a pointer or reference of an incompatible type is undefined behavior. Exceptions include accessing through a char or unsigned char pointer, or through a type that is part of the object's class hierarchy. reinterpret_cast can easily violate this rule.",
+    link: "https://en.cppreference.com/w/cpp/language/reinterpret_cast",
+  },
+  {
+    id: 1536,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question: "What is the output of this code?",
+    code: `struct Base {
+    virtual void greet() { std::cout << "Base"; }
+    virtual ~Base() = default;
+};
+struct Derived : Base {
+    void greet() override { std::cout << "Derived"; }
+};
+
+Derived d;
+Base* bp = static_cast<Base*>(&d);
+bp->greet();`,
+    options: [
+      "It prints Base because static_cast converts to the base type statically",
+      "It prints Derived because virtual dispatch uses the actual object type",
+      "It causes undefined behavior because static_cast should not be used here",
+      "It fails to compile because static_cast cannot upcast pointer types ever",
+    ],
+    correctIndex: 1,
+    explanation:
+      "Even though bp is a Base pointer obtained via static_cast, virtual dispatch still occurs because greet is virtual. The actual object is a Derived, so Derived::greet is called. static_cast for upcasts is always safe and does not affect virtual dispatch behavior.",
+    link: "https://en.cppreference.com/w/cpp/language/virtual",
+  },
+  {
+    id: 1537,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question:
+      "What happens when you use static_cast to downcast to the wrong derived type?",
+    code: `struct Base { virtual ~Base() = default; };
+struct A : Base { int a = 1; };
+struct B : Base { int b = 2; };
+
+A a;
+Base* bp = &a;
+B* wrong = static_cast<B*>(bp);`,
+    options: [
+      "wrong is nullptr because static_cast detects the type mismatch at runtime",
+      "wrong points to valid memory but using it is undefined behavior in standard C++",
+      "It throws std::bad_cast because the actual object type does not match the target",
+      "It fails to compile because static_cast cannot downcast between sibling classes",
+    ],
+    correctIndex: 1,
+    explanation:
+      "static_cast does not perform runtime type checking. It compiles successfully because B derives from Base, making the downcast syntactically valid. However, since bp actually points to an A object and not a B object, the resulting pointer is invalid and using it is undefined behavior.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast",
+  },
+  {
+    id: 1538,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question: "What is the purpose of dynamic_cast with void* as the target type?",
+    options: [
+      "It converts any pointer to void* and returns the address of the most-derived object",
+      "It performs a standard upcast to the void base class that all C++ objects inherit from",
+      "It deletes the object and returns a void pointer to the freed memory for reallocation",
+      "It is illegal because dynamic_cast cannot target void* and produces a compiler error",
+    ],
+    correctIndex: 0,
+    explanation:
+      "dynamic_cast<void*> is a special case that returns a pointer to the most-derived object. This is useful when you need the actual starting address of the complete object regardless of which base class subobject you currently have a pointer to.",
+    link: "https://en.cppreference.com/w/cpp/language/dynamic_cast",
+  },
+  {
+    id: 1539,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question: "Which statement about cross-casting with dynamic_cast is correct?",
+    code: `struct Base1 { virtual ~Base1() = default; };
+struct Base2 { virtual ~Base2() = default; };
+struct Multi : Base1, Base2 {};
+
+Multi m;
+Base1* b1 = &m;
+Base2* b2 = dynamic_cast<Base2*>(b1);`,
+    options: [
+      "The cross-cast fails at compile time because Base1 and Base2 are unrelated classes",
+      "The cross-cast returns nullptr because dynamic_cast cannot navigate between siblings",
+      "The cross-cast succeeds and b2 points to the Base2 subobject of the Multi instance",
+      "The cross-cast compiles but always causes undefined behavior for multiple inheritance",
+    ],
+    correctIndex: 2,
+    explanation:
+      "dynamic_cast can perform cross-casts in multiple inheritance hierarchies. Since b1 points to a Multi object and Multi inherits from both Base1 and Base2, dynamic_cast can navigate from the Base1 subobject to the Base2 subobject at runtime using RTTI.",
+    link: "https://en.cppreference.com/w/cpp/language/dynamic_cast",
+  },
+  {
+    id: 1540,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question:
+      "What is a safe alternative to reinterpret_cast for type-punning in C++20?",
+    options: [
+      "Using memcpy to copy bytes between objects of different types into proper storage",
+      "Using static_cast to convert between unrelated types with a compile-time check only",
+      "Using dynamic_cast to safely check the runtime type before reinterpreting the object",
+      "Using std::bit_cast to reinterpret the object representation as a different type value",
+    ],
+    correctIndex: 3,
+    explanation:
+      "std::bit_cast, introduced in C++20, provides a safe and well-defined way to reinterpret the object representation of one type as another. Unlike reinterpret_cast, it does not violate strict aliasing rules and requires that both types are trivially copyable and the same size.",
+    link: "https://en.cppreference.com/w/cpp/numeric/bit_cast",
+  },
+  {
+    id: 1541,
+    difficulty: "Hard",
+    topic: "Type Casting",
+    question: "What is the output of this code?",
+    code: `struct Base { virtual ~Base() = default; };
+struct Mid : virtual Base {};
+struct Leaf : Mid {};
+
+Leaf leaf;
+Base* bp = &leaf;
+Mid* mp = static_cast<Mid*>(bp);`,
+    options: [
+      "mp is a valid pointer to the Mid subobject of the Leaf instance in memory",
+      "The code fails to compile because static_cast cannot downcast from a virtual base",
+      "mp is nullptr because static_cast detects the virtual base mismatch at runtime",
+      "The code compiles but produces undefined behavior due to the virtual inheritance",
+    ],
+    correctIndex: 1,
+    explanation:
+      "static_cast cannot be used to downcast from a virtual base class because the offset from the virtual base to the derived class is not known at compile time. The compiler rejects this cast with an error. dynamic_cast must be used instead because it can resolve virtual base offsets at runtime using RTTI.",
+    link: "https://en.cppreference.com/w/cpp/language/static_cast",
+  },
 ];
