@@ -981,4 +981,102 @@ std::vector<int> vec(1'000'000);
       "std::unique_ptr<T[]> stores only a pointer (and optionally a deleter), whereas std::vector stores a pointer plus size and capacity fields. When you need a fixed-size dynamic array and will never resize, unique_ptr<T[]> has lower per-object overhead. Both support element access via operator[], but unique_ptr<T[]> lacks push_back, resize, and iterators that vector provides.",
     link: "https://en.cppreference.com/w/cpp/memory/unique_ptr",
   },
+
+  // ── Memory Management fundamentals (Q1542–Q1547) ──
+  {
+    id: 1542,
+    difficulty: "Easy",
+    topic: "Memory Management",
+    question: "What is a smart pointer in C++?",
+    options: [
+      "A class that wraps a raw pointer and automatically manages the lifetime of the object",
+      "A raw pointer that the compiler automatically sets to nullptr when it goes out of scope",
+      "A special CPU register that tracks memory allocations and frees them at program exit",
+      "A template alias for void* that provides type safety without any additional overhead",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A smart pointer is a class template that wraps a raw pointer and uses RAII to automatically manage the lifetime of the dynamically allocated object it points to. When the smart pointer goes out of scope, it automatically deletes the managed object, preventing memory leaks.",
+    link: "https://en.cppreference.com/w/cpp/memory/unique_ptr",
+  },
+  {
+    id: 1543,
+    difficulty: "Easy",
+    topic: "Memory Management",
+    question: "What does the delete operator do in C++?",
+    options: [
+      "It calls the destructor of the object and then frees the memory back to the system",
+      "It only frees the memory without calling any destructor on the pointed-to object",
+      "It sets the pointer to nullptr and marks the memory region as protected by the OS",
+      "It moves the object to a free list for later reuse without actually releasing memory",
+    ],
+    correctIndex: 0,
+    explanation:
+      "The delete operator performs two actions in order: it first calls the destructor of the object to perform cleanup, and then it deallocates the memory that was previously allocated with new. Forgetting to call delete on dynamically allocated memory causes a memory leak.",
+    link: "https://en.cppreference.com/w/cpp/language/delete",
+  },
+  {
+    id: 1544,
+    difficulty: "Easy",
+    topic: "Memory Management",
+    question: "What is nullptr in C++?",
+    options: [
+      "A macro that expands to the integer zero and is used for both pointers and integers",
+      "A keyword that represents a null pointer constant with its own distinct type in C++",
+      "A special global pointer variable that always points to address zero in system memory",
+      "A template function that returns a default-constructed pointer of any requested type",
+    ],
+    correctIndex: 1,
+    explanation:
+      "nullptr is a keyword introduced in C++11 that represents a null pointer constant. It has the type std::nullptr_t and can be implicitly converted to any pointer type but not to an integer. This makes it safer than the old NULL macro, which was defined as 0 and could cause ambiguity with integer overloads.",
+    link: "https://en.cppreference.com/w/cpp/language/nullptr",
+  },
+  {
+    id: 1545,
+    difficulty: "Easy",
+    topic: "Memory Management",
+    question: "What is a raw pointer in C++?",
+    options: [
+      "A built-in type that stores a memory address but does not manage the object lifetime",
+      "A smart pointer that automatically deletes the object when no more references exist",
+      "A special iterator type used exclusively for navigating elements within STL containers",
+      "A compiler-generated wrapper that adds bounds checking to all pointer dereference ops",
+    ],
+    correctIndex: 0,
+    explanation:
+      "A raw pointer is a built-in C++ type that simply stores the memory address of an object. Unlike smart pointers, it provides no automatic lifetime management. The programmer is responsible for ensuring that the pointed-to memory is properly allocated and freed, making raw pointers error-prone for ownership.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-pointers/",
+  },
+  {
+    id: 1546,
+    difficulty: "Easy",
+    topic: "Memory Management",
+    question: "What does std::make_shared do in C++?",
+    options: [
+      "It creates a shared_ptr that shares ownership of an existing raw pointer with others",
+      "It creates a weak_ptr that can be promoted to a shared_ptr when the object is alive",
+      "It allocates memory for the object and the control block together and returns a shared_ptr",
+      "It converts a unique_ptr into a shared_ptr by transferring exclusive ownership to shared",
+    ],
+    correctIndex: 2,
+    explanation:
+      "std::make_shared allocates memory for both the managed object and the shared_ptr control block in a single allocation, returning a shared_ptr. This is more efficient than creating a shared_ptr from a raw new expression, which requires two separate allocations.",
+    link: "https://en.cppreference.com/w/cpp/memory/shared_ptr/make_shared",
+  },
+  {
+    id: 1547,
+    difficulty: "Medium",
+    topic: "Memory Management",
+    question: "What does ownership mean in the context of C++ memory management?",
+    options: [
+      "Ownership means a pointer has read-only access to an object and cannot modify its data",
+      "Ownership means the object is stored on the stack and will be cleaned up automatically",
+      "Ownership means a pointer is the first one created to reference a dynamically allocated obj",
+      "Ownership means the code responsible for ensuring the object is properly deallocated",
+    ],
+    correctIndex: 3,
+    explanation:
+      "In C++ memory management, ownership refers to the responsibility for deallocating a dynamically allocated object. The owner of an object must ensure that delete is eventually called exactly once. Smart pointers like unique_ptr and shared_ptr encode ownership semantics in the type system, making it clear who is responsible for cleanup.",
+    link: "https://www.learncpp.com/cpp-tutorial/introduction-to-smart-pointers-and-move-semantics/",
+  },
 ];
