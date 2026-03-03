@@ -12,6 +12,7 @@
   "dependencies": {
     "@astrojs/preact": "^4.0.0",
     "astro": "^5.0.0",
+    "katex": "^0.16.33",
     "preact": "^10.25.0"
   },
   "devDependencies": {
