@@ -28,6 +28,7 @@ export const TOPICS = [
   "Polymorphism",
   "Value Categories",
   "Code Reading",
+  "Rigid Bodies",
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
@@ -58,6 +59,7 @@ import { questions as storageDurations } from "./storage-durations";
 import { questions as polymorphism } from "./polymorphism";
 import { questions as valueCategories } from "./value-categories";
 import { questions as codeReading } from "./code-reading";
+import { questions as rigidBodies } from "./rigid-bodies";
 
 export const questions: Question[] = [
   ...csFundamentals,
@@ -86,4 +88,5 @@ export const questions: Question[] = [
   ...polymorphism,
   ...valueCategories,
   ...codeReading,
+  ...rigidBodies,
 ];
