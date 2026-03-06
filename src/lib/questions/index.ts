@@ -22,13 +22,11 @@ export const TOPICS = [
   "Linux Commands",
   "Lifetime & Storage",
   "Under the Hood",
-  "Physics for Software Engineering",
   "C++ Keywords",
   "Storage Durations",
   "Polymorphism",
   "Value Categories",
   "Code Reading",
-  "Rigid Bodies",
 ] as const;
 
 export type Topic = (typeof TOPICS)[number];
@@ -53,13 +51,11 @@ import { questions as variantTypeTraits } from "./variant-type-traits";
 import { questions as linuxCommands } from "./linux-commands";
 import { questions as lifetimeStorage } from "./lifetime-storage";
 import { questions as underTheHood } from "./under-the-hood";
-import { questions as physics } from "./physics";
 import { questions as cppKeywords } from "./cpp-keywords";
 import { questions as storageDurations } from "./storage-durations";
 import { questions as polymorphism } from "./polymorphism";
 import { questions as valueCategories } from "./value-categories";
 import { questions as codeReading } from "./code-reading";
-import { questions as rigidBodies } from "./rigid-bodies";
 
 export const questions: Question[] = [
   ...csFundamentals,
@@ -82,11 +78,9 @@ export const questions: Question[] = [
   ...linuxCommands,
   ...lifetimeStorage,
   ...underTheHood,
-  ...physics,
   ...cppKeywords,
   ...storageDurations,
   ...polymorphism,
   ...valueCategories,
   ...codeReading,
-  ...rigidBodies,
 ];
