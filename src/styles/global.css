@@ -175,6 +175,40 @@ pre.astro-code {
   background: var(--surface-code) !important;
 }
 
+/* Buggy code challenge blocks */
+.buggy-code-block pre.shiki {
+  margin: 0;
+  padding: 1rem 1.2rem;
+  font-size: 0.82rem;
+  line-height: 1.65;
+  border-radius: 0.75rem;
+  overflow-x: auto;
+  counter-reset: line;
+  background-color: var(--surface-code) !important;
+}
+
+.buggy-code-block pre.shiki code {
+  counter-reset: line;
+}
+
+.buggy-code-block pre.shiki code .line {
+  display: inline-block;
+  width: 100%;
+}
+
+.buggy-code-block pre.shiki code .line::before {
+  counter-increment: line;
+  content: counter(line);
+  display: inline-block;
+  width: 2.2rem;
+  margin-right: 1rem;
+  text-align: right;
+  color: #636d83;
+  opacity: 0.4;
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+
 a {
   color: inherit;
   text-decoration: none;

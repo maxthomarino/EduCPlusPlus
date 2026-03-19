@@ -1,0 +1,48 @@
+---
+import BaseLayout from "../layouts/BaseLayout.astro";
+import BuggyCodeViewer from "../components/buggy-code/BuggyCodeViewer.tsx";
+import { programs, BUGGY_TOPICS } from "../lib/buggy-code";
+import type { BuggyProgramHighlighted } from "../lib/buggy-code";
+import { createHighlighter } from "shiki";
+
+const highlighter = await createHighlighter({
+  themes: ["github-dark"],
+  langs: ["cpp"],
+});
+
+const highlighted: BuggyProgramHighlighted[] = programs.map((p) => ({
+  ...p,
+  highlightedHtml: highlighter.codeToHtml(p.code, {
+    lang: "cpp",
+    theme: "github-dark",
+  }),
+}));
+
+highlighter.dispose();
+
+const totalPrograms = programs.length;
+const totalTopics = BUGGY_TOPICS.length;
+---
+
+<BaseLayout title="Spot the Bug" description={`Read ${totalPrograms} buggy C++ programs across ${totalTopics} topics and find the hidden bug.`}>
+  <main class="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+    <div class="page-reveal mb-6">
+      <a
+        href="/"
+        class="text-sm font-medium"
+        style="color: var(--accent);"
+      >
+        ← Back to home
+      </a>
+      <h1 class="display-font mt-2 text-3xl font-semibold tracking-tight sm:text-4xl">
+        <span style="color: var(--text-primary);">Spot the </span>
+        <span class="gradient-title">Bug</span>
+      </h1>
+      <p class="mt-2 text-base" style="color: var(--text-secondary);">
+        {totalPrograms} buggy programs across {totalTopics} topics.
+        Each program compiles cleanly but contains exactly one subtle bug. Can you find it?
+      </p>
+    </div>
+    <BuggyCodeViewer client:load programs={highlighted} />
+  </main>
+</BaseLayout>
