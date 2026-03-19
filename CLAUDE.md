@@ -9,6 +9,15 @@ C++ educational quiz app built with TypeScript. Questions live in `src/lib/quest
 - **Commit after every batch of generated questions.** After appending questions to the relevant topic file in `src/lib/questions/` and passing validation, immediately create a git commit. Never leave generated questions uncommitted. Uncommitted work was previously lost due to an accidental `git checkout --` revert.
 - When writing append scripts (.cjs), always include the closing `"` on option strings: `"option text",` not `"option text,`.
 
+## Git Identity per Remote
+
+All commits must use the identity matching the remote they are pushed to:
+
+- **`origin`** (dudujuju828): `user.name="dudujuju828"`, `user.email="dudujuju828@gmail.com"`
+- **`alternative`** (maxthomarino): `user.name="maxthomarino"`, `user.email="maxthomarino@gmail.com"`
+
+Use `git -c user.name="..." -c user.email="..." commit ...` to set the author per commit.
+
 ## Deploy Workflow (after generating content and committing)
 
 After all content is committed and validated, run this deploy sequence:
