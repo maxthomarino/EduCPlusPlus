@@ -777,4 +777,524 @@ int main() {
     operator delete(raw);
 }`,
   },
+  // ── Smart Pointers ──
+  {
+    id: 23,
+    topic: "Smart Pointers",
+    difficulty: "Easy",
+    title: "Pixel Buffer",
+    description:
+      "Fills a pixel buffer with a gradient pattern and computes the average brightness.",
+    code: `#include <iostream>
+#include <memory>
+
+void fill_gradient(int* pixels, int width, int height) {
+    for (int y = 0; y < height; ++y) {
+        for (int x = 0; x < width; ++x) {
+            pixels[y * width + x] = (x + y) % 256;
+        }
+    }
+}
+
+double average_brightness(const int* pixels, int count) {
+    double sum = 0;
+    for (int i = 0; i < count; ++i) {
+        sum += pixels[i];
+    }
+    return sum / count;
+}
+
+int main() {
+    const int width = 64;
+    const int height = 48;
+    std::unique_ptr<int> pixels(new int[width * height]);
+
+    fill_gradient(pixels.get(), width, height);
+    std::cout << "Average brightness: "
+              << average_brightness(pixels.get(), width * height)
+              << std::endl;
+}`,
+    hints: [
+      "How was the memory allocated, and how will the smart pointer free it?",
+      "What form of delete does the default unique_ptr<int> deleter use?",
+    ],
+    explanation:
+      "The array is allocated with new int[width * height] but stored in a std::unique_ptr<int>, whose default deleter calls delete (not delete[]). This is undefined behavior. It should be std::unique_ptr<int[]> to ensure delete[] is used.",
+  },
+  {
+    id: 24,
+    topic: "Smart Pointers",
+    difficulty: "Easy",
+    title: "Reference Counted Logger",
+    description:
+      "Creates a shared logger and passes it to an audit function for logging.",
+    code: `#include <iostream>
+#include <memory>
+#include <string>
+
+class Logger {
+    std::string prefix;
+public:
+    Logger(std::string p) : prefix(std::move(p)) {}
+    void log(const std::string& msg) {
+        std::cout << "[" << prefix << "] " << msg << std::endl;
+    }
+};
+
+void audit_log(std::shared_ptr<Logger> logger) {
+    logger->log("audit checkpoint");
+}
+
+int main() {
+    Logger* raw = new Logger("APP");
+    std::shared_ptr<Logger> primary(raw);
+    std::shared_ptr<Logger> secondary(raw);
+
+    primary->log("starting up");
+    audit_log(secondary);
+    primary->log("shutting down");
+}`,
+    hints: [
+      "How many shared_ptr control blocks are created in this program?",
+      "What happens when two independent shared_ptrs believe they each own the same object?",
+    ],
+    explanation:
+      "Both primary and secondary are constructed directly from the same raw pointer, creating two independent reference counts. When both shared_ptrs are destroyed at the end of main, each calls delete on the same Logger object — a double free. The second shared_ptr should be copy-constructed from the first.",
+  },
+  {
+    id: 25,
+    topic: "Smart Pointers",
+    difficulty: "Easy",
+    title: "Token Parser",
+    description:
+      "Tokenizes a space-separated string into a vector of Token structs.",
+    code: `#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+#include <sstream>
+
+struct Token {
+    std::string type;
+    std::string value;
+};
+
+std::unique_ptr<Token> make_token(const std::string& type,
+                                  const std::string& value) {
+    auto tok = std::make_unique<Token>();
+    tok->type = type;
+    tok->value = value;
+    return tok;
+}
+
+std::vector<Token> tokenize(const std::string& input) {
+    std::vector<Token> tokens;
+    std::istringstream stream(input);
+    std::string word;
+
+    while (stream >> word) {
+        auto tok = make_token("WORD", word);
+        tokens.push_back(*tok.release());
+    }
+    return tokens;
+}
+
+int main() {
+    auto tokens = tokenize("the quick brown fox");
+    for (const auto& t : tokens) {
+        std::cout << t.type << ": " << t.value << std::endl;
+    }
+}`,
+    hints: [
+      "What does unique_ptr::release() do to the ownership of the managed object?",
+      "After calling release(), who is responsible for freeing the memory?",
+    ],
+    explanation:
+      "Calling tok.release() relinquishes ownership and returns the raw pointer. The Token is copied into the vector via *tok.release(), but the heap-allocated original is never deleted. Each iteration leaks one Token. Using *tok (dereference without release) would copy the Token and let the unique_ptr clean up normally.",
+  },
+  {
+    id: 26,
+    topic: "Smart Pointers",
+    difficulty: "Medium",
+    title: "Social Network",
+    description:
+      "Models users in a social network and connects them as friends.",
+    code: `#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
+struct User {
+    std::string name;
+    std::vector<std::shared_ptr<User>> friends;
+
+    User(std::string n) : name(std::move(n)) {
+        std::cout << name << " created" << std::endl;
+    }
+    ~User() {
+        std::cout << name << " destroyed" << std::endl;
+    }
+};
+
+void make_friends(std::shared_ptr<User>& a, std::shared_ptr<User>& b) {
+    a->friends.push_back(b);
+    b->friends.push_back(a);
+}
+
+int main() {
+    auto alice = std::make_shared<User>("Alice");
+    auto bob = std::make_shared<User>("Bob");
+    auto charlie = std::make_shared<User>("Charlie");
+
+    make_friends(alice, bob);
+    make_friends(bob, charlie);
+    make_friends(alice, charlie);
+
+    std::cout << alice->name << " has "
+              << alice->friends.size() << " friends" << std::endl;
+}`,
+    hints: [
+      "What happens to the reference count of each User when main returns?",
+      "Can the reference count of any User ever reach zero?",
+      "What type should the friends vector store to break ownership cycles?",
+    ],
+    explanation:
+      "Each User holds shared_ptrs to their friends, creating circular references. When alice, bob, and charlie go out of scope, each User's reference count is still positive because friends lists hold shared_ptrs to each other. No destructor ever runs — all three User objects are leaked. The friends vector should use std::weak_ptr<User> instead.",
+  },
+  {
+    id: 27,
+    topic: "Smart Pointers",
+    difficulty: "Medium",
+    title: "Task Queue",
+    description:
+      "Enqueues tasks by priority and runs them in submission order.",
+    code: `#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
+struct Task {
+    std::string name;
+    int priority;
+    Task(std::string n, int p) : name(std::move(n)), priority(p) {}
+};
+
+class TaskQueue {
+    std::vector<Task*> pending;
+public:
+    void enqueue(Task* task) {
+        pending.push_back(task);
+    }
+
+    void run_all() {
+        for (auto* t : pending) {
+            std::cout << "Running: " << t->name
+                      << " (priority " << t->priority << ")" << std::endl;
+        }
+        pending.clear();
+    }
+};
+
+int main() {
+    TaskQueue queue;
+
+    {
+        auto t1 = std::make_unique<Task>("Compress", 3);
+        auto t2 = std::make_unique<Task>("Upload", 1);
+        auto t3 = std::make_unique<Task>("Notify", 2);
+
+        queue.enqueue(t1.get());
+        queue.enqueue(t2.get());
+        queue.enqueue(t3.get());
+    }
+
+    queue.run_all();
+}`,
+    hints: [
+      "What is the lifetime of the Task objects relative to when run_all() is called?",
+      "What does .get() return, and does it affect ownership?",
+    ],
+    explanation:
+      "The three unique_ptrs are destroyed at the closing brace of the inner block, freeing all Task objects. The TaskQueue still holds raw pointers obtained via .get(), which are now dangling. Calling run_all() dereferences freed memory — undefined behavior.",
+  },
+  {
+    id: 28,
+    topic: "Smart Pointers",
+    difficulty: "Medium",
+    title: "Event Dispatcher",
+    description:
+      "A publish-subscribe system where listeners register to receive event notifications.",
+    code: `#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
+class Listener : public std::enable_shared_from_this<Listener> {
+    std::string name;
+public:
+    Listener(std::string n) : name(std::move(n)) {}
+    std::string get_name() const { return name; }
+
+    std::shared_ptr<Listener> get_ptr() {
+        return shared_from_this();
+    }
+};
+
+class Dispatcher {
+    std::vector<std::shared_ptr<Listener>> listeners;
+public:
+    void subscribe(std::shared_ptr<Listener> l) {
+        listeners.push_back(std::move(l));
+    }
+
+    void notify() {
+        for (auto& l : listeners) {
+            std::cout << "Notifying: " << l->get_name() << std::endl;
+        }
+    }
+};
+
+int main() {
+    Dispatcher dispatcher;
+
+    Listener listener("FileWatcher");
+    dispatcher.subscribe(listener.get_ptr());
+
+    dispatcher.notify();
+}`,
+    hints: [
+      "How is the Listener object allocated in main?",
+      "What precondition must be met before calling shared_from_this()?",
+    ],
+    explanation:
+      "The Listener is allocated on the stack, not managed by any shared_ptr. Calling shared_from_this() on an object that has no owning shared_ptr is undefined behavior (throws std::bad_weak_ptr in C++17 or later). The Listener must first be created via std::make_shared<Listener>(...).",
+  },
+  {
+    id: 29,
+    topic: "Smart Pointers",
+    difficulty: "Medium",
+    title: "Document Pipeline",
+    description:
+      "Validates a document and then publishes it through a processing pipeline.",
+    code: `#include <iostream>
+#include <memory>
+#include <string>
+
+struct Document {
+    std::string title;
+    std::string body;
+    Document(std::string t, std::string b)
+        : title(std::move(t)), body(std::move(b)) {}
+};
+
+void validate(const std::unique_ptr<Document>& doc) {
+    if (doc->title.empty()) {
+        std::cout << "Warning: empty title" << std::endl;
+    }
+}
+
+void publish(std::unique_ptr<Document> doc) {
+    std::cout << "Published: " << doc->title << std::endl;
+}
+
+int main() {
+    auto doc = std::make_unique<Document>("C++ Guide",
+                                          "Learn modern C++...");
+    validate(doc);
+    publish(std::move(doc));
+
+    std::cout << "Final title: " << doc->title << std::endl;
+}`,
+    hints: [
+      "What is the state of a unique_ptr after it has been moved from?",
+      "Is doc still valid on the last line of main?",
+    ],
+    explanation:
+      "After std::move(doc) transfers ownership to publish(), the local doc is left holding a null pointer. The final line dereferences doc to access .title, which is a null pointer dereference — undefined behavior, typically a crash.",
+  },
+  {
+    id: 30,
+    topic: "Smart Pointers",
+    difficulty: "Hard",
+    title: "Observable Value",
+    description:
+      "A value wrapper that notifies registered observers whenever the value changes.",
+    code: `#include <iostream>
+#include <memory>
+#include <vector>
+#include <functional>
+
+class Observable : public std::enable_shared_from_this<Observable> {
+    int value_;
+    std::vector<std::function<void(int)>> observers_;
+
+public:
+    Observable(int val) : value_(val) {
+        register_default_observer();
+    }
+
+    void register_default_observer() {
+        auto self = shared_from_this();
+        observers_.push_back([self](int v) {
+            std::cout << "Value changed to: " << v << std::endl;
+        });
+    }
+
+    void set_value(int v) {
+        value_ = v;
+        for (auto& obs : observers_) {
+            obs(value_);
+        }
+    }
+
+    int get_value() const { return value_; }
+};
+
+int main() {
+    auto obj = std::make_shared<Observable>(42);
+    obj->set_value(100);
+    std::cout << "Current: " << obj->get_value() << std::endl;
+}`,
+    hints: [
+      "At what point during object construction is the shared_ptr fully initialized?",
+      "Can shared_from_this() be safely called from within a constructor?",
+      "When does the weak_ptr inside enable_shared_from_this first become usable?",
+    ],
+    explanation:
+      "The constructor calls register_default_observer(), which calls shared_from_this(). But during construction, the shared_ptr that will own this object has not yet been fully created — make_shared hasn't finished. Calling shared_from_this() before the object is owned by a shared_ptr is undefined behavior (throws bad_weak_ptr in C++17+). The registration must happen after construction.",
+  },
+  {
+    id: 31,
+    topic: "Smart Pointers",
+    difficulty: "Hard",
+    title: "Plugin Loader",
+    description:
+      "Loads and executes a collection of processing plugins by name.",
+    code: `#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
+class Plugin {
+    std::string name_;
+public:
+    Plugin(std::string name) : name_(std::move(name)) {}
+    ~Plugin() { std::cout << "Plugin base cleanup" << std::endl; }
+
+    virtual void execute() = 0;
+    const std::string& name() const { return name_; }
+};
+
+class CompressionPlugin : public Plugin {
+    int* lookup_table_;
+public:
+    CompressionPlugin()
+        : Plugin("Compression"), lookup_table_(new int[1024]) {
+        for (int i = 0; i < 1024; ++i)
+            lookup_table_[i] = i * 7 % 256;
+    }
+    ~CompressionPlugin() {
+        delete[] lookup_table_;
+        std::cout << "CompressionPlugin: freed lookup table" << std::endl;
+    }
+
+    void execute() override {
+        std::cout << "Compressing with table[0]="
+                  << lookup_table_[0] << std::endl;
+    }
+};
+
+class EncryptionPlugin : public Plugin {
+    std::string key_;
+public:
+    EncryptionPlugin(std::string key)
+        : Plugin("Encryption"), key_(std::move(key)) {}
+    ~EncryptionPlugin() {
+        std::cout << "EncryptionPlugin: cleared key" << std::endl;
+    }
+
+    void execute() override {
+        std::cout << "Encrypting with key length "
+                  << key_.size() << std::endl;
+    }
+};
+
+int main() {
+    std::vector<std::unique_ptr<Plugin>> plugins;
+    plugins.push_back(std::make_unique<CompressionPlugin>());
+    plugins.push_back(std::make_unique<EncryptionPlugin>("s3cret"));
+
+    for (auto& p : plugins) {
+        std::cout << "Running " << p->name() << "..." << std::endl;
+        p->execute();
+    }
+}`,
+    hints: [
+      "When a unique_ptr<Plugin> is destroyed, which destructor does it call?",
+      "What declaration is missing from the Plugin base class?",
+      "What happens to CompressionPlugin's lookup_table_ when only the base destructor runs?",
+    ],
+    explanation:
+      "Plugin's destructor is not virtual. When the unique_ptr<Plugin> elements are destroyed, only Plugin::~Plugin() runs — the derived destructors for CompressionPlugin and EncryptionPlugin are never called. This leaks CompressionPlugin's lookup_table_ array and is undefined behavior. Adding virtual to Plugin's destructor fixes the issue.",
+  },
+  {
+    id: 32,
+    topic: "Smart Pointers",
+    difficulty: "Hard",
+    title: "Resource Cache",
+    description:
+      "A cache that stores resources by key and retrieves them on demand.",
+    code: `#include <iostream>
+#include <memory>
+#include <string>
+#include <unordered_map>
+
+struct Resource {
+    std::string name;
+    std::string data;
+    Resource(std::string n, std::string d)
+        : name(std::move(n)), data(std::move(d)) {
+        std::cout << "Loaded: " << name << std::endl;
+    }
+    ~Resource() { std::cout << "Freed: " << name << std::endl; }
+};
+
+class ResourceCache {
+    std::unordered_map<std::string, std::weak_ptr<Resource>> cache_;
+public:
+    void store(const std::string& key, std::shared_ptr<Resource> res) {
+        cache_[key] = res;
+    }
+
+    std::string lookup(const std::string& key) {
+        auto it = cache_.find(key);
+        if (it != cache_.end()) {
+            return it->second.lock()->data;
+        }
+        return "";
+    }
+};
+
+int main() {
+    ResourceCache cache;
+
+    {
+        auto img = std::make_shared<Resource>("logo", "PNG...");
+        auto cfg = std::make_shared<Resource>("config", "key=value");
+        cache.store("logo", img);
+        cache.store("config", cfg);
+
+        std::cout << "Logo: " << cache.lookup("logo") << std::endl;
+    }
+
+    std::cout << "Config: " << cache.lookup("config") << std::endl;
+}`,
+    hints: [
+      "What is the state of a weak_ptr after all shared_ptrs to the object are destroyed?",
+      "What does lock() return when the referenced object no longer exists?",
+      "Is the return value of lock() checked before being dereferenced?",
+    ],
+    explanation:
+      "After the inner block ends, both shared_ptrs are destroyed, freeing the Resource objects. The weak_ptrs in the cache are now expired. In lookup(), lock() returns a null shared_ptr for expired entries, and the code immediately dereferences it with ->data — a null pointer dereference. The return value of lock() must be checked before use.",
+  },
 ];
