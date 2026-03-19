@@ -3443,4 +3443,538 @@ int main() {
     explanation:
       "std::memcpy performs a bitwise copy and cannot handle non-trivially-copyable types like std::string. The destination Records are default-constructed with empty strings; memcpy overwrites their internal state without running destructors, leaking those strings. Both the original and copied Records now share identical string internal pointers. When the copies are destroyed, they free the same buffers the originals own — a double free when the originals are also destroyed. The fix is to use std::copy or a loop with proper assignment instead of memcpy.",
   },
+  // ── Iterator Invalidation ──
+  {
+    id: 74,
+    topic: "Iterator Invalidation",
+    difficulty: "Easy",
+    title: "Notification Dispatcher",
+    description:
+      "Processes a message inbox and generates follow-up replies for important items.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+
+struct Message {
+    std::string sender;
+    std::string text;
+    bool important;
+};
+
+void print_message(const Message& msg) {
+    if (msg.important) {
+        std::cout << "[!] ";
+    } else {
+        std::cout << "    ";
+    }
+    std::cout << msg.sender << ": " << msg.text << std::endl;
+}
+
+int main() {
+    std::vector<Message> inbox = {
+        {"Alice", "Meeting at 3pm", false},
+        {"System", "Server alert!", true},
+        {"Bob", "Lunch plans?", false},
+        {"CI", "Deploy failed!", true},
+        {"Carol", "Code review ready", false},
+    };
+
+    std::cout << "Processing messages:" << std::endl;
+    for (auto it = inbox.begin(); it != inbox.end(); ++it) {
+        print_message(*it);
+        if (it->important) {
+            inbox.push_back({it->sender, "RE: " + it->text, false});
+        }
+    }
+
+    std::cout << "Total messages: " << inbox.size() << std::endl;
+}`,
+    hints: [
+      "What could happen to the vector's internal storage when push_back is called inside the loop?",
+      "If the vector needs more capacity, what happens to iterators pointing into the old storage?",
+      "Is the loop iterator still valid after push_back triggers a reallocation?",
+    ],
+    explanation:
+      "When push_back is called inside the loop, the vector may reallocate its internal buffer if size equals capacity. Reallocation frees the old buffer and allocates a new one, invalidating all existing iterators — including the loop iterator it. Dereferencing it on the next iteration is undefined behavior. The fix is to collect items to add in a separate vector and append them after the loop completes.",
+  },
+  {
+    id: 75,
+    topic: "Iterator Invalidation",
+    difficulty: "Easy",
+    title: "Tag Cleaner",
+    description:
+      "Cleans up an issue tracker by removing tags that have fewer than a threshold number of issues.",
+    code: `#include <iostream>
+#include <map>
+#include <string>
+
+void print_tags(const std::map<std::string, int>& tags) {
+    for (const auto& [tag, count] : tags) {
+        std::cout << "  " << tag << " (" << count << ")" << std::endl;
+    }
+}
+
+int main() {
+    std::map<std::string, int> issue_tags = {
+        {"bug", 5}, {"feature", 12}, {"wontfix", 3},
+        {"duplicate", 8}, {"enhancement", 7}, {"invalid", 2},
+        {"docs", 4}, {"performance", 9}, {"cosmetic", 1}
+    };
+
+    std::cout << "All tags:" << std::endl;
+    print_tags(issue_tags);
+
+    int threshold = 5;
+    std::cout << "Removing tags with fewer than "
+              << threshold << " issues..." << std::endl;
+
+    for (auto it = issue_tags.begin(); it != issue_tags.end(); ++it) {
+        if (it->second < threshold) {
+            issue_tags.erase(it);
+        }
+    }
+
+    std::cout << "Remaining tags:" << std::endl;
+    print_tags(issue_tags);
+}`,
+    hints: [
+      "What happens to an iterator after the element it points to is erased from a map?",
+      "After erase, is the iterator advanced to the next element automatically, or is it left invalid?",
+      "Does the for loop's ++it operate on a valid iterator after erase is called?",
+    ],
+    explanation:
+      "Calling issue_tags.erase(it) invalidates the iterator it. The subsequent ++it in the for loop increments an invalidated iterator, which is undefined behavior. The fix is to use it = issue_tags.erase(it) in the if branch and only do ++it in an else branch, since map::erase returns an iterator to the next element.",
+  },
+  {
+    id: 76,
+    topic: "Iterator Invalidation",
+    difficulty: "Easy",
+    title: "Data Collector",
+    description:
+      "Collects sensor readings in batches and computes the average for each batch.",
+    code: `#include <iostream>
+#include <vector>
+
+void print_range(std::vector<int>::iterator first,
+                 std::vector<int>::iterator last) {
+    while (first != last) {
+        std::cout << *first;
+        ++first;
+        if (first != last) std::cout << ", ";
+    }
+    std::cout << std::endl;
+}
+
+int main() {
+    std::vector<int> readings = {10, 20, 30, 40, 50};
+
+    auto begin_it = readings.begin();
+    auto end_it = readings.end();
+
+    std::cout << "Batch 1 readings: ";
+    print_range(begin_it, end_it);
+
+    double sum = 0;
+    for (auto it = begin_it; it != end_it; ++it) {
+        sum += *it;
+    }
+    std::cout << "Batch 1 average: " << sum / 5 << std::endl;
+
+    readings.clear();
+    readings.push_back(100);
+    readings.push_back(200);
+    readings.push_back(300);
+    readings.push_back(400);
+    readings.push_back(500);
+
+    std::cout << "Batch 2 readings: ";
+    print_range(begin_it, end_it);
+
+    sum = 0;
+    for (auto it = begin_it; it != end_it; ++it) {
+        sum += *it;
+    }
+    std::cout << "Batch 2 average: " << sum / 5 << std::endl;
+}`,
+    hints: [
+      "What happens to existing iterators when clear() is called on a vector?",
+      "After clearing and refilling the vector, do the saved iterators point to valid locations?",
+      "Does clear() guarantee that the vector's internal buffer address remains the same?",
+    ],
+    explanation:
+      "Calling readings.clear() invalidates all iterators, pointers, and references to elements of the vector. Even though push_back refills the vector to the same size, the saved begin_it and end_it iterators are invalidated and must not be used. Passing them to print_range and the averaging loop is undefined behavior. The fix is to reassign begin_it and end_it from the vector after modification.",
+  },
+  {
+    id: 77,
+    topic: "Iterator Invalidation",
+    difficulty: "Medium",
+    title: "Sequence Padder",
+    description:
+      "Inserts zero-padding between every element of a signal array to upsample it.",
+    code: `#include <iostream>
+#include <vector>
+
+void pad_with_zeros(std::vector<int>& data) {
+    for (auto it = data.begin(); it != data.end(); ++it) {
+        data.insert(it + 1, 0);
+        ++it;
+    }
+}
+
+void print_vector(const std::vector<int>& v) {
+    for (size_t i = 0; i < v.size(); ++i) {
+        std::cout << v[i];
+        if (i + 1 < v.size()) std::cout << " ";
+    }
+    std::cout << std::endl;
+}
+
+int main() {
+    std::vector<int> signal = {10, 20, 30, 40, 50};
+
+    std::cout << "Original signal: ";
+    print_vector(signal);
+
+    pad_with_zeros(signal);
+
+    std::cout << "Padded signal:   ";
+    print_vector(signal);
+
+    std::cout << "Expected:        10 0 20 0 30 0 40 0 50 0" << std::endl;
+}`,
+    hints: [
+      "What happens to existing iterators when insert is called on a vector?",
+      "Does insert guarantee that iterators before the insertion point remain valid?",
+      "Under what condition does vector::insert cause a reallocation?",
+    ],
+    explanation:
+      "Calling data.insert(it + 1, 0) may cause the vector to reallocate if size equals capacity, which invalidates all iterators including it. Even without reallocation, iterators at or after the insertion point are invalidated. Since the vector starts with 5 elements and the first insert grows it to 6 (exceeding the typical initial capacity of 5), reallocation is triggered immediately, making the subsequent ++it and loop comparison undefined behavior. The fix is to use the iterator returned by insert to reposition.",
+  },
+  {
+    id: 78,
+    topic: "Iterator Invalidation",
+    difficulty: "Medium",
+    title: "Cache Refresher",
+    description:
+      "Updates cached entries by creating new versioned keys for values that meet a condition.",
+    code: `#include <iostream>
+#include <unordered_map>
+#include <string>
+
+int main() {
+    std::unordered_map<std::string, int> cache = {
+        {"alpha", 1}, {"beta", 2}, {"gamma", 3},
+        {"delta", 4}, {"epsilon", 5}
+    };
+
+    std::cout << "Refreshing odd-valued entries:" << std::endl;
+
+    for (auto it = cache.begin(); it != cache.end(); ++it) {
+        if (it->second % 2 != 0) {
+            std::string new_key = "v2_" + it->first;
+            int new_val = it->second * 10;
+            std::cout << "  " << it->first << " -> "
+                      << new_key << " = " << new_val << std::endl;
+            cache[new_key] = new_val;
+        }
+    }
+
+    std::cout << "Final cache:" << std::endl;
+    for (const auto& [key, val] : cache) {
+        std::cout << "  " << key << " = " << val << std::endl;
+    }
+}`,
+    hints: [
+      "What happens to an unordered_map's internal bucket structure when new elements are inserted?",
+      "Under what condition does an unordered_map rehash, and what effect does that have on iterators?",
+      "Is the loop iterator still pointing to a valid bucket entry after an insertion triggers a rehash?",
+    ],
+    explanation:
+      "Inserting new elements into an unordered_map may trigger a rehash if the load factor exceeds the maximum. A rehash reallocates the internal bucket array and redistributes all elements, invalidating every existing iterator. The loop iterator it becomes a dangling pointer into the old bucket structure, and incrementing or dereferencing it is undefined behavior. The fix is to collect the new entries in a separate container and insert them after the loop.",
+  },
+  {
+    id: 79,
+    topic: "Iterator Invalidation",
+    difficulty: "Medium",
+    title: "Task Scheduler",
+    description:
+      "Processes a task queue and inserts verification steps for high-priority tasks.",
+    code: `#include <iostream>
+#include <deque>
+#include <string>
+
+struct Task {
+    std::string name;
+    int priority;
+};
+
+void print_queue(const std::deque<Task>& q) {
+    for (const auto& t : q) {
+        std::cout << "  [p" << t.priority << "] " << t.name << std::endl;
+    }
+}
+
+int main() {
+    std::deque<Task> tasks = {
+        {"compile", 2},
+        {"test", 1},
+        {"deploy", 3},
+        {"notify", 1},
+        {"backup", 2}
+    };
+
+    std::cout << "Initial queue:" << std::endl;
+    print_queue(tasks);
+
+    std::cout << "Processing:" << std::endl;
+    for (auto it = tasks.begin(); it != tasks.end(); ++it) {
+        std::cout << "  Running: " << it->name
+                  << " (priority " << it->priority << ")" << std::endl;
+        if (it->priority >= 3) {
+            tasks.push_front({"verify_" + it->name, it->priority - 1});
+        }
+    }
+
+    std::cout << "Final queue:" << std::endl;
+    print_queue(tasks);
+}`,
+    hints: [
+      "What guarantees does a deque provide about iterator validity after push_front?",
+      "Does inserting at the front of a deque preserve iterators to existing elements?",
+      "After push_front executes, is the loop iterator still usable?",
+    ],
+    explanation:
+      "Inserting at either end of a std::deque (push_front or push_back) invalidates all iterators to the deque, even though references and pointers to existing elements remain valid. After push_front is called, the loop iterator it is invalidated. Incrementing or dereferencing it on the next iteration is undefined behavior. The fix is to record high-priority tasks separately and prepend them after the loop.",
+  },
+  {
+    id: 80,
+    topic: "Iterator Invalidation",
+    difficulty: "Medium",
+    title: "Log Filter",
+    description:
+      "Filters debug-level entries from an application log to produce a clean output.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+
+void print_log(const std::vector<std::string>& log) {
+    for (const auto& entry : log) {
+        std::cout << "  " << entry << std::endl;
+    }
+}
+
+int main() {
+    std::vector<std::string> log = {
+        "INFO: application started",
+        "DEBUG: loading config",
+        "INFO: listening on port 8080",
+        "DEBUG: connection pool initialized",
+        "ERROR: disk space low",
+        "DEBUG: GC cycle completed",
+        "INFO: request from 10.0.0.1",
+        "DEBUG: query took 42ms"
+    };
+
+    std::cout << "Full log:" << std::endl;
+    print_log(log);
+
+    std::vector<std::vector<std::string>::iterator> debug_entries;
+    for (auto it = log.begin(); it != log.end(); ++it) {
+        if (it->substr(0, 5) == "DEBUG") {
+            debug_entries.push_back(it);
+        }
+    }
+
+    std::cout << "Removing " << debug_entries.size()
+              << " debug entries..." << std::endl;
+
+    for (auto it : debug_entries) {
+        log.erase(it);
+    }
+
+    std::cout << "Filtered log:" << std::endl;
+    print_log(log);
+}`,
+    hints: [
+      "After the first call to log.erase(), what happens to the remaining stored iterators?",
+      "Does erasing an element from a vector affect iterators that point to positions after it?",
+      "Are the iterators collected in the first pass still valid during the second pass?",
+    ],
+    explanation:
+      "After the first log.erase(it) call, all iterators at or past the erased position are invalidated — the vector shifts elements left to fill the gap. The remaining iterators stored in debug_entries that pointed to later positions are now invalid. Using them in subsequent erase calls is undefined behavior. The fix is to use the erase-remove idiom, or to erase in reverse order using indices instead of iterators.",
+  },
+  {
+    id: 81,
+    topic: "Iterator Invalidation",
+    difficulty: "Hard",
+    title: "Pair Eliminator",
+    description:
+      "Finds and removes pairs of numbers that sum to a given target from an array.",
+    code: `#include <iostream>
+#include <vector>
+
+void print_vector(const std::vector<int>& v) {
+    for (size_t i = 0; i < v.size(); ++i) {
+        std::cout << v[i];
+        if (i + 1 < v.size()) std::cout << ", ";
+    }
+    std::cout << std::endl;
+}
+
+void remove_pairs(std::vector<int>& nums, int target) {
+    for (auto i = nums.begin(); i != nums.end(); ++i) {
+        for (auto j = i + 1; j != nums.end(); ++j) {
+            if (*i + *j == target) {
+                std::cout << "  Removing pair: " << *i
+                          << " + " << *j << " = " << target << std::endl;
+                nums.erase(j);
+                nums.erase(i);
+                break;
+            }
+        }
+    }
+}
+
+int main() {
+    std::vector<int> values = {1, 4, 5, 6, 3, 9, 7, 2, 8};
+    int target = 10;
+
+    std::cout << "Input: ";
+    print_vector(values);
+
+    std::cout << "Finding pairs that sum to " << target << ":" << std::endl;
+    remove_pairs(values, target);
+
+    std::cout << "Result: ";
+    print_vector(values);
+}`,
+    hints: [
+      "After both erase calls execute and the inner loop breaks, what is the state of the outer loop iterator?",
+      "Does vector::erase return useful information that the code discards?",
+      "When the outer for loop tries to increment iterator i after both elements have been erased, what happens?",
+    ],
+    explanation:
+      "After nums.erase(j) invalidates iterators at or past j, iterator i (which is before j) remains valid. But nums.erase(i) then invalidates i itself. When the inner loop breaks and control returns to the outer loop, ++i operates on an invalidated iterator — undefined behavior. Both erase calls return iterators to the element following the erased one, but the code discards them. The fix requires capturing the return values and carefully repositioning the outer iterator.",
+  },
+  {
+    id: 82,
+    topic: "Iterator Invalidation",
+    difficulty: "Hard",
+    title: "Indexed Collection",
+    description:
+      "Builds a fast-lookup index over a list of items and uses it to display the collection.",
+    code: `#include <iostream>
+#include <list>
+#include <unordered_map>
+#include <string>
+
+int main() {
+    std::list<std::string> fruits = {
+        "apple", "banana", "cherry", "date", "elderberry",
+        "fig", "grape"
+    };
+
+    std::unordered_map<std::string, std::list<std::string>::iterator> index;
+    for (auto it = fruits.begin(); it != fruits.end(); ++it) {
+        index[*it] = it;
+    }
+
+    std::cout << "Removing fruits starting with a vowel:" << std::endl;
+    for (auto it = fruits.begin(); it != fruits.end(); ) {
+        char c = (*it)[0];
+        if (c == 'a' || c == 'e' || c == 'i' || c == 'o' || c == 'u') {
+            std::cout << "  removed: " << *it << std::endl;
+            it = fruits.erase(it);
+        } else {
+            ++it;
+        }
+    }
+
+    std::cout << "Lookup via index:" << std::endl;
+    for (const auto& [name, it] : index) {
+        std::cout << "  " << name << " -> " << *it << std::endl;
+    }
+}`,
+    hints: [
+      "After erasing elements from the list, what happens to the iterators stored in the index for those elements?",
+      "For a std::list, does erasing one element affect iterators to other elements?",
+      "When the final loop dereferences every iterator in the index, are all of those iterators still valid?",
+    ],
+    explanation:
+      "Erasing an element from a std::list invalidates only the iterator to that specific element — other iterators remain valid. However, the index map still contains entries for 'apple' and 'elderberry' with their now-invalidated iterators. The final loop iterates every entry in the index and dereferences all stored iterators, including the ones for erased elements. Dereferencing an invalidated list iterator is undefined behavior. The fix is to also remove the corresponding entries from the index when erasing from the list.",
+  },
+  {
+    id: 83,
+    topic: "Iterator Invalidation",
+    difficulty: "Hard",
+    title: "Flat Map",
+    description:
+      "A sorted associative container backed by a flat array, supporting insert and lookup operations.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+
+class FlatMap {
+    std::vector<std::pair<std::string, int>> entries_;
+public:
+    using iterator = std::vector<std::pair<std::string, int>>::iterator;
+
+    void insert(const std::string& key, int value) {
+        auto it = std::lower_bound(entries_.begin(), entries_.end(), key,
+            [](const auto& e, const std::string& k) {
+                return e.first < k;
+            });
+        if (it != entries_.end() && it->first == key) {
+            it->second = value;
+        } else {
+            entries_.insert(it, {key, value});
+        }
+    }
+
+    iterator find(const std::string& key) {
+        auto it = std::lower_bound(entries_.begin(), entries_.end(), key,
+            [](const auto& e, const std::string& k) {
+                return e.first < k;
+            });
+        return (it != entries_.end() && it->first == key) ? it : end();
+    }
+
+    iterator end() { return entries_.end(); }
+
+    void print() const {
+        for (const auto& [k, v] : entries_) {
+            std::cout << "  " << k << " = " << v << std::endl;
+        }
+    }
+};
+
+int main() {
+    FlatMap config;
+    config.insert("debug", 0);
+    config.insert("port", 8080);
+    config.insert("timeout", 30);
+
+    auto port = config.find("port");
+
+    config.insert("host", 1);
+    config.insert("retries", 3);
+    config.insert("verbose", 0);
+    config.insert("workers", 4);
+
+    if (port != config.end()) {
+        std::cout << "Port: " << port->second << std::endl;
+    }
+
+    std::cout << "All config:" << std::endl;
+    config.print();
+}`,
+    hints: [
+      "What is the return type of find(), and what underlying container does the returned iterator belong to?",
+      "When insert() adds new entries to the sorted vector, what happens to its internal storage?",
+      "Can an iterator obtained before insertions be safely compared to end() obtained after insertions?",
+    ],
+    explanation:
+      "find() returns an iterator into the internal std::vector. Subsequent insert() calls grow the vector past its capacity, triggering reallocation that invalidates all existing iterators. The iterator port becomes a dangling pointer into the freed old buffer. Even the comparison port != config.end() is undefined behavior because it compares an invalidated iterator against a fresh one from the reallocated storage. The fix is to store the key and re-query find() after modifications, or to reserve sufficient capacity before obtaining the iterator.",
+  },
 ];
