@@ -1886,4 +1886,537 @@ int main() {
     explanation:
       'The expression log << "Alarm mask: " << 1 << alarm_bit is parsed left-to-right as ((log << "Alarm mask: ") << 1) << alarm_bit. The intended bitwise shift 1 << alarm_bit is never computed. Instead, the integers 1 and alarm_bit (5) are logged as separate values, producing the concatenated output "15" instead of the expected "32" (which is 1 << 5). Parentheses are required: log << "Alarm mask: " << (1 << alarm_bit).',
   },
+  // ── Classes ──
+  {
+    id: 44,
+    topic: "Classes",
+    difficulty: "Easy",
+    title: "Rectangle Scaler",
+    description:
+      "Computes the area of rectangles and prints the dimensions with the computed area.",
+    code: `#include <iostream>
+
+class Rectangle {
+    double width_;
+    double area_;
+    double height_;
+public:
+    Rectangle(double w, double h)
+        : width_(w), height_(h), area_(width_ * height_) {}
+
+    double area() const { return area_; }
+    double perimeter() const { return 2.0 * (width_ + height_); }
+
+    void print() const {
+        std::cout << width_ << " x " << height_
+                  << ", area = " << area_
+                  << ", perimeter = " << perimeter() << std::endl;
+    }
+};
+
+int main() {
+    Rectangle r(3.0, 4.0);
+    r.print();
+
+    Rectangle s(5.0, 2.0);
+    s.print();
+
+    Rectangle square(7.0, 7.0);
+    square.print();
+}`,
+    hints: [
+      "In what order are the member variables actually initialized?",
+      "Does the order in the initializer list determine the initialization sequence, or does declaration order?",
+      "What is the value of height_ when area_ is being computed?",
+    ],
+    explanation:
+      "Members are initialized in declaration order (width_, area_, height_), not in the order written in the initializer list. When area_ is initialized as width_ * height_, height_ has not been initialized yet and contains an indeterminate value. The computed area is garbage despite the initializer list appearing to set height_ first.",
+  },
+  {
+    id: 45,
+    topic: "Classes",
+    difficulty: "Easy",
+    title: "Grade Averager",
+    description:
+      "Manages grade books for different academic subjects and computes their averages.",
+    code: `#include <iostream>
+#include <string>
+
+class GradeBook {
+    std::string subject_;
+    static double total_;
+    static int count_;
+public:
+    GradeBook(std::string subject) : subject_(std::move(subject)) {}
+
+    void add_grade(double grade) {
+        total_ += grade;
+        ++count_;
+    }
+
+    double average() const {
+        return count_ > 0 ? total_ / count_ : 0.0;
+    }
+
+    void print() const {
+        std::cout << subject_ << " average: " << average() << std::endl;
+    }
+};
+
+double GradeBook::total_ = 0.0;
+int GradeBook::count_ = 0;
+
+int main() {
+    GradeBook math("Math");
+    math.add_grade(90);
+    math.add_grade(85);
+
+    GradeBook science("Science");
+    science.add_grade(78);
+    science.add_grade(92);
+
+    math.print();
+    science.print();
+}`,
+    hints: [
+      "Are total_ and count_ unique to each GradeBook instance?",
+      "What does the static keyword mean for class data members?",
+    ],
+    explanation:
+      "The members total_ and count_ are declared static, meaning they are shared across all GradeBook instances. When grades are added through either math or science, they accumulate in the same two variables. Both objects report the combined average of all four grades (86.25) instead of their individual averages (87.5 for Math, 85.0 for Science).",
+  },
+  {
+    id: 46,
+    topic: "Classes",
+    difficulty: "Easy",
+    title: "Thermostat Controller",
+    description:
+      "Controls thermostats in different rooms by comparing current and target temperatures.",
+    code: `#include <iostream>
+#include <string>
+
+class Thermostat {
+    std::string location_;
+    double target_temp_;
+    double current_temp_;
+public:
+    Thermostat(std::string location, double target_temp)
+        : location_(std::move(location)), current_temp_(20.0) {
+        double target_temp_ = target_temp;
+    }
+
+    void adjust() {
+        if (current_temp_ < target_temp_) {
+            std::cout << location_ << ": Heating to "
+                      << target_temp_ << std::endl;
+        } else if (current_temp_ > target_temp_) {
+            std::cout << location_ << ": Cooling to "
+                      << target_temp_ << std::endl;
+        } else {
+            std::cout << location_ << ": At target "
+                      << target_temp_ << std::endl;
+        }
+    }
+
+    void set_current(double temp) { current_temp_ = temp; }
+};
+
+int main() {
+    Thermostat living_room("Living Room", 22.0);
+    Thermostat bedroom("Bedroom", 18.0);
+
+    living_room.adjust();
+    bedroom.adjust();
+
+    living_room.set_current(25.0);
+    living_room.adjust();
+}`,
+    hints: [
+      "How is target_temp_ assigned in the constructor body?",
+      "Is the variable being assigned inside the constructor body the class member, or something else?",
+    ],
+    explanation:
+      "The constructor body declares a local variable double target_temp_ that shadows the class member of the same name. The parameter value is stored in this local, which is immediately discarded when the constructor finishes. The member target_temp_ is never initialized, leaving it with an indeterminate value. All comparisons in adjust() read this uninitialized member — undefined behavior.",
+  },
+  {
+    id: 47,
+    topic: "Classes",
+    difficulty: "Medium",
+    title: "Secure Component",
+    description:
+      "Initializes system components and validates their readiness with type-specific checks.",
+    code: `#include <iostream>
+#include <string>
+
+class Component {
+    std::string type_;
+protected:
+    bool ready_;
+public:
+    Component(std::string type) : type_(std::move(type)), ready_(false) {
+        setup();
+    }
+    virtual ~Component() = default;
+
+    virtual void setup() {
+        ready_ = true;
+    }
+
+    void check() const {
+        std::cout << type_ << ": "
+                  << (ready_ ? "ready" : "NOT ready") << std::endl;
+    }
+};
+
+class SecureComponent : public Component {
+    std::string key_;
+public:
+    SecureComponent(std::string type, std::string key)
+        : Component(std::move(type)), key_(std::move(key)) {}
+
+    void setup() override {
+        if (key_.size() >= 8) {
+            ready_ = true;
+        }
+    }
+};
+
+int main() {
+    SecureComponent auth("Authenticator", "my-secret-key-123");
+    auth.check();
+
+    SecureComponent validator("Validator", "short");
+    validator.check();
+}`,
+    hints: [
+      "Which version of setup() runs during the Component constructor?",
+      "At what point in construction does virtual dispatch to the derived class become available?",
+      "Are the derived class members initialized when the base constructor runs?",
+    ],
+    explanation:
+      "Virtual functions called from a constructor dispatch to the version of the class currently being constructed. When Component's constructor calls setup(), the object's dynamic type is still Component, so Component::setup() runs unconditionally setting ready_ to true. SecureComponent::setup() with its key-length check is never invoked. The Validator with the short key is incorrectly reported as ready.",
+  },
+  {
+    id: 48,
+    topic: "Classes",
+    difficulty: "Medium",
+    title: "Notification System",
+    description:
+      "Sends notifications through different channels at configurable priority levels.",
+    code: `#include <iostream>
+#include <string>
+
+class Notifier {
+public:
+    virtual void send(const std::string& msg, int priority = 1) {
+        std::cout << "[NORMAL] " << msg
+                  << " (priority " << priority << ")" << std::endl;
+    }
+    virtual ~Notifier() = default;
+};
+
+class UrgentNotifier : public Notifier {
+public:
+    void send(const std::string& msg, int priority = 10) override {
+        std::cout << "[URGENT] " << msg
+                  << " (priority " << priority << ")" << std::endl;
+    }
+};
+
+void dispatch(Notifier& notifier, const std::string& msg) {
+    notifier.send(msg);
+}
+
+int main() {
+    UrgentNotifier urgent;
+
+    std::cout << "Direct call:" << std::endl;
+    urgent.send("server down");
+
+    std::cout << "Dispatched call:" << std::endl;
+    dispatch(urgent, "server down");
+}`,
+    hints: [
+      "What determines the default argument value when a virtual function is called through a base reference?",
+      "Is the default argument resolved at compile time or at runtime?",
+    ],
+    explanation:
+      "Default arguments are resolved at compile time based on the static type of the pointer or reference, not the dynamic type. When dispatch() calls notifier.send(msg) through a Notifier& reference, the default argument priority = 1 from Notifier::send is used, even though UrgentNotifier::send is the function that actually executes. The urgent notification incorrectly runs with priority 1 instead of 10.",
+  },
+  {
+    id: 49,
+    topic: "Classes",
+    difficulty: "Medium",
+    title: "Electric Vehicle",
+    description:
+      "Tracks electric vehicle specifications and accumulated mileage.",
+    code: `#include <iostream>
+#include <string>
+
+class Vehicle {
+    std::string make_;
+    int year_;
+    double mileage_;
+public:
+    Vehicle() : make_("Unknown"), year_(0), mileage_(0.0) {}
+    Vehicle(std::string make, int year)
+        : make_(std::move(make)), year_(year), mileage_(0.0) {}
+
+    void print_info() const {
+        std::cout << year_ << " " << make_
+                  << " (" << mileage_ << " mi)" << std::endl;
+    }
+
+    void add_miles(double m) { mileage_ += m; }
+};
+
+class ElectricCar : public Vehicle {
+    double battery_kwh_;
+public:
+    ElectricCar(std::string make, int year, double battery)
+        : battery_kwh_(battery) {
+        Vehicle(std::move(make), year);
+    }
+
+    void print_specs() const {
+        print_info();
+        std::cout << "Battery: " << battery_kwh_ << " kWh" << std::endl;
+    }
+};
+
+int main() {
+    ElectricCar car("Tesla", 2024, 75.0);
+    car.add_miles(15000);
+    car.print_specs();
+}`,
+    hints: [
+      "Where exactly is the base class Vehicle being initialized?",
+      "What does the statement Vehicle(std::move(make), year) do inside the constructor body?",
+      "At what point during construction must the base class be initialized?",
+    ],
+    explanation:
+      'The statement Vehicle(std::move(make), year) in the constructor body creates and immediately destroys a temporary Vehicle object — it does not initialize the base class. Base class initialization must happen in the member initializer list, before the constructor body runs. Since no base constructor is specified in the initializer list, the default Vehicle() constructor is called, setting make_ to "Unknown" and year_ to 0.',
+  },
+  {
+    id: 50,
+    topic: "Classes",
+    difficulty: "Medium",
+    title: "Sensor Reporter",
+    description:
+      "Creates on-demand report generators for different sensor readings.",
+    code: `#include <iostream>
+#include <functional>
+#include <vector>
+#include <string>
+
+class Sensor {
+    std::string name_;
+    double reading_;
+public:
+    Sensor(std::string name, double reading)
+        : name_(std::move(name)), reading_(reading) {}
+
+    void update(double val) { reading_ = val; }
+
+    std::function<void()> make_reporter() {
+        return [this]() {
+            std::cout << name_ << ": " << reading_ << std::endl;
+        };
+    }
+};
+
+std::vector<std::function<void()>> create_reports() {
+    std::vector<std::function<void()>> reports;
+
+    Sensor thermometer("Thermometer", 36.6);
+    Sensor barometer("Barometer", 1013.25);
+
+    reports.push_back(thermometer.make_reporter());
+    reports.push_back(barometer.make_reporter());
+
+    return reports;
+}
+
+int main() {
+    auto reports = create_reports();
+
+    std::cout << "Sensor readings:" << std::endl;
+    for (auto& report : reports) {
+        report();
+    }
+}`,
+    hints: [
+      "What does the lambda capture when it uses [this]?",
+      "What happens to the Sensor objects after create_reports() returns?",
+    ],
+    explanation:
+      "The lambdas capture the this pointer of local Sensor objects inside create_reports(). When the function returns, both Sensor objects are destroyed, but the returned lambdas still hold dangling this pointers. Invoking any of the report functions reads destroyed objects' members — undefined behavior. The lambdas should capture the member values by copy instead of capturing this.",
+  },
+  {
+    id: 51,
+    topic: "Classes",
+    difficulty: "Hard",
+    title: "Database Connection",
+    description:
+      "Establishes database connections with dedicated host and query buffers.",
+    code: `#include <iostream>
+#include <string>
+#include <stdexcept>
+#include <cstring>
+
+class Connection {
+    char* host_buf_;
+    char* query_buf_;
+    size_t query_size_;
+public:
+    Connection(const std::string& host, size_t query_size)
+        : query_size_(query_size)
+    {
+        host_buf_ = new char[host.size() + 1];
+        std::strcpy(host_buf_, host.c_str());
+
+        if (query_size == 0) {
+            throw std::invalid_argument("query buffer size must be positive");
+        }
+        query_buf_ = new char[query_size];
+        std::memset(query_buf_, 0, query_size);
+    }
+
+    ~Connection() {
+        delete[] host_buf_;
+        delete[] query_buf_;
+    }
+
+    void execute(const char* query) {
+        std::strncpy(query_buf_, query, query_size_ - 1);
+        query_buf_[query_size_ - 1] = '\\0';
+        std::cout << "Executing on " << host_buf_ << ": "
+                  << query_buf_ << std::endl;
+    }
+};
+
+int main() {
+    try {
+        Connection good("localhost", 256);
+        good.execute("SELECT * FROM users");
+
+        Connection bad("remotehost", 0);
+        bad.execute("SELECT 1");
+    } catch (const std::exception& e) {
+        std::cout << "Error: " << e.what() << std::endl;
+    }
+}`,
+    hints: [
+      "What happens to resources acquired before an exception is thrown in a constructor?",
+      "If a constructor throws, does the destructor of that object run?",
+      "Which resource has already been allocated by the time the size check runs?",
+    ],
+    explanation:
+      "When the constructor throws for query_size == 0, host_buf_ has already been allocated. Since the object was never fully constructed, its destructor does not run — the C++ standard only calls destructors for fully constructed objects. The host_buf_ allocation is permanently leaked. Using std::string or std::unique_ptr for the buffers would ensure cleanup through their own destructors.",
+  },
+  {
+    id: 52,
+    topic: "Classes",
+    difficulty: "Hard",
+    title: "Query Builder",
+    description:
+      "Builds parameterized database queries and executes them.",
+    code: `#include <iostream>
+#include <string>
+
+class Query {
+    const std::string& table_;
+    std::string condition_;
+public:
+    Query(const std::string& table, std::string condition)
+        : table_(table), condition_(std::move(condition)) {}
+
+    void execute() const {
+        std::cout << "SELECT * FROM " << table_
+                  << " WHERE " << condition_ << std::endl;
+    }
+};
+
+Query build_user_query(int user_id) {
+    return Query("users", "id = " + std::to_string(user_id));
+}
+
+Query build_order_query(int order_id) {
+    return Query("orders", "oid = " + std::to_string(order_id));
+}
+
+int main() {
+    auto q1 = build_user_query(42);
+    auto q2 = build_order_query(99);
+
+    q1.execute();
+    q2.execute();
+}`,
+    hints: [
+      "What is the lifetime of the string object that table_ refers to?",
+      "When a const reference parameter binds to a temporary, how long does that temporary live?",
+      "Does storing a reference in a class member extend the lifetime of the object it refers to?",
+    ],
+    explanation:
+      'The constructor parameter table binds to a temporary std::string created from the string literal "users". The member reference table_ is initialized from this parameter, but storing a reference in a member does not extend the temporary\'s lifetime. The temporary is destroyed when the full expression completes, leaving table_ as a dangling reference. Calling execute() reads through freed memory — undefined behavior. The member should be std::string by value, not const std::string&.',
+  },
+  {
+    id: 53,
+    topic: "Classes",
+    difficulty: "Hard",
+    title: "Resource Handle",
+    description:
+      "Tracks shared ownership of a named resource with acquire and release operations.",
+    code: `#include <iostream>
+#include <string>
+
+class Handle {
+    std::string name_;
+    int ref_count_;
+public:
+    Handle(std::string name)
+        : name_(std::move(name)), ref_count_(1) {
+        std::cout << "Created " << name_ << std::endl;
+    }
+
+    ~Handle() {
+        std::cout << "Destroyed " << name_ << std::endl;
+    }
+
+    void acquire() {
+        ++ref_count_;
+        std::cout << name_ << " acquired, refs = "
+                  << ref_count_ << std::endl;
+    }
+
+    void release() {
+        --ref_count_;
+        if (ref_count_ == 0) {
+            delete this;
+        }
+        std::cout << name_ << " released, refs = "
+                  << ref_count_ << std::endl;
+    }
+
+    void use() const {
+        std::cout << "Using " << name_ << std::endl;
+    }
+};
+
+int main() {
+    Handle* h = new Handle("FileHandle");
+    h->acquire();
+    h->use();
+
+    h->release();
+    h->release();
+}`,
+    hints: [
+      "What happens to the object's memory after delete this executes?",
+      "Does execution of the member function continue after delete this?",
+      "Are any member variables accessed after the point where the object might be destroyed?",
+    ],
+    explanation:
+      "When release() decrements ref_count_ to 0 and calls delete this, the object is destroyed and its memory freed. However, execution continues past the if block and accesses name_ and ref_count_ on the next line — both members of the now-deleted object. This is use-after-free. The function must return immediately after delete this to avoid accessing any member state.",
+  },
 ];
