@@ -1297,4 +1297,38 @@ int main() {
     explanation:
       "After the inner block ends, both shared_ptrs are destroyed, freeing the Resource objects. The weak_ptrs in the cache are now expired. In lookup(), lock() returns a null shared_ptr for expired entries, and the code immediately dereferences it with ->data — a null pointer dereference. The return value of lock() must be checked before use.",
   },
+  // ── Lambdas ──
+  {
+    id: 33,
+    topic: "Lambdas",
+    difficulty: "Medium",
+    title: "Deferred Formatter",
+    description:
+      "Builds a list of formatting functions and invokes them after the loop to print results.",
+    code: `#include <iostream>
+#include <vector>
+#include <functional>
+#include <string>
+
+int main() {
+    std::vector<std::string> names = {"Alice", "Bob", "Charlie"};
+    std::vector<std::function<void()>> actions;
+
+    for (size_t i = 0; i < names.size(); ++i) {
+        actions.push_back([&]() {
+            std::cout << (i + 1) << ". " << names[i] << std::endl;
+        });
+    }
+
+    for (auto& fn : actions) {
+        fn();
+    }
+}`,
+    hints: [
+      "What does the lambda capture, and how does it capture it?",
+      "What is the value of i when the lambdas are actually invoked?",
+    ],
+    explanation:
+      "The lambda captures i by reference. By the time the lambdas execute in the second loop, the first loop has finished and i equals names.size() (3). Every lambda reads the same out-of-bounds index, causing undefined behavior. Capturing i by value ([i, &names]) would give each lambda its own copy of the loop counter.",
+  },
 ];
