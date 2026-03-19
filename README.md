@@ -30,7 +30,7 @@ Open `http://localhost:4321`.
 npm run build
 ```
 
-Output goes to `dist/`.
+Output goes to `dist/`
 
 ## Topics Covered
 
