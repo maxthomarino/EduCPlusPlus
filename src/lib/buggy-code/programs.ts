@@ -2962,4 +2962,485 @@ int main() {
     explanation:
       "When Task(\"Deploy\", -2) throws, only tasks[0] and tasks[1] hold valid pointers. The array was allocated with new Task*[count], which does not zero-initialize the pointers, so tasks[2] and tasks[3] contain indeterminate garbage values. The catch block's cleanup loop deletes all count entries, calling delete on garbage pointers — undefined behavior. The fix is to value-initialize the array with new Task*[count]() so unset entries are nullptr, making delete on them safe.",
   },
+  // ── Heap Allocation (batch 3) ──
+  {
+    id: 64,
+    topic: "Heap Allocation",
+    difficulty: "Easy",
+    title: "Running Total",
+    description:
+      "Computes cumulative totals for two batches of numbers and prints the results.",
+    code: `#include <iostream>
+
+int* compute_totals(const int* data, int size) {
+    int* totals = new int[size];
+    int sum = 0;
+    for (int i = 0; i < size; ++i) {
+        sum += data[i];
+        totals[i] = sum;
+    }
+    return totals;
+}
+
+int main() {
+    int batch1[] = {10, 20, 30, 40, 50};
+    int batch2[] = {5, 15, 25};
+
+    int* results = compute_totals(batch1, 5);
+    std::cout << "Batch 1 totals:";
+    for (int i = 0; i < 5; ++i) std::cout << " " << results[i];
+    std::cout << std::endl;
+
+    results = compute_totals(batch2, 3);
+    std::cout << "Batch 2 totals:";
+    for (int i = 0; i < 3; ++i) std::cout << " " << results[i];
+    std::cout << std::endl;
+
+    delete[] results;
+}`,
+    hints: [
+      "How many heap allocations are made, and how many are freed?",
+      "What happens to the first allocation when results is reassigned?",
+    ],
+    explanation:
+      "compute_totals allocates a new array on each call. The first allocation (for batch1) is leaked when results is reassigned to the second allocation (for batch2). Only the second allocation is freed with delete[]. The fix is to call delete[] results before the second assignment.",
+  },
+  {
+    id: 65,
+    topic: "Heap Allocation",
+    difficulty: "Easy",
+    title: "Name Formatter",
+    description:
+      "Concatenates first and last names into a single full-name string and prints them.",
+    code: `#include <iostream>
+#include <cstring>
+#include <cstdlib>
+
+char* format_name(const char* first, const char* last) {
+    size_t len = std::strlen(first) + std::strlen(last) + 2;
+    char* full = new char[len];
+    std::strcpy(full, first);
+    std::strcat(full, " ");
+    std::strcat(full, last);
+    return full;
+}
+
+int main() {
+    char* name1 = format_name("John", "Doe");
+    char* name2 = format_name("Jane", "Smith");
+
+    std::cout << name1 << std::endl;
+    std::cout << name2 << std::endl;
+
+    std::free(name1);
+    std::free(name2);
+}`,
+    hints: [
+      "How is the memory for each name allocated inside format_name?",
+      "Does the deallocation in main match the allocation method?",
+    ],
+    explanation:
+      "The format_name function allocates with new char[len], but main frees with std::free(). Mixing C++ allocation (new[]) with C deallocation (free) is undefined behavior. The fix is to use delete[] name1 and delete[] name2, or change the allocation to std::malloc.",
+  },
+  {
+    id: 66,
+    topic: "Heap Allocation",
+    difficulty: "Easy",
+    title: "Temperature Log",
+    description:
+      "Records daily temperature readings and computes the running average.",
+    code: `#include <iostream>
+
+class TempLog {
+    double* readings_;
+    int count_;
+public:
+    TempLog(int capacity)
+        : readings_(new double[capacity]), count_(0) {}
+
+    ~TempLog() { delete[] readings_; }
+
+    void record(double temp) {
+        readings_[count_++] = temp;
+    }
+
+    double average() const {
+        double sum = 0;
+        for (int i = 0; i < count_; ++i) sum += readings_[i];
+        return count_ > 0 ? sum / count_ : 0.0;
+    }
+};
+
+void print_average(TempLog log) {
+    std::cout << "Average: " << log.average() << std::endl;
+}
+
+int main() {
+    TempLog daily(100);
+    daily.record(22.5);
+    daily.record(23.1);
+    daily.record(21.8);
+    daily.record(24.0);
+
+    print_average(daily);
+
+    daily.record(22.0);
+    std::cout << "Updated average: " << daily.average() << std::endl;
+}`,
+    hints: [
+      "How is TempLog passed to print_average?",
+      "What does the compiler-generated copy constructor do with the readings_ pointer?",
+      "When the copy is destroyed at the end of print_average, what happens to the shared pointer?",
+    ],
+    explanation:
+      "print_average takes TempLog by value, triggering the compiler-generated copy constructor which copies the readings_ pointer (shallow copy). When the local copy is destroyed at the end of print_average, it calls delete[] on the shared pointer. Back in main, daily now holds a dangling pointer — the subsequent daily.record(22.0) writes to freed memory, and daily's destructor will double-free. The fix is to pass by const reference or implement a proper copy constructor.",
+  },
+  {
+    id: 67,
+    topic: "Heap Allocation",
+    difficulty: "Medium",
+    title: "Path Builder",
+    description:
+      "Incrementally builds file paths and retrieves them as C-strings.",
+    code: `#include <iostream>
+#include <string>
+
+class PathBuilder {
+    std::string path_;
+public:
+    void set_base(const std::string& base) { path_ = base; }
+
+    void append(const std::string& part) {
+        path_ += "/";
+        path_ += part;
+    }
+
+    const char* c_path() const { return path_.c_str(); }
+};
+
+int main() {
+    PathBuilder builder;
+    builder.set_base("/home/user");
+    builder.append("documents");
+
+    const char* saved = builder.c_path();
+
+    builder.append("reports");
+    builder.append("2024");
+    builder.append("quarterly");
+    builder.append("financials");
+
+    std::cout << "Saved: " << saved << std::endl;
+    std::cout << "Final: " << builder.c_path() << std::endl;
+}`,
+    hints: [
+      "What does c_str() return, and how long is that pointer guaranteed to remain valid?",
+      "Can subsequent modifications to the underlying string cause reallocation of its internal buffer?",
+    ],
+    explanation:
+      "The pointer saved is obtained from c_path() which returns path_.c_str(). Subsequent calls to append() modify the internal std::string, which may reallocate its buffer when it needs more capacity. This invalidates saved, making it a dangling pointer. Reading it is undefined behavior. The fix is to call c_path() only after all modifications are complete, or to copy the result into a separate buffer.",
+  },
+  {
+    id: 68,
+    topic: "Heap Allocation",
+    difficulty: "Medium",
+    title: "Sparse Array",
+    description:
+      "A sparse key-value store that maps integer keys to double values and prints all populated entries.",
+    code: `#include <iostream>
+#include <cstring>
+
+struct Entry {
+    int key;
+    double value;
+    bool valid;
+};
+
+class SparseArray {
+    Entry* data_;
+    size_t capacity_;
+public:
+    SparseArray(size_t cap)
+        : data_(new Entry[cap]), capacity_(cap) {}
+
+    ~SparseArray() { delete[] data_; }
+
+    void set(int key, double value) {
+        size_t idx = key % capacity_;
+        data_[idx].key = key;
+        data_[idx].value = value;
+        data_[idx].valid = true;
+    }
+
+    void print_all() const {
+        for (size_t i = 0; i < capacity_; ++i) {
+            if (data_[i].valid) {
+                std::cout << data_[i].key << ": "
+                          << data_[i].value << std::endl;
+            }
+        }
+    }
+};
+
+int main() {
+    SparseArray arr(10);
+    arr.set(3, 1.5);
+    arr.set(7, 2.8);
+    arr.set(15, 4.2);
+
+    std::cout << "Populated entries:" << std::endl;
+    arr.print_all();
+}`,
+    hints: [
+      "What are the initial values of the Entry members after new Entry[cap]?",
+      "Does new[] value-initialize or default-initialize POD-like struct members?",
+      "What value does the valid flag have for entries that were never set?",
+    ],
+    explanation:
+      "new Entry[cap] default-initializes the elements, which for POD-like structs means the members are left with indeterminate values. The valid flag for entries that were never set contains garbage. The print_all loop reads these uninitialized valid flags — undefined behavior. Some unset entries may appear valid, printing garbage data. The fix is to value-initialize with new Entry[cap]() or explicitly set all valid flags to false in the constructor.",
+  },
+  {
+    id: 69,
+    topic: "Heap Allocation",
+    difficulty: "Medium",
+    title: "Stack Machine",
+    description:
+      "A stack-based calculator that pushes values and prints them in order.",
+    code: `#include <iostream>
+
+class IntStack {
+    int* data_;
+    int top_;
+    int capacity_;
+public:
+    IntStack(int cap)
+        : data_(new int[cap]), top_(-1), capacity_(cap) {}
+
+    ~IntStack() { delete[] data_; }
+
+    void push(int val) {
+        data_[++top_] = val;
+    }
+
+    int pop() {
+        return data_[top_--];
+    }
+
+    int peek() const { return data_[top_]; }
+    bool empty() const { return top_ < 0; }
+
+    void print() const {
+        for (int i = 0; i <= top_; ++i) {
+            std::cout << data_[i] << " ";
+        }
+        std::cout << std::endl;
+    }
+};
+
+int main() {
+    IntStack stack(4);
+
+    for (int i = 1; i <= 10; ++i) {
+        stack.push(i * 10);
+    }
+
+    stack.print();
+
+    while (!stack.empty()) {
+        std::cout << "Popped: " << stack.pop() << std::endl;
+    }
+}`,
+    hints: [
+      "How many elements is the stack allocated to hold?",
+      "How many elements are pushed onto the stack?",
+      "Does push() verify that there is room before writing?",
+    ],
+    explanation:
+      "The stack is allocated with capacity 4 but the loop pushes 10 elements. The push method has no bounds check, so it writes data_[4] through data_[9] past the end of the allocated array. This is a heap buffer overflow that corrupts adjacent heap memory. The fix is to check top_ < capacity_ - 1 in push() before writing, or to allocate sufficient space.",
+  },
+  {
+    id: 70,
+    topic: "Heap Allocation",
+    difficulty: "Medium",
+    title: "Log Formatter",
+    description:
+      "Formats structured log entries with an ID, severity level, and message.",
+    code: `#include <iostream>
+#include <cstdio>
+#include <cstring>
+
+char* format_log(int id, const char* level, const char* message) {
+    char* buf = new char[64];
+    std::sprintf(buf, "[%05d] %s: %s", id, level, message);
+    return buf;
+}
+
+int main() {
+    char* log1 = format_log(1, "INFO", "System started");
+    char* log2 = format_log(2, "WARN", "Disk usage at 89%");
+    char* log3 = format_log(3, "ERROR",
+        "Failed to connect to database server at "
+        "192.168.1.100:5432 - connection timed out "
+        "after 30 seconds");
+
+    std::cout << log1 << std::endl;
+    std::cout << log2 << std::endl;
+    std::cout << log3 << std::endl;
+
+    delete[] log1;
+    delete[] log2;
+    delete[] log3;
+}`,
+    hints: [
+      "How large is the buffer allocated for each log entry?",
+      "Does sprintf check whether the formatted output fits in the destination buffer?",
+      "How long is the formatted string for the third log entry?",
+    ],
+    explanation:
+      "The buffer is allocated as 64 bytes, but std::sprintf does not perform bounds checking. The third log entry's formatted string exceeds 64 characters, causing sprintf to write past the end of the allocated buffer — a heap buffer overflow. The fix is to use std::snprintf with the buffer size limit, or to calculate the required size before allocating.",
+  },
+  {
+    id: 71,
+    topic: "Heap Allocation",
+    difficulty: "Hard",
+    title: "Circular List",
+    description:
+      "Creates a ring of linked nodes and prints the values by traversing the cycle.",
+    code: `#include <iostream>
+
+struct Node {
+    int value;
+    Node* next;
+    Node(int v) : value(v), next(nullptr) {}
+};
+
+Node* create_ring(int n) {
+    Node* head = new Node(1);
+    Node* curr = head;
+    for (int i = 2; i <= n; ++i) {
+        curr->next = new Node(i);
+        curr = curr->next;
+    }
+    curr->next = head;
+    return head;
+}
+
+void print_ring(Node* head, int count) {
+    Node* curr = head;
+    for (int i = 0; i < count; ++i) {
+        std::cout << curr->value << " ";
+        curr = curr->next;
+    }
+    std::cout << std::endl;
+}
+
+void free_list(Node* head) {
+    Node* curr = head;
+    while (curr != nullptr) {
+        Node* next = curr->next;
+        delete curr;
+        curr = next;
+    }
+}
+
+int main() {
+    Node* ring = create_ring(5);
+    print_ring(ring, 10);
+    free_list(ring);
+}`,
+    hints: [
+      "What is the termination condition of the free_list loop?",
+      "What does the last node's next pointer point to in a ring?",
+      "Will the loop ever encounter a nullptr in a circular list?",
+    ],
+    explanation:
+      "create_ring builds a circular list where the last node's next points back to the head — there is no nullptr sentinel. The free_list function loops while curr != nullptr, which is never true for a circular list. After deleting every node once, the loop follows dangling next pointers into freed memory, causing infinite use-after-free and repeated double-frees. The fix is to remember the start node and stop when the traversal returns to it.",
+  },
+  {
+    id: 72,
+    topic: "Heap Allocation",
+    difficulty: "Hard",
+    title: "Substring Finder",
+    description:
+      "Extracts the file extension from a filename and returns it as a C-string.",
+    code: `#include <iostream>
+#include <cstring>
+
+const char* find_extension(const char* filename) {
+    size_t len = std::strlen(filename) + 1;
+    char* copy = new char[len];
+    std::strcpy(copy, filename);
+
+    const char* dot = std::strrchr(copy, '.');
+    const char* ext = dot ? dot + 1 : "";
+
+    delete[] copy;
+    return ext;
+}
+
+int main() {
+    const char* ext1 = find_extension("report.pdf");
+    const char* ext2 = find_extension("archive.tar.gz");
+    const char* ext3 = find_extension("README");
+
+    std::cout << "report.pdf -> " << ext1 << std::endl;
+    std::cout << "archive.tar.gz -> " << ext2 << std::endl;
+    std::cout << "README -> " << ext3 << std::endl;
+}`,
+    hints: [
+      "Where does the pointer ext point to after strrchr finds the dot?",
+      "What happens to the buffer that ext points into before the function returns?",
+      "Is the returned pointer still valid when the caller dereferences it?",
+    ],
+    explanation:
+      'When the filename contains a dot, ext points into the dynamically allocated copy buffer (one character past the dot). The buffer is deleted before the function returns, making ext a dangling pointer. The caller reads freed memory — undefined behavior. When there is no dot, ext points to a string literal ("") which remains valid, masking the bug for that case. The fix is to copy the extension into a separate buffer before freeing the copy.',
+  },
+  {
+    id: 73,
+    topic: "Heap Allocation",
+    difficulty: "Hard",
+    title: "Record Serializer",
+    description:
+      "Duplicates an array of records and prints the copied data.",
+    code: `#include <iostream>
+#include <string>
+#include <cstring>
+
+struct Record {
+    int id;
+    std::string name;
+    double score;
+};
+
+Record* duplicate_records(const Record* src, int count) {
+    Record* dest = new Record[count];
+    std::memcpy(dest, src, count * sizeof(Record));
+    return dest;
+}
+
+int main() {
+    Record originals[3] = {
+        {1, "Alice", 95.5},
+        {2, "Bob", 87.3},
+        {3, "Charlie", 91.0},
+    };
+
+    Record* copies = duplicate_records(originals, 3);
+
+    for (int i = 0; i < 3; ++i) {
+        std::cout << copies[i].id << ": "
+                  << copies[i].name << " ("
+                  << copies[i].score << ")" << std::endl;
+    }
+
+    delete[] copies;
+}`,
+    hints: [
+      "Can std::memcpy safely copy objects that contain std::string members?",
+      "What happens to the default-constructed strings in the destination array when memcpy overwrites them?",
+      "After memcpy, how many objects believe they own each string's internal buffer?",
+    ],
+    explanation:
+      "std::memcpy performs a bitwise copy and cannot handle non-trivially-copyable types like std::string. The destination Records are default-constructed with empty strings; memcpy overwrites their internal state without running destructors, leaking those strings. Both the original and copied Records now share identical string internal pointers. When the copies are destroyed, they free the same buffers the originals own — a double free when the originals are also destroyed. The fix is to use std::copy or a loop with proper assignment instead of memcpy.",
+  },
 ];
