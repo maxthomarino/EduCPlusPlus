@@ -1331,4 +1331,559 @@ int main() {
     explanation:
       "The lambda captures i by reference. By the time the lambdas execute in the second loop, the first loop has finished and i equals names.size() (3). Every lambda reads the same out-of-bounds index, causing undefined behavior. Capturing i by value ([i, &names]) would give each lambda its own copy of the loop counter.",
   },
+  // ── Operator Overloading ──
+  {
+    id: 34,
+    topic: "Operator Overloading",
+    difficulty: "Easy",
+    title: "Vector2D Adder",
+    description:
+      "Adds two 2D vectors and computes their difference.",
+    code: `#include <iostream>
+#include <cmath>
+
+struct Vec2 {
+    double x, y;
+    Vec2(double x, double y) : x(x), y(y) {}
+
+    Vec2 operator+(const Vec2& rhs) {
+        x += rhs.x;
+        y += rhs.y;
+        return *this;
+    }
+
+    Vec2 operator-(const Vec2& rhs) const {
+        return Vec2(x - rhs.x, y - rhs.y);
+    }
+
+    double magnitude() const {
+        return std::sqrt(x * x + y * y);
+    }
+
+    void print(const char* label) const {
+        std::cout << label << " = (" << x << ", " << y << ")" << std::endl;
+    }
+};
+
+int main() {
+    Vec2 a(1.0, 2.0);
+    Vec2 b(3.0, 4.0);
+
+    Vec2 sum = a + b;
+    Vec2 diff = a - b;
+
+    a.print("a");
+    b.print("b");
+    sum.print("a + b");
+    diff.print("a - b");
+
+    std::cout << "|a| = " << a.magnitude() << std::endl;
+}`,
+    hints: [
+      "Compare the implementations of operator+ and operator-. What is different?",
+      "What happens to the left-hand operand after operator+ executes?",
+      "Does operator+ create a new object, or does it modify an existing one?",
+    ],
+    explanation:
+      "The operator+ modifies the member variables x and y of the left-hand operand (*this) before returning a copy. While the returned value sum is correct, the original vector a is mutated to (4, 6). The subsequent a - b computes (4-3, 6-4) = (1, 2) instead of the expected (-2, -2). Adding const to the method and creating a local result would fix the bug.",
+  },
+  {
+    id: 35,
+    topic: "Operator Overloading",
+    difficulty: "Easy",
+    title: "Case-Insensitive Key",
+    description:
+      "Compares HTTP header names case-insensitively to detect duplicates.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+#include <algorithm>
+#include <cctype>
+
+class CIString {
+    std::string data_;
+public:
+    CIString(const char* s) : data_(s) {
+        std::transform(data_.begin(), data_.end(), data_.begin(),
+                       [](unsigned char c) { return std::tolower(c); });
+    }
+
+    bool operator==(const CIString& other) const {
+        return data_.c_str() == other.data_.c_str();
+    }
+
+    bool operator!=(const CIString& other) const {
+        return !(*this == other);
+    }
+
+    const std::string& str() const { return data_; }
+};
+
+int main() {
+    std::vector<CIString> headers = {"Host", "Content-Type", "HOST",
+                                     "Accept", "host"};
+    int duplicates = 0;
+    for (size_t i = 0; i < headers.size(); ++i) {
+        for (size_t j = i + 1; j < headers.size(); ++j) {
+            if (headers[i] == headers[j]) {
+                std::cout << "Duplicate: " << headers[i].str()
+                          << " and " << headers[j].str() << std::endl;
+                ++duplicates;
+            }
+        }
+    }
+
+    std::cout << "Total duplicates found: " << duplicates << std::endl;
+}`,
+    hints: [
+      "What type does c_str() return, and what does == compare for that type?",
+      "Are two pointers to different memory locations ever equal, even if the strings they point to are identical?",
+    ],
+    explanation:
+      "The operator== compares the pointers returned by c_str(), not the string contents. Since each CIString stores its own std::string internally, the c_str() pointers point to different memory addresses even when the stored strings are identical. The comparison always returns false, so no duplicates are ever detected. Using data_ == other.data_ would correctly compare the string contents.",
+  },
+  {
+    id: 36,
+    topic: "Operator Overloading",
+    difficulty: "Easy",
+    title: "Incrementable Counter",
+    description:
+      "A counter class that supports pre-increment and post-increment operations.",
+    code: `#include <iostream>
+
+class Counter {
+    int count_;
+public:
+    explicit Counter(int start = 0) : count_(start) {}
+
+    Counter operator++() {
+        ++count_;
+        return *this;
+    }
+
+    Counter operator++(int) {
+        Counter old = *this;
+        ++count_;
+        return old;
+    }
+
+    int value() const { return count_; }
+};
+
+void advance_twice(Counter& c) {
+    ++(++c);
+}
+
+int main() {
+    Counter c(0);
+    advance_twice(c);
+    std::cout << "After incrementing twice: " << c.value() << std::endl;
+
+    Counter d(10);
+    Counter before = d++;
+    std::cout << "Before: " << before.value()
+              << ", After: " << d.value() << std::endl;
+}`,
+    hints: [
+      "What is the return type of the pre-increment operator?",
+      "When ++(++c) is evaluated, does the outer increment operate on c or on something else?",
+      "What happens when a non-reference return value is incremented?",
+    ],
+    explanation:
+      "The pre-increment operator returns a Counter by value instead of by reference (Counter& operator++()). When ++(++c) is evaluated, the inner ++c increments c to 1 but returns a temporary copy. The outer ++ then increments that temporary, which is immediately discarded. The counter c is only incremented once, ending up at 1 instead of the expected 2.",
+  },
+  {
+    id: 37,
+    topic: "Operator Overloading",
+    difficulty: "Medium",
+    title: "Resizable Buffer",
+    description:
+      "A dynamic buffer class that supports copying and element-wise normalization.",
+    code: `#include <iostream>
+#include <algorithm>
+
+class Buffer {
+    int* data_;
+    size_t size_;
+public:
+    Buffer(size_t n) : data_(new int[n]), size_(n) {
+        std::fill(data_, data_ + size_, 0);
+    }
+
+    Buffer(const Buffer& other) : data_(new int[other.size_]), size_(other.size_) {
+        std::copy(other.data_, other.data_ + size_, data_);
+    }
+
+    Buffer& operator=(const Buffer& other) {
+        delete[] data_;
+        size_ = other.size_;
+        data_ = new int[size_];
+        std::copy(other.data_, other.data_ + size_, data_);
+        return *this;
+    }
+
+    ~Buffer() { delete[] data_; }
+
+    int& operator[](size_t i) { return data_[i]; }
+    int operator[](size_t i) const { return data_[i]; }
+    size_t size() const { return size_; }
+};
+
+void normalize(Buffer& dest, const Buffer& src) {
+    int max_val = src[0];
+    for (size_t i = 1; i < src.size(); ++i) {
+        if (src[i] > max_val) max_val = src[i];
+    }
+    dest = src;
+    for (size_t i = 0; i < dest.size(); ++i) {
+        dest[i] = (dest[i] * 100) / max_val;
+    }
+}
+
+int main() {
+    Buffer readings(5);
+    readings[0] = 10; readings[1] = 50;
+    readings[2] = 30; readings[3] = 80;
+    readings[4] = 60;
+
+    normalize(readings, readings);
+
+    for (size_t i = 0; i < readings.size(); ++i) {
+        std::cout << readings[i] << " ";
+    }
+    std::cout << std::endl;
+}`,
+    hints: [
+      "What arguments does normalize() receive when called from main?",
+      "Inside operator=, what happens when the left-hand side and right-hand side are the same object?",
+      "After delete[] data_, what does other.data_ point to?",
+    ],
+    explanation:
+      "When normalize is called with readings as both arguments, dest and src are references to the same Buffer object. The assignment dest = src triggers operator=, where this and &other are the same address. The operator deletes data_ first, then tries to copy from other.data_ which is the same now-freed pointer. This is use-after-free. A self-assignment guard (if (this == &other) return *this;) at the top of operator= would prevent this.",
+  },
+  {
+    id: 38,
+    topic: "Operator Overloading",
+    difficulty: "Medium",
+    title: "Key-Value Config",
+    description:
+      "Stores configuration key-value pairs and allows reading and updating values.",
+    code: `#include <iostream>
+#include <string>
+#include <map>
+
+class Config {
+    std::map<std::string, std::string> entries_;
+public:
+    void load_defaults() {
+        entries_["host"] = "localhost";
+        entries_["port"] = "8080";
+        entries_["mode"] = "debug";
+    }
+
+    std::string operator[](const std::string& key) {
+        return entries_[key];
+    }
+
+    void dump() const {
+        for (const auto& [key, value] : entries_) {
+            std::cout << key << " = " << value << std::endl;
+        }
+    }
+};
+
+int main() {
+    Config cfg;
+    cfg.load_defaults();
+
+    std::cout << "Before update:" << std::endl;
+    cfg.dump();
+
+    cfg["host"] = "production.example.com";
+    cfg["port"] = "443";
+    cfg["mode"] = "release";
+
+    std::cout << "After update:" << std::endl;
+    cfg.dump();
+}`,
+    hints: [
+      "What is the return type of operator[], and what does that mean for the caller?",
+      "When cfg[\"host\"] = \"production.example.com\" executes, where does the new value actually go?",
+      "What is the difference between returning std::string and returning std::string&?",
+    ],
+    explanation:
+      'The operator[] returns std::string by value instead of by reference. Each call creates a temporary copy of the stored value. The assignments like cfg["host"] = "production.example.com" modify these temporaries, which are destroyed at the end of each statement. The stored values never change, so the output after the update is identical to before. Changing the return type to std::string& would return a reference to the actual stored element.',
+  },
+  {
+    id: 39,
+    topic: "Operator Overloading",
+    difficulty: "Medium",
+    title: "Sortable Record",
+    description:
+      "Sorts a list of employees by department and salary for display.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <string>
+
+struct Employee {
+    std::string name;
+    int department;
+    int salary;
+
+    bool operator<(const Employee& other) const {
+        return department < other.department || salary > other.salary;
+    }
+};
+
+int main() {
+    std::vector<Employee> staff = {
+        {"Alice",   2, 90000},
+        {"Bob",     1, 75000},
+        {"Charlie", 2, 85000},
+        {"Diana",   1, 80000},
+        {"Eve",     3, 70000},
+    };
+
+    std::sort(staff.begin(), staff.end());
+
+    std::cout << "Sorted staff:" << std::endl;
+    for (const auto& e : staff) {
+        std::cout << e.name << " (dept " << e.department
+                  << ", $" << e.salary << ")" << std::endl;
+    }
+}`,
+    hints: [
+      "For any two employees A and B, is it possible that both A < B and B < A are true?",
+      "What does the C++ standard require of a comparison function passed to std::sort?",
+      "What happens when || combines two independent orderings without a tie-breaker hierarchy?",
+    ],
+    explanation:
+      "The operator< violates the strict weak ordering requirement of std::sort. The condition department < other.department || salary > other.salary can be true in both directions simultaneously: an employee in department 1 with $75k is considered less than one in department 2 with $90k (since 1 < 2), but the reverse is also true (since $90k > $75k). This is undefined behavior. The fix is to use a lexicographic comparison: compare department first, then salary only when departments are equal.",
+  },
+  {
+    id: 40,
+    topic: "Operator Overloading",
+    difficulty: "Medium",
+    title: "Duration Calculator",
+    description:
+      "Computes time differences between task durations.",
+    code: `#include <iostream>
+
+class Duration {
+    unsigned int seconds_;
+public:
+    explicit Duration(unsigned int s) : seconds_(s) {}
+
+    Duration operator+(const Duration& other) const {
+        return Duration(seconds_ + other.seconds_);
+    }
+
+    Duration operator-(const Duration& other) const {
+        return Duration(seconds_ - other.seconds_);
+    }
+
+    bool operator>(const Duration& other) const {
+        return seconds_ > other.seconds_;
+    }
+
+    void print(const char* label) const {
+        unsigned int h = seconds_ / 3600;
+        unsigned int m = (seconds_ % 3600) / 60;
+        unsigned int s = seconds_ % 60;
+        std::cout << label << ": " << h << "h " << m << "m " << s << "s"
+                  << std::endl;
+    }
+};
+
+int main() {
+    Duration workday(8 * 3600);
+    Duration meeting(2 * 3600 + 30 * 60);
+    Duration lunch(45 * 60);
+
+    Duration free_time = workday - meeting - lunch;
+    free_time.print("Free time");
+
+    Duration overtime = meeting - workday;
+    overtime.print("Overtime");
+}`,
+    hints: [
+      "What is the underlying type of seconds_, and how does it behave with subtraction?",
+      "What happens when a smaller unsigned integer is subtracted from a larger one?",
+      "Can Duration::operator- ever produce a result that does not represent a valid time period?",
+    ],
+    explanation:
+      "The Duration class stores seconds as unsigned int. When operator- computes meeting - workday (9000 - 28800), the result underflows because unsigned arithmetic wraps around modulo 2^32. Instead of a negative value indicating an error, the result becomes approximately 4.29 billion seconds. The operator should either check that seconds_ >= other.seconds_ before subtracting, use a signed type, or return an error value.",
+  },
+  {
+    id: 41,
+    topic: "Operator Overloading",
+    difficulty: "Hard",
+    title: "Optional Sum",
+    description:
+      "Adds two optional integer values and multiplies them when both are present.",
+    code: `#include <iostream>
+
+class OptionalInt {
+    int value_;
+    bool has_value_;
+public:
+    OptionalInt() : value_(0), has_value_(false) {}
+    OptionalInt(int v) : value_(v), has_value_(true) {}
+
+    operator bool() const { return has_value_; }
+    int value() const { return value_; }
+};
+
+OptionalInt add(const OptionalInt& a, const OptionalInt& b) {
+    if (a && b) {
+        return OptionalInt(a + b);
+    }
+    return OptionalInt();
+}
+
+OptionalInt multiply(const OptionalInt& a, const OptionalInt& b) {
+    if (a && b) {
+        return OptionalInt(a * b);
+    }
+    return OptionalInt();
+}
+
+int main() {
+    OptionalInt x(100);
+    OptionalInt y(250);
+
+    OptionalInt sum = add(x, y);
+    OptionalInt product = multiply(x, y);
+
+    if (sum) {
+        std::cout << "Sum: " << sum.value() << std::endl;
+    }
+    if (product) {
+        std::cout << "Product: " << product.value() << std::endl;
+    }
+}`,
+    hints: [
+      "Is there an operator+ or operator* defined for OptionalInt?",
+      "What implicit conversion path does the compiler use to make a + b compile?",
+      "What type does operator bool() convert to, and what happens when two bool values are added?",
+    ],
+    explanation:
+      "OptionalInt has no operator+ or operator* defined, but the expressions a + b and a * b still compile because the non-explicit operator bool() provides an implicit conversion. The compiler converts both operands to bool (both true, i.e., 1), promotes to int, and computes 1 + 1 = 2 and 1 * 1 = 1 respectively. The result is OptionalInt(2) and OptionalInt(1) instead of the intended 350 and 25000. Marking operator bool() as explicit would prevent the implicit conversion.",
+  },
+  {
+    id: 42,
+    topic: "Operator Overloading",
+    difficulty: "Hard",
+    title: "Matrix Product",
+    description:
+      "Multiplies two square matrices using overloaded operators.",
+    code: `#include <iostream>
+#include <vector>
+
+class Matrix {
+    std::vector<std::vector<double>> data_;
+    size_t n_;
+public:
+    Matrix(size_t n) : n_(n), data_(n, std::vector<double>(n, 0.0)) {}
+
+    double& at(size_t r, size_t c) { return data_[r][c]; }
+    double at(size_t r, size_t c) const { return data_[r][c]; }
+    size_t size() const { return n_; }
+
+    static Matrix identity(size_t n) {
+        Matrix I(n);
+        for (size_t i = 0; i < n; ++i) I.at(i, i) = 1.0;
+        return I;
+    }
+
+    Matrix& operator*=(const Matrix& other) {
+        *this = *this * other;
+        return *this;
+    }
+
+    Matrix operator*(const Matrix& other) const {
+        Matrix result(*this);
+        result *= other;
+        return result;
+    }
+
+    void print() const {
+        for (size_t i = 0; i < n_; ++i) {
+            for (size_t j = 0; j < n_; ++j) {
+                std::cout << at(i, j) << " ";
+            }
+            std::cout << std::endl;
+        }
+    }
+};
+
+int main() {
+    Matrix a(2);
+    a.at(0, 0) = 1; a.at(0, 1) = 2;
+    a.at(1, 0) = 3; a.at(1, 1) = 4;
+
+    Matrix b = a * a;
+    b.print();
+}`,
+    hints: [
+      "Trace the call chain when a * a is evaluated. What functions are called?",
+      "Does operator* depend on operator*=? Does operator*= depend on operator*?",
+      "What happens when two functions each delegate to the other with no termination condition?",
+    ],
+    explanation:
+      "operator* creates a copy of the left-hand side and calls operator*= on it. operator*= implements itself by calling operator* and assigning the result. This creates infinite mutual recursion: operator* calls operator*=, which calls operator*, which calls operator*=, and so on. The program crashes with a stack overflow at runtime. One of the two operators must contain the actual multiplication logic instead of delegating to the other.",
+  },
+  {
+    id: 43,
+    topic: "Operator Overloading",
+    difficulty: "Hard",
+    title: "Diagnostic Logger",
+    description:
+      "A diagnostic logger that reports hardware register values.",
+    code: `#include <iostream>
+#include <string>
+#include <sstream>
+
+class DiagLog {
+    std::ostringstream buf_;
+    std::string tag_;
+public:
+    explicit DiagLog(std::string tag) : tag_(std::move(tag)) {}
+
+    DiagLog& operator<<(const char* s) { buf_ << s; return *this; }
+    DiagLog& operator<<(int n) { buf_ << n; return *this; }
+
+    void flush() {
+        std::cout << "[" << tag_ << "] " << buf_.str() << std::endl;
+        buf_.str("");
+    }
+};
+
+void report_status(DiagLog& log, int register_val) {
+    int alarm_bit = 5;
+    int warning_bit = 3;
+
+    log << "Register: " << register_val;
+    log.flush();
+
+    log << "Alarm mask: " << 1 << alarm_bit;
+    log.flush();
+
+    log << "Warning mask: " << 1 << warning_bit;
+    log.flush();
+}
+
+int main() {
+    DiagLog log("HW");
+    report_status(log, 255);
+}`,
+    hints: [
+      "How does C++ parse an expression with multiple << operators in a row?",
+      "Is the expression 1 << alarm_bit evaluated as a bitwise shift, or does something else happen first?",
+      "What is the associativity of operator<<, and how does it affect the grouping when a DiagLog is on the left?",
+    ],
+    explanation:
+      'The expression log << "Alarm mask: " << 1 << alarm_bit is parsed left-to-right as ((log << "Alarm mask: ") << 1) << alarm_bit. The intended bitwise shift 1 << alarm_bit is never computed. Instead, the integers 1 and alarm_bit (5) are logged as separate values, producing the concatenated output "15" instead of the expected "32" (which is 1 << 5). Parentheses are required: log << "Alarm mask: " << (1 << alarm_bit).',
+  },
 ];
