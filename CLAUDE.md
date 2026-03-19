@@ -22,11 +22,11 @@ Use `git -c user.name="..." -c user.email="..." commit ...` to set the author pe
 
 After all content is committed and validated, run this deploy sequence:
 
-1. **Push to both remotes:** `git push origin main && git push alternative main`
+1. **Push to `origin`:** `git push origin main`
 2. **Create a deploy commit on `alternative` only:**
    - `git -c user.name="maxthomarino" -c user.email="maxthomarino@gmail.com" commit --allow-empty -m "Trigger production deploy"`
-   - `git push alternative main`
+   - `git push alternative main --force-with-lease`
 3. **Run production deploy:** `vercel --prod`
-4. **Restore sync:** Reset back so both remotes point to the same commit:
+4. **Restore sync:** Remove the deploy commit locally and force-push `alternative` back to match:
    - `git reset HEAD~1`
-   - `git push origin main` (should already be in sync, this is a no-op safety check)
+   - `git push alternative main --force-with-lease`
