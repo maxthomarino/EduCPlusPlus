@@ -2419,4 +2419,547 @@ int main() {
     explanation:
       "When release() decrements ref_count_ to 0 and calls delete this, the object is destroyed and its memory freed. However, execution continues past the if block and accesses name_ and ref_count_ on the next line — both members of the now-deleted object. This is use-after-free. The function must return immediately after delete this to avoid accessing any member state.",
   },
+  // ── Heap Allocation (batch 2) ──
+  {
+    id: 54,
+    topic: "Heap Allocation",
+    difficulty: "Easy",
+    title: "Histogram Builder",
+    description:
+      "Counts the frequency of each digit in a dataset and displays a simple text histogram.",
+    code: `#include <iostream>
+#include <cstring>
+
+int main() {
+    const int num_bins = 10;
+    int* bins = new int(num_bins);
+    std::memset(bins, 0, num_bins * sizeof(int));
+
+    int data[] = {3, 7, 1, 4, 7, 2, 9, 0, 3, 5, 7, 2, 8, 1, 6};
+    int data_size = sizeof(data) / sizeof(data[0]);
+
+    for (int i = 0; i < data_size; ++i) {
+        if (data[i] >= 0 && data[i] < num_bins) {
+            bins[data[i]]++;
+        }
+    }
+
+    std::cout << "Histogram:" << std::endl;
+    for (int i = 0; i < num_bins; ++i) {
+        std::cout << i << ": ";
+        for (int j = 0; j < bins[i]; ++j) {
+            std::cout << "#";
+        }
+        std::cout << std::endl;
+    }
+
+    delete[] bins;
+}`,
+    hints: [
+      "Look carefully at the allocation syntax — what exactly does new int(n) allocate?",
+      "What is the difference between new int(n) and new int[n]?",
+    ],
+    explanation:
+      "The expression new int(num_bins) allocates a single int initialized to the value 10, not an array of 10 ints. The program then writes to bins[0] through bins[9], which is a massive heap buffer overflow past the one allocated int. The fix is to use new int[num_bins] with square brackets for array allocation.",
+  },
+  {
+    id: 55,
+    topic: "Heap Allocation",
+    difficulty: "Easy",
+    title: "Text Buffer",
+    description:
+      "Truncates a long string into a fixed-size buffer and prints the result with its length.",
+    code: `#include <iostream>
+#include <cstring>
+
+char* truncate(const char* src, size_t max_len) {
+    char* buf = new char[max_len];
+    std::strncpy(buf, src, max_len);
+    return buf;
+}
+
+int main() {
+    const char* long_text = "The quick brown fox jumps over the lazy dog";
+
+    char* short_text = truncate(long_text, 10);
+
+    std::cout << "Truncated: " << short_text << std::endl;
+    std::cout << "Length: " << std::strlen(short_text) << std::endl;
+
+    delete[] short_text;
+}`,
+    hints: [
+      "What does strncpy guarantee about the destination buffer when the source is longer than max_len?",
+      "If the source string is longer than max_len, does strncpy add a null terminator?",
+    ],
+    explanation:
+      "strncpy copies at most max_len characters but does not null-terminate the destination if the source is as long as or longer than max_len. Since long_text is 44 characters and max_len is 10, the buffer has no null terminator. Printing it with cout and calling strlen both read past the allocated 10 bytes — a heap buffer overread. The fix is to add buf[max_len - 1] = '\\0' after the strncpy call.",
+  },
+  {
+    id: 56,
+    topic: "Heap Allocation",
+    difficulty: "Easy",
+    title: "Pixel Array",
+    description:
+      "Creates a color gradient across a row of pixels and prints each pixel's RGB values.",
+    code: `#include <iostream>
+#include <cstdlib>
+
+struct Pixel {
+    unsigned char r, g, b;
+};
+
+Pixel* create_gradient(int width) {
+    Pixel* pixels = static_cast<Pixel*>(
+        std::malloc(width * sizeof(Pixel))
+    );
+
+    for (int i = 0; i < width; ++i) {
+        pixels[i] = {
+            static_cast<unsigned char>(i * 255 / width),
+            0,
+            static_cast<unsigned char>(255 - i * 255 / width)
+        };
+    }
+    return pixels;
+}
+
+int main() {
+    const int width = 16;
+    Pixel* gradient = create_gradient(width);
+
+    for (int i = 0; i < width; ++i) {
+        std::cout << "Pixel " << i << ": ("
+                  << static_cast<int>(gradient[i].r) << ", "
+                  << static_cast<int>(gradient[i].g) << ", "
+                  << static_cast<int>(gradient[i].b) << ")"
+                  << std::endl;
+    }
+
+    delete[] gradient;
+}`,
+    hints: [
+      "How was the pixel array allocated?",
+      "Does the deallocation method match the allocation method?",
+    ],
+    explanation:
+      "The pixel array is allocated with std::malloc but freed with delete[]. Mixing C allocation (malloc/calloc/realloc) with C++ deallocation (delete/delete[]) is undefined behavior. The fix is to use std::free(gradient) instead of delete[], or to allocate with new Pixel[width] instead of malloc.",
+  },
+  {
+    id: 57,
+    topic: "Heap Allocation",
+    difficulty: "Medium",
+    title: "Image Grid",
+    description:
+      "Allocates a 2D integer grid, fills it with sequential values, and prints it.",
+    code: `#include <iostream>
+
+int** create_grid(int rows, int cols) {
+    int** grid = new int*[rows];
+    for (int i = 0; i < rows; ++i) {
+        grid[i] = new int[cols];
+        for (int j = 0; j < cols; ++j) {
+            grid[i][j] = i * cols + j;
+        }
+    }
+    return grid;
+}
+
+void print_grid(int** grid, int rows, int cols) {
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            std::cout << grid[i][j] << "\\t";
+        }
+        std::cout << std::endl;
+    }
+}
+
+int main() {
+    const int rows = 4;
+    const int cols = 5;
+
+    int** grid = create_grid(rows, cols);
+    print_grid(grid, rows, cols);
+
+    delete[] grid;
+    std::cout << "Grid cleanup complete" << std::endl;
+}`,
+    hints: [
+      "How many separate heap allocations are made in create_grid?",
+      "Does the cleanup code free every allocation that was made?",
+    ],
+    explanation:
+      "create_grid makes rows + 1 allocations: one for the pointer array and one for each row. The cleanup only calls delete[] grid, which frees the array of pointers but not the individually allocated rows. All row data is permanently leaked. The fix is to loop through each row calling delete[] grid[i] before deleting the outer array.",
+  },
+  {
+    id: 58,
+    topic: "Heap Allocation",
+    difficulty: "Medium",
+    title: "Circular Queue",
+    description:
+      "A circular buffer that automatically grows when full and supports element access.",
+    code: `#include <iostream>
+#include <algorithm>
+
+class RingBuffer {
+    int* data_;
+    size_t capacity_;
+    size_t head_;
+    size_t count_;
+
+    void grow() {
+        size_t new_cap = capacity_ * 2;
+        int* new_data = new int[new_cap];
+        for (size_t i = 0; i < count_; ++i) {
+            new_data[i] = data_[(head_ + i) % capacity_];
+        }
+        delete[] data_;
+        data_ = new_data;
+        head_ = 0;
+        capacity_ = new_cap;
+    }
+
+public:
+    RingBuffer(size_t cap = 4)
+        : data_(new int[cap]), capacity_(cap), head_(0), count_(0) {}
+    ~RingBuffer() { delete[] data_; }
+
+    void push(int val) {
+        if (count_ == capacity_) grow();
+        data_[(head_ + count_) % capacity_] = val;
+        ++count_;
+    }
+
+    int& front() { return data_[head_]; }
+
+    void print() const {
+        for (size_t i = 0; i < count_; ++i) {
+            std::cout << data_[(head_ + i) % capacity_] << " ";
+        }
+        std::cout << std::endl;
+    }
+};
+
+int main() {
+    RingBuffer buf(4);
+    buf.push(10);
+    buf.push(20);
+    buf.push(30);
+
+    int& ref = buf.front();
+
+    buf.push(40);
+    buf.push(50);
+
+    std::cout << "Front element: " << ref << std::endl;
+    buf.print();
+}`,
+    hints: [
+      "What happens to existing references into the buffer when push() causes a resize?",
+      "Under what condition does push() reallocate the internal storage?",
+      "Is the reference obtained from front() still valid after the buffer grows?",
+    ],
+    explanation:
+      "The reference ref obtained from front() points into the internal data_ array. When the fifth push(50) triggers grow(), the old data_ array is deleted and a new one is allocated. The reference ref now points to freed memory. Reading it is undefined behavior. References and pointers into the buffer are invalidated by any operation that triggers a resize.",
+  },
+  {
+    id: 59,
+    topic: "Heap Allocation",
+    difficulty: "Medium",
+    title: "Matrix Flattener",
+    description:
+      "Converts a 2D matrix into a 1D array and prints the flattened result.",
+    code: `#include <iostream>
+
+int* flatten(const int* const* matrix, int rows, int cols) {
+    int* flat = new int[rows * rows];
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            flat[i * cols + j] = matrix[i][j];
+        }
+    }
+    return flat;
+}
+
+int main() {
+    const int rows = 3, cols = 5;
+
+    int** matrix = new int*[rows];
+    for (int i = 0; i < rows; ++i) {
+        matrix[i] = new int[cols];
+        for (int j = 0; j < cols; ++j) {
+            matrix[i][j] = i * cols + j + 1;
+        }
+    }
+
+    int* flat = flatten(matrix, rows, cols);
+
+    std::cout << "Flattened:" << std::endl;
+    for (int i = 0; i < rows * cols; ++i) {
+        std::cout << flat[i] << " ";
+    }
+    std::cout << std::endl;
+
+    delete[] flat;
+    for (int i = 0; i < rows; ++i) delete[] matrix[i];
+    delete[] matrix;
+}`,
+    hints: [
+      "How many elements does the flatten function allocate for the output?",
+      "How many elements does the nested loop actually write?",
+      "Are the dimensions used in the allocation consistent with those used in the loop?",
+    ],
+    explanation:
+      "The allocation uses rows * rows (3 * 3 = 9) instead of rows * cols (3 * 5 = 15). The nested loop writes 15 values into a 9-element buffer, causing a heap buffer overflow. The fix is to allocate new int[rows * cols].",
+  },
+  {
+    id: 60,
+    topic: "Heap Allocation",
+    difficulty: "Medium",
+    title: "Student Roster",
+    description:
+      "Dynamically grows a roster by adding students one at a time and printing the final list.",
+    code: `#include <iostream>
+#include <cstring>
+
+struct Student {
+    char name[64];
+    int grade;
+};
+
+Student* add_student(Student* roster, int& count,
+                     const char* name, int grade) {
+    Student* new_roster = new Student[count + 1];
+
+    if (count > 0) {
+        std::memcpy(new_roster, roster, count);
+        delete[] roster;
+    }
+
+    std::strncpy(new_roster[count].name, name, 63);
+    new_roster[count].name[63] = '\\0';
+    new_roster[count].grade = grade;
+    ++count;
+    return new_roster;
+}
+
+int main() {
+    Student* roster = nullptr;
+    int count = 0;
+
+    roster = add_student(roster, count, "Alice", 92);
+    roster = add_student(roster, count, "Bob", 85);
+    roster = add_student(roster, count, "Charlie", 78);
+    roster = add_student(roster, count, "Diana", 95);
+
+    std::cout << "Student Roster:" << std::endl;
+    for (int i = 0; i < count; ++i) {
+        std::cout << roster[i].name << ": "
+                  << roster[i].grade << std::endl;
+    }
+
+    delete[] roster;
+}`,
+    hints: [
+      "What is the third argument to std::memcpy — is it a byte count or an element count?",
+      "How many bytes does each Student struct occupy?",
+      "Does the memcpy copy enough data to fully transfer all existing students?",
+    ],
+    explanation:
+      "std::memcpy's third argument is a byte count, not an element count. The call passes count (the number of students) instead of count * sizeof(Student). Since each Student is 68 bytes, only 1-3 bytes of the old roster are copied during each resize, leaving the transferred entries almost entirely uninitialized. The fix is std::memcpy(new_roster, roster, count * sizeof(Student)).",
+  },
+  {
+    id: 61,
+    topic: "Heap Allocation",
+    difficulty: "Hard",
+    title: "Particle Simulator",
+    description:
+      "Simulates particles using a pre-allocated pool and prints their positions.",
+    code: `#include <iostream>
+
+struct Particle {
+    double x, y, z;
+    double vx, vy, vz;
+
+    Particle() : x(0), y(0), z(0), vx(0), vy(0), vz(0) {}
+    Particle(double px, double py, double pz)
+        : x(px), y(py), z(pz), vx(0), vy(0), vz(0) {}
+};
+
+class ParticlePool {
+    Particle* pool_;
+    bool* in_use_;
+    size_t capacity_;
+public:
+    ParticlePool(size_t cap)
+        : pool_(new Particle[cap]),
+          in_use_(new bool[cap]()),
+          capacity_(cap) {}
+
+    ~ParticlePool() {
+        delete[] in_use_;
+        delete[] pool_;
+    }
+
+    Particle* allocate(double x, double y, double z) {
+        for (size_t i = 0; i < capacity_; ++i) {
+            if (!in_use_[i]) {
+                in_use_[i] = true;
+                pool_[i] = Particle(x, y, z);
+                return &pool_[i];
+            }
+        }
+        return nullptr;
+    }
+
+    void deallocate(Particle* p) {
+        size_t idx = p - pool_;
+        if (idx < capacity_) {
+            in_use_[idx] = false;
+        }
+    }
+};
+
+void simulate(ParticlePool& pool) {
+    Particle* a = pool.allocate(1.0, 2.0, 3.0);
+    Particle* b = pool.allocate(4.0, 5.0, 6.0);
+
+    if (a && b) {
+        std::cout << "A: (" << a->x << ", " << a->y
+                  << ", " << a->z << ")" << std::endl;
+        std::cout << "B: (" << b->x << ", " << b->y
+                  << ", " << b->z << ")" << std::endl;
+    }
+
+    delete a;
+    delete b;
+}
+
+int main() {
+    ParticlePool pool(100);
+    simulate(pool);
+}`,
+    hints: [
+      "How were the Particle objects that a and b point to originally allocated?",
+      "Is it valid to call delete on a pointer that points into the middle of a new[] array?",
+      "What should the code use instead of delete to return particles to the pool?",
+    ],
+    explanation:
+      "The particles pointed to by a and b are elements within the pool's contiguous new Particle[cap] array — they were not individually allocated with new. Calling delete on pointers into the middle of an array is undefined behavior. The program should call pool.deallocate(a) and pool.deallocate(b) instead of delete.",
+  },
+  {
+    id: 62,
+    topic: "Heap Allocation",
+    difficulty: "Hard",
+    title: "Resource Batch",
+    description:
+      "Stores heterogeneous resources for batch processing and prints their values.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+
+void* make_string(const std::string& s) {
+    return new std::string(s);
+}
+
+void* make_int(int n) {
+    return new int(n);
+}
+
+int main() {
+    std::vector<void*> resources;
+
+    resources.push_back(make_string("Hello, World!"));
+    resources.push_back(make_int(42));
+    resources.push_back(make_string("Goodbye!"));
+    resources.push_back(make_int(100));
+
+    std::cout << *static_cast<std::string*>(resources[0]) << std::endl;
+    std::cout << *static_cast<int*>(resources[1]) << std::endl;
+    std::cout << *static_cast<std::string*>(resources[2]) << std::endl;
+    std::cout << *static_cast<int*>(resources[3]) << std::endl;
+
+    for (void* p : resources) {
+        delete p;
+    }
+}`,
+    hints: [
+      "What type information does the compiler have when delete is called on each resource?",
+      "Can the compiler invoke the correct destructor through a void pointer?",
+      "What happens to std::string's internal heap buffer when it is never properly destructed?",
+    ],
+    explanation:
+      "Deleting a void* is undefined behavior per the C++ standard. The compiler has no type information, so it cannot call destructors. For the std::string objects, their internal heap-allocated character buffers are never freed. The fix is to cast each pointer back to its original type before deleting, or to use a type-safe container like std::variant.",
+  },
+  {
+    id: 63,
+    topic: "Heap Allocation",
+    difficulty: "Hard",
+    title: "Batch Processor",
+    description:
+      "Runs a batch of named tasks with assigned priorities, halting on invalid input.",
+    code: `#include <iostream>
+#include <string>
+#include <stdexcept>
+
+struct Task {
+    std::string name;
+    int priority;
+
+    Task(const std::string& n, int p) : name(n), priority(p) {
+        if (p < 0) throw std::invalid_argument("negative priority");
+        std::cout << "Created: " << name << std::endl;
+    }
+
+    ~Task() {
+        std::cout << "Destroyed: " << name << std::endl;
+    }
+};
+
+void run_batch(const std::string names[], const int priorities[],
+               int count) {
+    Task** tasks = new Task*[count];
+
+    try {
+        for (int i = 0; i < count; ++i) {
+            tasks[i] = new Task(names[i], priorities[i]);
+        }
+    } catch (...) {
+        for (int i = 0; i < count; ++i) {
+            delete tasks[i];
+        }
+        delete[] tasks;
+        throw;
+    }
+
+    for (int i = 0; i < count; ++i) {
+        std::cout << "Running: " << tasks[i]->name
+                  << " (priority " << tasks[i]->priority << ")"
+                  << std::endl;
+    }
+
+    for (int i = 0; i < count; ++i) {
+        delete tasks[i];
+    }
+    delete[] tasks;
+}
+
+int main() {
+    std::string names[] = {"Compile", "Test", "Deploy", "Notify"};
+    int priorities[] = {3, 1, -2, 5};
+
+    try {
+        run_batch(names, priorities, 4);
+    } catch (const std::exception& e) {
+        std::cout << "Error: " << e.what() << std::endl;
+    }
+}`,
+    hints: [
+      "What values do the entries in the tasks array contain before any Task objects are constructed?",
+      "If the construction of tasks[2] throws, how many entries hold valid pointers?",
+      "Does the cleanup loop in the catch block account for the fact that some entries were never assigned?",
+    ],
+    explanation:
+      "When Task(\"Deploy\", -2) throws, only tasks[0] and tasks[1] hold valid pointers. The array was allocated with new Task*[count], which does not zero-initialize the pointers, so tasks[2] and tasks[3] contain indeterminate garbage values. The catch block's cleanup loop deletes all count entries, calling delete on garbage pointers — undefined behavior. The fix is to value-initialize the array with new Task*[count]() so unset entries are nullptr, making delete on them safe.",
+  },
 ];
