@@ -2,7 +2,7 @@ import { useState, useMemo, useCallback, useEffect } from "preact/hooks";
 import type { ComponentChildren } from "preact";
 import type { BuggyProgramHighlighted } from "../../lib/buggy-code";
 
-type View = "menu" | "viewer";
+type View = "menu" | "list" | "viewer";
 
 function shuffle<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -409,15 +409,169 @@ function MenuView({
   );
 }
 
+// ── List View ──
+function ListView({
+  topic,
+  programs,
+  onSelectProgram,
+  onShuffleStart,
+  onBack,
+}: {
+  topic: string;
+  programs: BuggyProgramHighlighted[];
+  onSelectProgram: (index: number) => void;
+  onShuffleStart: () => void;
+  onBack: () => void;
+}) {
+  return (
+    <div class="page-reveal">
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "0.75rem",
+        }}
+      >
+        <button
+          onClick={onBack}
+          class="metric-pill hover-lift"
+          style={{
+            cursor: "pointer",
+            fontSize: "0.78rem",
+            fontWeight: 600,
+            padding: "0.32rem 0.6rem",
+          }}
+        >
+          ← Topics
+        </button>
+        <span
+          style={{
+            fontSize: "0.78rem",
+            fontWeight: 600,
+            color: "var(--text-muted)",
+          }}
+        >
+          {programs.length} {programs.length === 1 ? "challenge" : "challenges"}
+        </span>
+      </div>
+
+      <div class="surface-card" style={{ padding: "1.25rem 1.5rem" }}>
+        <h2
+          class="display-font"
+          style={{
+            fontSize: "1.15rem",
+            fontWeight: 660,
+            color: "var(--text-primary)",
+            letterSpacing: "-0.015em",
+            margin: "0 0 0.75rem 0",
+          }}
+        >
+          {topic}
+        </h2>
+
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+          {programs.map((p, i) => {
+            const dStyle = difficultyStyle(p.difficulty);
+            return (
+              <button
+                key={p.id}
+                onClick={() => onSelectProgram(i)}
+                class="quiz-topic-card"
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: "0.65rem",
+                }}
+              >
+                <span
+                  style={{
+                    ...dStyle,
+                    display: "inline-flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    borderRadius: "0.35rem",
+                    padding: "0.1rem 0.4rem",
+                    fontSize: "0.62rem",
+                    fontWeight: 700,
+                    letterSpacing: "0.03em",
+                    flexShrink: 0,
+                    minWidth: "3.2rem",
+                  }}
+                >
+                  {p.difficulty}
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: "0.84rem",
+                      fontWeight: 650,
+                      color: "var(--text-primary)",
+                      lineHeight: "1.3",
+                    }}
+                  >
+                    {p.title}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "0.76rem",
+                      color: "var(--text-muted)",
+                      lineHeight: "1.4",
+                      marginTop: "0.1rem",
+                      overflow: "hidden",
+                      textOverflow: "ellipsis",
+                      whiteSpace: "nowrap",
+                    }}
+                  >
+                    {p.description}
+                  </div>
+                </div>
+                <svg
+                  width="14"
+                  height="14"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  style={{ color: "var(--text-muted)", flexShrink: 0 }}
+                >
+                  <path d="m9 18 6-6-6-6" />
+                </svg>
+              </button>
+            );
+          })}
+        </div>
+
+        <div style={{ marginTop: "0.75rem" }}>
+          <button
+            onClick={onShuffleStart}
+            class="quiz-start-btn"
+            style={{ width: "100%" }}
+          >
+            Shuffle & Start
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Viewer View ──
 function ViewerView({
   programs,
+  startIndex = 0,
+  backLabel = "← Topics",
   onBack,
 }: {
   programs: BuggyProgramHighlighted[];
+  startIndex?: number;
+  backLabel?: string;
   onBack: () => void;
 }) {
-  const [currentIndex, setCurrentIndex] = useState(0);
+  const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [animClass, setAnimClass] = useState("card-enter");
 
   const program = programs[currentIndex];
@@ -483,7 +637,7 @@ function ViewerView({
             padding: "0.32rem 0.6rem",
           }}
         >
-          ← Topics
+          {backLabel}
         </button>
 
         <div style={{ display: "flex", alignItems: "center", gap: "0.6rem" }}>
@@ -625,7 +779,10 @@ export default function BuggyCodeViewer({
   programs: BuggyProgramHighlighted[];
 }) {
   const [view, setView] = useState<View>("menu");
+  const [selectedTopic, setSelectedTopic] = useState("");
+  const [listPrograms, setListPrograms] = useState<BuggyProgramHighlighted[]>([]);
   const [viewerPrograms, setViewerPrograms] = useState<BuggyProgramHighlighted[]>([]);
+  const [viewerStartIndex, setViewerStartIndex] = useState(0);
 
   // Derive topics and counts from props
   const { topics, topicCounts } = useMemo(() => {
@@ -643,18 +800,36 @@ export default function BuggyCodeViewer({
 
   const handleSelectTopic = useCallback(
     (topic: string) => {
-      const filtered =
-        topic === "__all__"
-          ? shuffle(programs)
-          : shuffle(programs.filter((p) => p.topic === topic));
-
+      if (topic === "__all__") {
+        setViewerPrograms(shuffle(programs));
+        setViewerStartIndex(0);
+        setSelectedTopic("");
+        setView("viewer");
+        return;
+      }
+      const filtered = programs.filter((p) => p.topic === topic);
       if (filtered.length === 0) return;
-
-      setViewerPrograms(filtered);
-      setView("viewer");
+      setSelectedTopic(topic);
+      setListPrograms(filtered);
+      setView("list");
     },
     [programs]
   );
+
+  const handleSelectProgram = useCallback(
+    (index: number) => {
+      setViewerPrograms(listPrograms);
+      setViewerStartIndex(index);
+      setView("viewer");
+    },
+    [listPrograms]
+  );
+
+  const handleShuffleStart = useCallback(() => {
+    setViewerPrograms(shuffle(listPrograms));
+    setViewerStartIndex(0);
+    setView("viewer");
+  }, [listPrograms]);
 
   return (
     <div>
@@ -666,10 +841,21 @@ export default function BuggyCodeViewer({
           onSelectTopic={handleSelectTopic}
         />
       )}
+      {view === "list" && (
+        <ListView
+          topic={selectedTopic}
+          programs={listPrograms}
+          onSelectProgram={handleSelectProgram}
+          onShuffleStart={handleShuffleStart}
+          onBack={() => setView("menu")}
+        />
+      )}
       {view === "viewer" && (
         <ViewerView
           programs={viewerPrograms}
-          onBack={() => setView("menu")}
+          startIndex={viewerStartIndex}
+          backLabel={selectedTopic ? `← ${selectedTopic}` : "← Topics"}
+          onBack={() => setView(selectedTopic ? "list" : "menu")}
         />
       )}
     </div>
