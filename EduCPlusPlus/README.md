@@ -1,46 +1,44 @@
 # EduCPlusPlus
 
-Educational repository for **Modern C++ (C++20)**.
+An interactive educational web app for learning **Modern C++ (C++20)**, built with Astro, Preact, and TypeScript.
 
-## Structure
+## Features
 
-| Folder | Topic |
-|--------|-------|
-| `01_fundamentals/` | Basics, control flow, functions |
-| `02_oop/` | Classes, inheritance, polymorphism, constructors |
-| `03_memory_management/` | Smart pointers, RAII |
-| `04_stl_containers/` | Vectors, maps, sets, etc. |
-| `05_algorithms/` | STL algorithms, ranges |
-| `06_templates/` | Function/class templates, concepts |
-| `07_multithreading/` | Threads, mutex, futures, atomics |
-| `08_modern_features/` | Lambdas, move semantics, constexpr |
-| `09_cpp20_features/` | Concepts, ranges, coroutines, spaceship |
-| `10_error_handling/` | Exceptions, optional |
-| `11_type_casting/` | static_cast, dynamic_cast, const_cast, reinterpret_cast |
-| `12_io_and_filesystem/` | File I/O, streams, std::filesystem |
-| `13_build_systems/` | CMake tutorial with annotated CMakeLists.txt |
-| `14_variant_and_type_traits/` | std::variant, std::visit, type traits, SFINAE |
+- **Flashcard Quizzes** — Multiple-choice questions across 14+ C++ topics, from fundamentals to C++20 features
+- **Spot the Bug** — Buggy C++ programs with progressive hints and detailed explanations; find the subtle bug in each program
+- **Articles** — Long-form discovery-style articles on C++ topics
+- **Content Pages** — Structured lessons covering the full C++ curriculum
+
+## Topics Covered
+
+| Area | Topics |
+|------|--------|
+| Fundamentals | Basics, control flow, functions |
+| OOP | Classes, inheritance, polymorphism, constructors |
+| Memory Management | Smart pointers, RAII, heap allocation |
+| STL Containers | Vectors, maps, sets, unordered containers |
+| Algorithms | STL algorithms, sorting, ranges |
+| Templates | Function/class templates, concepts, variadic templates |
+| Multithreading | Threads, mutex, futures, atomics, condition variables |
+| Modern Features | Lambdas, move semantics, constexpr |
+| C++20 | Concepts, ranges, coroutines, spaceship operator |
+| Error Handling | Exceptions, std::optional |
+| Type Casting | static_cast, dynamic_cast, const_cast, reinterpret_cast |
+| I/O & Filesystem | File I/O, streams, std::filesystem |
+| Build Systems | CMake tutorial |
+| Advanced Types | std::variant, std::visit, type traits |
+
+## Development
+
+```bash
+npm install
+npm run dev
+```
 
 ## Building
 
-All examples use C++20. Compile individually with:
-
 ```bash
-g++ -std=c++20 -o example example.cpp -pthread
-```
-
-Or with MSVC:
-
-```cmd
-cl /std:c++20 /EHsc example.cpp
-```
-
-Or build everything with CMake (see `13_build_systems/` for a full tutorial):
-
-```bash
-mkdir build && cd build
-cmake ..
-cmake --build .
+npm run build
 ```
 
 ## License
