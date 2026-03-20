@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "preact/hooks";
 import type { ComponentChildren } from "preact";
-import type { BuggyProgramHighlighted, StdlibRef } from "../../lib/buggy-code";
+import type { BuggyProgramHighlighted, StdlibRef, LearningPath } from "../../lib/buggy-code";
 
 type View = "menu" | "list" | "viewer";
 
@@ -327,17 +327,32 @@ function HintsAndExplanation({
   );
 }
 
+// ── Path icon ──
+const PathIcon = (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="6" cy="19" r="3" />
+    <path d="M9 19h8.5a3.5 3.5 0 0 0 0-7h-11a3.5 3.5 0 0 1 0-7H15" />
+    <circle cx="18" cy="5" r="3" />
+  </svg>
+);
+
 // ── Menu View ──
 function MenuView({
   topics,
   topicCounts,
   totalPrograms,
+  paths,
+  programById,
   onSelectTopic,
+  onSelectPath,
 }: {
   topics: string[];
   topicCounts: Map<string, { total: number; easy: number; medium: number; hard: number }>;
   totalPrograms: number;
+  paths: LearningPath[];
+  programById: Map<number, BuggyProgramHighlighted>;
   onSelectTopic: (topic: string) => void;
+  onSelectPath: (path: LearningPath) => void;
 }) {
   const [search, setSearch] = useState("");
 
@@ -347,8 +362,124 @@ function MenuView({
     return topics.filter((t) => t.toLowerCase().includes(q));
   }, [search, topics]);
 
+  const getDifficultyRange = (path: LearningPath) => {
+    const diffs = path.programIds
+      .map((id) => programById.get(id))
+      .filter(Boolean)
+      .map((p) => p!.difficulty);
+    const order = ["Easy", "Medium", "Hard"] as const;
+    const min = order.find((d) => diffs.includes(d)) || "Easy";
+    const max = [...order].reverse().find((d) => diffs.includes(d)) || "Hard";
+    return min === max ? min : `${min} → ${max}`;
+  };
+
   return (
     <div class="page-reveal">
+      {/* Learning Paths section */}
+      {paths.length > 0 && (
+        <div class="surface-card" style={{ padding: "1.25rem 1.5rem", marginBottom: "0.75rem" }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "0.5rem",
+              marginBottom: "0.75rem",
+            }}
+          >
+            <p class="eyebrow" style={{ margin: 0 }}>
+              Learning Paths
+            </p>
+            <span
+              style={{
+                fontSize: "0.66rem",
+                fontWeight: 600,
+                color: "var(--text-muted)",
+                background: "var(--surface-muted)",
+                borderRadius: "4px",
+                padding: "0.08rem 0.35rem",
+                fontFamily: "var(--font-code)",
+              }}
+            >
+              {paths.length}
+            </span>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+            {paths.map((path) => (
+              <button
+                key={path.id}
+                onClick={() => onSelectPath(path)}
+                class="quiz-topic-card"
+                style={{ flexDirection: "column", alignItems: "stretch", gap: "0.25rem" }}
+              >
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "0.4rem",
+                  }}
+                >
+                  <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
+                    <span style={{ color: "var(--accent)", flexShrink: 0, display: "flex" }}>{PathIcon}</span>
+                    <span
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontSize: "0.84rem",
+                        fontWeight: 650,
+                        color: "var(--text-primary)",
+                        lineHeight: "1.3",
+                      }}
+                    >
+                      {path.title}
+                    </span>
+                  </div>
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    style={{ color: "var(--text-muted)", flexShrink: 0 }}
+                  >
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </div>
+                <div
+                  style={{
+                    fontSize: "0.76rem",
+                    color: "var(--text-muted)",
+                    lineHeight: "1.4",
+                    paddingLeft: "1.85rem",
+                  }}
+                >
+                  {path.description}
+                </div>
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.5rem",
+                    paddingLeft: "1.85rem",
+                    fontSize: "0.68rem",
+                    fontWeight: 600,
+                    fontFamily: "var(--font-code)",
+                    color: "var(--text-muted)",
+                  }}
+                >
+                  <span>{path.programIds.length} steps</span>
+                  <span style={{ opacity: 0.4 }}>·</span>
+                  <span>{getDifficultyRange(path)}</span>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div class="surface-card" style={{ padding: "1.25rem 1.5rem" }}>
         <div
           style={{
@@ -359,7 +490,7 @@ function MenuView({
           }}
         >
           <p class="eyebrow" style={{ margin: 0 }}>
-            Topics
+            Browse by Topic
           </p>
           <span
             style={{
@@ -534,12 +665,14 @@ function MenuView({
 function ListView({
   topic,
   programs,
+  path,
   onSelectProgram,
   onShuffleStart,
   onBack,
 }: {
   topic: string;
   programs: BuggyProgramHighlighted[];
+  path: LearningPath | null;
   onSelectProgram: (index: number) => void;
   onShuffleStart: () => void;
   onBack: () => void;
@@ -564,7 +697,7 @@ function ListView({
             padding: "0.32rem 0.6rem",
           }}
         >
-          ← Topics
+          {path ? "← Paths" : "← Topics"}
         </button>
         <span
           style={{
@@ -573,7 +706,7 @@ function ListView({
             color: "var(--text-muted)",
           }}
         >
-          {programs.length} {programs.length === 1 ? "challenge" : "challenges"}
+          {programs.length} {path ? (programs.length === 1 ? "step" : "steps") : (programs.length === 1 ? "challenge" : "challenges")}
         </span>
       </div>
 
@@ -585,94 +718,154 @@ function ListView({
             fontWeight: 660,
             color: "var(--text-primary)",
             letterSpacing: "-0.015em",
-            margin: "0 0 0.75rem 0",
+            margin: 0,
           }}
         >
-          {topic}
+          {path ? path.title : topic}
         </h2>
+        {path && (
+          <p
+            style={{
+              fontSize: "0.8rem",
+              color: "var(--text-muted)",
+              margin: "0.25rem 0 0 0",
+              lineHeight: "1.5",
+            }}
+          >
+            {path.description}
+          </p>
+        )}
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: path ? "0" : "0.35rem", marginTop: "0.75rem" }}>
           {programs.map((p, i) => {
             const dStyle = difficultyStyle(p.difficulty);
+            const isLast = i === programs.length - 1;
             return (
-              <button
-                key={p.id}
-                onClick={() => onSelectProgram(i)}
-                class="quiz-topic-card"
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  gap: "0.65rem",
-                }}
-              >
-                <span
+              <div key={p.id} style={{ display: "flex", gap: path ? "0.75rem" : "0" }}>
+                {/* Step indicator with connecting line */}
+                {path && (
+                  <div
+                    style={{
+                      display: "flex",
+                      flexDirection: "column",
+                      alignItems: "center",
+                      flexShrink: 0,
+                      width: "1.5rem",
+                      paddingTop: "0.75rem",
+                    }}
+                  >
+                    <div
+                      style={{
+                        width: "1.35rem",
+                        height: "1.35rem",
+                        borderRadius: "50%",
+                        border: "2px solid var(--accent)",
+                        background: "var(--surface-elevated)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: "0.62rem",
+                        fontWeight: 700,
+                        fontFamily: "var(--font-code)",
+                        color: "var(--accent)",
+                        flexShrink: 0,
+                      }}
+                    >
+                      {i + 1}
+                    </div>
+                    {!isLast && (
+                      <div
+                        style={{
+                          flex: 1,
+                          width: "2px",
+                          background: "color-mix(in srgb, var(--accent) 25%, var(--border-soft))",
+                          marginTop: "0.25rem",
+                          marginBottom: "-0.25rem",
+                        }}
+                      />
+                    )}
+                  </div>
+                )}
+                <button
+                  onClick={() => onSelectProgram(i)}
+                  class="quiz-topic-card"
                   style={{
-                    ...dStyle,
-                    display: "inline-flex",
+                    flexDirection: "row",
                     alignItems: "center",
-                    justifyContent: "center",
-                    borderRadius: "0.35rem",
-                    padding: "0.1rem 0.4rem",
-                    fontSize: "0.62rem",
-                    fontWeight: 700,
-                    letterSpacing: "0.03em",
-                    flexShrink: 0,
-                    minWidth: "3.2rem",
+                    gap: "0.65rem",
+                    flex: 1,
+                    ...(path ? { marginBottom: isLast ? "0" : "0.15rem" } : {}),
                   }}
                 >
-                  {p.difficulty}
-                </span>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div
+                  <span
                     style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: "0.84rem",
-                      fontWeight: 650,
-                      color: "var(--text-primary)",
-                      lineHeight: "1.3",
+                      ...dStyle,
+                      display: "inline-flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      borderRadius: "0.35rem",
+                      padding: "0.1rem 0.4rem",
+                      fontSize: "0.62rem",
+                      fontWeight: 700,
+                      letterSpacing: "0.03em",
+                      flexShrink: 0,
+                      minWidth: "3.2rem",
                     }}
                   >
-                    {p.title}
+                    {p.difficulty}
+                  </span>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontSize: "0.84rem",
+                        fontWeight: 650,
+                        color: "var(--text-primary)",
+                        lineHeight: "1.3",
+                      }}
+                    >
+                      {p.title}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "0.76rem",
+                        color: "var(--text-muted)",
+                        lineHeight: "1.4",
+                        marginTop: "0.1rem",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {p.description}
+                    </div>
                   </div>
-                  <div
-                    style={{
-                      fontSize: "0.76rem",
-                      color: "var(--text-muted)",
-                      lineHeight: "1.4",
-                      marginTop: "0.1rem",
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
-                      whiteSpace: "nowrap",
-                    }}
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    style={{ color: "var(--text-muted)", flexShrink: 0 }}
                   >
-                    {p.description}
-                  </div>
-                </div>
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  style={{ color: "var(--text-muted)", flexShrink: 0 }}
-                >
-                  <path d="m9 18 6-6-6-6" />
-                </svg>
-              </button>
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
+                </button>
+              </div>
             );
           })}
         </div>
 
         <div style={{ marginTop: "0.75rem" }}>
           <button
-            onClick={onShuffleStart}
+            onClick={path ? () => onSelectProgram(0) : onShuffleStart}
             class="quiz-start-btn"
             style={{ width: "100%" }}
           >
-            Shuffle & Start
+            {path ? "Start Path" : "Shuffle & Start"}
           </button>
         </div>
       </div>
@@ -896,14 +1089,24 @@ function ViewerView({
 // ── Main Component ──
 export default function BuggyCodeViewer({
   programs,
+  paths,
 }: {
   programs: BuggyProgramHighlighted[];
+  paths: LearningPath[];
 }) {
   const [view, setView] = useState<View>("menu");
   const [selectedTopic, setSelectedTopic] = useState("");
+  const [activePath, setActivePath] = useState<LearningPath | null>(null);
   const [listPrograms, setListPrograms] = useState<BuggyProgramHighlighted[]>([]);
   const [viewerPrograms, setViewerPrograms] = useState<BuggyProgramHighlighted[]>([]);
   const [viewerStartIndex, setViewerStartIndex] = useState(0);
+
+  // Lookup map for resolving path programIds
+  const programById = useMemo(() => {
+    const map = new Map<number, BuggyProgramHighlighted>();
+    for (const p of programs) map.set(p.id, p);
+    return map;
+  }, [programs]);
 
   // Derive topics and counts from props
   const { topics, topicCounts } = useMemo(() => {
@@ -925,16 +1128,32 @@ export default function BuggyCodeViewer({
         setViewerPrograms(shuffle(programs));
         setViewerStartIndex(0);
         setSelectedTopic("");
+        setActivePath(null);
         setView("viewer");
         return;
       }
       const filtered = programs.filter((p) => p.topic === topic);
       if (filtered.length === 0) return;
       setSelectedTopic(topic);
+      setActivePath(null);
       setListPrograms(filtered);
       setView("list");
     },
     [programs]
+  );
+
+  const handleSelectPath = useCallback(
+    (path: LearningPath) => {
+      const resolved = path.programIds
+        .map((id) => programById.get(id))
+        .filter(Boolean) as BuggyProgramHighlighted[];
+      if (resolved.length === 0) return;
+      setActivePath(path);
+      setSelectedTopic("");
+      setListPrograms(resolved);
+      setView("list");
+    },
+    [programById]
   );
 
   const handleSelectProgram = useCallback(
@@ -952,6 +1171,12 @@ export default function BuggyCodeViewer({
     setView("viewer");
   }, [listPrograms]);
 
+  const backLabel = activePath
+    ? `← ${activePath.title}`
+    : selectedTopic
+      ? `← ${selectedTopic}`
+      : "← Topics";
+
   return (
     <div>
       {view === "menu" && (
@@ -959,13 +1184,17 @@ export default function BuggyCodeViewer({
           topics={topics}
           topicCounts={topicCounts}
           totalPrograms={programs.length}
+          paths={paths}
+          programById={programById}
           onSelectTopic={handleSelectTopic}
+          onSelectPath={handleSelectPath}
         />
       )}
       {view === "list" && (
         <ListView
           topic={selectedTopic}
           programs={listPrograms}
+          path={activePath}
           onSelectProgram={handleSelectProgram}
           onShuffleStart={handleShuffleStart}
           onBack={() => setView("menu")}
@@ -975,8 +1204,8 @@ export default function BuggyCodeViewer({
         <ViewerView
           programs={viewerPrograms}
           startIndex={viewerStartIndex}
-          backLabel={selectedTopic ? `← ${selectedTopic}` : "← Topics"}
-          onBack={() => setView(selectedTopic ? "list" : "menu")}
+          backLabel={backLabel}
+          onBack={() => setView(selectedTopic || activePath ? "list" : "menu")}
         />
       )}
     </div>

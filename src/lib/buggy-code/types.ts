@@ -21,3 +21,10 @@ export interface BuggyProgram {
 export interface BuggyProgramHighlighted extends BuggyProgram {
   highlightedHtml: string;
 }
+
+export interface LearningPath {
+  id: string;
+  title: string;
+  description: string;
+  programIds: number[];
+}
