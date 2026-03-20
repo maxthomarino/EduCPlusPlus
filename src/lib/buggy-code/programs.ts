@@ -4942,4 +4942,662 @@ SUMMARY: AddressSanitizer: heap-use-after-free flatmap.cpp:20 in FlatMap::insert
       { name: "std::vector::insert", args: "(const_iterator pos, const T& value) → iterator", brief: "Inserts element before position; may reallocate the entire vector.", note: "The iterator from lower_bound is invalidated if insert triggers reallocation. Re-query after modifying the container.", link: "https://en.cppreference.com/w/cpp/container/vector/insert" },
     ],
   },
+  // ── RAII & Resource Management ──
+  {
+    id: 84,
+    topic: "RAII & Resource Management",
+    difficulty: "Easy",
+    title: "Record Loader",
+    description: "Reads name-value pairs from a text file and stores them in a vector.",
+    code: `#include <cstdio>
+#include <iostream>
+#include <string>
+#include <vector>
+
+struct Record {
+    std::string name;
+    int value;
+};
+
+std::vector<Record> load_records(const char* filename) {
+    FILE* fp = std::fopen(filename, "r");
+    if (!fp) {
+        std::cerr << "Cannot open " << filename << std::endl;
+        return {};
+    }
+
+    std::vector<Record> records;
+    char name[64];
+    int value;
+
+    while (std::fscanf(fp, "%63s %d", name, &value) == 2) {
+        if (value < 0) {
+            std::cerr << "Negative value for " << name << std::endl;
+            return records;
+        }
+        records.push_back({name, value});
+    }
+
+    std::fclose(fp);
+    return records;
+}
+
+int main() {
+    auto recs = load_records("data.txt");
+    std::cout << "Loaded " << recs.size() << " records:" << std::endl;
+    for (const auto& r : recs) {
+        std::cout << "  " << r.name << " = " << r.value << std::endl;
+    }
+}`,
+    manifestation: `$ valgrind --track-fds=yes ./record_loader
+==18342== Memcheck, a memory error detector
+==18342== FILE DESCRIPTORS: 4 open (3 std) at exit.
+==18342== Open file descriptor 3: data.txt
+==18342==    at 0x4C3B180: fopen (in /usr/lib/valgrind/vgpreload_memcheck-amd64-linux.so)
+==18342==    by 0x401A23: load_records(char const*) (record_loader.cpp:13)
+==18342==    by 0x401C91: main (record_loader.cpp:33)
+==18342==
+Loaded 4 records:
+  alpha = 10
+  beta = 20
+  gamma = 30
+  delta = 40
+==18342== LEAK SUMMARY:
+==18342==    still reachable: 552 bytes in 1 blocks`,
+    hints: [
+      "How many paths return from load_records(), and do they all clean up equally?",
+      "What happens to the FILE* when the function hits a negative value?",
+      "The normal exit path calls fclose — does the error exit path do the same?",
+    ],
+    explanation: "When a negative value is encountered, the function returns records immediately without calling fclose(fp). The FILE* is leaked because C-style file handles are not RAII objects — there is no destructor to close them automatically. The fix is to call fclose(fp) before the early return, or better yet, use std::ifstream which closes automatically when it goes out of scope.",
+    stdlibRefs: [
+      { name: "std::fopen", args: "(const char* filename, const char* mode) → FILE*", brief: "Opens a file and returns a C file handle; returns null on failure.", note: "C file handles are not RAII — they must be explicitly closed with fclose on every exit path.", link: "https://en.cppreference.com/w/cpp/io/c/fopen" },
+      { name: "std::fclose", args: "(FILE* stream) → int", brief: "Closes the given file stream and flushes any unwritten buffered data.", link: "https://en.cppreference.com/w/cpp/io/c/fclose" },
+    ],
+  },
+  {
+    id: 85,
+    topic: "RAII & Resource Management",
+    difficulty: "Easy",
+    title: "Pixel Buffer",
+    description: "Allocates a fixed-size pixel buffer, fills it with a color, and prints the first pixel.",
+    code: `#include <iostream>
+#include <cstring>
+
+class PixelBuffer {
+    unsigned char* data_;
+    int width_, height_;
+
+public:
+    PixelBuffer(int w, int h)
+        : data_(new unsigned char[w * h * 4]()), width_(w), height_(h) {}
+
+    ~PixelBuffer() { delete data_; }
+
+    void fill(unsigned char r, unsigned char g, unsigned char b, unsigned char a) {
+        for (int i = 0; i < width_ * height_; ++i) {
+            data_[i * 4 + 0] = r;
+            data_[i * 4 + 1] = g;
+            data_[i * 4 + 2] = b;
+            data_[i * 4 + 3] = a;
+        }
+    }
+
+    void print_pixel(int x, int y) const {
+        int idx = (y * width_ + x) * 4;
+        std::cout << "Pixel(" << x << "," << y << "): "
+                  << "R=" << (int)data_[idx]
+                  << " G=" << (int)data_[idx + 1]
+                  << " B=" << (int)data_[idx + 2]
+                  << " A=" << (int)data_[idx + 3] << std::endl;
+    }
+};
+
+int main() {
+    PixelBuffer canvas(800, 600);
+    canvas.fill(64, 128, 255, 255);
+    canvas.print_pixel(0, 0);
+    canvas.print_pixel(799, 599);
+}`,
+    manifestation: `$ g++ -fsanitize=address -g pixel_buffer.cpp -o pixel_buffer && ./pixel_buffer
+=================================================================
+==24108==ERROR: AddressSanitizer: alloc-dealloc-mismatch (operator new [] vs operator delete) on 0x629000000800
+    #0 0x7f2a1c in operator delete(void*) (/lib/x86_64-linux-gnu/libasan.so.6+0xb1c)
+    #1 0x55a1b3 in PixelBuffer::~PixelBuffer() pixel_buffer.cpp:12
+    #2 0x55a4f1 in main pixel_buffer.cpp:33
+0x629000000800 is located 0 bytes inside of 1920000-byte region [0x629000000800,0x629001D4C100)
+allocated by thread T0 here:
+    #0 0x7f2a3e in operator new[](unsigned long)
+    #1 0x55a0e1 in PixelBuffer::PixelBuffer(int, int) pixel_buffer.cpp:10
+SUMMARY: AddressSanitizer: alloc-dealloc-mismatch (/lib/x86_64-linux-gnu/libasan.so.6+0xb1c) in operator delete(void*)`,
+    hints: [
+      "Look at how the buffer is allocated and how it is freed — do they match?",
+      "What is the difference between new[] and new, and their corresponding delete forms?",
+      "The constructor uses new unsigned char[...] — what must the destructor use?",
+    ],
+    explanation: "The constructor allocates with new[] (array form) but the destructor calls delete (scalar form) instead of delete[]. This is undefined behavior — the runtime may not free the correct amount of memory or may corrupt the heap. The fix is to change the destructor to delete[] data_.",
+    stdlibRefs: [],
+  },
+  {
+    id: 86,
+    topic: "RAII & Resource Management",
+    difficulty: "Easy",
+    title: "Benchmark Timer",
+    description: "Measures how long a computation takes using a scoped timer that prints elapsed time on destruction.",
+    code: `#include <iostream>
+#include <chrono>
+#include <string>
+
+class ScopedTimer {
+    std::string label_;
+    std::chrono::steady_clock::time_point start_;
+
+public:
+    explicit ScopedTimer(std::string label)
+        : label_(std::move(label)),
+          start_(std::chrono::steady_clock::now()) {}
+
+    ~ScopedTimer() {
+        auto elapsed = std::chrono::steady_clock::now() - start_;
+        auto ms = std::chrono::duration_cast<
+            std::chrono::milliseconds>(elapsed).count();
+        std::cout << label_ << ": " << ms << " ms" << std::endl;
+    }
+};
+
+long long heavy_computation() {
+    ScopedTimer("heavy computation");
+
+    long long sum = 0;
+    for (int i = 0; i < 50000000; ++i) {
+        sum += static_cast<long long>(i) * i;
+    }
+    return sum;
+}
+
+int main() {
+    std::cout << "Starting benchmark..." << std::endl;
+    auto result = heavy_computation();
+    std::cout << "Result: " << result << std::endl;
+}`,
+    manifestation: `$ g++ -O2 -o benchmark benchmark.cpp && ./benchmark
+Starting benchmark...
+heavy computation: 0 ms
+Result: 41666666166666672
+
+Expected output:
+Starting benchmark...
+heavy computation: 87 ms
+Result: 41666666166666672
+
+Actual output: the timer always reports 0 ms regardless of how long
+the computation takes.`,
+    hints: [
+      "Look at the line that creates the ScopedTimer — what is its lifetime?",
+      "What is the difference between ScopedTimer(\"label\") and ScopedTimer timer(\"label\")?",
+      "An unnamed temporary is destroyed at the end of the statement — when exactly does this timer die?",
+    ],
+    explanation: "ScopedTimer(\"heavy computation\") creates a temporary object that is immediately destroyed at the semicolon. The timer starts and stops in the same expression, always measuring approximately zero time. The computation runs after the timer is already dead. The fix is to name the variable: ScopedTimer timer(\"heavy computation\").",
+    stdlibRefs: [
+      { name: "std::chrono::steady_clock::now", args: "() → time_point", brief: "Returns the current time point of the steady clock, which never adjusts backwards.", link: "https://en.cppreference.com/w/cpp/chrono/steady_clock/now" },
+    ],
+  },
+  {
+    id: 87,
+    topic: "RAII & Resource Management",
+    difficulty: "Medium",
+    title: "Handle Wrapper",
+    description: "Wraps a dynamically allocated integer handle in a class that prints acquisition and release messages.",
+    code: `#include <iostream>
+
+class ResourceGuard {
+    int* handle_;
+
+public:
+    explicit ResourceGuard(int value) : handle_(new int(value)) {
+        std::cout << "Acquired handle " << *handle_ << std::endl;
+    }
+
+    ~ResourceGuard() {
+        std::cout << "Releasing handle " << *handle_ << std::endl;
+        delete handle_;
+    }
+
+    int value() const { return *handle_; }
+};
+
+void log_resource(ResourceGuard guard) {
+    std::cout << "Using resource: " << guard.value() << std::endl;
+}
+
+int main() {
+    ResourceGuard rg(42);
+    log_resource(rg);
+    std::cout << "Back in main: " << rg.value() << std::endl;
+}`,
+    manifestation: `$ g++ -fsanitize=address -g handle.cpp -o handle && ./handle
+Acquired handle 42
+Using resource: 42
+Releasing handle 42
+=================================================================
+==19473==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010
+READ of size 4 at 0x602000000010 thread T0
+    #0 0x55c2a1 in ResourceGuard::value() const handle.cpp:14
+    #1 0x55c491 in main handle.cpp:22
+0x602000000010 is located 0 bytes inside of 4-byte region [0x602000000010,0x602000000014)
+freed by thread T0 here:
+    #0 0x7f3b1c in operator delete(void*)
+    #1 0x55c1e3 in ResourceGuard::~ResourceGuard() handle.cpp:12
+SUMMARY: AddressSanitizer: heap-use-after-free handle.cpp:14 in ResourceGuard::value()`,
+    hints: [
+      "How is the ResourceGuard passed to log_resource()?",
+      "The class manages a heap pointer — what happens when it is copied?",
+      "Does the compiler-generated copy constructor do the right thing for a class that owns a pointer?",
+    ],
+    explanation: "log_resource takes its parameter by value, which invokes the implicitly-generated copy constructor. The copy just duplicates the raw pointer — both the original and the copy point to the same heap allocation. When the parameter is destroyed at the end of log_resource, it deletes the int. Back in main, rg.value() dereferences freed memory, and rg's destructor double-deletes. The fix is to either delete the copy constructor/assignment operator or implement deep copy semantics.",
+    stdlibRefs: [],
+  },
+  {
+    id: 88,
+    topic: "RAII & Resource Management",
+    difficulty: "Medium",
+    title: "Connection Setup",
+    description: "Establishes a simulated network connection and allocates a send buffer in the constructor.",
+    code: `#include <iostream>
+#include <stdexcept>
+#include <cstring>
+
+class Connection {
+    int* socket_handle_;
+    char* send_buffer_;
+    size_t buf_size_;
+
+public:
+    Connection(int port, size_t buf_size) : buf_size_(buf_size) {
+        socket_handle_ = new int(port);
+        std::cout << "Connected on port " << *socket_handle_ << std::endl;
+
+        if (buf_size > 1000000) {
+            throw std::runtime_error("Buffer size exceeds 1 MB limit");
+        }
+        send_buffer_ = new char[buf_size]();
+    }
+
+    ~Connection() {
+        delete[] send_buffer_;
+        delete socket_handle_;
+        std::cout << "Connection closed" << std::endl;
+    }
+
+    void send(const char* msg) {
+        std::strncpy(send_buffer_, msg, buf_size_ - 1);
+        send_buffer_[buf_size_ - 1] = '\\0';
+        std::cout << "Sent: " << send_buffer_ << std::endl;
+    }
+};
+
+int main() {
+    try {
+        Connection conn(8080, 2000000);
+        conn.send("Hello, server!");
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+}`,
+    manifestation: `$ g++ -fsanitize=address -g connection.cpp -o connection && ./connection
+Connected on port 8080
+Error: Buffer size exceeds 1 MB limit
+
+=================================================================
+==21044==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 4 byte(s) in 1 object(s) allocated from:
+    #0 0x7f8a2c in operator new(unsigned long)
+    #1 0x55b1a3 in Connection::Connection(int, unsigned long) connection.cpp:12
+    #2 0x55b4e1 in main connection.cpp:32
+
+SUMMARY: AddressSanitizer: 4 byte(s) leaked in 1 allocation(s).`,
+    hints: [
+      "What happens to resources acquired before the constructor finishes if it throws?",
+      "In C++, when is an object considered fully constructed — and when does the destructor become eligible to run?",
+      "If the constructor throws after allocating socket_handle_ but before completing, does ~Connection() execute?",
+    ],
+    explanation: "When buf_size exceeds the limit, the constructor throws after allocating socket_handle_ but before allocating send_buffer_. C++ only calls the destructor for fully constructed objects, so ~Connection() never runs and socket_handle_ is leaked. The fix is to use std::unique_ptr for each member, or acquire all resources through RAII sub-objects so their individual destructors run even if the containing constructor throws.",
+    stdlibRefs: [
+      { name: "std::runtime_error", brief: "Exception class for errors detectable only at runtime; inherits from std::exception.", link: "https://en.cppreference.com/w/cpp/error/runtime_error" },
+    ],
+  },
+  {
+    id: 89,
+    topic: "RAII & Resource Management",
+    difficulty: "Medium",
+    title: "Movable Buffer",
+    description: "A dynamically allocated integer buffer with move semantics for efficient transfers.",
+    code: `#include <iostream>
+#include <utility>
+#include <cstring>
+
+class Buffer {
+    int* data_;
+    size_t size_;
+
+public:
+    explicit Buffer(size_t n) : data_(new int[n]()), size_(n) {
+        std::cout << "Allocated " << n << " ints" << std::endl;
+    }
+
+    Buffer(Buffer&& other) noexcept
+        : data_(other.data_), size_(other.size_) {
+        other.size_ = 0;
+    }
+
+    Buffer(const Buffer&) = delete;
+    Buffer& operator=(const Buffer&) = delete;
+    Buffer& operator=(Buffer&&) = delete;
+
+    ~Buffer() {
+        delete[] data_;
+        std::cout << "Freed buffer" << std::endl;
+    }
+
+    int& operator[](size_t i) { return data_[i]; }
+    size_t size() const { return size_; }
+};
+
+int main() {
+    Buffer buf1(100);
+    buf1[0] = 42;
+
+    Buffer buf2(std::move(buf1));
+    std::cout << "Moved value: " << buf2[0] << std::endl;
+}`,
+    manifestation: `$ g++ -fsanitize=address -g buffer.cpp -o buffer && ./buffer
+Allocated 100 ints
+Moved value: 42
+Freed buffer
+=================================================================
+==25781==ERROR: AddressSanitizer: attempting double-free on 0x614000000040 in thread T0:
+    #0 0x7f9b2c in operator delete[](void*)
+    #1 0x55a2e1 in Buffer::~Buffer() buffer.cpp:24
+    #2 0x55a5a2 in main buffer.cpp:36
+0x614000000040 is located 0 bytes inside of 400-byte region [0x614000000040,0x6140000001D0)
+freed by thread T0 here:
+    #0 0x7f9b2c in operator delete[](void*)
+    #1 0x55a2e1 in Buffer::~Buffer() buffer.cpp:24
+SUMMARY: AddressSanitizer: double-free (/lib/x86_64-linux-gnu/libasan.so.6+0xb2c) in operator delete[](void*)`,
+    hints: [
+      "After the move, what state is buf1 left in?",
+      "The move constructor copies data_ and zeroes size_ — is that sufficient to prevent cleanup issues?",
+      "When buf1 is destroyed, what does delete[] operate on?",
+    ],
+    explanation: "The move constructor copies the pointer from other.data_ and sets other.size_ to 0, but it never sets other.data_ to nullptr. When buf1 is destroyed, its destructor calls delete[] on the same pointer that buf2 also owns. This is a double-free. The fix is to add other.data_ = nullptr in the move constructor.",
+    stdlibRefs: [],
+  },
+  {
+    id: 90,
+    topic: "RAII & Resource Management",
+    difficulty: "Medium",
+    title: "Sensor Allocator",
+    description: "Creates sensor objects on the heap wrapped in a smart pointer with a custom cleanup function.",
+    code: `#include <iostream>
+#include <memory>
+#include <cstdlib>
+#include <string>
+
+struct Sensor {
+    int id;
+    double reading;
+    std::string unit;
+
+    Sensor(int i, const std::string& u) : id(i), reading(0.0), unit(u) {
+        std::cout << "Sensor " << id << " online" << std::endl;
+    }
+
+    ~Sensor() {
+        std::cout << "Sensor " << id << " offline" << std::endl;
+    }
+};
+
+auto make_sensor(int id, const std::string& unit) {
+    auto* s = new Sensor(id, unit);
+    return std::unique_ptr<Sensor, decltype(&std::free)>(s, std::free);
+}
+
+int main() {
+    auto temp = make_sensor(1, "celsius");
+    temp->reading = 23.5;
+
+    auto pressure = make_sensor(2, "hPa");
+    pressure->reading = 1013.25;
+
+    std::cout << "Temp: " << temp->reading << " " << temp->unit << std::endl;
+    std::cout << "Pressure: " << pressure->reading << " " << pressure->unit << std::endl;
+}`,
+    manifestation: `$ g++ -fsanitize=address -g sensor.cpp -o sensor && ./sensor
+Sensor 1 online
+Sensor 2 online
+Temp: 23.5 celsius
+Pressure: 1013.25 hPa
+=================================================================
+==27814==ERROR: AddressSanitizer: alloc-dealloc-mismatch (operator new vs free) on 0x604000000010
+    #0 0x7f5c3a in free (/lib/x86_64-linux-gnu/libasan.so.6+0xa3a)
+    #1 0x55d421 in std::unique_ptr<Sensor, void(*)(void*)>::~unique_ptr() sensor.cpp:23
+    #2 0x55d6b1 in main sensor.cpp:33
+0x604000000010 is located 0 bytes inside of 56-byte region [0x604000000010,0x604000000048)
+allocated by thread T0 here:
+    #0 0x7f5b1c in operator new(unsigned long)
+    #1 0x55d2a1 in make_sensor(int, std::string const&) sensor.cpp:22
+SUMMARY: AddressSanitizer: alloc-dealloc-mismatch in free`,
+    hints: [
+      "How is the Sensor object allocated, and how does the unique_ptr release it?",
+      "What is the difference between free() and delete for objects created with new?",
+      "Does free() call the destructor of the Sensor object?",
+    ],
+    explanation: "The Sensor is allocated with new (which calls the constructor) but the custom deleter uses std::free (which only releases raw memory without calling the destructor). This is undefined behavior: the Sensor's ~Sensor() and the embedded std::string's destructor never run, and the allocator mismatch (new vs free) can corrupt the heap. The fix is to use a deleter that calls delete, or allocate with std::malloc and use placement new if free is required.",
+    stdlibRefs: [
+      { name: "std::unique_ptr", brief: "Smart pointer with exclusive ownership; invokes its deleter when destroyed.", note: "The custom deleter must match the allocation method — free() must not be used for objects allocated with new.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr" },
+      { name: "std::free", args: "(void* ptr) → void", brief: "Deallocates memory previously allocated by malloc/calloc/realloc; does NOT call destructors.", note: "Mixing new with free or malloc with delete is undefined behavior.", link: "https://en.cppreference.com/w/cpp/memory/c/free" },
+    ],
+  },
+  {
+    id: 91,
+    topic: "RAII & Resource Management",
+    difficulty: "Hard",
+    title: "Event Bus",
+    description: "A publish-subscribe event bus that returns shared handles for subscribers to hold.",
+    code: `#include <iostream>
+#include <functional>
+#include <memory>
+#include <vector>
+#include <string>
+
+class EventBus {
+    std::vector<std::string> audit_log_;
+
+public:
+    using Callback = std::function<void(const std::string&)>;
+    using Handle = std::shared_ptr<Callback>;
+
+    Handle subscribe(Callback cb) {
+        return std::shared_ptr<Callback>(
+            new Callback(std::move(cb)),
+            [this](Callback* p) {
+                audit_log_.push_back("Handler removed");
+                delete p;
+            }
+        );
+    }
+
+    void publish(const std::string& event) {
+        audit_log_.push_back("Published: " + event);
+        std::cout << "Event: " << event << std::endl;
+    }
+
+    void print_audit() const {
+        for (const auto& entry : audit_log_)
+            std::cout << "  " << entry << std::endl;
+    }
+};
+
+int main() {
+    EventBus::Handle handle;
+    {
+        EventBus bus;
+        handle = bus.subscribe([](const std::string& e) {
+            std::cout << "Got: " << e << std::endl;
+        });
+        bus.publish("startup");
+        bus.print_audit();
+    }
+    std::cout << "Bus destroyed, handle still alive" << std::endl;
+}`,
+    manifestation: `$ g++ -fsanitize=address -g eventbus.cpp -o eventbus && ./eventbus
+Event: startup
+  Published: startup
+Bus destroyed, handle still alive
+=================================================================
+==30192==ERROR: AddressSanitizer: heap-use-after-free on address 0x604000000090
+WRITE of size 8 at 0x604000000090 thread T0
+    #0 0x55e3a1 in std::vector<std::string>::push_back()
+    #1 0x55e1c2 in EventBus::subscribe(...)::$_0::operator()(std::function<...>*) const eventbus.cpp:18
+    #2 0x55e0a1 in std::shared_ptr<...>::~shared_ptr() eventbus.cpp:23
+    #3 0x55e5f1 in main eventbus.cpp:38
+0x604000000090 is located 16 bytes inside of 64-byte region freed by thread T0 here:
+    #0 0x7fa31c in operator delete(void*)
+    #1 0x55e4a1 in EventBus::~EventBus() eventbus.cpp:7
+SUMMARY: AddressSanitizer: heap-use-after-free eventbus.cpp:18 in EventBus::subscribe`,
+    hints: [
+      "What does the custom deleter capture, and how long does the captured value remain valid?",
+      "In what order are bus and handle destroyed?",
+      "When handle's shared_ptr destructor runs, is the EventBus it references still alive?",
+    ],
+    explanation: "The custom deleter lambda captures this (the EventBus pointer). The bus is destroyed at the end of the inner scope, but handle (and its deleter) survives in the outer scope. When handle is finally destroyed, the deleter tries to push_back into audit_log_ through a dangling this pointer — the EventBus is already dead. The fix is to not capture this in the deleter, or ensure the EventBus always outlives all handles (e.g., by using shared_from_this).",
+    stdlibRefs: [
+      { name: "std::shared_ptr", brief: "Reference-counted smart pointer; invokes its deleter when the last owner is destroyed.", note: "A custom deleter that captures external state must not outlive that state — the deleter runs when the last shared_ptr dies, which may be long after the capturer.", link: "https://en.cppreference.com/w/cpp/memory/shared_ptr" },
+    ],
+  },
+  {
+    id: 92,
+    topic: "RAII & Resource Management",
+    difficulty: "Hard",
+    title: "Deferred Task Queue",
+    description: "Enqueues lambdas for later execution, allowing work to be scheduled and then run as a batch.",
+    code: `#include <iostream>
+#include <functional>
+#include <memory>
+#include <vector>
+#include <string>
+
+class TaskQueue {
+    std::vector<std::function<void()>> tasks_;
+
+public:
+    void enqueue(std::function<void()> task) {
+        tasks_.push_back(std::move(task));
+    }
+
+    void run_all() {
+        for (auto& task : tasks_) task();
+        tasks_.clear();
+    }
+};
+
+void schedule_reports(TaskQueue& queue) {
+    auto data = std::make_unique<std::string>(
+        "Q1 Revenue: $2.4M | Growth: 12%");
+
+    queue.enqueue([&data]() {
+        std::cout << "Report: " << *data << std::endl;
+    });
+
+    queue.enqueue([&data]() {
+        std::cout << "Summary length: " << data->size() << std::endl;
+    });
+}
+
+int main() {
+    TaskQueue queue;
+    schedule_reports(queue);
+    std::cout << "Running deferred tasks..." << std::endl;
+    queue.run_all();
+}`,
+    manifestation: `$ g++ -fsanitize=address -g taskqueue.cpp -o taskqueue && ./taskqueue
+Running deferred tasks...
+=================================================================
+==14209==ERROR: AddressSanitizer: stack-use-after-scope on address 0x7ffd3a2c1e80
+READ of size 8 at 0x7ffd3a2c1e80 thread T0
+    #0 0x55b3a1 in schedule_reports(TaskQueue&)::$_0::operator()() const taskqueue.cpp:26
+    #1 0x55b621 in TaskQueue::run_all() taskqueue.cpp:14
+    #2 0x55b891 in main taskqueue.cpp:36
+Address 0x7ffd3a2c1e80 is located in stack of thread T0 at offset 128 in frame
+    #0 0x55b0a1 in schedule_reports(TaskQueue&) taskqueue.cpp:22
+SUMMARY: AddressSanitizer: stack-use-after-scope taskqueue.cpp:26 in schedule_reports`,
+    hints: [
+      "When are the enqueued lambdas actually executed relative to where data is defined?",
+      "The lambdas capture data — by value or by reference?",
+      "What happens to a local unique_ptr when its enclosing function returns?",
+    ],
+    explanation: "The lambdas capture data (a local unique_ptr) by reference. When schedule_reports returns, data is destroyed and the unique_ptr deletes its string. Later, run_all invokes the lambdas which dereference the now-dangling reference to the destroyed unique_ptr. The fix is to capture a shared_ptr by value: auto data = std::make_shared<std::string>(...) and capture [data]() instead of [&data]().",
+    stdlibRefs: [
+      { name: "std::make_unique", args: "<T>(Args&&... args) → unique_ptr<T>", brief: "Creates a unique_ptr that owns a newly constructed object of type T.", note: "unique_ptr is not copyable — capturing it by reference in a lambda that outlives the scope creates a dangling reference.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique" },
+    ],
+  },
+  {
+    id: 93,
+    topic: "RAII & Resource Management",
+    difficulty: "Hard",
+    title: "Auto Saver",
+    description: "Buffers data in memory and automatically saves it to disk when the object goes out of scope.",
+    code: `#include <iostream>
+#include <stdexcept>
+#include <string>
+
+void save_to_disk(const std::string& data) {
+    if (data.size() > 100) {
+        throw std::runtime_error("Payload too large for single write");
+    }
+    std::cout << "Saved " << data.size() << " bytes" << std::endl;
+}
+
+class AutoSaver {
+    std::string buffer_;
+
+public:
+    AutoSaver() = default;
+
+    void append(const std::string& chunk) {
+        buffer_ += chunk;
+    }
+
+    ~AutoSaver() {
+        save_to_disk(buffer_);
+    }
+};
+
+int main() {
+    try {
+        AutoSaver saver;
+        for (int i = 0; i < 20; ++i) {
+            saver.append("item_" + std::to_string(i) + ";");
+        }
+        std::cout << "Processing complete" << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Caught: " << e.what() << std::endl;
+    }
+}`,
+    manifestation: `$ g++ -g auto_saver.cpp -o auto_saver && ./auto_saver
+Processing complete
+terminate called after throwing an instance of 'std::runtime_error'
+  what():  Payload too large for single write
+Aborted (core dumped)`,
+    hints: [
+      "What happens when the AutoSaver goes out of scope at the end of the try block?",
+      "Can a destructor safely call a function that might throw an exception?",
+      "In C++11 and later, what is the default exception specification of a destructor?",
+    ],
+    explanation: "When saver goes out of scope, its destructor calls save_to_disk, which throws because the buffer exceeds 100 bytes. Since C++11, destructors are implicitly noexcept — throwing from a noexcept function immediately calls std::terminate, bypassing the catch block entirely. The program aborts instead of handling the error. The fix is to catch exceptions inside the destructor and handle them without re-throwing (e.g., log the error and discard the data).",
+    stdlibRefs: [
+      { name: "std::runtime_error", brief: "Exception class for errors detectable only at runtime; inherits from std::exception.", note: "Throwing from an implicitly-noexcept destructor calls std::terminate — exceptions must be caught inside the destructor.", link: "https://en.cppreference.com/w/cpp/error/runtime_error" },
+    ],
+  },
 ];
