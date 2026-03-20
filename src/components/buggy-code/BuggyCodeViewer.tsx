@@ -208,6 +208,21 @@ function StdlibRefCards({ refs }: { refs: StdlibRef[] }) {
               cppreference →
             </a>
           </div>
+          {ref.args && (
+            <code
+              style={{
+                display: "block",
+                fontFamily: "var(--font-code)",
+                fontSize: "0.72rem",
+                color: "var(--text-muted)",
+                margin: "0.2rem 0 0 0",
+                lineHeight: "1.5",
+                letterSpacing: "-0.01em",
+              }}
+            >
+              {ref.args}
+            </code>
+          )}
           <p
             style={{
               fontSize: "0.78rem",

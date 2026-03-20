@@ -1,5 +1,6 @@
 export interface StdlibRef {
   name: string;
+  args?: string;
   brief: string;
   note?: string;
   link: string;

@@ -37,7 +37,7 @@ int main() {
     #1 0x7f3c2a in __libc_start_main
 SUMMARY: AddressSanitizer: container-overflow filter.cpp:7 in main`,
     stdlibRefs: [
-      { name: "std::vector::erase", brief: "Removes element at pos or range [first, last); returns iterator to the element after the last removed.", note: "Invalidates iterators at or after the point of erase. Always use the returned iterator instead of incrementing the old one.", link: "https://en.cppreference.com/w/cpp/container/vector/erase" },
+      { name: "std::vector::erase", args: "(const_iterator pos) → iterator | (const_iterator first, const_iterator last) → iterator", brief: "Removes element at pos or range [first, last); returns iterator to the element after the last removed.", note: "Invalidates iterators at or after the point of erase. Always use the returned iterator instead of incrementing the old one.", link: "https://en.cppreference.com/w/cpp/container/vector/erase" },
     ],
   },
   {
@@ -107,7 +107,7 @@ Expected output:
 Actual output:
   Offset is out of bounds`,
     stdlibRefs: [
-      { name: "std::vector::size", brief: "Returns the number of elements as std::size_t, an unsigned type.", note: "Comparing a negative int to size() promotes the int to unsigned, wrapping it to a very large positive value.", link: "https://en.cppreference.com/w/cpp/container/vector/size" },
+      { name: "std::vector::size", args: "() → size_type", brief: "Returns the number of elements as std::size_t, an unsigned type.", note: "Comparing a negative int to size() promotes the int to unsigned, wrapping it to a very large positive value.", link: "https://en.cppreference.com/w/cpp/container/vector/size" },
     ],
   },
   {
@@ -148,7 +148,7 @@ Expected output:
 Actual output:
   Not found (-1)`,
     stdlibRefs: [
-      { name: "std::lower_bound", brief: "Binary search returning iterator to the first element not less than the given value.", note: "Prefer standard algorithms over hand-written binary search to avoid subtle off-by-one boundary errors.", link: "https://en.cppreference.com/w/cpp/algorithm/lower_bound" },
+      { name: "std::lower_bound", args: "(ForwardIt first, ForwardIt last, const T& value) → ForwardIt", brief: "Binary search returning iterator to the first element not less than the given value.", note: "Prefer standard algorithms over hand-written binary search to avoid subtle off-by-one boundary errors.", link: "https://en.cppreference.com/w/cpp/algorithm/lower_bound" },
     ],
   },
   {
@@ -241,7 +241,7 @@ Expected output:
 Actual output:
   Hello Alice and !`,
     stdlibRefs: [
-      { name: "std::move", brief: "Casts its argument to an rvalue reference, enabling move semantics.", note: "After std::move, the source object is in a valid but unspecified state. Reading its value is legal but the content is gone.", link: "https://en.cppreference.com/w/cpp/utility/move" },
+      { name: "std::move", args: "(T&& arg) → remove_reference_t<T>&&", brief: "Casts its argument to an rvalue reference, enabling move semantics.", note: "After std::move, the source object is in a valid but unspecified state. Reading its value is legal but the content is gone.", link: "https://en.cppreference.com/w/cpp/utility/move" },
     ],
   },
   {
@@ -456,7 +456,7 @@ previously freed by thread T0 here:
     #1 0x55a1c3 in DynArray::~DynArray() dynarray.cpp:12
 SUMMARY: AddressSanitizer: double-free dynarray.cpp:12 in DynArray::~DynArray()`,
     stdlibRefs: [
-      { name: "std::fill", brief: "Assigns the given value to every element in the range [first, last).", link: "https://en.cppreference.com/w/cpp/algorithm/fill" },
+      { name: "std::fill", args: "(ForwardIt first, ForwardIt last, const T& value) → void", brief: "Assigns the given value to every element in the range [first, last).", link: "https://en.cppreference.com/w/cpp/algorithm/fill" },
       { name: "std::vector", brief: "Dynamic array with automatic memory management and correct copy/move semantics.", note: "Prefer std::vector over manual new[]/delete[] to avoid shallow-copy and double-free bugs.", link: "https://en.cppreference.com/w/cpp/container/vector" },
     ],
   },
@@ -704,7 +704,7 @@ Direct leak of 4096 bytes in 1 object(s) allocated from:
 
 SUMMARY: LeakSanitizer: 4096 byte(s) leaked in 1 object(s).`,
     stdlibRefs: [
-      { name: "std::strncpy", brief: "Copies at most count characters from src to dest. Pads with nulls if src is shorter than count.", note: "If src is longer than count, the destination is NOT null-terminated. Always null-terminate manually after strncpy.", link: "https://en.cppreference.com/w/cpp/string/byte/strncpy" },
+      { name: "std::strncpy", args: "(char* dest, const char* src, size_t count) → char*", brief: "Copies at most count characters from src to dest. Pads with nulls if src is shorter than count.", note: "If src is longer than count, the destination is NOT null-terminated. Always null-terminate manually after strncpy.", link: "https://en.cppreference.com/w/cpp/string/byte/strncpy" },
     ],
   },
   {
@@ -802,8 +802,8 @@ WRITE of size 1 at 0x602000000015 thread T0
     #1 0x55b181 in duplicate strdup.cpp:6
 SUMMARY: AddressSanitizer: heap-buffer-overflow strdup.cpp:7 in duplicate`,
     stdlibRefs: [
-      { name: "std::strlen", brief: "Returns the length of a C-string, NOT counting the null terminator.", note: "Allocating exactly strlen(src) bytes for a copy is one byte short — you need strlen(src) + 1.", link: "https://en.cppreference.com/w/cpp/string/byte/strlen" },
-      { name: "std::strcpy", brief: "Copies the source string including the null terminator to the destination buffer.", note: "Destination must be large enough for the entire source string plus the null terminator.", link: "https://en.cppreference.com/w/cpp/string/byte/strcpy" },
+      { name: "std::strlen", args: "(const char* str) → size_t", brief: "Returns the length of a C-string, NOT counting the null terminator.", note: "Allocating exactly strlen(src) bytes for a copy is one byte short — you need strlen(src) + 1.", link: "https://en.cppreference.com/w/cpp/string/byte/strlen" },
+      { name: "std::strcpy", args: "(char* dest, const char* src) → char*", brief: "Copies the source string including the null terminator to the destination buffer.", note: "Destination must be large enough for the entire source string plus the null terminator.", link: "https://en.cppreference.com/w/cpp/string/byte/strcpy" },
     ],
   },
   {
@@ -932,7 +932,7 @@ Direct leak of 48 bytes in 2 object(s) allocated from:
 
 SUMMARY: LeakSanitizer: 48 byte(s) leaked in 2 object(s).`,
     stdlibRefs: [
-      { name: "std::vector::clear", brief: "Removes all elements, reducing size to zero. Does not deallocate the vector's memory.", note: "For vector<T*>, clear() destroys the pointer values but does NOT delete the pointed-to objects.", link: "https://en.cppreference.com/w/cpp/container/vector/clear" },
+      { name: "std::vector::clear", args: "() → void", brief: "Removes all elements, reducing size to zero. Does not deallocate the vector's memory.", note: "For vector<T*>, clear() destroys the pointer values but does NOT delete the pointed-to objects.", link: "https://en.cppreference.com/w/cpp/container/vector/clear" },
     ],
   },
   {
@@ -1153,7 +1153,7 @@ SUMMARY: AddressSanitizer: double-free in std::shared_ptr<Logger>::~shared_ptr()
       "Both primary and secondary are constructed directly from the same raw pointer, creating two independent reference counts. When both shared_ptrs are destroyed at the end of main, each calls delete on the same Logger object — a double free. The second shared_ptr should be copy-constructed from the first.",
     stdlibRefs: [
       { name: "std::shared_ptr", brief: "Reference-counted smart pointer; deletes the managed object when the last shared_ptr owning it is destroyed.", note: "Constructing two independent shared_ptrs from the same raw pointer creates two control blocks and causes double-free.", link: "https://en.cppreference.com/w/cpp/memory/shared_ptr" },
-      { name: "std::make_shared", brief: "Creates a shared_ptr with a single allocation for both the control block and the object.", note: "Always create shared_ptrs via make_shared or by copying an existing shared_ptr — never from a raw pointer that is already managed.", link: "https://en.cppreference.com/w/cpp/memory/shared_ptr/make_shared" },
+      { name: "std::make_shared", args: "<T>(Args&&... args) → shared_ptr<T>", brief: "Creates a shared_ptr with a single allocation for both the control block and the object.", note: "Always create shared_ptrs via make_shared or by copying an existing shared_ptr — never from a raw pointer that is already managed.", link: "https://en.cppreference.com/w/cpp/memory/shared_ptr/make_shared" },
     ],
   },
   {
@@ -1218,7 +1218,7 @@ SUMMARY: LeakSanitizer: 48 byte(s) leaked in 1 object(s).`,
     explanation:
       "Calling tok.release() relinquishes ownership and returns the raw pointer. The Token is copied into the vector via *tok.release(), but the heap-allocated original is never deleted. Each iteration leaks one Token. Using *tok (dereference without release) would copy the Token and let the unique_ptr clean up normally.",
     stdlibRefs: [
-      { name: "std::unique_ptr::release", brief: "Releases ownership and returns the raw pointer. Does NOT delete the managed object.", note: "The caller becomes responsible for deleting the returned pointer. If not stored or freed, it leaks.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/release" },
+      { name: "std::unique_ptr::release", args: "() → pointer", brief: "Releases ownership and returns the raw pointer. Does NOT delete the managed object.", note: "The caller becomes responsible for deleting the returned pointer. If not stored or freed, it leaks.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/release" },
     ],
   },
   {
@@ -1353,7 +1353,7 @@ SUMMARY: AddressSanitizer: heap-use-after-free taskqueue.cpp:28 in main`,
     explanation:
       "The three unique_ptrs are destroyed at the closing brace of the inner block, freeing all Task objects. The TaskQueue still holds raw pointers obtained via .get(), which are now dangling. Calling run_all() dereferences freed memory — undefined behavior.",
     stdlibRefs: [
-      { name: "std::unique_ptr::get", brief: "Returns the stored raw pointer without releasing ownership.", note: "The returned pointer dangles if the unique_ptr is destroyed or moved. Never store .get() results beyond the unique_ptr's scope.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/get" },
+      { name: "std::unique_ptr::get", args: "() → pointer", brief: "Returns the stored raw pointer without releasing ownership.", note: "The returned pointer dangles if the unique_ptr is destroyed or moved. Never store .get() results beyond the unique_ptr's scope.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/get" },
     ],
   },
   {
@@ -1526,7 +1526,7 @@ Aborted (core dumped)`,
       "The constructor calls register_default_observer(), which calls shared_from_this(). But during construction, the shared_ptr that will own this object has not yet been fully created — make_shared hasn't finished. Calling shared_from_this() before the object is owned by a shared_ptr is undefined behavior (throws bad_weak_ptr in C++17+). The registration must happen after construction.",
     stdlibRefs: [
       { name: "std::enable_shared_from_this", brief: "CRTP base providing shared_from_this() for safe self-referencing inside member functions.", note: "Cannot be called during construction — the shared_ptr that will own the object does not exist yet at that point.", link: "https://en.cppreference.com/w/cpp/memory/enable_shared_from_this" },
-      { name: "std::make_shared", brief: "Constructs an object and wraps it in a shared_ptr in a single allocation.", note: "The shared_ptr control block is set up after the constructor returns, which is why shared_from_this() fails inside it.", link: "https://en.cppreference.com/w/cpp/memory/shared_ptr/make_shared" },
+      { name: "std::make_shared", args: "<T>(Args&&... args) → shared_ptr<T>", brief: "Constructs an object and wraps it in a shared_ptr in a single allocation.", note: "The shared_ptr control block is set up after the constructor returns, which is why shared_from_this() fails inside it.", link: "https://en.cppreference.com/w/cpp/memory/shared_ptr/make_shared" },
     ],
   },
   {
@@ -1686,7 +1686,7 @@ SUMMARY: AddressSanitizer: SEGV rescache.cpp:31 in main`,
     explanation:
       "After the inner block ends, both shared_ptrs are destroyed, freeing the Resource objects. The weak_ptrs in the cache are now expired. In lookup(), lock() returns a null shared_ptr for expired entries, and the code immediately dereferences it with ->data — a null pointer dereference. The return value of lock() must be checked before use.",
     stdlibRefs: [
-      { name: "std::weak_ptr::lock", brief: "Attempts to create a shared_ptr from the weak_ptr. Returns an empty shared_ptr if the object has expired.", note: "Always check the result of lock() before dereferencing — an expired weak_ptr produces a null shared_ptr.", link: "https://en.cppreference.com/w/cpp/memory/weak_ptr/lock" },
+      { name: "std::weak_ptr::lock", args: "() → shared_ptr<T>", brief: "Attempts to create a shared_ptr from the weak_ptr. Returns an empty shared_ptr if the object has expired.", note: "Always check the result of lock() before dereferencing — an expired weak_ptr produces a null shared_ptr.", link: "https://en.cppreference.com/w/cpp/memory/weak_ptr/lock" },
     ],
   },
   // ── Lambdas ──
@@ -1859,7 +1859,7 @@ Actual output:
     explanation:
       "The operator== compares the pointers returned by c_str(), not the string contents. Since each CIString stores its own std::string internally, the c_str() pointers point to different memory addresses even when the stored strings are identical. The comparison always returns false, so no duplicates are ever detected. Using data_ == other.data_ would correctly compare the string contents.",
     stdlibRefs: [
-      { name: "std::string::c_str", brief: "Returns a const char* to a null-terminated C-string representation of the string.", note: "Comparing two c_str() results with == compares pointer addresses, not string content. Use std::string operators instead.", link: "https://en.cppreference.com/w/cpp/string/basic_string/c_str" },
+      { name: "std::string::c_str", args: "() → const char*", brief: "Returns a const char* to a null-terminated C-string representation of the string.", note: "Comparing two c_str() results with == compares pointer addresses, not string content. Use std::string operators instead.", link: "https://en.cppreference.com/w/cpp/string/basic_string/c_str" },
     ],
   },
   {
@@ -1997,7 +1997,7 @@ SUMMARY: AddressSanitizer: heap-use-after-free resbuf.cpp:22 in Buffer::operator
     explanation:
       "When normalize is called with readings as both arguments, dest and src are references to the same Buffer object. The assignment dest = src triggers operator=, where this and &other are the same address. The operator deletes data_ first, then tries to copy from other.data_ which is the same now-freed pointer. This is use-after-free. A self-assignment guard (if (this == &other) return *this;) at the top of operator= would prevent this.",
     stdlibRefs: [
-      { name: "std::copy", brief: "Copies elements from the range [first, last) to a destination range starting at d_first.", link: "https://en.cppreference.com/w/cpp/algorithm/copy" },
+      { name: "std::copy", args: "(InputIt first, InputIt last, OutputIt d_first) → OutputIt", brief: "Copies elements from the range [first, last) to a destination range starting at d_first.", link: "https://en.cppreference.com/w/cpp/algorithm/copy" },
     ],
   },
   {
@@ -2061,7 +2061,7 @@ Actual output:
     explanation:
       'The operator[] returns std::string by value instead of by reference. Each call creates a temporary copy of the stored value. The assignments like cfg["host"] = "production.example.com" modify these temporaries, which are destroyed at the end of each statement. The stored values never change, so the output after the update is identical to before. Changing the return type to std::string& would return a reference to the actual stored element.',
     stdlibRefs: [
-      { name: "std::map::operator[]", brief: "Returns a reference to the value mapped to key, inserting a default value if the key does not exist.", note: "A custom operator[] that returns by value instead of by reference silently discards all modifications made through it.", link: "https://en.cppreference.com/w/cpp/container/map/operator_at" },
+      { name: "std::map::operator[]", args: "(const Key& key) → T&", brief: "Returns a reference to the value mapped to key, inserting a default value if the key does not exist.", note: "A custom operator[] that returns by value instead of by reference silently discards all modifications made through it.", link: "https://en.cppreference.com/w/cpp/container/map/operator_at" },
     ],
   },
   {
@@ -2120,7 +2120,7 @@ Actual output:
     explanation:
       "The operator< violates the strict weak ordering requirement of std::sort. The condition department < other.department || salary > other.salary can be true in both directions simultaneously: an employee in department 1 with $75k is considered less than one in department 2 with $90k (since 1 < 2), but the reverse is also true (since $90k > $75k). This is undefined behavior. The fix is to use a lexicographic comparison: compare department first, then salary only when departments are equal.",
     stdlibRefs: [
-      { name: "std::sort", brief: "Sorts elements in [first, last) using operator< or a custom comparator.", note: "The comparator must satisfy strict weak ordering: comp(a, a) must be false. Using <= instead of < violates this and is undefined behavior.", link: "https://en.cppreference.com/w/cpp/algorithm/sort" },
+      { name: "std::sort", args: "(RandomIt first, RandomIt last) → void | (RandomIt first, RandomIt last, Compare comp) → void", brief: "Sorts elements in [first, last) using operator< or a custom comparator.", note: "The comparator must satisfy strict weak ordering: comp(a, a) must be false. Using <= instead of < violates this and is undefined behavior.", link: "https://en.cppreference.com/w/cpp/algorithm/sort" },
     ],
   },
   {
@@ -2883,8 +2883,8 @@ SUMMARY: LeakSanitizer: 64 byte(s) leaked in 1 object(s).`,
     explanation:
       "When the constructor throws for query_size == 0, host_buf_ has already been allocated. Since the object was never fully constructed, its destructor does not run — the C++ standard only calls destructors for fully constructed objects. The host_buf_ allocation is permanently leaked. Using std::string or std::unique_ptr for the buffers would ensure cleanup through their own destructors.",
     stdlibRefs: [
-      { name: "std::strncpy", brief: "Copies at most count characters from src to dest; pads with nulls if src is shorter.", note: "If src is longer than count, dest is NOT null-terminated. Always null-terminate the buffer manually.", link: "https://en.cppreference.com/w/cpp/string/byte/strncpy" },
-      { name: "std::memset", brief: "Fills count bytes of memory at dest with the specified byte value.", link: "https://en.cppreference.com/w/cpp/string/byte/memset" },
+      { name: "std::strncpy", args: "(char* dest, const char* src, size_t count) → char*", brief: "Copies at most count characters from src to dest; pads with nulls if src is shorter.", note: "If src is longer than count, dest is NOT null-terminated. Always null-terminate the buffer manually.", link: "https://en.cppreference.com/w/cpp/string/byte/strncpy" },
+      { name: "std::memset", args: "(void* dest, int ch, size_t count) → void*", brief: "Fills count bytes of memory at dest with the specified byte value.", link: "https://en.cppreference.com/w/cpp/string/byte/memset" },
     ],
   },
   {
@@ -3111,8 +3111,8 @@ $ valgrind ./textbuf
     explanation:
       "strncpy copies at most max_len characters but does not null-terminate the destination if the source is as long as or longer than max_len. Since long_text is 44 characters and max_len is 10, the buffer has no null terminator. Printing it with cout and calling strlen both read past the allocated 10 bytes — a heap buffer overread. The fix is to add buf[max_len - 1] = '\\0' after the strncpy call.",
     stdlibRefs: [
-      { name: "std::strncpy", brief: "Copies at most count characters from src to dest; does not guarantee null-termination.", note: "If strlen(src) >= count, the destination will not be null-terminated. Functions like strlen and printf will read past the buffer.", link: "https://en.cppreference.com/w/cpp/string/byte/strncpy" },
-      { name: "std::strlen", brief: "Scans forward from the pointer until it finds a null byte, returning the count of characters before it.", note: "On a non-null-terminated buffer, strlen reads past the end — undefined behavior.", link: "https://en.cppreference.com/w/cpp/string/byte/strlen" },
+      { name: "std::strncpy", args: "(char* dest, const char* src, size_t count) → char*", brief: "Copies at most count characters from src to dest; does not guarantee null-termination.", note: "If strlen(src) >= count, the destination will not be null-terminated. Functions like strlen and printf will read past the buffer.", link: "https://en.cppreference.com/w/cpp/string/byte/strncpy" },
+      { name: "std::strlen", args: "(const char* str) → size_t", brief: "Scans forward from the pointer until it finds a null byte, returning the count of characters before it.", note: "On a non-null-terminated buffer, strlen reads past the end — undefined behavior.", link: "https://en.cppreference.com/w/cpp/string/byte/strlen" },
     ],
   },
   {
@@ -3172,7 +3172,7 @@ SUMMARY: AddressSanitizer: alloc-dealloc-mismatch pixarr.cpp:15 in main`,
     explanation:
       "The pixel array is allocated with std::malloc but freed with delete[]. Mixing C allocation (malloc/calloc/realloc) with C++ deallocation (delete/delete[]) is undefined behavior. The fix is to use std::free(gradient) instead of delete[], or to allocate with new Pixel[width] instead of malloc.",
     stdlibRefs: [
-      { name: "std::malloc", brief: "Allocates uninitialized memory from the heap and returns a void* pointer.", note: "Memory from malloc must be freed with free(), not delete or delete[]. Mixing allocators is undefined behavior.", link: "https://en.cppreference.com/w/cpp/memory/c/malloc" },
+      { name: "std::malloc", args: "(size_t size) → void*", brief: "Allocates uninitialized memory from the heap and returns a void* pointer.", note: "Memory from malloc must be freed with free(), not delete or delete[]. Mixing allocators is undefined behavior.", link: "https://en.cppreference.com/w/cpp/memory/c/malloc" },
     ],
   },
   {
@@ -3444,7 +3444,7 @@ int main() {
     explanation:
       "std::memcpy's third argument is a byte count, not an element count. The call passes count (the number of students) instead of count * sizeof(Student). Since each Student is 68 bytes, only 1-3 bytes of the old roster are copied during each resize, leaving the transferred entries almost entirely uninitialized. The fix is std::memcpy(new_roster, roster, count * sizeof(Student)).",
     stdlibRefs: [
-      { name: "std::memcpy", brief: "Copies count bytes of raw memory from src to dest; both regions must not overlap.", note: "The count parameter is in BYTES, not elements. For an array of T, use count * sizeof(T).", link: "https://en.cppreference.com/w/cpp/string/byte/memcpy" },
+      { name: "std::memcpy", args: "(void* dest, const void* src, size_t count) → void*", brief: "Copies count bytes of raw memory from src to dest; both regions must not overlap.", note: "The count parameter is in BYTES, not elements. For an array of T, use count * sizeof(T).", link: "https://en.cppreference.com/w/cpp/string/byte/memcpy" },
     ],
   },
   {
@@ -3771,10 +3771,10 @@ SUMMARY: AddressSanitizer: alloc-dealloc-mismatch namefmt.cpp:14 in main`,
     explanation:
       "The format_name function allocates with new char[len], but main frees with std::free(). Mixing C++ allocation (new[]) with C deallocation (free) is undefined behavior. The fix is to use delete[] name1 and delete[] name2, or change the allocation to std::malloc.",
     stdlibRefs: [
-      { name: "std::strlen", brief: "Returns the number of characters before the null terminator.", link: "https://en.cppreference.com/w/cpp/string/byte/strlen" },
-      { name: "std::strcpy", brief: "Copies the source C-string including the null terminator to the destination.", link: "https://en.cppreference.com/w/cpp/string/byte/strcpy" },
-      { name: "std::strcat", brief: "Appends the source C-string to the end of the destination C-string.", note: "Destination must have enough space for both strings plus the null terminator.", link: "https://en.cppreference.com/w/cpp/string/byte/strcat" },
-      { name: "std::free", brief: "Deallocates memory previously allocated by malloc, calloc, or realloc.", note: "Memory from new[] must be freed with delete[], not free(). Mixing allocators is undefined behavior.", link: "https://en.cppreference.com/w/cpp/memory/c/free" },
+      { name: "std::strlen", args: "(const char* str) → size_t", brief: "Returns the number of characters before the null terminator.", link: "https://en.cppreference.com/w/cpp/string/byte/strlen" },
+      { name: "std::strcpy", args: "(char* dest, const char* src) → char*", brief: "Copies the source C-string including the null terminator to the destination.", link: "https://en.cppreference.com/w/cpp/string/byte/strcpy" },
+      { name: "std::strcat", args: "(char* dest, const char* src) → char*", brief: "Appends the source C-string to the end of the destination C-string.", note: "Destination must have enough space for both strings plus the null terminator.", link: "https://en.cppreference.com/w/cpp/string/byte/strcat" },
+      { name: "std::free", args: "(void* ptr) → void", brief: "Deallocates memory previously allocated by malloc, calloc, or realloc.", note: "Memory from new[] must be freed with delete[], not free(). Mixing allocators is undefined behavior.", link: "https://en.cppreference.com/w/cpp/memory/c/free" },
     ],
   },
   {
@@ -3898,7 +3898,7 @@ SUMMARY: AddressSanitizer: heap-use-after-free pathbuild.cpp:16 in main
     explanation:
       "The pointer saved is obtained from c_path() which returns path_.c_str(). Subsequent calls to append() modify the internal std::string, which may reallocate its buffer when it needs more capacity. This invalidates saved, making it a dangling pointer. Reading it is undefined behavior. The fix is to call c_path() only after all modifications are complete, or to copy the result into a separate buffer.",
     stdlibRefs: [
-      { name: "std::string::c_str", brief: "Returns a const char* to the string's internal null-terminated buffer.", note: "The pointer is invalidated by any non-const operation on the string (append, assign, operator+=, resize, etc.).", link: "https://en.cppreference.com/w/cpp/string/basic_string/c_str" },
+      { name: "std::string::c_str", args: "() → const char*", brief: "Returns a const char* to the string's internal null-terminated buffer.", note: "The pointer is invalidated by any non-const operation on the string (append, assign, operator+=, resize, etc.).", link: "https://en.cppreference.com/w/cpp/string/basic_string/c_str" },
     ],
   },
   {
@@ -4092,7 +4092,7 @@ SUMMARY: AddressSanitizer: stack-buffer-overflow logfmt.cpp:8 in format`,
     explanation:
       "The buffer is allocated as 64 bytes, but std::sprintf does not perform bounds checking. The third log entry's formatted string exceeds 64 characters, causing sprintf to write past the end of the allocated buffer — a heap buffer overflow. The fix is to use std::snprintf with the buffer size limit, or to calculate the required size before allocating.",
     stdlibRefs: [
-      { name: "std::sprintf", brief: "Writes formatted output to a character buffer with no bounds checking.", note: "If the formatted output exceeds the buffer size, sprintf silently overflows. Use std::snprintf with a size limit instead.", link: "https://en.cppreference.com/w/cpp/io/c/fprintf" },
+      { name: "std::sprintf", args: "(char* buffer, const char* format, ...) → int", brief: "Writes formatted output to a character buffer with no bounds checking.", note: "If the formatted output exceeds the buffer size, sprintf silently overflows. Use std::snprintf with a size limit instead.", link: "https://en.cppreference.com/w/cpp/io/c/fprintf" },
     ],
   },
   {
@@ -4210,7 +4210,7 @@ SUMMARY: AddressSanitizer: heap-use-after-free subfind.cpp:18 in main`,
     explanation:
       'When the filename contains a dot, ext points into the dynamically allocated copy buffer (one character past the dot). The buffer is deleted before the function returns, making ext a dangling pointer. The caller reads freed memory — undefined behavior. When there is no dot, ext points to a string literal ("") which remains valid, masking the bug for that case. The fix is to copy the extension into a separate buffer before freeing the copy.',
     stdlibRefs: [
-      { name: "std::strrchr", brief: "Returns a pointer to the last occurrence of a character in a C-string, or null if not found.", note: "The returned pointer points into the source buffer. If that buffer is freed, the pointer dangles.", link: "https://en.cppreference.com/w/cpp/string/byte/strrchr" },
+      { name: "std::strrchr", args: "(const char* str, int ch) → char*", brief: "Returns a pointer to the last occurrence of a character in a C-string, or null if not found.", note: "The returned pointer points into the source buffer. If that buffer is freed, the pointer dangles.", link: "https://en.cppreference.com/w/cpp/string/byte/strrchr" },
     ],
   },
   {
@@ -4272,7 +4272,7 @@ $ valgrind ./recser
     explanation:
       "std::memcpy performs a bitwise copy and cannot handle non-trivially-copyable types like std::string. The destination Records are default-constructed with empty strings; memcpy overwrites their internal state without running destructors, leaking those strings. Both the original and copied Records now share identical string internal pointers. When the copies are destroyed, they free the same buffers the originals own — a double free when the originals are also destroyed. The fix is to use std::copy or a loop with proper assignment instead of memcpy.",
     stdlibRefs: [
-      { name: "std::memcpy", brief: "Copies count bytes as raw memory between non-overlapping regions.", note: "Only safe for trivially-copyable types. Using memcpy on types with non-trivial members (like std::string) bypasses constructors and causes undefined behavior.", link: "https://en.cppreference.com/w/cpp/string/byte/memcpy" },
+      { name: "std::memcpy", args: "(void* dest, const void* src, size_t count) → void*", brief: "Copies count bytes as raw memory between non-overlapping regions.", note: "Only safe for trivially-copyable types. Using memcpy on types with non-trivial members (like std::string) bypasses constructors and causes undefined behavior.", link: "https://en.cppreference.com/w/cpp/string/byte/memcpy" },
     ],
   },
   // ── Iterator Invalidation ──
@@ -4340,7 +4340,7 @@ SUMMARY: AddressSanitizer: heap-use-after-free notify.cpp:18 in Dispatcher::proc
     explanation:
       "When push_back is called inside the loop, the vector may reallocate its internal buffer if size equals capacity. Reallocation frees the old buffer and allocates a new one, invalidating all existing iterators — including the loop iterator it. Dereferencing it on the next iteration is undefined behavior. The fix is to collect items to add in a separate vector and append them after the loop completes.",
     stdlibRefs: [
-      { name: "std::vector::push_back", brief: "Appends an element to the end of the vector; may reallocate if size() == capacity().", note: "If reallocation occurs, ALL iterators, pointers, and references to elements are invalidated.", link: "https://en.cppreference.com/w/cpp/container/vector/push_back" },
+      { name: "std::vector::push_back", args: "(const T& value) → void | (T&& value) → void", brief: "Appends an element to the end of the vector; may reallocate if size() == capacity().", note: "If reallocation occurs, ALL iterators, pointers, and references to elements are invalidated.", link: "https://en.cppreference.com/w/cpp/container/vector/push_back" },
     ],
   },
   {
@@ -4401,7 +4401,7 @@ SUMMARY: AddressSanitizer: heap-use-after-free tagclean.cpp:16 in TagCleaner::cl
     explanation:
       "Calling issue_tags.erase(it) invalidates the iterator it. The subsequent ++it in the for loop increments an invalidated iterator, which is undefined behavior. The fix is to use it = issue_tags.erase(it) in the if branch and only do ++it in an else branch, since map::erase returns an iterator to the next element.",
     stdlibRefs: [
-      { name: "std::map::erase", brief: "Removes the element at pos or matching key; returns iterator to the next element (C++11+).", note: "The erased element's iterator is invalidated. Use the returned iterator to continue traversal safely.", link: "https://en.cppreference.com/w/cpp/container/map/erase" },
+      { name: "std::map::erase", args: "(iterator pos) → iterator | (const Key& key) → size_type", brief: "Removes the element at pos or matching key; returns iterator to the next element (C++11+).", note: "The erased element's iterator is invalidated. Use the returned iterator to continue traversal safely.", link: "https://en.cppreference.com/w/cpp/container/map/erase" },
     ],
   },
   {
@@ -4473,7 +4473,7 @@ SUMMARY: AddressSanitizer: heap-use-after-free datacoll.cpp:22 in DataCollector:
     explanation:
       "Calling readings.clear() invalidates all iterators, pointers, and references to elements of the vector. Even though push_back refills the vector to the same size, the saved begin_it and end_it iterators are invalidated and must not be used. Passing them to print_range and the averaging loop is undefined behavior. The fix is to reassign begin_it and end_it from the vector after modification.",
     stdlibRefs: [
-      { name: "std::vector::clear", brief: "Removes all elements, setting size to zero; does not release allocated memory.", note: "Invalidates ALL iterators, pointers, and references to elements. Previously saved iterators must not be used after clear().", link: "https://en.cppreference.com/w/cpp/container/vector/clear" },
+      { name: "std::vector::clear", args: "() → void", brief: "Removes all elements, setting size to zero; does not release allocated memory.", note: "Invalidates ALL iterators, pointers, and references to elements. Previously saved iterators must not be used after clear().", link: "https://en.cppreference.com/w/cpp/container/vector/clear" },
     ],
   },
   {
@@ -4532,7 +4532,7 @@ SUMMARY: AddressSanitizer: heap-use-after-free seqpad.cpp:10 in pad`,
     explanation:
       "Calling data.insert(it + 1, 0) may cause the vector to reallocate if size equals capacity, which invalidates all iterators including it. Even without reallocation, iterators at or after the insertion point are invalidated. Since the vector starts with 5 elements and the first insert grows it to 6 (exceeding the typical initial capacity of 5), reallocation is triggered immediately, making the subsequent ++it and loop comparison undefined behavior. The fix is to use the iterator returned by insert to reposition.",
     stdlibRefs: [
-      { name: "std::vector::insert", brief: "Inserts elements before the given position; returns iterator to the first inserted element.", note: "If insertion causes reallocation, ALL iterators are invalidated. Without reallocation, iterators at or after the insertion point are still invalidated.", link: "https://en.cppreference.com/w/cpp/container/vector/insert" },
+      { name: "std::vector::insert", args: "(const_iterator pos, const T& value) → iterator", brief: "Inserts elements before the given position; returns iterator to the first inserted element.", note: "If insertion causes reallocation, ALL iterators are invalidated. Without reallocation, iterators at or after the insertion point are still invalidated.", link: "https://en.cppreference.com/w/cpp/container/vector/insert" },
     ],
   },
   {
@@ -4654,7 +4654,7 @@ SUMMARY: AddressSanitizer: heap-use-after-free tasksched.cpp:20 in Scheduler::ru
     explanation:
       "Inserting at either end of a std::deque (push_front or push_back) invalidates all iterators to the deque, even though references and pointers to existing elements remain valid. After push_front is called, the loop iterator it is invalidated. Incrementing or dereferencing it on the next iteration is undefined behavior. The fix is to record high-priority tasks separately and prepend them after the loop.",
     stdlibRefs: [
-      { name: "std::deque::push_front", brief: "Inserts an element at the front of the deque in O(1) amortized time.", note: "Invalidates ALL iterators to the deque. References and pointers to existing elements remain valid.", link: "https://en.cppreference.com/w/cpp/container/deque/push_front" },
+      { name: "std::deque::push_front", args: "(const T& value) → void | (T&& value) → void", brief: "Inserts an element at the front of the deque in O(1) amortized time.", note: "Invalidates ALL iterators to the deque. References and pointers to existing elements remain valid.", link: "https://en.cppreference.com/w/cpp/container/deque/push_front" },
     ],
   },
   {
@@ -4724,7 +4724,7 @@ SUMMARY: AddressSanitizer: heap-use-after-free logfilter.cpp:22`,
     explanation:
       "After the first log.erase(it) call, all iterators at or past the erased position are invalidated — the vector shifts elements left to fill the gap. The remaining iterators stored in debug_entries that pointed to later positions are now invalid. Using them in subsequent erase calls is undefined behavior. The fix is to use the erase-remove idiom, or to erase in reverse order using indices instead of iterators.",
     stdlibRefs: [
-      { name: "std::vector::erase", brief: "Removes element(s) and shifts subsequent elements down; returns iterator to the next element.", note: "All iterators at or after the erased position are invalidated. Saving multiple iterators and erasing through them is undefined behavior.", link: "https://en.cppreference.com/w/cpp/container/vector/erase" },
+      { name: "std::vector::erase", args: "(const_iterator pos) → iterator | (const_iterator first, const_iterator last) → iterator", brief: "Removes element(s) and shifts subsequent elements down; returns iterator to the next element.", note: "All iterators at or after the erased position are invalidated. Saving multiple iterators and erasing through them is undefined behavior.", link: "https://en.cppreference.com/w/cpp/container/vector/erase" },
     ],
   },
   {
@@ -4790,7 +4790,7 @@ SUMMARY: AddressSanitizer: heap-use-after-free pairelim.cpp:14 in eliminate`,
     explanation:
       "After nums.erase(j) invalidates iterators at or past j, iterator i (which is before j) remains valid. But nums.erase(i) then invalidates i itself. When the inner loop breaks and control returns to the outer loop, ++i operates on an invalidated iterator — undefined behavior. Both erase calls return iterators to the element following the erased one, but the code discards them. The fix requires capturing the return values and carefully repositioning the outer iterator.",
     stdlibRefs: [
-      { name: "std::vector::erase", brief: "Removes element(s) at position; returns iterator past the last removed element.", note: "After the first erase, any previously-obtained iterator at or after that point is invalid. A second erase with a stale iterator is undefined behavior.", link: "https://en.cppreference.com/w/cpp/container/vector/erase" },
+      { name: "std::vector::erase", args: "(const_iterator pos) → iterator | (const_iterator first, const_iterator last) → iterator", brief: "Removes element(s) at position; returns iterator past the last removed element.", note: "After the first erase, any previously-obtained iterator at or after that point is invalid. A second erase with a stale iterator is undefined behavior.", link: "https://en.cppreference.com/w/cpp/container/vector/erase" },
     ],
   },
   {
@@ -4938,8 +4938,8 @@ SUMMARY: AddressSanitizer: heap-use-after-free flatmap.cpp:20 in FlatMap::insert
     explanation:
       "find() returns an iterator into the internal std::vector. Subsequent insert() calls grow the vector past its capacity, triggering reallocation that invalidates all existing iterators. The iterator port becomes a dangling pointer into the freed old buffer. Even the comparison port != config.end() is undefined behavior because it compares an invalidated iterator against a fresh one from the reallocated storage. The fix is to store the key and re-query find() after modifications, or to reserve sufficient capacity before obtaining the iterator.",
     stdlibRefs: [
-      { name: "std::lower_bound", brief: "Binary search returning iterator to the first element not less than the given value.", link: "https://en.cppreference.com/w/cpp/algorithm/lower_bound" },
-      { name: "std::vector::insert", brief: "Inserts element before position; may reallocate the entire vector.", note: "The iterator from lower_bound is invalidated if insert triggers reallocation. Re-query after modifying the container.", link: "https://en.cppreference.com/w/cpp/container/vector/insert" },
+      { name: "std::lower_bound", args: "(ForwardIt first, ForwardIt last, const T& value) → ForwardIt", brief: "Binary search returning iterator to the first element not less than the given value.", link: "https://en.cppreference.com/w/cpp/algorithm/lower_bound" },
+      { name: "std::vector::insert", args: "(const_iterator pos, const T& value) → iterator", brief: "Inserts element before position; may reallocate the entire vector.", note: "The iterator from lower_bound is invalidated if insert triggers reallocation. Re-query after modifying the container.", link: "https://en.cppreference.com/w/cpp/container/vector/insert" },
     ],
   },
 ];
