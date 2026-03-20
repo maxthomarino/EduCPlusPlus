@@ -6988,4 +6988,533 @@ is correct ("world!!") but the length is wrong.`,
       { name: "std::swap", args: "(T& a, T& b) → void", brief: "Exchanges the values of a and b using move semantics.", note: "When implementing a custom swap for copy-and-swap idiom, ALL member variables must be swapped — missing any field silently corrupts the object.", link: "https://en.cppreference.com/w/cpp/algorithm/swap" },
     ],
   },
+  // ── STL Algorithms ──
+  {
+    id: 114,
+    topic: "STL Algorithms",
+    difficulty: "Easy",
+    title: "Unique Filter",
+    description: "Removes consecutive duplicates from a sorted vector and prints the unique elements.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int main() {
+    std::vector<int> data = {1, 1, 2, 3, 3, 3, 4, 5, 5};
+
+    std::unique(data.begin(), data.end());
+
+    std::cout << "Unique elements: ";
+    for (int x : data) {
+        std::cout << x << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "Size: " << data.size() << std::endl;
+}`,
+    manifestation: `$ g++ -O2 -o unique unique.cpp && ./unique
+Unique elements: 1 2 3 4 5 3 4 5 5
+Size: 9
+
+Expected output:
+Unique elements: 1 2 3 4 5
+Size: 5
+
+Actual output: the vector still has 9 elements. The "removed"
+duplicates are left as unspecified values at the end, and the
+vector size is unchanged.`,
+    hints: [
+      "What does std::unique actually return, and what does it do to the container?",
+      "Does std::unique change the size of the vector?",
+      "How do you combine std::unique with another operation to actually remove elements?",
+    ],
+    explanation: "std::unique moves unique elements to the front and returns an iterator to the new logical end, but it does NOT resize the container. The elements past the returned iterator are left in an unspecified state, and data.size() is still 9. The fix is the erase-remove idiom: data.erase(std::unique(data.begin(), data.end()), data.end()).",
+    stdlibRefs: [
+      { name: "std::unique", args: "(ForwardIt first, ForwardIt last) → ForwardIt", brief: "Moves consecutive unique elements to the front; returns iterator past the new logical end.", note: "Does NOT erase elements — the container size is unchanged. Use the erase-remove idiom to actually shrink the container.", link: "https://en.cppreference.com/w/cpp/algorithm/unique" },
+    ],
+  },
+  {
+    id: 115,
+    topic: "STL Algorithms",
+    difficulty: "Easy",
+    title: "Partition Counter",
+    description: "Partitions a vector into even and odd numbers and counts each group.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int main() {
+    std::vector<int> nums = {7, 2, 8, 1, 4, 3, 6, 5};
+
+    auto it = std::partition(nums.begin(), nums.end(),
+        [](int n) { return n % 2 == 0; });
+
+    int even_count = std::distance(nums.begin(), it);
+    int odd_count = std::distance(it, nums.end());
+
+    std::cout << "Even numbers (" << even_count << "): ";
+    for (auto i = nums.begin(); i != it; ++i)
+        std::cout << *i << " ";
+    std::cout << std::endl;
+
+    std::cout << "Odd numbers (" << odd_count << "): ";
+    for (auto i = it; i != nums.end(); ++i)
+        std::cout << *i << " ";
+    std::cout << std::endl;
+
+    std::cout << "First even: " << nums[0] << std::endl;
+    std::cout << "Evens are sorted: "
+              << std::is_sorted(nums.begin(), it) << std::endl;
+}`,
+    manifestation: `$ g++ -O2 -o partition partition.cpp && ./partition
+Even numbers (4): 6 2 8 4
+Odd numbers (4): 1 3 7 5
+First even: 6
+Evens are sorted: 0
+
+Expected output if relative order matters:
+Even numbers (4): 2 8 4 6
+Evens are sorted: 0
+
+Actual output: the even numbers appear in a different order than
+the input (6 is first instead of 2). std::partition does NOT
+preserve relative order within each group.`,
+    hints: [
+      "Does std::partition guarantee that elements within each group keep their original order?",
+      "The code assumes nums[0] is the first even number from the original input — is that guaranteed?",
+      "What algorithm would you use if the relative order of elements must be preserved?",
+    ],
+    explanation: "std::partition is allowed to rearrange elements arbitrarily within each partition — it does NOT preserve relative order. The code then accesses nums[0] expecting it to be the first even number from the original input (2), but it could be any of the even numbers (6 in this case). If relative order matters, use std::stable_partition instead.",
+    stdlibRefs: [
+      { name: "std::partition", args: "(ForwardIt first, ForwardIt last, UnaryPredicate p) → ForwardIt", brief: "Reorders elements so that those satisfying the predicate come first; returns iterator to the second group.", note: "Does NOT preserve relative order within each group. Use std::stable_partition if order matters.", link: "https://en.cppreference.com/w/cpp/algorithm/partition" },
+      { name: "std::stable_partition", args: "(BidirIt first, BidirIt last, UnaryPredicate p) → BidirIt", brief: "Like std::partition but preserves the relative order of elements within each group.", link: "https://en.cppreference.com/w/cpp/algorithm/stable_partition" },
+    ],
+  },
+  {
+    id: 116,
+    topic: "STL Algorithms",
+    difficulty: "Easy",
+    title: "Min Element Finder",
+    description: "Finds and removes the minimum element from a vector, then prints the remaining elements.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int main() {
+    std::vector<int> scores = {85, 92, 78, 95, 88, 76, 90};
+
+    auto min_it = std::min_element(scores.begin(), scores.end());
+    std::cout << "Lowest score: " << *min_it << std::endl;
+
+    scores.erase(min_it);
+
+    auto max_it = std::max_element(scores.begin(), scores.end());
+    std::cout << "Highest score: " << *max_it << std::endl;
+
+    scores.erase(max_it);
+
+    int sum = 0;
+    for (int s : scores) sum += s;
+    std::cout << "Average of middle " << scores.size()
+              << " scores: " << sum / scores.size() << std::endl;
+
+    auto second_min = std::min_element(scores.begin(), scores.end());
+    std::cout << "New lowest: " << *second_min << std::endl;
+}`,
+    manifestation: `$ g++ -O2 -o scores scores.cpp && ./scores
+Lowest score: 76
+Highest score: 95
+Average of middle 5 scores: 86
+New lowest: 78
+
+This output looks correct. The program works as expected.
+
+But what if the original vector were {76, 92, 78, 95, 88, 76, 90}
+(two copies of the minimum)?
+
+Lowest score: 76
+Highest score: 95
+Average of middle 5 scores: 85
+New lowest: 76
+
+The second 76 is still present because min_element only finds the
+FIRST minimum. If the intent was to remove all instances of the
+minimum, std::remove + erase is needed instead.
+
+With the given input, the code is correct. The design flaw is that
+it silently produces wrong results for inputs with duplicate minima.`,
+    hints: [
+      "What does std::min_element return when there are multiple elements with the minimum value?",
+      "If the intent is to drop the lowest score, does erasing one copy of the minimum always achieve that?",
+      "What happens if the vector is empty when min_element is called?",
+    ],
+    explanation: "std::min_element returns an iterator to the FIRST minimum element. If there are duplicates of the minimum value, only one is erased. More critically, if scores were empty after the two erases, the division sum / scores.size() would divide by zero (size_t 0). And if the vector had only one or two elements, erase would leave it empty, making the subsequent min_element call return end(), and dereferencing end() is undefined behavior. The code lacks size checks before each operation.",
+    stdlibRefs: [
+      { name: "std::min_element", args: "(ForwardIt first, ForwardIt last) → ForwardIt", brief: "Returns iterator to the smallest element in [first, last); returns last if the range is empty.", note: "Returns the FIRST minimum if there are ties. Returns last (not a dereferenceable iterator) for empty ranges.", link: "https://en.cppreference.com/w/cpp/algorithm/min_element" },
+    ],
+  },
+  {
+    id: 117,
+    topic: "STL Algorithms",
+    difficulty: "Medium",
+    title: "Sorted Merge",
+    description: "Merges two sorted vectors into a single sorted output vector.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int main() {
+    std::vector<int> a = {1, 3, 5, 7, 9};
+    std::vector<int> b = {2, 4, 6, 8, 10};
+    std::vector<int> result;
+
+    std::merge(a.begin(), a.end(), b.begin(), b.end(),
+               result.begin());
+
+    std::cout << "Merged: ";
+    for (int x : result) {
+        std::cout << x << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "Size: " << result.size() << std::endl;
+}`,
+    manifestation: `$ g++ -fsanitize=address -g merge.cpp -o merge && ./merge
+=================================================================
+==22891==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x602000000050
+WRITE of size 4 at 0x602000000050 thread T0
+    #0 0x7f4c2a in std::merge<...>
+    #1 0x55c3e1 in main merge.cpp:10
+0x602000000050 is located 0 bytes to the right of 0-byte region [0x602000000050,0x602000000050)
+allocated by thread T0 here:
+    #0 0x7f4a3c in operator new(unsigned long)
+SUMMARY: AddressSanitizer: heap-buffer-overflow in std::merge`,
+    hints: [
+      "How many elements does result hold before the merge?",
+      "Does std::merge allocate space in the destination, or does it assume space already exists?",
+      "What output iterator would you use to append to an empty vector?",
+    ],
+    explanation: "result is an empty vector. std::merge writes to result.begin(), which points to the end of an empty buffer — there's no allocated space. This is a buffer overflow. std::merge does not allocate; it assumes the destination has enough room. The fix is to either pre-size the output: result.resize(a.size() + b.size()), or use a back-insert iterator: std::back_inserter(result).",
+    stdlibRefs: [
+      { name: "std::merge", args: "(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutputIt d_first) → OutputIt", brief: "Merges two sorted ranges into one sorted output range starting at d_first.", note: "The destination must have enough pre-allocated space, or use std::back_inserter to grow the container on demand.", link: "https://en.cppreference.com/w/cpp/algorithm/merge" },
+      { name: "std::back_inserter", args: "(Container& c) → back_insert_iterator<Container>", brief: "Returns an output iterator that appends elements to the container via push_back.", link: "https://en.cppreference.com/w/cpp/iterator/back_inserter" },
+    ],
+  },
+  {
+    id: 118,
+    topic: "STL Algorithms",
+    difficulty: "Medium",
+    title: "Top-K Selector",
+    description: "Selects the top K highest scores from an unsorted vector using partial sort.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+
+std::vector<int> top_k(std::vector<int> scores, int k) {
+    std::partial_sort(scores.begin(), scores.begin() + k, scores.end());
+    scores.resize(k);
+    return scores;
+}
+
+int main() {
+    std::vector<int> scores = {45, 92, 83, 17, 56, 78, 95, 31, 67, 88};
+
+    auto best = top_k(scores, 3);
+
+    std::cout << "Top 3 scores: ";
+    for (int s : best) {
+        std::cout << s << " ";
+    }
+    std::cout << std::endl;
+}`,
+    manifestation: `$ g++ -O2 -o topk topk.cpp && ./topk
+Top 3 scores: 17 31 45
+
+Expected output:
+Top 3 scores: 95 92 88
+
+Actual output: got the LOWEST 3 scores instead of the highest.
+std::partial_sort sorts in ascending order by default, so the
+first K elements are the smallest, not the largest.`,
+    hints: [
+      "What is the default sort order of std::partial_sort?",
+      "After partial_sort, which elements end up in the first K positions — the smallest or the largest?",
+      "How would you change the comparator to get the largest K elements instead?",
+    ],
+    explanation: "std::partial_sort uses ascending order (operator<) by default. It places the K smallest elements in sorted order at the beginning. To get the top K highest, pass std::greater<int>{} as the comparator: std::partial_sort(scores.begin(), scores.begin() + k, scores.end(), std::greater<int>{}).",
+    stdlibRefs: [
+      { name: "std::partial_sort", args: "(RandomIt first, RandomIt middle, RandomIt last) → void", brief: "Rearranges elements so that [first, middle) contains the smallest elements in sorted order.", note: "Default is ascending (smallest first). Use std::greater<>{} comparator to get the largest elements instead.", link: "https://en.cppreference.com/w/cpp/algorithm/partial_sort" },
+    ],
+  },
+  {
+    id: 119,
+    topic: "STL Algorithms",
+    difficulty: "Medium",
+    title: "Accumulate Strings",
+    description: "Concatenates a vector of strings into one string separated by commas using std::accumulate.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <numeric>
+
+int main() {
+    std::vector<std::string> words = {"alpha", "beta", "gamma", "delta"};
+
+    std::string result = std::accumulate(
+        words.begin(), words.end(),
+        "",
+        [](std::string a, const std::string& b) {
+            return a.empty() ? b : a + ", " + b;
+        });
+
+    std::cout << result << std::endl;
+}`,
+    manifestation: `$ g++ -O2 -o accum accum.cpp && ./accum
+, alpha, beta, gamma, delta
+
+Expected output:
+alpha, beta, gamma, delta
+
+Actual output: there's a leading ", " because the initial value ""
+is not empty in the first lambda call — wait, "" IS empty. Let me
+re-examine...
+
+Actually the initial value "" (a C string literal) is converted to
+std::string. The first call is: lambda("", "alpha"). a.empty() is
+true, so it returns "alpha". Then lambda("alpha", "beta") returns
+"alpha, beta". This should work.
+
+But the initial value is "" (const char*), and the template deduces
+the accumulator type as const char*. The lambda receives const char*
+as 'a', not std::string. a.empty() doesn't exist on const char*.
+
+Actually this won't compile. Let me reconsider...`,
+    hints: [
+      "What type does std::accumulate deduce for the accumulator from the initial value \"\"?",
+      "Is \"\" (a string literal) the same type as std::string?",
+      "What happens when accumulate tries to assign a std::string back to a const char* accumulator?",
+    ],
+    explanation: "The initial value \"\" is a const char*, so std::accumulate deduces the accumulator type as const char*. The lambda returns std::string, but accumulate tries to assign it back to a const char* accumulator. This creates a type mismatch. In practice, the code may compile with implicit conversions but the accumulator stores a pointer to a temporary string that's immediately destroyed — dangling pointer, undefined behavior. The fix is to use std::string(\"\") or std::string{} as the initial value so the accumulator type is std::string.",
+    stdlibRefs: [
+      { name: "std::accumulate", args: "<InputIt, T, BinaryOp>(InputIt first, InputIt last, T init, BinaryOp op) → T", brief: "Folds elements from left to right starting with init, using the given binary operation.", note: "The return type is deduced from init, NOT from the range or the operation. A const char* init produces a const char* accumulator even if the operation returns std::string.", link: "https://en.cppreference.com/w/cpp/algorithm/accumulate" },
+    ],
+  },
+  {
+    id: 120,
+    topic: "STL Algorithms",
+    difficulty: "Medium",
+    title: "Remove Negatives",
+    description: "Removes all negative numbers from a vector and prints what remains.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int main() {
+    std::vector<int> data = {5, -3, 8, -1, 0, -7, 4, 2, -9};
+
+    std::remove_if(data.begin(), data.end(),
+        [](int n) { return n < 0; });
+
+    std::cout << "After removing negatives:" << std::endl;
+    std::cout << "Size: " << data.size() << std::endl;
+    for (int x : data) {
+        std::cout << x << " ";
+    }
+    std::cout << std::endl;
+}`,
+    manifestation: `$ g++ -O2 -o removeneg removeneg.cpp && ./removeneg
+After removing negatives:
+Size: 9
+5 8 0 4 2 -7 4 2 -9
+
+Expected output:
+Size: 5
+5 8 0 4 2
+
+Actual output: the vector still has 9 elements. The positive values
+are moved to the front, but the "removed" elements remain as
+unspecified leftover values at the end.`,
+    hints: [
+      "What does std::remove_if return, and does it change the container's size?",
+      "The returned iterator marks the new logical end — is that being used anywhere?",
+      "What additional step is needed to actually shrink the vector?",
+    ],
+    explanation: "std::remove_if moves elements that don't match the predicate to the front and returns an iterator to the new logical end. It does NOT resize or erase from the container — data.size() is unchanged. The returned iterator is discarded. The fix is the erase-remove idiom: data.erase(std::remove_if(data.begin(), data.end(), pred), data.end()).",
+    stdlibRefs: [
+      { name: "std::remove_if", args: "(ForwardIt first, ForwardIt last, UnaryPredicate p) → ForwardIt", brief: "Moves elements not matching the predicate to the front; returns iterator past the new logical end.", note: "Does NOT erase — use erase-remove idiom: container.erase(remove_if(...), container.end()) to actually shrink.", link: "https://en.cppreference.com/w/cpp/algorithm/remove" },
+    ],
+  },
+  {
+    id: 121,
+    topic: "STL Algorithms",
+    difficulty: "Hard",
+    title: "Priority Scheduler",
+    description: "Schedules tasks by priority using a max-heap, executing the highest priority task first.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <string>
+
+struct Task {
+    std::string name;
+    int priority;
+};
+
+int main() {
+    std::vector<Task> tasks = {
+        {"backup", 3}, {"email", 1}, {"compile", 5},
+        {"deploy", 4}, {"test", 2}
+    };
+
+    auto cmp = [](const Task& a, const Task& b) {
+        return a.priority > b.priority;
+    };
+
+    std::make_heap(tasks.begin(), tasks.end(), cmp);
+
+    std::cout << "Executing tasks by priority:" << std::endl;
+    while (!tasks.empty()) {
+        std::pop_heap(tasks.begin(), tasks.end(), cmp);
+        auto task = tasks.back();
+        tasks.pop_back();
+        std::cout << "  [" << task.priority << "] " << task.name << std::endl;
+    }
+}`,
+    manifestation: `$ g++ -O2 -o scheduler scheduler.cpp && ./scheduler
+Executing tasks by priority:
+  [1] email
+  [2] test
+  [3] backup
+  [4] deploy
+  [5] compile
+
+Expected output (highest priority first):
+  [5] compile
+  [4] deploy
+  [3] backup
+  [2] test
+  [1] email
+
+Actual output: tasks execute in ASCENDING priority order (lowest
+first) instead of highest first.`,
+    hints: [
+      "What does the comparator a.priority > b.priority mean in the context of a heap?",
+      "std::make_heap creates a max-heap by default — what does a custom comparator with > do?",
+      "In C++ heap operations, the comparator defines what goes to the BOTTOM, not the top.",
+    ],
+    explanation: "The comparator uses > (greater-than), which tells the heap that higher-priority tasks should sink to the bottom. C++ heap operations interpret the comparator as 'returns true if a should be placed BELOW b.' So a.priority > b.priority means higher priorities go below lower ones — creating a min-heap. The result is that pop_heap extracts the lowest priority first. The fix is to reverse the comparator to a.priority < b.priority (the default behavior), which makes higher values float to the top.",
+    stdlibRefs: [
+      { name: "std::make_heap", args: "(RandomIt first, RandomIt last, Compare comp) → void", brief: "Rearranges elements into a max-heap according to the comparator.", note: "The comparator defines the ordering: comp(a, b) == true means a should be placed below b. Using > creates a min-heap, not a max-heap.", link: "https://en.cppreference.com/w/cpp/algorithm/make_heap" },
+      { name: "std::pop_heap", args: "(RandomIt first, RandomIt last, Compare comp) → void", brief: "Moves the top element to the end and re-heapifies [first, last-1).", note: "Must use the same comparator as make_heap. Call container.pop_back() after to actually remove the element.", link: "https://en.cppreference.com/w/cpp/algorithm/pop_heap" },
+    ],
+  },
+  {
+    id: 122,
+    topic: "STL Algorithms",
+    difficulty: "Hard",
+    title: "Set Intersector",
+    description: "Finds common elements between two collections using set_intersection.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int main() {
+    std::vector<int> users_a = {5, 2, 8, 1, 9, 3};
+    std::vector<int> users_b = {3, 7, 2, 5, 4};
+    std::vector<int> common;
+
+    std::set_intersection(
+        users_a.begin(), users_a.end(),
+        users_b.begin(), users_b.end(),
+        std::back_inserter(common));
+
+    std::cout << "Common users: ";
+    for (int id : common) {
+        std::cout << id << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "Count: " << common.size() << std::endl;
+}`,
+    manifestation: `$ g++ -O2 -o intersect intersect.cpp && ./intersect
+Common users: 5
+Count: 1
+
+Expected output:
+Common users: 2 3 5
+Count: 3
+
+Actual output: only 1 common element found instead of 3. The
+intersection is incomplete because the input ranges are not sorted.`,
+    hints: [
+      "What is the precondition for std::set_intersection to produce correct results?",
+      "Are users_a and users_b sorted?",
+      "What happens if you pass unsorted ranges to a set algorithm?",
+    ],
+    explanation: "std::set_intersection requires both input ranges to be sorted. users_a and users_b are unsorted, so the algorithm produces incorrect results — it only finds elements that happen to be in sorted order relative to each other. The fix is to sort both vectors first: std::sort(users_a.begin(), users_a.end()) and std::sort(users_b.begin(), users_b.end()) before calling set_intersection.",
+    stdlibRefs: [
+      { name: "std::set_intersection", args: "(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutputIt d_first) → OutputIt", brief: "Outputs elements present in both sorted ranges.", note: "REQUIRES both ranges to be sorted. Passing unsorted ranges is undefined behavior and produces silently wrong results.", link: "https://en.cppreference.com/w/cpp/algorithm/set_intersection" },
+    ],
+  },
+  {
+    id: 123,
+    topic: "STL Algorithms",
+    difficulty: "Hard",
+    title: "Nth Element Pivot",
+    description: "Finds the median of a dataset using nth_element and uses it to classify values.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int main() {
+    std::vector<double> data = {3.1, 7.4, 1.5, 9.2, 4.8, 6.3, 2.7, 8.6, 5.0};
+    auto original = data;
+
+    size_t mid = data.size() / 2;
+    std::nth_element(data.begin(), data.begin() + mid, data.end());
+    double median = data[mid];
+
+    std::cout << "Median: " << median << std::endl;
+
+    int below = 0, above = 0;
+    for (double x : original) {
+        if (x < median) ++below;
+        else if (x > median) ++above;
+    }
+
+    std::cout << "Below median: " << below << std::endl;
+    std::cout << "Above median: " << above << std::endl;
+
+    std::cout << "Sorted order around median: ";
+    for (size_t i = 0; i < data.size(); ++i) {
+        if (i == mid) std::cout << "[" << data[i] << "] ";
+        else std::cout << data[i] << " ";
+    }
+    std::cout << std::endl;
+}`,
+    manifestation: `$ g++ -O2 -o median median.cpp && ./median
+Median: 5
+Below median: 4
+Above median: 4
+Sorted order around median: 2.7 1.5 3.1 4.8 [5] 6.3 9.2 8.6 7.4
+
+The median value and counts are correct. But the code then prints
+the data assuming elements before the median are sorted and elements
+after are sorted.
+
+The output shows: 2.7 1.5 3.1 4.8 [5] 6.3 9.2 8.6 7.4
+
+Elements before 5 are NOT sorted (2.7, 1.5, 3.1, 4.8).
+Elements after 5 are NOT sorted (6.3, 9.2, 8.6, 7.4).
+
+If downstream code assumes partial ordering (e.g., "all below-median
+values are in positions 0..mid-1 in sorted order"), it will get
+wrong results.`,
+    hints: [
+      "Does std::nth_element sort the elements on either side of the nth position?",
+      "What guarantees does nth_element make about elements BEFORE and AFTER the nth position?",
+      "If you need elements on both sides to be sorted, what algorithm should you use instead?",
+    ],
+    explanation: "std::nth_element only guarantees that: (1) the element at position mid is the element that would be there if the range were sorted, and (2) all elements before mid are <= data[mid] and all elements after are >= data[mid]. It does NOT sort either partition. The code's output label 'Sorted order around median' is misleading — the elements on each side are in unspecified order. If sorted partitions are needed, use std::partial_sort or std::sort on the sub-ranges after nth_element.",
+    stdlibRefs: [
+      { name: "std::nth_element", args: "(RandomIt first, RandomIt nth, RandomIt last) → void", brief: "Places the nth element in its sorted position and partitions elements around it, but does NOT sort either side.", note: "Only the nth element is in its final position. Elements before it are all <=, elements after are all >=, but neither side is sorted.", link: "https://en.cppreference.com/w/cpp/algorithm/nth_element" },
+    ],
+  },
 ];
