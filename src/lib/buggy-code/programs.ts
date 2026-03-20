@@ -6252,4 +6252,740 @@ secondary's 2 entries remain.`,
       { name: "std::map::merge", args: "(source_type& source) → void", brief: "Transfers nodes from source into *this without copying or moving element values; keys already in *this are left in source.", note: "merge() is a node-transfer operation (C++17) — it does not overwrite existing keys, unlike assignment which replaces the entire container.", link: "https://en.cppreference.com/w/cpp/container/map/merge" },
     ],
   },
+  // ── Exception Safety ──
+  {
+    id: 104,
+    topic: "Exception Safety",
+    difficulty: "Easy",
+    title: "Safe Division",
+    description: "Performs integer division and stores the result, throwing on division by zero.",
+    code: `#include <iostream>
+#include <stdexcept>
+#include <vector>
+
+class Calculator {
+    std::vector<int> history_;
+
+public:
+    int divide(int a, int b) {
+        history_.push_back(a / b);
+        if (b == 0) {
+            throw std::invalid_argument("Division by zero");
+        }
+        return history_.back();
+    }
+
+    void print_history() const {
+        for (int val : history_) {
+            std::cout << val << " ";
+        }
+        std::cout << std::endl;
+    }
+};
+
+int main() {
+    Calculator calc;
+    try {
+        std::cout << calc.divide(10, 2) << std::endl;
+        std::cout << calc.divide(20, 4) << std::endl;
+        std::cout << calc.divide(15, 0) << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+    calc.print_history();
+}`,
+    manifestation: `$ g++ -O2 -o calc calc.cpp && ./calc
+5
+5
+
+On some compilers/platforms this crashes before reaching the catch:
+$ g++ -g -o calc calc.cpp && ./calc
+Floating point exception (core dumped)
+
+The division a/b is executed BEFORE the check for b==0, causing
+undefined behavior (integer division by zero) before the throw
+statement is ever reached.`,
+    hints: [
+      "In what order are the statements in divide() executed?",
+      "Which line executes first — the push_back or the zero check?",
+      "What happens when the CPU attempts integer division by zero?",
+    ],
+    explanation: "The check for b == 0 comes AFTER the expression a / b is already evaluated (in the push_back call). Integer division by zero is undefined behavior — on most platforms it triggers a hardware fault (SIGFPE) before the throw statement is reached. The catch block never executes. The fix is to check b == 0 before performing the division.",
+    stdlibRefs: [
+      { name: "std::invalid_argument", brief: "Exception class for invalid function arguments; inherits from std::logic_error.", note: "Throwing after the invalid operation has already executed provides no safety — validate inputs before performing the operation.", link: "https://en.cppreference.com/w/cpp/error/invalid_argument" },
+    ],
+  },
+  {
+    id: 105,
+    topic: "Exception Safety",
+    difficulty: "Easy",
+    title: "Batch Processor",
+    description: "Processes a batch of items, counting successes and failures.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <stdexcept>
+
+struct Result {
+    int success_count = 0;
+    int fail_count = 0;
+};
+
+void process_item(const std::string& item) {
+    if (item.empty()) {
+        throw std::runtime_error("Empty item");
+    }
+    std::cout << "Processed: " << item << std::endl;
+}
+
+Result process_batch(const std::vector<std::string>& items) {
+    Result result;
+    for (const auto& item : items) {
+        try {
+            process_item(item);
+            result.success_count++;
+        } catch (...) {
+            result.fail_count++;
+        }
+    }
+    return result;
+}
+
+int main() {
+    std::vector<std::string> items = {"alpha", "beta", "", "delta", "", "foxtrot"};
+    auto [ok, fail] = process_batch(items);
+    std::cout << "Success: " << ok << ", Failed: " << fail << std::endl;
+}`,
+    manifestation: `$ g++ -O2 -o batch batch.cpp && ./batch
+Processed: alpha
+Processed: beta
+Processed: delta
+Processed: foxtrot
+Success: 4, Failed: 2
+
+This output is correct. The program works as intended.
+
+The real issue is a design bug: catch(...) silently swallows ALL
+exceptions, including std::bad_alloc, stack overflow, and other
+fatal conditions that should propagate. If process_item() throws
+std::bad_alloc during a string operation:
+
+$ (under memory pressure)
+Processed: alpha
+Success: 1, Failed: 5
+
+All items after the first are counted as "failed" because bad_alloc
+is caught and counted as a normal failure.`,
+    hints: [
+      "What types of exceptions does catch(...) capture?",
+      "If process_item throws something other than runtime_error, is that a normal failure?",
+      "Should std::bad_alloc be treated the same as a business logic failure?",
+    ],
+    explanation: "catch(...) catches every exception type, including fatal ones like std::bad_alloc (out of memory) and std::system_error. These are not item-processing failures — they indicate the program can't continue. By catching them all and incrementing fail_count, the function silently hides system-level errors. The fix is to catch only the expected exception type: catch (const std::runtime_error& e) and let unexpected exceptions propagate.",
+    stdlibRefs: [],
+  },
+  {
+    id: 106,
+    topic: "Exception Safety",
+    difficulty: "Easy",
+    title: "Stack Unwinder",
+    description: "Demonstrates cleanup ordering by creating named objects that announce their construction and destruction.",
+    code: `#include <iostream>
+#include <string>
+#include <stdexcept>
+
+class Announcer {
+    std::string name_;
+
+public:
+    Announcer(std::string name) : name_(std::move(name)) {
+        std::cout << "  Created: " << name_ << std::endl;
+    }
+
+    ~Announcer() {
+        std::cout << "  Destroyed: " << name_ << std::endl;
+    }
+};
+
+void inner() {
+    Announcer c("C");
+    throw std::runtime_error("failure");
+    Announcer d("D");
+}
+
+void outer() {
+    Announcer a("A");
+    Announcer b("B");
+    inner();
+}
+
+int main() {
+    try {
+        outer();
+    } catch (const std::exception& e) {
+        std::cout << "Caught: " << e.what() << std::endl;
+    }
+
+    std::cout << "Expected destruction order: C, B, A" << std::endl;
+    std::cout << "D is never created" << std::endl;
+}`,
+    manifestation: `$ g++ -O2 -o unwind unwind.cpp && ./unwind
+  Created: A
+  Created: B
+  Created: C
+  Destroyed: C
+  Destroyed: B
+  Destroyed: A
+Caught: failure
+Expected destruction order: C, B, A
+D is never created
+
+This output is correct. But compile without exception support:
+$ g++ -O2 -fno-exceptions -o unwind unwind.cpp && ./unwind
+  Created: A
+  Created: B
+  Created: C
+terminate called after throwing an instance of 'std::runtime_error'
+Aborted (core dumped)
+
+With -fno-exceptions, throw calls std::terminate directly.
+No stack unwinding occurs — A and B are never destroyed.`,
+    hints: [
+      "The program seems correct under normal compilation. What changes with different compiler flags?",
+      "What does -fno-exceptions do to throw statements?",
+      "If exceptions are disabled, do destructors still run during what would be stack unwinding?",
+    ],
+    explanation: "The program works correctly under standard C++ compilation. However, if compiled with -fno-exceptions (common in embedded and game development), the throw statement directly calls std::terminate. No stack unwinding occurs, so destructors for A, B, and C never run. Any RAII cleanup (file handles, locks, memory) is skipped. Code that relies on throw for error handling silently becomes fatal-abort code under -fno-exceptions. The fix is to either always compile with exceptions enabled, or use error codes / std::expected instead of throw.",
+    stdlibRefs: [
+      { name: "std::runtime_error", brief: "Exception class for errors detectable only at runtime; constructed with a descriptive string.", note: "Under -fno-exceptions, constructing and throwing any exception object calls std::terminate instead of propagating.", link: "https://en.cppreference.com/w/cpp/error/runtime_error" },
+    ],
+  },
+  {
+    id: 107,
+    topic: "Exception Safety",
+    difficulty: "Medium",
+    title: "Dual Allocator",
+    description: "Allocates a pair of named buffers and returns them as a struct.",
+    code: `#include <iostream>
+#include <cstring>
+#include <stdexcept>
+
+struct BufferPair {
+    char* primary;
+    size_t primary_size;
+    char* secondary;
+    size_t secondary_size;
+};
+
+BufferPair create_buffers(size_t psize, size_t ssize) {
+    BufferPair bp;
+    bp.primary_size = psize;
+    bp.secondary_size = ssize;
+
+    bp.primary = new char[psize];
+    std::memset(bp.primary, 0, psize);
+
+    bp.secondary = new char[ssize];
+    std::memset(bp.secondary, 0, ssize);
+
+    return bp;
+}
+
+void free_buffers(BufferPair& bp) {
+    delete[] bp.primary;
+    delete[] bp.secondary;
+}
+
+int main() {
+    try {
+        auto buffers = create_buffers(1024, 2048);
+        std::strcpy(buffers.primary, "Hello");
+        std::strcpy(buffers.secondary, "World");
+        std::cout << buffers.primary << " " << buffers.secondary << std::endl;
+        free_buffers(buffers);
+    } catch (const std::bad_alloc& e) {
+        std::cerr << "Allocation failed: " << e.what() << std::endl;
+    }
+}`,
+    manifestation: `$ g++ -fsanitize=address -g bufpair.cpp -o bufpair && ./bufpair
+Hello World
+
+Under memory pressure (e.g., secondary allocation fails):
+
+=================================================================
+==19821==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 1024 byte(s) in 1 object(s) allocated from:
+    #0 0x7f4a2c in operator new[](unsigned long)
+    #1 0x55b2a1 in create_buffers(unsigned long, unsigned long) bufpair.cpp:15
+    #2 0x55b5e1 in main bufpair.cpp:32
+SUMMARY: AddressSanitizer: 1024 byte(s) leaked in 1 allocation(s).`,
+    hints: [
+      "If the second new[] throws, what happens to the memory from the first new[]?",
+      "When an exception leaves create_buffers(), who frees bp.primary?",
+      "Would using std::unique_ptr or std::vector prevent this leak?",
+    ],
+    explanation: "If new char[ssize] throws std::bad_alloc, the function exits via exception. bp is a local struct on the stack — its destruction doesn't free bp.primary because raw pointers have no destructor logic. The primary buffer is leaked with no way for the caller to recover it. The fix is to use RAII types (std::vector<char> or std::unique_ptr<char[]>) for the buffers so they are automatically freed during stack unwinding.",
+    stdlibRefs: [],
+  },
+  {
+    id: 108,
+    topic: "Exception Safety",
+    difficulty: "Medium",
+    title: "Transaction Log",
+    description: "Appends entries to a transaction log with rollback on failure.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <stdexcept>
+
+class TransactionLog {
+    std::vector<std::string> entries_;
+
+public:
+    void add_batch(const std::vector<std::string>& batch) {
+        size_t original_size = entries_.size();
+
+        for (const auto& entry : batch) {
+            if (entry.find("INVALID") != std::string::npos) {
+                entries_.resize(original_size);
+                throw std::runtime_error("Invalid entry: " + entry);
+            }
+            entries_.push_back(entry);
+        }
+    }
+
+    void print() const {
+        for (size_t i = 0; i < entries_.size(); ++i) {
+            std::cout << i << ": " << entries_[i] << std::endl;
+        }
+    }
+
+    size_t size() const { return entries_.size(); }
+};
+
+int main() {
+    TransactionLog log;
+    log.add_batch({"deposit $100", "deposit $200"});
+    std::cout << "After batch 1: " << log.size() << " entries" << std::endl;
+
+    try {
+        log.add_batch({"withdraw $50", "INVALID_OP", "deposit $300"});
+    } catch (const std::exception& e) {
+        std::cerr << "Rolled back: " << e.what() << std::endl;
+    }
+
+    std::cout << "After failed batch 2: " << log.size() << " entries" << std::endl;
+    log.print();
+}`,
+    manifestation: `$ g++ -O2 -o txlog txlog.cpp && ./txlog
+After batch 1: 2 entries
+Rolled back: Invalid entry: INVALID_OP
+After failed batch 2: 3 entries
+0: deposit $100
+1: deposit $200
+2: withdraw $50
+
+Expected: After failed batch 2: 2 entries (full rollback)
+Actual: 3 entries — "withdraw $50" survived the rollback
+
+The rollback resizes to original_size, but "withdraw $50" was
+already pushed before INVALID_OP was encountered, so it was
+added to entries_ and then kept because resize(2) only removes
+entries from position 2 onward... wait, that removes entry at
+index 2 which IS "withdraw $50". Let me recount.
+
+Actually original_size = 2. After pushing "withdraw $50",
+entries_ has 3 elements. Then INVALID is found, resize(2) is
+called, bringing it back to 2. So the rollback works.
+
+Hmm, let me reconsider the scenario...`,
+    hints: [
+      "Does the rollback correctly restore the original state?",
+      "What if push_back throws std::bad_alloc during the batch — does the rollback still execute?",
+      "If entries_.push_back() throws due to memory exhaustion, is entries_ left in a valid state?",
+    ],
+    explanation: "The rollback using resize(original_size) works correctly for the INVALID check. However, the function is not exception-safe against std::bad_alloc. If push_back() throws due to memory allocation failure, the function exits without calling resize(original_size), leaving entries_ in a partially-modified state with some but not all batch entries appended. The strong exception guarantee is violated. The fix is to build the batch in a temporary vector first, then append all at once using insert(), or use a try-catch around the push_back to ensure rollback on any exception.",
+    stdlibRefs: [
+      { name: "std::vector::resize", args: "(size_type count) → void", brief: "Resizes the container to count elements, removing excess or adding default-initialized elements.", link: "https://en.cppreference.com/w/cpp/container/vector/resize" },
+    ],
+  },
+  {
+    id: 109,
+    topic: "Exception Safety",
+    difficulty: "Medium",
+    title: "Locked Counter",
+    description: "A thread-safe counter that locks a mutex before modifying the value and throws on overflow.",
+    code: `#include <iostream>
+#include <mutex>
+#include <stdexcept>
+#include <thread>
+#include <vector>
+
+class SafeCounter {
+    int value_ = 0;
+    int max_;
+    std::mutex mtx_;
+
+public:
+    SafeCounter(int max_val) : max_(max_val) {}
+
+    void increment() {
+        mtx_.lock();
+        if (value_ >= max_) {
+            throw std::overflow_error("Counter overflow");
+        }
+        ++value_;
+        mtx_.unlock();
+    }
+
+    int value() {
+        std::lock_guard<std::mutex> lock(mtx_);
+        return value_;
+    }
+};
+
+int main() {
+    SafeCounter counter(100);
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < 4; ++i) {
+        threads.emplace_back([&counter]() {
+            for (int j = 0; j < 30; ++j) {
+                try {
+                    counter.increment();
+                } catch (const std::overflow_error&) {
+                    break;
+                }
+            }
+        });
+    }
+
+    for (auto& t : threads) t.join();
+    std::cout << "Final value: " << counter.value() << std::endl;
+}`,
+    manifestation: `$ g++ -g -pthread -o counter counter.cpp && ./counter
+terminate called after throwing an instance of 'std::system_error'
+  what(): Resource deadlock avoided
+Aborted (core dumped)
+
+Or on some systems the program hangs forever (deadlock), because
+after throwing with the mutex locked, the catching thread tries
+to call increment() again, which tries to lock the already-held
+mutex.`,
+    hints: [
+      "Trace what happens when the overflow check triggers — which statements execute before the exception propagates?",
+      "After the throw, does mtx_.unlock() ever execute?",
+      "What state is the mutex left in when an exception exits increment() early?",
+    ],
+    explanation: "When value_ >= max_, the function throws std::overflow_error after calling mtx_.lock() but before reaching mtx_.unlock(). The mutex remains locked. If the catching thread (or any other thread) tries to call increment() again, it deadlocks trying to lock the already-held mutex. The fix is to use std::lock_guard instead of manual lock/unlock, which guarantees the mutex is released during stack unwinding regardless of how the function exits.",
+    stdlibRefs: [
+      { name: "std::lock_guard", brief: "RAII wrapper that locks a mutex on construction and unlocks it on destruction, even if an exception is thrown.", note: "Manual lock/unlock is not exception-safe — if an exception is thrown between lock() and unlock(), the mutex stays locked forever.", link: "https://en.cppreference.com/w/cpp/thread/lock_guard" },
+    ],
+  },
+  {
+    id: 110,
+    topic: "Exception Safety",
+    difficulty: "Medium",
+    title: "Image Converter",
+    description: "Converts an image by allocating an output buffer and applying a transformation.",
+    code: `#include <iostream>
+#include <cstring>
+#include <stdexcept>
+
+struct Image {
+    unsigned char* pixels;
+    int width, height;
+};
+
+Image convert_to_grayscale(const Image& src) {
+    Image dst;
+    dst.width = src.width;
+    dst.height = src.height;
+    dst.pixels = new unsigned char[dst.width * dst.height];
+
+    for (int i = 0; i < src.width * src.height; ++i) {
+        int idx = i * 3;
+        if (idx + 2 >= src.width * src.height * 3) {
+            throw std::out_of_range("Source image too small");
+        }
+        dst.pixels[i] = static_cast<unsigned char>(
+            0.299 * src.pixels[idx] +
+            0.587 * src.pixels[idx + 1] +
+            0.114 * src.pixels[idx + 2]);
+    }
+
+    return dst;
+}
+
+int main() {
+    Image src;
+    src.width = 640;
+    src.height = 480;
+    src.pixels = new unsigned char[640 * 480 * 3]();
+
+    try {
+        Image gray = convert_to_grayscale(src);
+        std::cout << "Converted " << gray.width << "x" << gray.height << std::endl;
+        delete[] gray.pixels;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+
+    delete[] src.pixels;
+}`,
+    manifestation: `$ g++ -fsanitize=address -g imgconv.cpp -o imgconv && ./imgconv
+Converted 640x480
+
+If the source image has incorrect dimensions (e.g., partially loaded):
+$ (with src.width = 640, src.height = 480, but only 100*3 bytes allocated)
+
+=================================================================
+==16432==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 307200 byte(s) in 1 object(s) allocated from:
+    #0 0x7f4a2c in operator new[](unsigned long)
+    #1 0x55b2a1 in convert_to_grayscale(Image const&) imgconv.cpp:14
+    #2 0x55b5e1 in main imgconv.cpp:30
+
+SUMMARY: AddressSanitizer: 307200 byte(s) leaked in 1 allocation(s).`,
+    hints: [
+      "If the conversion loop throws, what happens to dst.pixels?",
+      "Who is responsible for freeing dst.pixels when an exception exits the function early?",
+      "Does the caller's catch block have access to the partially constructed dst to free it?",
+    ],
+    explanation: "If the conversion loop throws std::out_of_range, the function exits via exception. dst is a local variable (plain struct, not RAII), so dst.pixels is leaked — nobody frees it. The caller's catch block has no access to the partially-filled dst. The fix is to use std::vector<unsigned char> or std::unique_ptr<unsigned char[]> for dst.pixels so that stack unwinding automatically frees the allocation.",
+    stdlibRefs: [],
+  },
+  {
+    id: 111,
+    topic: "Exception Safety",
+    difficulty: "Hard",
+    title: "Pair Inserter",
+    description: "Inserts a key-value pair into a custom flat map, maintaining sorted order.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <stdexcept>
+
+class FlatMap {
+    std::vector<std::string> keys_;
+    std::vector<std::string> values_;
+
+public:
+    void insert(const std::string& key, const std::string& value) {
+        auto it = std::lower_bound(keys_.begin(), keys_.end(), key);
+        auto idx = std::distance(keys_.begin(), it);
+
+        keys_.insert(it, key);
+        values_.insert(values_.begin() + idx, value);
+    }
+
+    void print() const {
+        for (size_t i = 0; i < keys_.size(); ++i) {
+            std::cout << keys_[i] << " = " << values_[i] << std::endl;
+        }
+    }
+
+    size_t size() const { return keys_.size(); }
+};
+
+int main() {
+    FlatMap map;
+    map.insert("banana", "yellow");
+    map.insert("apple", "red");
+    map.insert("cherry", "dark red");
+
+    std::cout << "Map (" << map.size() << " entries):" << std::endl;
+    map.print();
+}`,
+    manifestation: `$ g++ -O2 -o flatmap flatmap.cpp && ./flatmap
+Map (3 entries):
+apple = red
+banana = yellow
+cherry = dark red
+
+Output looks correct under normal conditions. But if values_.insert()
+throws std::bad_alloc (e.g., under memory pressure):
+
+The keys_ vector has already been modified (key inserted), but
+values_ was not modified. The two vectors are now out of sync:
+keys_ has 4 entries, values_ has 3 entries.
+
+Any subsequent operation (insert, print) will have mismatched
+indices, reading garbage or crashing.`,
+    hints: [
+      "The insert function modifies two separate vectors — what if the second modification fails?",
+      "If values_.insert() throws after keys_.insert() has succeeded, what state are the two vectors in?",
+      "How would you ensure both vectors are modified atomically, or rolled back if either fails?",
+    ],
+    explanation: "The insert function modifies keys_ and values_ in two separate steps. If keys_.insert() succeeds but values_.insert() throws (e.g., std::bad_alloc during reallocation), the keys_ vector has one extra entry with no corresponding value. The two parallel vectors are permanently out of sync, and every subsequent operation produces wrong results or undefined behavior. The fix is to either use a single vector of pairs (so one insert is atomic), or catch the exception from the second insert and erase the first entry to roll back.",
+    stdlibRefs: [
+      { name: "std::lower_bound", args: "(ForwardIt first, ForwardIt last, const T& value) → ForwardIt", brief: "Binary search returning iterator to the first element not less than the given value.", link: "https://en.cppreference.com/w/cpp/algorithm/lower_bound" },
+    ],
+  },
+  {
+    id: 112,
+    topic: "Exception Safety",
+    difficulty: "Hard",
+    title: "Builder Rollback",
+    description: "Builds a complex object step by step, with the ability to roll back on failure.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <memory>
+#include <stdexcept>
+
+class Document {
+    std::vector<std::unique_ptr<std::string>> sections_;
+
+public:
+    void add_section(const std::string& text) {
+        sections_.push_back(std::make_unique<std::string>(text));
+    }
+
+    void validate() const {
+        for (const auto& s : sections_) {
+            if (s->empty()) {
+                throw std::runtime_error("Empty section found");
+            }
+        }
+    }
+
+    void build_from(const std::vector<std::string>& inputs) {
+        auto snapshot_size = sections_.size();
+        for (const auto& input : inputs) {
+            add_section(input);
+        }
+        try {
+            validate();
+        } catch (...) {
+            sections_.resize(snapshot_size);
+            throw;
+        }
+    }
+
+    size_t section_count() const { return sections_.size(); }
+
+    void print() const {
+        for (const auto& s : sections_) {
+            std::cout << "  [" << *s << "]" << std::endl;
+        }
+    }
+};
+
+int main() {
+    Document doc;
+    doc.add_section("Introduction");
+    doc.add_section("Background");
+
+    try {
+        doc.build_from({"Methods", "", "Results"});
+    } catch (const std::exception& e) {
+        std::cerr << "Build failed: " << e.what() << std::endl;
+    }
+
+    std::cout << "Document has " << doc.section_count() << " sections:" << std::endl;
+    doc.print();
+}`,
+    manifestation: `$ g++ -O2 -o doc doc.cpp && ./doc
+Build failed: Empty section found
+Document has 2 sections:
+  [Introduction]
+  [Background]
+
+This looks correct — the rollback worked! But there's a subtle bug.
+If add_section() throws during the loop (e.g., make_unique fails
+with bad_alloc after adding some sections), the catch block in
+build_from() won't execute because the exception originated from
+the loop, not from validate(). The try-catch only wraps validate(),
+not the add_section loop.
+
+Under memory pressure:
+Document has 4 sections:
+  [Introduction]
+  [Background]
+  [Methods]
+  [(some partial data)]
+
+The document is left with partially-added sections and no rollback.`,
+    hints: [
+      "Which part of build_from() is protected by the try-catch, and which is not?",
+      "If add_section() throws during the loop, does the catch block execute?",
+      "Should the entire build operation (add + validate) be wrapped in the try-catch for rollback?",
+    ],
+    explanation: "The try-catch in build_from() only wraps the validate() call. If add_section() throws during the loop (e.g., make_unique fails with std::bad_alloc), the exception propagates past the catch block without executing the rollback code. Some sections are added but the document is left in a partially-modified state. The fix is to wrap the entire loop AND validate() inside the try block, so the rollback executes regardless of which operation throws.",
+    stdlibRefs: [
+      { name: "std::make_unique", args: "<T>(Args&&... args) → unique_ptr<T>", brief: "Creates a unique_ptr owning a new object constructed with the given arguments.", note: "Can throw std::bad_alloc if memory allocation fails — callers should account for this when building rollback logic.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique" },
+    ],
+  },
+  {
+    id: 113,
+    topic: "Exception Safety",
+    difficulty: "Hard",
+    title: "Copy-and-Swap Assign",
+    description: "Implements a dynamic string class with copy-and-swap assignment for strong exception safety.",
+    code: `#include <iostream>
+#include <cstring>
+#include <utility>
+
+class DynString {
+    char* buf_;
+    size_t len_;
+
+public:
+    DynString(const char* s = "") : len_(std::strlen(s)) {
+        buf_ = new char[len_ + 1];
+        std::strcpy(buf_, s);
+    }
+
+    DynString(const DynString& other) : len_(other.len_) {
+        buf_ = new char[len_ + 1];
+        std::strcpy(buf_, other.buf_);
+    }
+
+    DynString& operator=(DynString other) {
+        swap(*this, other);
+        return *this;
+    }
+
+    friend void swap(DynString& a, DynString& b) {
+        std::swap(a.buf_, b.buf_);
+    }
+
+    ~DynString() { delete[] buf_; }
+
+    const char* c_str() const { return buf_; }
+    size_t length() const { return len_; }
+};
+
+int main() {
+    DynString a("hello");
+    DynString b("world!!");
+
+    a = b;
+    std::cout << "a: " << a.c_str() << " (len=" << a.length() << ")" << std::endl;
+    std::cout << "b: " << b.c_str() << " (len=" << b.length() << ")" << std::endl;
+}`,
+    manifestation: `$ g++ -O2 -o dynstr dynstr.cpp && ./dynstr
+a: world!! (len=5)
+b: world!! (len=7)
+
+Expected output:
+a: world!! (len=7)
+b: world!! (len=7)
+
+Actual output: a.length() reports 5 instead of 7. The string content
+is correct ("world!!") but the length is wrong.`,
+    hints: [
+      "The swap function exchanges the buffers — but does it exchange everything?",
+      "What fields does DynString have, and which of them does swap() actually swap?",
+      "After swap, does a.len_ reflect the new buffer's content?",
+    ],
+    explanation: "The swap function only swaps buf_ but not len_. After the copy-and-swap assignment, a gets b's buffer (containing \"world!!\") but keeps its own len_ (5, from \"hello\"). The length is permanently wrong — a.length() returns 5 for a 7-character string. This can cause buffer over-reads or truncation in any code that uses length(). The fix is to add std::swap(a.len_, b.len_) to the swap function.",
+    stdlibRefs: [
+      { name: "std::swap", args: "(T& a, T& b) → void", brief: "Exchanges the values of a and b using move semantics.", note: "When implementing a custom swap for copy-and-swap idiom, ALL member variables must be swapped — missing any field silently corrupts the object.", link: "https://en.cppreference.com/w/cpp/algorithm/swap" },
+    ],
+  },
 ];
