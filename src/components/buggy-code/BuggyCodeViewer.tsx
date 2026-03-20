@@ -57,7 +57,7 @@ function Expandable({
   label: string;
   icon: ComponentChildren;
   iconColor: string;
-  accentBorder?: boolean;
+  accentBorder?: string;
   children: ComponentChildren;
 }) {
   const [open, setOpen] = useState(false);
@@ -70,7 +70,7 @@ function Expandable({
         background: "var(--surface-elevated)",
         overflow: "hidden",
         ...(accentBorder && open
-          ? { borderColor: "color-mix(in srgb, var(--warning) 30%, var(--border-soft))" }
+          ? { borderColor: `color-mix(in srgb, ${accentBorder} 30%, var(--border-soft))` }
           : {}),
       }}
     >
@@ -155,13 +155,22 @@ const BugIcon = (
   </svg>
 );
 
+const TerminalIcon = (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <polyline points="4 17 10 11 4 5" />
+    <line x1="12" y1="19" x2="20" y2="19" />
+  </svg>
+);
+
 // ── Hints + Explanation block ──
 function HintsAndExplanation({
   hints,
   explanation,
+  manifestation,
 }: {
   hints: string[];
   explanation: string;
+  manifestation: string;
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem", marginTop: "0.75rem" }}>
@@ -189,7 +198,7 @@ function HintsAndExplanation({
         label="Explanation"
         icon={BugIcon}
         iconColor="var(--warning)"
-        accentBorder
+        accentBorder="var(--warning)"
       >
         <p
           style={{
@@ -201,6 +210,30 @@ function HintsAndExplanation({
         >
           {explanation}
         </p>
+      </Expandable>
+
+      <Expandable
+        label="What Actually Happens"
+        icon={TerminalIcon}
+        iconColor="var(--deep)"
+        accentBorder="var(--deep)"
+      >
+        <pre
+          style={{
+            fontFamily: "var(--font-code)",
+            fontSize: "0.78rem",
+            lineHeight: "1.55",
+            color: "var(--text-secondary)",
+            background: "var(--surface-code)",
+            borderRadius: "0.5rem",
+            padding: "0.75rem 1rem",
+            margin: 0,
+            whiteSpace: "pre-wrap",
+            overflowX: "auto",
+          }}
+        >
+          {manifestation}
+        </pre>
       </Expandable>
     </div>
   );
@@ -724,7 +757,7 @@ function ViewerView({
 
         <HighlightedCodeBlock html={program.highlightedHtml} />
 
-        <HintsAndExplanation hints={program.hints} explanation={program.explanation} />
+        <HintsAndExplanation hints={program.hints} explanation={program.explanation} manifestation={program.manifestation} />
       </div>
 
       {/* Navigation */}

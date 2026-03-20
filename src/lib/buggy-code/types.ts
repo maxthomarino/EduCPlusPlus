@@ -7,6 +7,7 @@ export interface BuggyProgram {
   code: string;
   hints: string[];
   explanation: string;
+  manifestation: string;
 }
 
 export interface BuggyProgramHighlighted extends BuggyProgram {

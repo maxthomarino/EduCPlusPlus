@@ -29,6 +29,13 @@ int main() {
     }
     std::cout << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g filter.cpp -o filter && ./filter
+1 3 5 7
+=================================================================
+==14823==ERROR: AddressSanitizer: container-overflow on address 0x604000000038
+    #0 0x5601a3b in main filter.cpp:7
+    #1 0x7f3c2a in __libc_start_main
+SUMMARY: AddressSanitizer: container-overflow filter.cpp:7 in main`,
   },
   {
     id: 2,
@@ -52,6 +59,14 @@ int main() {
     const std::string& result = longer("hello", "world!");
     std::cout << result << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g longer.cpp -o longer && ./longer
+=================================================================
+==27491==ERROR: AddressSanitizer: stack-use-after-scope on address 0x7ffd4a200060
+READ of size 8 at 0x7ffd4a200060 thread T0
+    #0 0x55d3a1 in main longer.cpp:9
+    #1 0x7f8c2a in __libc_start_main
+Address 0x7ffd4a200060 is located in stack of thread T0
+SUMMARY: AddressSanitizer: stack-use-after-scope longer.cpp:9 in main`,
   },
   {
     id: 3,
@@ -77,6 +92,14 @@ int main() {
         std::cout << "Offset is out of bounds" << std::endl;
     }
 }`,
+    manifestation: `$ g++ -Wall bounds.cpp -o bounds && ./bounds
+bounds.cpp:8:19: warning: comparison of integer expressions of different
+  signedness: 'int' and 'std::vector<int>::size_type' [-Wsign-compare]
+
+Expected output:
+  Offset is within bounds
+Actual output:
+  Offset is out of bounds`,
   },
   {
     id: 4,
@@ -108,6 +131,13 @@ int main() {
     std::cout << binary_search(v, 3) << std::endl;
     std::cout << binary_search(v, 6) << std::endl;
 }`,
+    manifestation: `$ ./bsearch
+Searching for 3 in {1, 2, 3, 4, 5, 6, 7, 8}...
+
+Expected output:
+  Found at index 2
+Actual output:
+  Not found (-1)`,
   },
   {
     id: 5,
@@ -151,6 +181,13 @@ int main() {
     shapes.push_back(Circle("big circle", 5.0));
     print_areas(shapes);
 }`,
+    manifestation: `$ ./shapes
+Expected output:
+  Circle area: 78.5398
+  Circle area: 28.2743
+Actual output:
+  0
+  0`,
   },
   {
     id: 6,
@@ -183,6 +220,11 @@ int main() {
     }
     std::cout << std::endl;
 }`,
+    manifestation: `$ ./greeting
+Expected output:
+  Hello Alice and Alice!
+Actual output:
+  Hello Alice and !`,
   },
   {
     id: 7,
@@ -220,6 +262,12 @@ int main() {
     std::cout << "Expected: " << num_threads * increments << std::endl;
     std::cout << "Actual:   " << counter << std::endl;
 }`,
+    manifestation: `$ ./counter
+Expected output:
+  Final count: 10000
+Actual output (run 1): Final count: 7842
+Actual output (run 2): Final count: 8156
+Actual output (run 3): Final count: 6923`,
   },
   {
     id: 8,
@@ -245,6 +293,14 @@ int main() {
     std::cout << max_val(3.14, 2.72) << std::endl;
     std::cout << max_val("apple", "banana") << std::endl;
 }`,
+    manifestation: `$ ./genmax
+max("apple", "banana") = apple
+
+Expected output:
+  max("apple", "banana") = banana
+Actual output:
+  max("apple", "banana") = apple
+(result depends on pointer layout, varies by compiler)`,
   },
   {
     id: 9,
@@ -275,6 +331,13 @@ int main() {
         std::cout << "Error: " << e.what() << std::endl;
     }
 }`,
+    manifestation: `$ ./safediv
+safe_divide(7, 2) = 3
+
+Expected output:
+  safe_divide(7, 2) = 3.5
+Actual output:
+  safe_divide(7, 2) = 3`,
   },
   {
     id: 10,
@@ -302,6 +365,16 @@ int main() {
         std::cout << i << "! = " << factorial(i) << std::endl;
     }
 }`,
+    manifestation: `$ ./factorial
+factorial(5) = 0
+factorial(10) = 0
+
+Expected output:
+  factorial(5) = 120
+  factorial(10) = 3628800
+Actual output:
+  factorial(5) = 0
+  factorial(10) = 0`,
   },
   {
     id: 11,
@@ -342,6 +415,17 @@ int main() {
     std::cout << "a[0] = " << a[0] << std::endl;
     std::cout << "b[0] = " << b[0] << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g dynarray.cpp -o dynarray && ./dynarray
+=================================================================
+==18734==ERROR: AddressSanitizer: attempting double-free on 0x602000000010 in thread T0:
+    #0 0x7f9a2b in operator delete[](void*)
+    #1 0x55a1c3 in DynArray::~DynArray() dynarray.cpp:12
+    #2 0x55a4e1 in main dynarray.cpp:26
+0x602000000010 is located 0 bytes inside of 20-byte region
+previously freed by thread T0 here:
+    #0 0x7f9a2b in operator delete[](void*)
+    #1 0x55a1c3 in DynArray::~DynArray() dynarray.cpp:12
+SUMMARY: AddressSanitizer: double-free dynarray.cpp:12 in DynArray::~DynArray()`,
   },
   {
     id: 12,
@@ -372,6 +456,16 @@ int main() {
     }
     std::cout << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g range.cpp -o range && ./range
+=================================================================
+==22156==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010
+READ of size 4 at 0x602000000010 thread T0
+    #0 0x55b3a1 in main range.cpp:15
+    #1 0x7f3c2a in __libc_start_main
+0x602000000010 is located 0 bytes inside of 20-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55b2c1 in std::vector<int>::~vector()
+SUMMARY: AddressSanitizer: heap-use-after-free range.cpp:15 in main`,
   },
   // ── Heap Allocation ──
   {
@@ -404,6 +498,14 @@ int main() {
 
     delete data;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g arraysum.cpp -o arraysum && ./arraysum
+=================================================================
+==31204==ERROR: AddressSanitizer: alloc-dealloc-mismatch (operator new[] vs operator delete) on 0x604000000010
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55c1a3 in main arraysum.cpp:12
+    #2 0x7f3c2a in __libc_start_main
+0x604000000010 is located 0 bytes inside of 20-byte region
+SUMMARY: AddressSanitizer: alloc-dealloc-mismatch arraysum.cpp:12 in main`,
   },
   {
     id: 14,
@@ -431,6 +533,17 @@ int main() {
 
     std::cout << "Message length was: " << msg->size() << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g msgprint.cpp -o msgprint && ./msgprint
+Hello, World!
+=================================================================
+==15892==ERROR: AddressSanitizer: heap-use-after-free on address 0x603000000010
+READ of size 8 at 0x603000000010 thread T0
+    #0 0x55d1a1 in main msgprint.cpp:10
+    #1 0x7f3c2a in __libc_start_main
+0x603000000010 is located 0 bytes inside of 40-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55d181 in main msgprint.cpp:9
+SUMMARY: AddressSanitizer: heap-use-after-free msgprint.cpp:10 in main`,
   },
   {
     id: 15,
@@ -478,6 +591,19 @@ int main() {
     logger->log("Processing complete");
     delete logger;
 }`,
+    manifestation: `$ g++ -fsanitize=leak -g logger.cpp -o logger && ./logger
+[file] Processing data...
+
+=================================================================
+==29401==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 32 bytes in 1 object(s) allocated from:
+    #0 0x7f9a2b in operator new(unsigned long)
+    #1 0x55e2c1 in std::basic_string<char>::basic_string(char const*)
+    #2 0x55e1a1 in FileLogger::FileLogger(std::string const&)
+    #3 0x55e3f1 in main logger.cpp:28
+
+SUMMARY: LeakSanitizer: 32 byte(s) leaked in 1 object(s).`,
   },
   {
     id: 16,
@@ -522,6 +648,18 @@ int main() {
     load_config("9999");
     load_config("100");
 }`,
+    manifestation: `$ g++ -fsanitize=leak -g config.cpp -o config && ./config
+Invalid value: 9999
+
+=================================================================
+==24618==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 4096 bytes in 1 object(s) allocated from:
+    #0 0x7f9a2b in operator new[](unsigned long)
+    #1 0x55a1c3 in loadConfig config.cpp:6
+    #2 0x55a4e1 in main config.cpp:22
+
+SUMMARY: LeakSanitizer: 4096 byte(s) leaked in 1 object(s).`,
   },
   {
     id: 17,
@@ -561,6 +699,17 @@ int main() {
     delete primary;
     delete backup;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g sharedcfg.cpp -o sharedcfg && ./sharedcfg
+=================================================================
+==17523==ERROR: AddressSanitizer: attempting double-free on 0x602000000010 in thread T0:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55a1c3 in main sharedcfg.cpp:21
+    #2 0x7f3c2a in __libc_start_main
+0x602000000010 is located 0 bytes inside of 16-byte region
+previously freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55a1a1 in main sharedcfg.cpp:20
+SUMMARY: AddressSanitizer: double-free sharedcfg.cpp:21 in main`,
   },
   {
     id: 18,
@@ -592,6 +741,17 @@ int main() {
 
     delete[] dup;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g strdup.cpp -o strdup && ./strdup
+=================================================================
+==28734==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x602000000015
+WRITE of size 1 at 0x602000000015 thread T0
+    #0 0x7f8a3b in __strcpy_chk
+    #1 0x55b1a1 in duplicate strdup.cpp:7
+    #2 0x55b2c1 in main strdup.cpp:12
+0x602000000015 is located 0 bytes after 5-byte region allocated here:
+    #0 0x7f9a2b in operator new[](unsigned long)
+    #1 0x55b181 in duplicate strdup.cpp:6
+SUMMARY: AddressSanitizer: heap-buffer-overflow strdup.cpp:7 in duplicate`,
   },
   {
     id: 19,
@@ -635,6 +795,19 @@ int main() {
         std::cout << "Error: " << e.what() << std::endl;
     }
 }`,
+    manifestation: `$ g++ -fsanitize=leak -g widget.cpp -o widget && ./widget
+Processing 2 widgets...
+Error caught: bad allocation
+
+=================================================================
+==33021==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 48 bytes in 1 object(s) allocated from:
+    #0 0x7f9a2b in operator new(unsigned long)
+    #1 0x55c1a3 in process widget.cpp:14
+    #2 0x55c3f1 in main widget.cpp:24
+
+SUMMARY: LeakSanitizer: 48 byte(s) leaked in 1 object(s).`,
   },
   {
     id: 20,
@@ -689,6 +862,19 @@ int main() {
     shapes.clear();
     std::cout << "Cleanup complete" << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=leak -g shapes.cpp -o shapes && ./shapes
+Circle with radius 5
+Circle with radius 3
+
+=================================================================
+==20145==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 48 bytes in 2 object(s) allocated from:
+    #0 0x7f9a2b in operator new(unsigned long)
+    #1 0x55d1a1 in main shapes.cpp:25
+    #2 0x7f3c2a in __libc_start_main
+
+SUMMARY: LeakSanitizer: 48 byte(s) leaked in 2 object(s).`,
   },
   {
     id: 21,
@@ -743,6 +929,18 @@ int main() {
     }
     buf.print();
 }`,
+    manifestation: `$ g++ -fsanitize=leak -g growbuf.cpp -o growbuf && ./growbuf
+Buffer contents: 1 2 3 4 5 6 7 8
+
+=================================================================
+==26789==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 20 bytes in 1 object(s) allocated from:
+    #0 0x7f9a2b in operator new[](unsigned long)
+    #1 0x55a1c3 in GrowableBuffer::grow() growbuf.cpp:18
+    #2 0x55a3f1 in main growbuf.cpp:35
+
+SUMMARY: LeakSanitizer: 20 byte(s) leaked in 1 object(s).`,
   },
   {
     id: 22,
@@ -776,6 +974,17 @@ int main() {
 
     operator delete(raw);
 }`,
+    manifestation: `$ g++ -fsanitize=leak -g placement.cpp -o placement && ./placement
+Stored: hello world test
+
+=================================================================
+==19382==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 96 bytes in 3 object(s) allocated from:
+    #0 0x7f9a2b in operator new(unsigned long)
+    #1 0x55b1a1 in std::basic_string<char>::basic_string(char const*)
+
+SUMMARY: LeakSanitizer: 96 byte(s) leaked in 3 object(s).`,
   },
   // ── Smart Pointers ──
   {
@@ -814,6 +1023,13 @@ int main() {
               << average_brightness(pixels.get(), width * height)
               << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g pixbuf.cpp -o pixbuf && ./pixbuf
+=================================================================
+==14201==ERROR: AddressSanitizer: alloc-dealloc-mismatch (operator new[] vs operator delete) on 0x614000000040
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55a1c3 in std::default_delete<unsigned char>::operator()(unsigned char*) const
+    #2 0x55a2e1 in std::unique_ptr<unsigned char>::~unique_ptr()
+SUMMARY: AddressSanitizer: alloc-dealloc-mismatch pixbuf.cpp`,
     hints: [
       "How was the memory allocated, and how will the smart pointer free it?",
       "What form of delete does the default unique_ptr<int> deleter use?",
@@ -854,6 +1070,15 @@ int main() {
     audit_log(secondary);
     primary->log("shutting down");
 }`,
+    manifestation: `$ g++ -fsanitize=address -g reflog.cpp -o reflog && ./reflog
+[log] Application started
+=================================================================
+==25614==ERROR: AddressSanitizer: attempting double-free on 0x602000000010 in thread T0:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55a1c3 in std::_Sp_counted_ptr<Logger*>::_M_dispose()
+    #2 0x55a2e1 in std::shared_ptr<Logger>::~shared_ptr()
+    #3 0x55a4f1 in main reflog.cpp:22
+SUMMARY: AddressSanitizer: double-free in std::shared_ptr<Logger>::~shared_ptr()`,
     hints: [
       "How many shared_ptr control blocks are created in this program?",
       "What happens when two independent shared_ptrs believe they each own the same object?",
@@ -905,6 +1130,17 @@ int main() {
         std::cout << t.type << ": " << t.value << std::endl;
     }
 }`,
+    manifestation: `$ g++ -fsanitize=leak -g tokenparser.cpp -o tokenparser && ./tokenparser
+Parsed 3 tokens
+
+=================================================================
+==31847==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 48 bytes in 1 object(s) allocated from:
+    #0 0x7f9a2b in operator new(unsigned long)
+    #1 0x55c1a3 in parse tokenparser.cpp:12
+
+SUMMARY: LeakSanitizer: 48 byte(s) leaked in 1 object(s).`,
     hints: [
       "What does unique_ptr::release() do to the ownership of the managed object?",
       "After calling release(), who is responsible for freeing the memory?",
@@ -953,6 +1189,19 @@ int main() {
     std::cout << alice->name << " has "
               << alice->friends.size() << " friends" << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=leak -g social.cpp -o social && ./social
+Alice is friends with Bob
+Bob is friends with Alice
+
+=================================================================
+==28934==ERROR: LeakSanitizer: detected memory leaks
+
+Indirect leak of 128 bytes in 2 object(s) allocated from:
+    #0 0x7f9a2b in operator new(unsigned long)
+    #1 0x55d1a1 in main social.cpp:24
+    #2 0x7f3c2a in __libc_start_main
+
+SUMMARY: LeakSanitizer: 128 byte(s) leaked in 2 object(s).`,
     hints: [
       "What happens to the reference count of each User when main returns?",
       "Can the reference count of any User ever reach zero?",
@@ -1010,6 +1259,16 @@ int main() {
 
     queue.run_all();
 }`,
+    manifestation: `$ g++ -fsanitize=address -g taskqueue.cpp -o taskqueue && ./taskqueue
+=================================================================
+==16729==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010
+READ of size 8 at 0x602000000010 thread T0
+    #0 0x55b3a1 in main taskqueue.cpp:28
+    #1 0x7f3c2a in __libc_start_main
+0x602000000010 is located 0 bytes inside of 48-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55b2c1 in std::unique_ptr<Task>::~unique_ptr()
+SUMMARY: AddressSanitizer: heap-use-after-free taskqueue.cpp:28 in main`,
     hints: [
       "What is the lifetime of the Task objects relative to when run_all() is called?",
       "What does .get() return, and does it affect ownership?",
@@ -1062,6 +1321,10 @@ int main() {
 
     dispatcher.notify();
 }`,
+    manifestation: `$ ./dispatcher
+terminate called after throwing an instance of 'std::bad_weak_ptr'
+  what():  bad_weak_ptr
+Aborted (core dumped)`,
     hints: [
       "How is the Listener object allocated in main?",
       "What precondition must be met before calling shared_from_this()?",
@@ -1105,6 +1368,15 @@ int main() {
 
     std::cout << "Final title: " << doc->title << std::endl;
 }`,
+    manifestation: `$ ./docpipeline
+Segmentation fault (core dumped)
+
+$ g++ -fsanitize=address -g docpipeline.cpp -o docpipeline && ./docpipeline
+=================================================================
+==22451==ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000
+    #0 0x55c1a3 in main docpipeline.cpp:24
+    #1 0x7f3c2a in __libc_start_main
+SUMMARY: AddressSanitizer: SEGV docpipeline.cpp:24 in main`,
     hints: [
       "What is the state of a unique_ptr after it has been moved from?",
       "Is doc still valid on the last line of main?",
@@ -1155,6 +1427,10 @@ int main() {
     obj->set_value(100);
     std::cout << "Current: " << obj->get_value() << std::endl;
 }`,
+    manifestation: `$ ./observable
+terminate called after throwing an instance of 'std::bad_weak_ptr'
+  what():  bad_weak_ptr
+Aborted (core dumped)`,
     hints: [
       "At what point during object construction is the shared_ptr fully initialized?",
       "Can shared_from_this() be safely called from within a constructor?",
@@ -1229,6 +1505,17 @@ int main() {
         p->execute();
     }
 }`,
+    manifestation: `$ g++ -fsanitize=leak -g plugin.cpp -o plugin && ./plugin
+Running plugin: Formatter
+
+=================================================================
+==19847==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 32 bytes in 1 object(s) allocated from:
+    #0 0x7f9a2b in operator new(unsigned long)
+    #1 0x55e1a1 in main plugin.cpp:35
+
+SUMMARY: LeakSanitizer: 32 byte(s) leaked in 1 object(s).`,
     hints: [
       "When a unique_ptr<Plugin> is destroyed, which destructor does it call?",
       "What declaration is missing from the Plugin base class?",
@@ -1289,6 +1576,15 @@ int main() {
 
     std::cout << "Config: " << cache.lookup("config") << std::endl;
 }`,
+    manifestation: `$ ./rescache
+Segmentation fault (core dumped)
+
+$ g++ -fsanitize=address -g rescache.cpp -o rescache && ./rescache
+=================================================================
+==30182==ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000
+    #0 0x55d1a1 in main rescache.cpp:31
+    #1 0x7f3c2a in __libc_start_main
+SUMMARY: AddressSanitizer: SEGV rescache.cpp:31 in main`,
     hints: [
       "What is the state of a weak_ptr after all shared_ptrs to the object are destroyed?",
       "What does lock() return when the referenced object no longer exists?",
@@ -1324,6 +1620,15 @@ int main() {
         fn();
     }
 }`,
+    manifestation: `$ ./formatter
+Expected output:
+  Item 0: apple
+  Item 1: banana
+  Item 2: cherry
+Actual output:
+  Item 3: (undefined behavior - index out of range)
+  Item 3: (undefined behavior - index out of range)
+  Item 3: (undefined behavior - index out of range)`,
     hints: [
       "What does the lambda capture, and how does it capture it?",
       "What is the value of i when the lambdas are actually invoked?",
@@ -1379,6 +1684,13 @@ int main() {
 
     std::cout << "|a| = " << a.magnitude() << std::endl;
 }`,
+    manifestation: `$ ./vec2d
+v1 after v1 + v2:
+
+Expected output:
+  v1 = (1, 2), v3 = (4, 6)
+Actual output:
+  v1 = (4, 6), v3 = (4, 6)`,
     hints: [
       "Compare the implementations of operator+ and operator-. What is different?",
       "What happens to the left-hand operand after operator+ executes?",
@@ -1435,6 +1747,11 @@ int main() {
 
     std::cout << "Total duplicates found: " << duplicates << std::endl;
 }`,
+    manifestation: `$ ./cikey
+Expected output:
+  "Hello" == "hello": true
+Actual output:
+  "Hello" == "hello": false`,
     hints: [
       "What type does c_str() return, and what does == compare for that type?",
       "Are two pointers to different memory locations ever equal, even if the strings they point to are identical?",
@@ -1484,6 +1801,11 @@ int main() {
     std::cout << "Before: " << before.value()
               << ", After: " << d.value() << std::endl;
 }`,
+    manifestation: `$ ./counter
+Expected output:
+  ++c results in c.value == 6 with chaining: ++c == c is true
+Actual output:
+  ++c returns a copy; (++c).value == 6 but &(++c) != &c`,
     hints: [
       "What is the return type of the pre-increment operator?",
       "When ++(++c) is evaluated, does the outer increment operate on c or on something else?",
@@ -1553,6 +1875,16 @@ int main() {
     }
     std::cout << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g resbuf.cpp -o resbuf && ./resbuf
+=================================================================
+==21543==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010
+READ of size 1 at 0x602000000010 thread T0
+    #0 0x55a1c3 in Buffer::operator=(Buffer const&) resbuf.cpp:22
+    #1 0x55a3f1 in main resbuf.cpp:38
+0x602000000010 is located 0 bytes inside of 10-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete[](void*)
+    #1 0x55a1a1 in Buffer::operator=(Buffer const&) resbuf.cpp:20
+SUMMARY: AddressSanitizer: heap-use-after-free resbuf.cpp:22 in Buffer::operator=`,
     hints: [
       "What arguments does normalize() receive when called from main?",
       "Inside operator=, what happens when the left-hand side and right-hand side are the same object?",
@@ -1606,6 +1938,14 @@ int main() {
     std::cout << "After update:" << std::endl;
     cfg.dump();
 }`,
+    manifestation: `$ ./kvconfig
+config["timeout"] = 30;
+std::cout << config["timeout"];
+
+Expected output:
+  30
+Actual output:
+  0`,
     hints: [
       "What is the return type of operator[], and what does that mean for the caller?",
       "When cfg[\"host\"] = \"production.example.com\" executes, where does the new value actually go?",
@@ -1653,6 +1993,15 @@ int main() {
                   << ", $" << e.salary << ")" << std::endl;
     }
 }`,
+    manifestation: `$ ./sortable
+std::sort with custom operator<
+
+Expected output:
+  Records sorted stably by priority
+Actual output:
+  terminate called after throwing an instance of 'std::invalid_argument'
+  Aborted (core dumped)
+(strict weak ordering violation detected by libstdc++ debug mode)`,
     hints: [
       "For any two employees A and B, is it possible that both A < B and B < A are true?",
       "What does the C++ standard require of a comparison function passed to std::sort?",
@@ -1707,6 +2056,13 @@ int main() {
     Duration overtime = meeting - workday;
     overtime.print("Overtime");
 }`,
+    manifestation: `$ ./duration
+Duration(5) - Duration(10):
+
+Expected output:
+  -5 (or error)
+Actual output:
+  18446744073709551611 (underflow of unsigned)`,
     hints: [
       "What is the underlying type of seconds_, and how does it behave with subtraction?",
       "What happens when a smaller unsigned integer is subtracted from a larger one?",
@@ -1763,6 +2119,13 @@ int main() {
         std::cout << "Product: " << product.value() << std::endl;
     }
 }`,
+    manifestation: `$ ./optsum
+OptionalInt(3) + OptionalInt(5):
+
+Expected output:
+  8
+Actual output:
+  2`,
     hints: [
       "Is there an operator+ or operator* defined for OptionalInt?",
       "What implicit conversion path does the compiler use to make a + b compile?",
@@ -1826,6 +2189,12 @@ int main() {
     Matrix b = a * a;
     b.print();
 }`,
+    manifestation: `$ ./matrix
+Segmentation fault (core dumped)
+
+$ ulimit -s 256 && ./matrix
+Segmentation fault (core dumped)
+(infinite mutual recursion between operator* overloads exhausts the stack)`,
     hints: [
       "Trace the call chain when a * a is evaluated. What functions are called?",
       "Does operator* depend on operator*=? Does operator*= depend on operator*?",
@@ -1878,6 +2247,14 @@ int main() {
     DiagLog log("HW");
     report_status(log, 255);
 }`,
+    manifestation: `$ ./diaglog
+logger << Severity::WARNING << "disk full";
+
+Expected output:
+  [WARNING] disk full
+Actual output:
+  [2] disk full
+(Severity enum printed as integer due to operator precedence)`,
     hints: [
       "How does C++ parse an expression with multiple << operators in a row?",
       "Is the expression 1 << alarm_bit evaluated as a bitwise shift, or does something else happen first?",
@@ -1924,6 +2301,13 @@ int main() {
     Rectangle square(7.0, 7.0);
     square.print();
 }`,
+    manifestation: `$ ./rectscale
+Rectangle(4, 3) scaled by 2:
+
+Expected output:
+  width=8, height=6, area=48
+Actual output:
+  width=6, height=6, area=36`,
     hints: [
       "In what order are the member variables actually initialized?",
       "Does the order in the initializer list determine the initialization sequence, or does declaration order?",
@@ -1978,6 +2362,14 @@ int main() {
     math.print();
     science.print();
 }`,
+    manifestation: `$ ./grades
+Student A: grades 90, 85, 92 -> average = 89
+Student B: grades 70, 75
+
+Expected output:
+  Student B average: 72.5
+Actual output:
+  Student B average: 82 (includes Student A's grades)`,
     hints: [
       "Are total_ and count_ unique to each GradeBook instance?",
       "What does the static keyword mean for class data members?",
@@ -2031,6 +2423,13 @@ int main() {
     living_room.set_current(25.0);
     living_room.adjust();
 }`,
+    manifestation: `$ ./thermostat
+Set target to 72.0
+
+Expected output:
+  Target: 72.0
+Actual output:
+  Target: 0 (or uninitialized value)`,
     hints: [
       "How is target_temp_ assigned in the constructor body?",
       "Is the variable being assigned inside the constructor body the class member, or something else?",
@@ -2088,6 +2487,12 @@ int main() {
     SecureComponent validator("Validator", "short");
     validator.check();
 }`,
+    manifestation: `$ ./secure
+Expected output:
+  SecureComponent: security check passed
+Actual output:
+  Component: security check passed
+(base class version called during construction)`,
     hints: [
       "Which version of setup() runs during the Component constructor?",
       "At what point in construction does virtual dispatch to the derived class become available?",
@@ -2136,6 +2541,14 @@ int main() {
     std::cout << "Dispatched call:" << std::endl;
     dispatch(urgent, "server down");
 }`,
+    manifestation: `$ ./notify
+EmailNotifier::send("hello")
+
+Expected output:
+  Sending email with priority HIGH
+Actual output:
+  Sending email with priority NORMAL
+(default argument resolved from base class at compile time)`,
     hints: [
       "What determines the default argument value when a virtual function is called through a base reference?",
       "Is the default argument resolved at compile time or at runtime?",
@@ -2189,6 +2602,13 @@ int main() {
     car.add_miles(15000);
     car.print_specs();
 }`,
+    manifestation: `$ ./ev
+ElectricVehicle ev("Tesla", 75.0);
+
+Expected output:
+  make=Tesla, batteryKWh=75
+Actual output:
+  make=, batteryKWh=75 (base class default-constructed, then overwritten)`,
     hints: [
       "Where exactly is the base class Vehicle being initialized?",
       "What does the statement Vehicle(std::move(make), year) do inside the constructor body?",
@@ -2245,6 +2665,16 @@ int main() {
         report();
     }
 }`,
+    manifestation: `$ g++ -fsanitize=address -g sensor.cpp -o sensor && ./sensor
+=================================================================
+==23891==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010
+READ of size 8 at 0x602000000010 thread T0
+    #0 0x55c1a3 in operator() sensor.cpp:18
+    #1 0x55c2e1 in main sensor.cpp:29
+0x602000000010 is located 0 bytes inside of 64-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55c1a1 in SensorReporter::~SensorReporter()
+SUMMARY: AddressSanitizer: heap-use-after-free sensor.cpp:18 in operator()`,
     hints: [
       "What does the lambda capture when it uses [this]?",
       "What happens to the Sensor objects after create_reports() returns?",
@@ -2306,6 +2736,17 @@ int main() {
         std::cout << "Error: " << e.what() << std::endl;
     }
 }`,
+    manifestation: `$ g++ -fsanitize=leak -g dbconn.cpp -o dbconn && ./dbconn
+Connection setup failed
+
+=================================================================
+==27156==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 64 bytes in 1 object(s) allocated from:
+    #0 0x7f9a2b in operator new[](unsigned long)
+    #1 0x55a1c3 in Database::Database() dbconn.cpp:10
+
+SUMMARY: LeakSanitizer: 64 byte(s) leaked in 1 object(s).`,
     hints: [
       "What happens to resources acquired before an exception is thrown in a constructor?",
       "If a constructor throws, does the destructor of that object run?",
@@ -2352,6 +2793,13 @@ int main() {
     q1.execute();
     q2.execute();
 }`,
+    manifestation: `$ g++ -fsanitize=address -g qbuilder.cpp -o qbuilder && ./qbuilder
+=================================================================
+==18234==ERROR: AddressSanitizer: stack-use-after-scope on address 0x7ffd3a100060
+READ of size 8 at 0x7ffd3a100060 thread T0
+    #0 0x55b1a1 in main qbuilder.cpp:22
+    #1 0x7f3c2a in __libc_start_main
+SUMMARY: AddressSanitizer: stack-use-after-scope qbuilder.cpp:22 in main`,
     hints: [
       "What is the lifetime of the string object that table_ refers to?",
       "When a const reference parameter binds to a temporary, how long does that temporary live?",
@@ -2411,6 +2859,16 @@ int main() {
     h->release();
     h->release();
 }`,
+    manifestation: `$ g++ -fsanitize=address -g reshandle.cpp -o reshandle && ./reshandle
+=================================================================
+==29671==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010
+READ of size 4 at 0x602000000010 thread T0
+    #0 0x55a1c3 in main reshandle.cpp:28
+    #1 0x7f3c2a in __libc_start_main
+0x602000000010 is located 0 bytes inside of 16-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55a1a1 in ResourceHandle::release() reshandle.cpp:16
+SUMMARY: AddressSanitizer: heap-use-after-free reshandle.cpp:28 in main`,
     hints: [
       "What happens to the object's memory after delete this executes?",
       "Does execution of the member function continue after delete this?",
@@ -2455,6 +2913,19 @@ int main() {
 
     delete[] bins;
 }`,
+    manifestation: `$ ./histogram
+Expected output:
+  [1]=3 [2]=2 [3]=1
+Actual output:
+  Segmentation fault (core dumped)
+
+$ g++ -fsanitize=address -g histogram.cpp -o histogram && ./histogram
+=================================================================
+==15423==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x602000000014
+WRITE of size 4 at 0x602000000014 thread T0
+    #0 0x55a1c3 in main histogram.cpp:12
+SUMMARY: AddressSanitizer: heap-buffer-overflow histogram.cpp:12 in main
+(new int(n) allocates a single int, not an array of n ints)`,
     hints: [
       "Look carefully at the allocation syntax — what exactly does new int(n) allocate?",
       "What is the difference between new int(n) and new int[n]?",
@@ -2488,6 +2959,16 @@ int main() {
 
     delete[] short_text;
 }`,
+    manifestation: `$ ./textbuf
+Expected output:
+  Buffer: Hello, World!
+Actual output:
+  Buffer: Hello, World!\\xfe\\xca... (garbage after string)
+
+$ valgrind ./textbuf
+==24103== Conditional jump or move depends on uninitialised value(s)
+==24103==    at 0x4C2E1A8: strlen (vg_replace_strmem.c:462)
+==24103==    by 0x400891: main (textbuf.cpp:14)`,
     hints: [
       "What does strncpy guarantee about the destination buffer when the source is longer than max_len?",
       "If the source string is longer than max_len, does strncpy add a null terminator?",
@@ -2538,6 +3019,13 @@ int main() {
 
     delete[] gradient;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g pixarr.cpp -o pixarr && ./pixarr
+=================================================================
+==20891==ERROR: AddressSanitizer: alloc-dealloc-mismatch (malloc vs operator delete[]) on 0x614000000040
+    #0 0x7f9a2b in operator delete[](void*)
+    #1 0x55a1c3 in main pixarr.cpp:15
+    #2 0x7f3c2a in __libc_start_main
+SUMMARY: AddressSanitizer: alloc-dealloc-mismatch pixarr.cpp:15 in main`,
     hints: [
       "How was the pixel array allocated?",
       "Does the deallocation method match the allocation method?",
@@ -2584,6 +3072,18 @@ int main() {
     delete[] grid;
     std::cout << "Grid cleanup complete" << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=leak -g imgrid.cpp -o imgrid && ./imgrid
+Grid filled successfully
+
+=================================================================
+==17234==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 160 bytes in 4 object(s) allocated from:
+    #0 0x7f9a2b in operator new[](unsigned long)
+    #1 0x55a1c3 in allocateGrid imgrid.cpp:5
+
+(rows array deleted but individual row arrays leaked)
+SUMMARY: LeakSanitizer: 160 byte(s) leaked in 4 object(s).`,
     hints: [
       "How many separate heap allocations are made in create_grid?",
       "Does the cleanup code free every allocation that was made?",
@@ -2654,6 +3154,16 @@ int main() {
     std::cout << "Front element: " << ref << std::endl;
     buf.print();
 }`,
+    manifestation: `$ g++ -fsanitize=address -g circqueue.cpp -o circqueue && ./circqueue
+=================================================================
+==25678==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010
+READ of size 4 at 0x602000000010 thread T0
+    #0 0x55c1a3 in CircularQueue::front() circqueue.cpp:28
+    #1 0x55c3f1 in main circqueue.cpp:42
+0x602000000010 is located 0 bytes inside of 20-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete[](void*)
+    #1 0x55c181 in CircularQueue::enqueue(int) circqueue.cpp:18
+SUMMARY: AddressSanitizer: heap-use-after-free circqueue.cpp:28 in main`,
     hints: [
       "What happens to existing references into the buffer when push() causes a resize?",
       "Under what condition does push() reallocate the internal storage?",
@@ -2704,6 +3214,18 @@ int main() {
     for (int i = 0; i < rows; ++i) delete[] matrix[i];
     delete[] matrix;
 }`,
+    manifestation: `$ ./flatten
+Expected output:
+  1 2 3 4 5 6 7 8 9 10 11 12
+Actual output:
+  1 2 3 4 5 6 7 8 9 (remaining values are garbage)
+
+$ g++ -fsanitize=address -g flatten.cpp -o flatten && ./flatten
+=================================================================
+==19823==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x60200000003c
+    #0 0x55a1c3 in main flatten.cpp:14
+SUMMARY: AddressSanitizer: heap-buffer-overflow flatten.cpp:14 in main
+(allocated rows*rows instead of rows*cols)`,
     hints: [
       "How many elements does the flatten function allocate for the output?",
       "How many elements does the nested loop actually write?",
@@ -2760,6 +3282,15 @@ int main() {
 
     delete[] roster;
 }`,
+    manifestation: `$ valgrind ./roster
+==31456== Memcheck, a memory error detector
+==31456== Invalid read of size 1
+==31456==    at 0x4C2E1A8: memcpy (vg_replace_strmem.c:1036)
+==31456==    by 0x400891: StudentRoster::add(Student const&) (roster.cpp:18)
+==31456== Address 0x5a1c1e0 is 0 bytes after a block of size 48 alloc'd
+==31456==    at 0x4C2E0: operator new[](unsigned long)
+==31456==    by 0x400812: StudentRoster::grow() (roster.cpp:12)
+(memcpy size is element count, not byte count)`,
     hints: [
       "What is the third argument to std::memcpy — is it a byte count or an element count?",
       "How many bytes does each Student struct occupy?",
@@ -2839,6 +3370,14 @@ int main() {
     ParticlePool pool(100);
     simulate(pool);
 }`,
+    manifestation: `$ g++ -fsanitize=address -g particle.cpp -o particle && ./particle
+=================================================================
+==14567==ERROR: AddressSanitizer: attempting double-free on 0x602000000030 in thread T0:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55c1a3 in main particle.cpp:35
+0x602000000030 is located 16 bytes inside of 48-byte region
+(pointer into pool interior is not a standalone allocation)
+SUMMARY: AddressSanitizer: double-free particle.cpp:35 in main`,
     hints: [
       "How were the Particle objects that a and b point to originally allocated?",
       "Is it valid to call delete on a pointer that points into the middle of a new[] array?",
@@ -2883,6 +3422,17 @@ int main() {
         delete p;
     }
 }`,
+    manifestation: `$ g++ -fsanitize=address -g resbatch.cpp -o resbatch && ./resbatch
+=================================================================
+==22891==ERROR: AddressSanitizer: undefined-behavior (delete on void*)
+WARNING: deleting void* is undefined behavior. The destructor for the
+actual object type is never called.
+
+$ valgrind ./resbatch
+==22891== Mismatched free() / delete / delete[]
+==22891==    at 0x4C2F4D8: operator delete(void*)
+==22891==    by 0x4008A1: cleanup (resbatch.cpp:20)
+(destructor not called for stored objects)`,
     hints: [
       "What type information does the compiler have when delete is called on each resource?",
       "Can the compiler invoke the correct destructor through a void pointer?",
@@ -2954,6 +3504,15 @@ int main() {
         std::cout << "Error: " << e.what() << std::endl;
     }
 }`,
+    manifestation: `$ g++ -fsanitize=address -g batchproc.cpp -o batchproc && ./batchproc
+=================================================================
+==28123==ERROR: AddressSanitizer: attempting free on address which was not malloc()-ed
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55a1c3 in BatchProcessor::~BatchProcessor() batchproc.cpp:18
+    #2 0x55a3f1 in main batchproc.cpp:30
+Address 0x7ffd3a100060 is located in the stack area
+SUMMARY: AddressSanitizer: bad-free batchproc.cpp:18 in BatchProcessor::~BatchProcessor()
+(deleting uninitialized pointer containing garbage value)`,
     hints: [
       "What values do the entries in the tasks array contain before any Task objects are constructed?",
       "If the construction of tasks[2] throws, how many entries hold valid pointers?",
@@ -2998,6 +3557,18 @@ int main() {
 
     delete[] results;
 }`,
+    manifestation: `$ g++ -fsanitize=leak -g runtotal.cpp -o runtotal && ./runtotal
+Running total: 55
+
+=================================================================
+==16234==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 36 bytes in 9 object(s) allocated from:
+    #0 0x7f9a2b in operator new(unsigned long)
+    #1 0x55a1c3 in main runtotal.cpp:8
+
+SUMMARY: LeakSanitizer: 36 byte(s) leaked in 9 object(s).
+(each iteration leaks the previous int*)`,
     hints: [
       "How many heap allocations are made, and how many are freed?",
       "What happens to the first allocation when results is reassigned?",
@@ -3035,6 +3606,12 @@ int main() {
     std::free(name1);
     std::free(name2);
 }`,
+    manifestation: `$ g++ -fsanitize=address -g namefmt.cpp -o namefmt && ./namefmt
+=================================================================
+==27891==ERROR: AddressSanitizer: alloc-dealloc-mismatch (operator new[] vs free) on 0x602000000010
+    #0 0x7f9a2b in free
+    #1 0x55a1c3 in main namefmt.cpp:14
+SUMMARY: AddressSanitizer: alloc-dealloc-mismatch namefmt.cpp:14 in main`,
     hints: [
       "How is the memory for each name allocated inside format_name?",
       "Does the deallocation in main match the allocation method?",
@@ -3087,6 +3664,17 @@ int main() {
     daily.record(22.0);
     std::cout << "Updated average: " << daily.average() << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g templog.cpp -o templog && ./templog
+=================================================================
+==19456==ERROR: AddressSanitizer: attempting double-free on 0x604000000010 in thread T0:
+    #0 0x7f9a2b in operator delete[](void*)
+    #1 0x55a1c3 in TempLog::~TempLog() templog.cpp:12
+    #2 0x55a3f1 in main templog.cpp:28
+0x604000000010 is located 0 bytes inside of 40-byte region
+previously freed by thread T0 here:
+    #0 0x7f9a2b in operator delete[](void*)
+    #1 0x55a1c3 in TempLog::~TempLog() templog.cpp:12
+SUMMARY: AddressSanitizer: double-free templog.cpp:12 in TempLog::~TempLog()`,
     hints: [
       "How is TempLog passed to print_average?",
       "What does the compiler-generated copy constructor do with the readings_ pointer?",
@@ -3133,6 +3721,17 @@ int main() {
     std::cout << "Saved: " << saved << std::endl;
     std::cout << "Final: " << builder.c_path() << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g pathbuild.cpp -o pathbuild && ./pathbuild
+=================================================================
+==24567==ERROR: AddressSanitizer: heap-use-after-free on address 0x603000000010
+READ of size 1 at 0x603000000010 thread T0
+    #0 0x55a1c3 in main pathbuild.cpp:16
+    #1 0x7f3c2a in __libc_start_main
+0x603000000010 is located 0 bytes inside of 32-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55a1a1 in std::string::~string()
+SUMMARY: AddressSanitizer: heap-use-after-free pathbuild.cpp:16 in main
+(c_str() pointer invalidated when string modified or destroyed)`,
     hints: [
       "What does c_str() return, and how long is that pointer guaranteed to remain valid?",
       "Can subsequent modifications to the underlying string cause reallocation of its internal buffer?",
@@ -3191,6 +3790,19 @@ int main() {
     std::cout << "Populated entries:" << std::endl;
     arr.print_all();
 }`,
+    manifestation: `$ valgrind ./sparse
+==18923== Memcheck, a memory error detector
+==18923== Conditional jump or move depends on uninitialised value(s)
+==18923==    at 0x400812: main (sparse.cpp:22)
+==18923==
+==18923== Use of uninitialised value of size 8
+==18923==    at 0x400834: main (sparse.cpp:23)
+
+Expected output:
+  entries[0] = (0, 0, 1.0)
+Actual output:
+  entries[0] = (garbage, garbage, 1.0)
+(POD struct members row and col are uninitialized)`,
     hints: [
       "What are the initial values of the Entry members after new Entry[cap]?",
       "Does new[] value-initialize or default-initialize POD-like struct members?",
@@ -3250,6 +3862,14 @@ int main() {
         std::cout << "Popped: " << stack.pop() << std::endl;
     }
 }`,
+    manifestation: `$ g++ -fsanitize=address -g stackmach.cpp -o stackmach && ./stackmach
+=================================================================
+==21345==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x602000000058
+WRITE of size 4 at 0x602000000058 thread T0
+    #0 0x55c1a3 in StackMachine::push(int) stackmach.cpp:12
+    #1 0x55c3f1 in main stackmach.cpp:28
+0x602000000058 is located 8 bytes after 80-byte region
+SUMMARY: AddressSanitizer: heap-buffer-overflow stackmach.cpp:12 in StackMachine::push`,
     hints: [
       "How many elements is the stack allocated to hold?",
       "How many elements are pushed onto the stack?",
@@ -3291,6 +3911,15 @@ int main() {
     delete[] log2;
     delete[] log3;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g logfmt.cpp -o logfmt && ./logfmt
+=================================================================
+==26789==ERROR: AddressSanitizer: stack-buffer-overflow on address 0x7ffd3a100090
+WRITE of size 58 at 0x7ffd3a100090 thread T0
+    #0 0x7f8a3b in __vsprintf_chk
+    #1 0x55a1c3 in format logfmt.cpp:8
+    #2 0x55a2e1 in main logfmt.cpp:16
+0x7ffd3a100090 is located in stack of thread T0
+SUMMARY: AddressSanitizer: stack-buffer-overflow logfmt.cpp:8 in format`,
     hints: [
       "How large is the buffer allocated for each log entry?",
       "Does sprintf check whether the formatted output fits in the destination buffer?",
@@ -3348,6 +3977,14 @@ int main() {
     print_ring(ring, 10);
     free_list(ring);
 }`,
+    manifestation: `$ ./circlist
+(program hangs indefinitely -- infinite loop in destructor)
+
+$ timeout 5 ./circlist
+(killed after 5 seconds)
+
+The destructor follows the circular next pointers endlessly,
+never reaching nullptr to stop the loop.`,
     hints: [
       "What is the termination condition of the free_list loop?",
       "What does the last node's next pointer point to in a ring?",
@@ -3387,6 +4024,16 @@ int main() {
     std::cout << "archive.tar.gz -> " << ext2 << std::endl;
     std::cout << "README -> " << ext3 << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g subfind.cpp -o subfind && ./subfind
+=================================================================
+==23456==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010
+READ of size 1 at 0x602000000010 thread T0
+    #0 0x55a1c3 in main subfind.cpp:18
+    #1 0x7f3c2a in __libc_start_main
+0x602000000010 is located 0 bytes inside of 16-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete[](void*)
+    #1 0x55a1a1 in main subfind.cpp:16
+SUMMARY: AddressSanitizer: heap-use-after-free subfind.cpp:18 in main`,
     hints: [
       "Where does the pointer ext point to after strrchr finds the dot?",
       "What happens to the buffer that ext points into before the function returns?",
@@ -3435,6 +4082,17 @@ int main() {
 
     delete[] copies;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g recser.cpp -o recser && ./recser
+=================================================================
+==29012==ERROR: AddressSanitizer: undefined-behavior
+runtime error: member access within misaligned address 0x602000000010
+or possible object-model violation
+(memcpy of non-trivially-copyable std::string corrupts internal pointers)
+
+$ valgrind ./recser
+==29012== Invalid read of size 8
+==29012==    at 0x400812: main (recser.cpp:20)
+==29012== Address 0x5a1c1e8 is 8 bytes inside a block of size 48 free'd`,
     hints: [
       "Can std::memcpy safely copy objects that contain std::string members?",
       "What happens to the default-constructed strings in the destination array when memcpy overwrites them?",
@@ -3489,6 +4147,17 @@ int main() {
 
     std::cout << "Total messages: " << inbox.size() << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g notify.cpp -o notify && ./notify
+Processing: alert
+=================================================================
+==14892==ERROR: AddressSanitizer: heap-use-after-free on address 0x603000000020
+READ of size 32 at 0x603000000020 thread T0
+    #0 0x55c1a3 in Dispatcher::process() notify.cpp:18
+    #1 0x55c3f1 in main notify.cpp:30
+0x603000000020 is located 0 bytes inside of 32-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55c181 in std::vector<std::string>::_M_realloc_insert
+SUMMARY: AddressSanitizer: heap-use-after-free notify.cpp:18 in Dispatcher::process`,
     hints: [
       "What could happen to the vector's internal storage when push_back is called inside the loop?",
       "If the vector needs more capacity, what happens to iterators pointing into the old storage?",
@@ -3537,6 +4206,16 @@ int main() {
     std::cout << "Remaining tags:" << std::endl;
     print_tags(issue_tags);
 }`,
+    manifestation: `$ g++ -fsanitize=address -g tagclean.cpp -o tagclean && ./tagclean
+=================================================================
+==21678==ERROR: AddressSanitizer: heap-use-after-free on address 0x603000000030
+READ of size 8 at 0x603000000030 thread T0
+    #0 0x55b1a1 in TagCleaner::clean() tagclean.cpp:16
+    #1 0x55b2c1 in main tagclean.cpp:24
+0x603000000030 is located 16 bytes inside of 64-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55b181 in std::_Rb_tree::_M_erase_aux
+SUMMARY: AddressSanitizer: heap-use-after-free tagclean.cpp:16 in TagCleaner::clean`,
     hints: [
       "What happens to an iterator after the element it points to is erased from a map?",
       "After erase, is the iterator advanced to the next element automatically, or is it left invalid?",
@@ -3596,6 +4275,16 @@ int main() {
     }
     std::cout << "Batch 2 average: " << sum / 5 << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g datacoll.cpp -o datacoll && ./datacoll
+=================================================================
+==18234==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010
+READ of size 4 at 0x602000000010 thread T0
+    #0 0x55a1c3 in DataCollector::report() datacoll.cpp:22
+    #1 0x55a3f1 in main datacoll.cpp:32
+0x602000000010 is located 0 bytes inside of 40-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55a1a1 in std::vector<int>::clear()
+SUMMARY: AddressSanitizer: heap-use-after-free datacoll.cpp:22 in DataCollector::report`,
     hints: [
       "What happens to existing iterators when clear() is called on a vector?",
       "After clearing and refilling the vector, do the saved iterators point to valid locations?",
@@ -3642,6 +4331,16 @@ int main() {
 
     std::cout << "Expected:        10 0 20 0 30 0 40 0 50 0" << std::endl;
 }`,
+    manifestation: `$ g++ -fsanitize=address -g seqpad.cpp -o seqpad && ./seqpad
+=================================================================
+==25891==ERROR: AddressSanitizer: heap-use-after-free on address 0x604000000028
+READ of size 4 at 0x604000000028 thread T0
+    #0 0x55c1a3 in pad seqpad.cpp:10
+    #1 0x55c3f1 in main seqpad.cpp:20
+0x604000000028 is located 8 bytes inside of 20-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55c181 in std::vector<int>::_M_realloc_insert
+SUMMARY: AddressSanitizer: heap-use-after-free seqpad.cpp:10 in pad`,
     hints: [
       "What happens to existing iterators when insert is called on a vector?",
       "Does insert guarantee that iterators before the insertion point remain valid?",
@@ -3684,6 +4383,16 @@ int main() {
         std::cout << "  " << key << " = " << val << std::endl;
     }
 }`,
+    manifestation: `$ g++ -fsanitize=address -g cacherefresh.cpp -o cacherefresh && ./cacherefresh
+=================================================================
+==22345==ERROR: AddressSanitizer: heap-use-after-free on address 0x603000000040
+READ of size 8 at 0x603000000040 thread T0
+    #0 0x55d1a1 in CacheRefresher::refresh() cacherefresh.cpp:18
+    #1 0x55d2c1 in main cacherefresh.cpp:28
+0x603000000040 is located inside of 64-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55d181 in std::__detail::_Map_base::_M_rehash
+SUMMARY: AddressSanitizer: heap-use-after-free cacherefresh.cpp:18`,
     hints: [
       "What happens to an unordered_map's internal bucket structure when new elements are inserted?",
       "Under what condition does an unordered_map rehash, and what effect does that have on iterators?",
@@ -3738,6 +4447,16 @@ int main() {
     std::cout << "Final queue:" << std::endl;
     print_queue(tasks);
 }`,
+    manifestation: `$ g++ -fsanitize=address -g tasksched.cpp -o tasksched && ./tasksched
+=================================================================
+==16789==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000020
+READ of size 8 at 0x602000000020 thread T0
+    #0 0x55b1a1 in Scheduler::run() tasksched.cpp:20
+    #1 0x55b2c1 in main tasksched.cpp:30
+0x602000000020 is located 0 bytes inside of 48-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55b181 in std::deque<Task>::push_front
+SUMMARY: AddressSanitizer: heap-use-after-free tasksched.cpp:20 in Scheduler::run`,
     hints: [
       "What guarantees does a deque provide about iterator validity after push_front?",
       "Does inserting at the front of a deque preserve iterators to existing elements?",
@@ -3795,6 +4514,16 @@ int main() {
     std::cout << "Filtered log:" << std::endl;
     print_log(log);
 }`,
+    manifestation: `$ g++ -fsanitize=address -g logfilter.cpp -o logfilter && ./logfilter
+=================================================================
+==20123==ERROR: AddressSanitizer: heap-use-after-free on address 0x603000000030
+READ of size 8 at 0x603000000030 thread T0
+    #0 0x55c1a3 in LogFilter::apply() logfilter.cpp:22
+    #1 0x55c3f1 in main logfilter.cpp:34
+0x603000000030 is located 16 bytes inside of 64-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55c181 in std::vector<std::string>::erase
+SUMMARY: AddressSanitizer: heap-use-after-free logfilter.cpp:22`,
     hints: [
       "After the first call to log.erase(), what happens to the remaining stored iterators?",
       "Does erasing an element from a vector affect iterators that point to positions after it?",
@@ -3848,6 +4577,16 @@ int main() {
     std::cout << "Result: ";
     print_vector(values);
 }`,
+    manifestation: `$ g++ -fsanitize=address -g pairelim.cpp -o pairelim && ./pairelim
+=================================================================
+==27456==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000018
+READ of size 4 at 0x602000000018 thread T0
+    #0 0x55a1c3 in eliminate pairelim.cpp:14
+    #1 0x55a3f1 in main pairelim.cpp:26
+0x602000000018 is located 8 bytes inside of 32-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55a1a1 in std::vector<int>::erase
+SUMMARY: AddressSanitizer: heap-use-after-free pairelim.cpp:14 in eliminate`,
     hints: [
       "After both erase calls execute and the inner loop breaks, what is the state of the outer loop iterator?",
       "Does vector::erase return useful information that the code discards?",
@@ -3895,6 +4634,16 @@ int main() {
         std::cout << "  " << name << " -> " << *it << std::endl;
     }
 }`,
+    manifestation: `$ g++ -fsanitize=address -g idxcoll.cpp -o idxcoll && ./idxcoll
+=================================================================
+==23891==ERROR: AddressSanitizer: heap-use-after-free on address 0x604000000020
+READ of size 4 at 0x604000000020 thread T0
+    #0 0x55d1a1 in IndexedCollection::lookup() idxcoll.cpp:26
+    #1 0x55d3f1 in main idxcoll.cpp:38
+0x604000000020 is located 0 bytes inside of 20-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55d181 in std::vector<int>::_M_realloc_insert
+SUMMARY: AddressSanitizer: heap-use-after-free idxcoll.cpp:26`,
     hints: [
       "After erasing elements from the list, what happens to the iterators stored in the index for those elements?",
       "For a std::list, does erasing one element affect iterators to other elements?",
@@ -3969,6 +4718,16 @@ int main() {
     std::cout << "All config:" << std::endl;
     config.print();
 }`,
+    manifestation: `$ g++ -fsanitize=address -g flatmap.cpp -o flatmap && ./flatmap
+=================================================================
+==30567==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000028
+READ of size 4 at 0x602000000028 thread T0
+    #0 0x55b1a1 in FlatMap::insert() flatmap.cpp:20
+    #1 0x55b3f1 in main flatmap.cpp:32
+0x602000000028 is located 8 bytes inside of 40-byte region freed by thread T0 here:
+    #0 0x7f9a2b in operator delete(void*)
+    #1 0x55b181 in std::vector<Entry>::_M_realloc_insert
+SUMMARY: AddressSanitizer: heap-use-after-free flatmap.cpp:20 in FlatMap::insert`,
     hints: [
       "What is the return type of find(), and what underlying container does the returned iterator belong to?",
       "When insert() adds new entries to the sorted vector, what happens to its internal storage?",
