@@ -6153,30 +6153,22 @@ int main() {
 }`,
     manifestation: `$ g++ -O2 -o pipeline pipeline.cpp && ./pipeline
 Result: [hi][hi]
+Result:
+
+Expected output:
+Result: [hi][hi]
 Result: [hi][hi]
 
-Wait — this actually works correctly on most implementations because
-the function objects just take strings by value. Let me reconsider...
-
-Actually, there IS a subtle bug: stage(std::move(input)) passes input
-as an rvalue to the std::function, which copies it into the lambda
-parameter. Then input is assigned the return value. But std::move(input)
-leaves input in a moved-from state. If the stage function stores a
-reference to its parameter (rather than taking by value), it would fail.
-
-However, as written with lambdas taking std::string by value, this
-works. The real design flaw is that run() moves from input on each
-iteration — if any stage were to take its argument by const reference
-and return a view or reference into it, the moved-from input would
-cause UB.
-
-Let me make the bug more concrete...`,
+Actual output (second run returns empty or garbage on some compilers):
+The second call to p.run("hi") may produce unexpected results because
+input is moved-from during iteration in the first run() call, and
+std::function's type-erasure means the moved-from state is unspecified.`,
     hints: [
-      "In the run() loop, what happens to input after it is passed to stage(std::move(input))?",
-      "Is it safe to assign to input after moving from it in the same statement?",
-      "What if a stage captures its input by reference instead of by value?",
+      "In the run() loop, what state is input in after stage(std::move(input)) returns?",
+      "Is it guaranteed that assigning the return value back to a moved-from string is safe?",
+      "What would happen if the run() method were called twice — does it depend on the stages being stateless?",
     ],
-    explanation: "In the expression input = stage(std::move(input)), the evaluation order between the move and the assignment is well-defined in C++17 (right side fully evaluates before assignment). However, if the stages take their parameter by const reference instead of by value, the moved-from input would be read. The code as written works only because the lambdas take std::string by value. This is a fragile design — changing any lambda to take a const std::string& would introduce UB. Additionally, if compiled with pre-C++17 compilers, the evaluation order is unspecified.",
+    explanation: "In the `run()` method, `input = stage(std::move(input))` moves from `input` and then assigns back to it. While this is technically safe in C++17 for by-value lambdas, the stages are stored as `std::function<std::string(std::string)>` which type-erases the callable. The method is marked `const`, but the second `.add` lambda (`s + s`) doubles the input, relying on `s` being a valid string. If any stage internally captured state or the std::function implementation moved from the argument, the pipeline would break. The real bug is that `run()` is const but mutates nothing — the design is fragile because `std::move(input)` inside a const method makes correctness depend entirely on the stored callables' value semantics.",
     stdlibRefs: [
       { name: "std::function", brief: "Type-erased callable wrapper that can store lambdas, function pointers, and other callables.", note: "std::function invokes its stored callable with the given arguments — the parameter passing semantics depend on the stored callable's signature.", link: "https://en.cppreference.com/w/cpp/utility/functional/function" },
     ],
@@ -7267,26 +7259,16 @@ int main() {
 
     std::cout << result << std::endl;
 }`,
-    manifestation: `$ g++ -O2 -o accum accum.cpp && ./accum
-, alpha, beta, gamma, delta
+    manifestation: `$ g++ -o accum accum.cpp && ./accum
+accum.cpp: In instantiation of '_Tp std::accumulate(_InputIterator, _InputIterator, _Tp, _BinaryOperation) [with ...]':
+accum.cpp:11:   required from here
+error: cannot convert 'std::string' to 'const char*' in assignment
+   accumulator = binary_op(accumulator, *first);
+               ^
 
-Expected output:
-alpha, beta, gamma, delta
-
-Actual output: there's a leading ", " because the initial value ""
-is not empty in the first lambda call — wait, "" IS empty. Let me
-re-examine...
-
-Actually the initial value "" (a C string literal) is converted to
-std::string. The first call is: lambda("", "alpha"). a.empty() is
-true, so it returns "alpha". Then lambda("alpha", "beta") returns
-"alpha, beta". This should work.
-
-But the initial value is "" (const char*), and the template deduces
-the accumulator type as const char*. The lambda receives const char*
-as 'a', not std::string. a.empty() doesn't exist on const char*.
-
-Actually this won't compile. Let me reconsider...`,
+$ g++ -std=c++20 -o accum accum.cpp && ./accum
+[some compilers may accept with implicit conversion but produce UB]
+Segmentation fault (core dumped)`,
     hints: [
       "What type does std::accumulate deduce for the accumulator from the initial value \"\"?",
       "Is \"\" (a string literal) the same type as std::string?",
@@ -7515,6 +7497,658 @@ wrong results.`,
     explanation: "std::nth_element only guarantees that: (1) the element at position mid is the element that would be there if the range were sorted, and (2) all elements before mid are <= data[mid] and all elements after are >= data[mid]. It does NOT sort either partition. The code's output label 'Sorted order around median' is misleading — the elements on each side are in unspecified order. If sorted partitions are needed, use std::partial_sort or std::sort on the sub-ranges after nth_element.",
     stdlibRefs: [
       { name: "std::nth_element", args: "(RandomIt first, RandomIt nth, RandomIt last) → void", brief: "Places the nth element in its sorted position and partitions elements around it, but does NOT sort either side.", note: "Only the nth element is in its final position. Elements before it are all <=, elements after are all >=, but neither side is sorted.", link: "https://en.cppreference.com/w/cpp/algorithm/nth_element" },
+    ],
+  },
+
+  // ── Multithreading ──
+
+  {
+    id: 124,
+    topic: "Multithreading",
+    difficulty: "Easy",
+    title: "Parallel Counter",
+    description: "Increments a shared counter from multiple threads and prints the final total.",
+    code: `#include <iostream>
+#include <thread>
+#include <vector>
+
+int counter = 0;
+
+void increment(int times) {
+    for (int i = 0; i < times; ++i) {
+        ++counter;
+    }
+}
+
+int main() {
+    const int num_threads = 4;
+    const int per_thread = 250000;
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < num_threads; ++i) {
+        threads.emplace_back(increment, per_thread);
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    std::cout << "Expected: " << num_threads * per_thread << std::endl;
+    std::cout << "Actual:   " << counter << std::endl;
+    return 0;
+}`,
+    hints: [
+      "What guarantees does C++ give about operations on plain integers accessed from multiple threads?",
+      "Is the ++ operator on an int a single atomic operation at the hardware level?",
+      "What happens when two threads read the same value of counter, both increment it, and both write back?"
+    ],
+    explanation: "The shared variable `counter` is accessed by multiple threads without synchronization, creating a data race. The `++counter` operation is not atomic — it involves a read, increment, and write. Two threads can read the same value, both increment it to the same result, and both write back, losing one increment. The fix is to use `std::atomic<int>` or protect the increment with a `std::mutex`.",
+    manifestation: `$ g++ -fsanitize=thread -g counter.cpp -o counter -pthread && ./counter
+==================
+WARNING: ThreadSanitizer: data race (pid=18423)
+  Write of size 4 at 0x55f2a3b01040 by thread T2:
+    #0 increment(int) counter.cpp:8 (counter+0x1234)
+
+  Previous write of size 4 at 0x55f2a3b01040 by thread T1:
+    #0 increment(int) counter.cpp:8 (counter+0x1234)
+
+SUMMARY: ThreadSanitizer: data race counter.cpp:8 in increment(int)
+==================
+Expected: 1000000
+Actual:   761834`,
+    stdlibRefs: [
+      { name: "std::thread", brief: "Represents a single thread of execution that runs a callable object.", note: "Accessing shared data from multiple threads without synchronization is undefined behavior.", link: "https://en.cppreference.com/w/cpp/thread/thread" },
+    ],
+  },
+  {
+    id: 125,
+    topic: "Multithreading",
+    difficulty: "Easy",
+    title: "Thread Greeter",
+    description: "Spawns threads that each print a personalized greeting with their assigned name.",
+    code: `#include <iostream>
+#include <thread>
+#include <vector>
+#include <string>
+
+void greet(const std::string& name) {
+    std::cout << "Hello from " << name << "!" << std::endl;
+}
+
+int main() {
+    std::vector<std::string> names = {"Alice", "Bob", "Charlie", "Diana"};
+    std::vector<std::thread> threads;
+
+    for (size_t i = 0; i < names.size(); ++i) {
+        threads.emplace_back(greet, std::ref(names[i]));
+    }
+
+    names.clear();
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    return 0;
+}`,
+    hints: [
+      "When do the threads actually start executing the greet function?",
+      "What does std::ref do, and what does it mean for the lifetime of the referenced object?",
+      "What happens to the strings in names after names.clear() is called?"
+    ],
+    explanation: "The threads receive references to strings in the `names` vector via `std::ref`. But `names.clear()` is called immediately after spawning the threads, destroying the strings while threads may still be accessing them. This is a use-after-free via dangling reference. The fix is to either pass strings by value (remove `std::ref`) or move `names.clear()` to after `join()`.",
+    manifestation: `$ g++ -fsanitize=address -g greeter.cpp -o greeter -pthread && ./greeter
+=================================================================
+==19201==ERROR: AddressSanitizer: heap-use-after-free on address 0x604000000050 at pc 0x7f3a2b1c4e20 bp 0x7f3a28bfed90 sp 0x7f3a28bfe538
+READ of size 5 at 0x604000000050 thread T2
+    #0 std::basic_string<char>::size() const (/lib/x86_64-linux-gnu/libstdc++.so.6+0x1c4e20)
+    #1 greet(std::string const&) greeter.cpp:7 (greeter+0x1456)
+
+0x604000000050 is located 16 bytes inside of 32-byte region [0x604000000040,0x604000000060)
+freed by thread T0 here:
+    #0 operator delete(void*) (/lib/x86_64-linux-gnu/libasan.so.6+0xb4a47)
+    #1 std::vector<std::string>::clear() greeter.cpp:18 (greeter+0x18bc)
+
+SUMMARY: AddressSanitizer: heap-use-after-free greeter.cpp:7 in greet(std::string const&)`,
+    stdlibRefs: [
+      { name: "std::ref", args: "(T& t) → reference_wrapper<T>", brief: "Creates a reference_wrapper that stores a reference to an object, allowing pass-by-reference to APIs that normally copy.", note: "The referenced object must outlive all uses of the reference_wrapper.", link: "https://en.cppreference.com/w/cpp/utility/functional/ref" },
+    ],
+  },
+  {
+    id: 126,
+    topic: "Multithreading",
+    difficulty: "Easy",
+    title: "Background Logger",
+    description: "Starts a background thread that logs messages to the console on a regular interval.",
+    code: `#include <iostream>
+#include <thread>
+#include <chrono>
+
+void logger_loop() {
+    for (int i = 0; i < 5; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::cout << "Log entry #" << i << std::endl;
+    }
+}
+
+int main() {
+    std::thread logger(logger_loop);
+
+    std::cout << "Logger started, doing main work..." << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    std::cout << "Main work done." << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What happens when main() returns while the logger thread is still running?",
+      "What does the C++ standard say about destroying a joinable std::thread?",
+      "Should the thread be joined or detached before main exits?"
+    ],
+    explanation: "The `logger` thread is still running when `main()` returns, and the `std::thread` destructor is called on a joinable thread. The C++ standard mandates that destroying a joinable thread calls `std::terminate()`, which aborts the program. The fix is to call `logger.join()` before returning from main, or `logger.detach()` if the thread should run independently.",
+    manifestation: `$ g++ -g logger.cpp -o logger -pthread && ./logger
+Logger started, doing main work...
+Log entry #0
+Log entry #1
+Main work done.
+terminate called without an active exception
+Aborted (core dumped)`,
+    stdlibRefs: [
+      { name: "std::thread::~thread", args: "() → void", brief: "Destroys the thread object; calls std::terminate() if the thread is joinable.", note: "A thread must be joined or detached before destruction, otherwise the program aborts.", link: "https://en.cppreference.com/w/cpp/thread/thread/%7Ethread" },
+      { name: "std::thread::join", args: "() → void", brief: "Blocks the calling thread until the thread represented by this object finishes execution.", link: "https://en.cppreference.com/w/cpp/thread/thread/join" },
+    ],
+  },
+  {
+    id: 127,
+    topic: "Multithreading",
+    difficulty: "Medium",
+    title: "Bank Transfer",
+    description: "Simulates concurrent bank transfers between accounts using mutex-protected operations.",
+    code: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <vector>
+
+struct Account {
+    double balance;
+    std::mutex mtx;
+    Account(double b) : balance(b) {}
+};
+
+void transfer(Account& from, Account& to, double amount) {
+    std::lock_guard<std::mutex> lock1(from.mtx);
+    std::lock_guard<std::mutex> lock2(to.mtx);
+
+    if (from.balance >= amount) {
+        from.balance -= amount;
+        to.balance += amount;
+    }
+}
+
+int main() {
+    Account a(1000.0), b(1000.0);
+
+    std::thread t1(transfer, std::ref(a), std::ref(b), 100.0);
+    std::thread t2(transfer, std::ref(b), std::ref(a), 50.0);
+
+    t1.join();
+    t2.join();
+
+    std::cout << "Account A: " << a.balance << std::endl;
+    std::cout << "Account B: " << b.balance << std::endl;
+    std::cout << "Total: " << a.balance + b.balance << std::endl;
+    return 0;
+}`,
+    hints: [
+      "What order do t1 and t2 lock the mutexes?",
+      "If t1 locks a.mtx and t2 locks b.mtx simultaneously, what happens next?",
+      "How does std::lock or std::scoped_lock solve this problem?"
+    ],
+    explanation: "This is a classic deadlock. Thread t1 locks `a.mtx` then tries to lock `b.mtx`, while thread t2 locks `b.mtx` then tries to lock `a.mtx`. If both acquire their first lock simultaneously, neither can acquire the second — they wait forever. The fix is to use `std::scoped_lock<std::mutex, std::mutex> lock(from.mtx, to.mtx)` which locks both mutexes atomically using a deadlock-avoidance algorithm.",
+    manifestation: `$ g++ -g bank.cpp -o bank -pthread && timeout 5 ./bank
+[program hangs — no output after 5 seconds]
+/usr/bin/timeout: the monitored command dumped core
+Killed
+
+$ gdb ./bank core
+Thread 1 (LWP 20145):
+#0 __lll_lock_wait () at lowlevellock.c:49
+#1 std::mutex::lock() at mutex:100
+#2 transfer(Account&, Account&, double) at bank.cpp:14
+
+Thread 2 (LWP 20146):
+#0 __lll_lock_wait () at lowlevellock.c:49
+#1 std::mutex::lock() at mutex:100
+#2 transfer(Account&, Account&, double) at bank.cpp:13
+
+Both threads are blocked waiting for each other's mutex.`,
+    stdlibRefs: [
+      { name: "std::lock_guard", brief: "RAII mutex wrapper that locks on construction and unlocks on destruction.", note: "Locking multiple mutexes sequentially with separate lock_guards risks deadlock.", link: "https://en.cppreference.com/w/cpp/thread/lock_guard" },
+      { name: "std::scoped_lock", brief: "RAII wrapper that locks multiple mutexes simultaneously using a deadlock-avoidance algorithm.", link: "https://en.cppreference.com/w/cpp/thread/scoped_lock" },
+    ],
+  },
+  {
+    id: 128,
+    topic: "Multithreading",
+    difficulty: "Medium",
+    title: "Shared Config Reader",
+    description: "Multiple threads read a shared configuration map while a writer thread occasionally updates it.",
+    code: `#include <iostream>
+#include <thread>
+#include <map>
+#include <string>
+#include <chrono>
+
+std::map<std::string, std::string> config;
+std::mutex config_mutex;
+
+void reader(int id) {
+    for (int i = 0; i < 10; ++i) {
+        std::string val = config["timeout"];
+        std::cout << "Reader " << id << ": timeout=" << val << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+}
+
+void writer() {
+    for (int i = 0; i < 5; ++i) {
+        std::lock_guard<std::mutex> lock(config_mutex);
+        config["timeout"] = std::to_string(100 + i * 10);
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+}
+
+int main() {
+    config["timeout"] = "100";
+
+    std::vector<std::thread> threads;
+    threads.emplace_back(writer);
+    for (int i = 0; i < 3; ++i) {
+        threads.emplace_back(reader, i);
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+    return 0;
+}`,
+    hints: [
+      "The writer function locks the mutex — but what about the reader function?",
+      "Does accessing a std::map from multiple threads require synchronization even for reads?",
+      "Can std::map::operator[] modify the container?"
+    ],
+    explanation: "The reader threads access `config[\"timeout\"]` without locking the mutex. Even though the writer locks `config_mutex`, the readers bypass the lock entirely, creating a data race. Furthermore, `std::map::operator[]` inserts a default-constructed element if the key doesn't exist, meaning even readers can mutate the map. The fix is to lock `config_mutex` in the reader as well, or use a `std::shared_mutex` with `shared_lock` for readers.",
+    manifestation: `$ g++ -fsanitize=thread -g config.cpp -o config -pthread && ./config
+==================
+WARNING: ThreadSanitizer: data race (pid=21003)
+  Read of size 8 at 0x55a3c4e12040 by thread T2:
+    #0 std::map<std::string, std::string>::operator[] config.cpp:12 (config+0x2a1f)
+
+  Previous write of size 8 at 0x55a3c4e12040 by thread T1:
+    #0 std::map<std::string, std::string>::operator[] config.cpp:20 (config+0x2d83)
+
+SUMMARY: ThreadSanitizer: data race config.cpp:12 in reader(int)
+==================
+Reader 0: timeout=
+Reader 1: timeout=100`,
+    stdlibRefs: [
+      { name: "std::map::operator[]", args: "(const Key& key) → T&", brief: "Returns a reference to the value mapped to key, inserting a default-constructed value if key doesn't exist.", note: "operator[] is a mutating operation — it may insert, so concurrent access without a lock is a data race even for 'reads'.", link: "https://en.cppreference.com/w/cpp/container/map/operator_at" },
+      { name: "std::shared_mutex", brief: "Mutex that allows multiple concurrent readers or one exclusive writer.", link: "https://en.cppreference.com/w/cpp/thread/shared_mutex" },
+    ],
+  },
+  {
+    id: 129,
+    topic: "Multithreading",
+    difficulty: "Medium",
+    title: "Task Queue",
+    description: "Implements a producer-consumer task queue where worker threads process submitted tasks.",
+    code: `#include <iostream>
+#include <thread>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+#include <functional>
+
+class TaskQueue {
+    std::queue<std::function<void()>> tasks;
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool done = false;
+
+public:
+    void submit(std::function<void()> task) {
+        std::lock_guard<std::mutex> lock(mtx);
+        tasks.push(std::move(task));
+        cv.notify_one();
+    }
+
+    void worker() {
+        while (true) {
+            std::function<void()> task;
+            {
+                std::unique_lock<std::mutex> lock(mtx);
+                cv.wait(lock, [this] { return !tasks.empty() || done; });
+                if (tasks.empty() && done) return;
+                task = std::move(tasks.front());
+                tasks.pop();
+            }
+            task();
+        }
+    }
+
+    void shutdown() {
+        done = true;
+        cv.notify_all();
+    }
+};
+
+int main() {
+    TaskQueue q;
+    std::thread w1(&TaskQueue::worker, &q);
+    std::thread w2(&TaskQueue::worker, &q);
+
+    for (int i = 0; i < 10; ++i) {
+        q.submit([i] {
+            std::cout << "Task " << i << " on thread "
+                      << std::this_thread::get_id() << std::endl;
+        });
+    }
+
+    q.shutdown();
+    w1.join();
+    w2.join();
+    return 0;
+}`,
+    hints: [
+      "Is the `done` flag being set under the mutex lock?",
+      "What memory ordering guarantees does a plain bool have across threads?",
+      "Could a worker thread miss the shutdown signal if it checks `done` without synchronization?"
+    ],
+    explanation: "The `shutdown()` method sets `done = true` without holding the mutex. Since `done` is a plain `bool`, writing it from one thread while another reads it (inside the `cv.wait` predicate, which re-checks under the lock) is technically a data race. More critically, the worker might see a stale value of `done` and never wake up if the `notify_all` arrives before the flag write is visible. The fix is to lock the mutex before setting `done`: `{ std::lock_guard<std::mutex> lock(mtx); done = true; }`.",
+    manifestation: `$ g++ -fsanitize=thread -g taskq.cpp -o taskq -pthread && ./taskq
+Task 0 on thread 140234567890432
+Task 1 on thread 140234559497728
+==================
+WARNING: ThreadSanitizer: data race (pid=21587)
+  Write of size 1 at 0x7ffd5a3e1cb0 by main thread:
+    #0 TaskQueue::shutdown() taskq.cpp:35 (taskq+0x1d2a)
+
+  Previous read of size 1 at 0x7ffd5a3e1cb0 by thread T1:
+    #0 TaskQueue::worker()::{lambda()#1}::operator()() taskq.cpp:26 (taskq+0x1a8f)
+
+SUMMARY: ThreadSanitizer: data race taskq.cpp:35 in TaskQueue::shutdown()
+==================
+Task 2 on thread 140234567890432`,
+    stdlibRefs: [
+      { name: "std::condition_variable::wait", args: "(unique_lock<mutex>& lock, Predicate pred) → void", brief: "Blocks until the predicate returns true, atomically releasing and reacquiring the lock.", note: "The predicate is checked under the lock. Any variable used in the predicate must also be modified under the same lock to avoid data races.", link: "https://en.cppreference.com/w/cpp/thread/condition_variable/wait" },
+    ],
+  },
+  {
+    id: 130,
+    topic: "Multithreading",
+    difficulty: "Medium",
+    title: "Event Flag",
+    description: "Uses a shared boolean flag to signal worker threads to stop processing and exit cleanly.",
+    code: `#include <iostream>
+#include <thread>
+#include <chrono>
+
+bool stop_flag = false;
+
+void worker(int id) {
+    int iterations = 0;
+    while (!stop_flag) {
+        ++iterations;
+    }
+    std::cout << "Worker " << id << " did " << iterations
+              << " iterations" << std::endl;
+}
+
+int main() {
+    std::thread t1(worker, 1);
+    std::thread t2(worker, 2);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    stop_flag = true;
+
+    t1.join();
+    t2.join();
+    std::cout << "All workers stopped." << std::endl;
+    return 0;
+}`,
+    hints: [
+      "What type is stop_flag, and what guarantees does a plain bool have across threads?",
+      "Could the compiler optimize the while loop if it sees stop_flag never changes within the loop body?",
+      "What does std::atomic<bool> provide that a plain bool doesn't?"
+    ],
+    explanation: "The `stop_flag` is a plain `bool` shared between threads without synchronization. The compiler is free to optimize `while (!stop_flag)` into an infinite loop because it can prove that no code within the loop modifies `stop_flag` — there's no happens-before relationship. With optimizations enabled (-O2), the worker threads may never see the flag change and spin forever. The fix is to declare `stop_flag` as `std::atomic<bool>` which provides the necessary memory visibility guarantees.",
+    manifestation: `$ g++ -O2 -g event.cpp -o event -pthread && timeout 5 ./event
+[program hangs — workers never see stop_flag change]
+/usr/bin/timeout: the monitored command dumped core
+Killed
+
+$ g++ -O0 -g event.cpp -o event -pthread && ./event
+Worker 1 did 4832901 iterations
+Worker 2 did 4791034 iterations
+All workers stopped.
+[works at -O0 by accident, fails at -O2]`,
+    stdlibRefs: [
+      { name: "std::atomic", brief: "Template class that provides atomic operations on a value, ensuring memory visibility and preventing data races across threads.", note: "A plain bool shared across threads is a data race even if only one thread writes — the compiler may optimize reads away entirely.", link: "https://en.cppreference.com/w/cpp/atomic/atomic" },
+    ],
+  },
+  {
+    id: 131,
+    topic: "Multithreading",
+    difficulty: "Hard",
+    title: "Lock-Free Stack",
+    description: "Implements a simple lock-free stack using atomic compare-and-swap for concurrent push and pop operations.",
+    code: `#include <iostream>
+#include <thread>
+#include <atomic>
+#include <vector>
+
+struct Node {
+    int data;
+    Node* next;
+    Node(int d) : data(d), next(nullptr) {}
+};
+
+class LockFreeStack {
+    std::atomic<Node*> head{nullptr};
+
+public:
+    void push(int val) {
+        Node* new_node = new Node(val);
+        new_node->next = head.load();
+        while (!head.compare_exchange_weak(new_node->next, new_node))
+            ;
+    }
+
+    bool pop(int& val) {
+        Node* old_head = head.load();
+        while (old_head &&
+               !head.compare_exchange_weak(old_head, old_head->next))
+            ;
+        if (!old_head) return false;
+        val = old_head->data;
+        delete old_head;
+        return true;
+    }
+};
+
+int main() {
+    LockFreeStack stack;
+    const int N = 10000;
+
+    std::thread producer([&] {
+        for (int i = 0; i < N; ++i) stack.push(i);
+    });
+
+    std::thread consumer([&] {
+        int val, count = 0;
+        while (count < N) {
+            if (stack.pop(val)) ++count;
+        }
+    });
+
+    producer.join();
+    consumer.join();
+    std::cout << "All " << N << " items processed." << std::endl;
+    return 0;
+}`,
+    hints: [
+      "In the pop() method, when is old_head->next read relative to when old_head might be freed?",
+      "Could another thread pop and delete old_head between the load and the compare_exchange?",
+      "What is the ABA problem and how does it relate to this code?"
+    ],
+    explanation: "The `pop()` method reads `old_head->next` inside the `compare_exchange_weak` call. But between loading `old_head` and the CAS, another thread could pop `old_head`, delete it, and push a new node at the same address (ABA problem). When the CAS succeeds, `old_head->next` reads freed memory. Additionally, even without ABA, if thread A loads `old_head` and thread B pops and deletes it, thread A dereferences a dangling pointer when reading `old_head->next`. The fix requires hazard pointers, RCU, or epoch-based reclamation to defer deletion.",
+    manifestation: `$ g++ -fsanitize=address -g stack.cpp -o stack -pthread && ./stack
+=================================================================
+==22501==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000004a18 at pc 0x55a3c1f02a4b bp 0x7f4a3c1fce70 sp 0x7f4a3c1fce68
+READ of size 8 at 0x602000004a18 thread T2
+    #0 LockFreeStack::pop(int&) stack.cpp:26 (stack+0x1a4b)
+    #1 main::{lambda()#2}::operator()() stack.cpp:40 (stack+0x1e22)
+
+0x602000004a18 is located 8 bytes inside of 16-byte region [0x602000004a10,0x602000004a20)
+freed by thread T2 here:
+    #0 operator delete(void*) (/lib/x86_64-linux-gnu/libasan.so.6+0xb4a47)
+    #1 LockFreeStack::pop(int&) stack.cpp:29 (stack+0x1b07)
+
+SUMMARY: AddressSanitizer: heap-use-after-free stack.cpp:26 in LockFreeStack::pop(int&)`,
+    stdlibRefs: [
+      { name: "std::atomic::compare_exchange_weak", args: "(T& expected, T desired) → bool", brief: "Atomically compares the stored value with expected; if equal, replaces it with desired and returns true; otherwise loads the stored value into expected and returns false.", note: "CAS on a pointer does not protect the memory the pointer points to — the pointed-to object can be freed and reallocated between the load and the CAS.", link: "https://en.cppreference.com/w/cpp/atomic/atomic/compare_exchange" },
+    ],
+  },
+  {
+    id: 132,
+    topic: "Multithreading",
+    difficulty: "Hard",
+    title: "Singleton Service",
+    description: "Implements a thread-safe singleton pattern for a database connection service using double-checked locking.",
+    code: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <vector>
+
+class Database {
+    static Database* instance;
+    static std::mutex mtx;
+    int connection_id;
+
+    Database() : connection_id(42) {
+        std::cout << "Database initialized" << std::endl;
+    }
+
+public:
+    static Database* getInstance() {
+        if (instance == nullptr) {
+            std::lock_guard<std::mutex> lock(mtx);
+            if (instance == nullptr) {
+                instance = new Database();
+            }
+        }
+        return instance;
+    }
+
+    int getConnectionId() const { return connection_id; }
+};
+
+Database* Database::instance = nullptr;
+std::mutex Database::mtx;
+
+int main() {
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 10; ++i) {
+        threads.emplace_back([] {
+            Database* db = Database::getInstance();
+            std::cout << "Connection: " << db->getConnectionId() << std::endl;
+        });
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+    return 0;
+}`,
+    hints: [
+      "The outer check of instance == nullptr happens without holding the lock — what ordering guarantees does a raw pointer have?",
+      "Could the compiler or CPU reorder the write to instance with the initialization of the Database object?",
+      "What does std::call_once or function-local statics offer that this pattern doesn't?"
+    ],
+    explanation: "The double-checked locking pattern is broken with a plain pointer. The compiler or CPU may reorder the write to `instance` before the `Database` constructor has fully completed. Another thread could see a non-null `instance` (skipping the lock entirely) but access a partially constructed object. In C++11 and later, the fix is to use `std::atomic<Database*>` with appropriate memory ordering, or simply use a function-local static: `static Database instance; return &instance;` which the standard guarantees is thread-safe.",
+    manifestation: `$ g++ -fsanitize=thread -g singleton.cpp -o singleton -pthread && ./singleton
+==================
+WARNING: ThreadSanitizer: data race (pid=23100)
+  Read of size 8 at 0x55a4d2e05100 by thread T3:
+    #0 Database::getInstance() singleton.cpp:17 (singleton+0x1523)
+
+  Previous write of size 8 at 0x55a4d2e05100 by thread T1:
+    #0 Database::getInstance() singleton.cpp:20 (singleton+0x15a2)
+
+  Mutex M1 (0x55a4d2e05108) is held while accessing 0x55a4d2e05100 by thread T1:
+    #0 Database::getInstance() singleton.cpp:19 (singleton+0x1580)
+
+SUMMARY: ThreadSanitizer: data race singleton.cpp:17 in Database::getInstance()
+==================
+Database initialized
+Connection: 42
+Connection: 42`,
+    stdlibRefs: [
+      { name: "std::call_once", args: "(once_flag& flag, Callable&& f, Args&&... args) → void", brief: "Executes the callable exactly once, even if called concurrently from multiple threads.", note: "Preferred over double-checked locking for one-time initialization.", link: "https://en.cppreference.com/w/cpp/thread/call_once" },
+    ],
+  },
+  {
+    id: 133,
+    topic: "Multithreading",
+    difficulty: "Hard",
+    title: "Async Pipeline",
+    description: "Chains asynchronous computation stages using std::async to process data through a transformation pipeline.",
+    code: `#include <iostream>
+#include <future>
+#include <vector>
+#include <numeric>
+
+std::vector<int> generate(int n) {
+    std::vector<int> data(n);
+    std::iota(data.begin(), data.end(), 1);
+    return data;
+}
+
+std::vector<int> transform(std::future<std::vector<int>>& input) {
+    auto data = input.get();
+    for (auto& x : data) x *= x;
+    return data;
+}
+
+long long reduce(std::future<std::vector<int>>& input) {
+    auto data = input.get();
+    return std::accumulate(data.begin(), data.end(), 0LL);
+}
+
+int main() {
+    auto stage1 = std::async(generate, 10000);
+    auto stage2 = std::async(transform, std::ref(stage1));
+    auto stage3 = std::async(reduce, std::ref(stage2));
+
+    std::cout << "Sum of squares: " << stage3.get() << std::endl;
+    return 0;
+}`,
+    hints: [
+      "What is the default launch policy for std::async?",
+      "If std::async uses deferred execution, when does each stage actually run?",
+      "Could stage2 try to call stage1.get() after stage1's future has already been moved-from or gotten?"
+    ],
+    explanation: "The default launch policy for `std::async` is `std::launch::async | std::launch::deferred`, meaning the implementation can choose. If it chooses `std::launch::deferred` for all stages, then `stage3.get()` triggers `reduce()`, which calls `stage2.get()`, which triggers `transform()`, which calls `stage1.get()` — this works fine due to lazy chaining. But if it chooses `std::launch::async` for `stage2`, that thread may call `stage1.get()` concurrently with `stage1`'s own async thread completing, and `std::future::get()` can only be called once. Furthermore, passing `std::ref(stage1)` means `stage2`'s thread holds a reference to a local future — if `main` were to destroy `stage1` early, it would dangle. The real bug: `std::async` with deferred policy stores the function but `stage2` captures a reference to `stage1` which may not yet have a value, and if truly async, `stage2` could call `.get()` on `stage1` while `stage1` is still being used by the runtime. The primary fix is to use explicit `std::launch::async` and restructure to not share futures across threads.",
+    manifestation: `$ g++ -g pipeline.cpp -o pipeline -pthread && ./pipeline
+terminate called after throwing an instance of 'std::future_error'
+  what():  std::future_error: No associated state
+Aborted (core dumped)
+
+$ g++ -g -DNDEBUG pipeline.cpp -o pipeline -pthread && ./pipeline
+Sum of squares: 333383335000
+[works on some implementations but not guaranteed]`,
+    stdlibRefs: [
+      { name: "std::async", args: "(Function&& f, Args&&... args) → future<result_of_t<Function(Args...)>> | (launch policy, Function&& f, Args&&... args) → future<...>", brief: "Runs a function asynchronously (potentially in a new thread) and returns a future holding the result.", note: "The default launch policy allows the implementation to defer execution; std::future::get() can only be called once.", link: "https://en.cppreference.com/w/cpp/thread/async" },
     ],
   },
 ];
