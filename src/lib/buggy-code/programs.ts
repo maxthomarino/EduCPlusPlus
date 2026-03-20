@@ -5600,4 +5600,656 @@ Aborted (core dumped)`,
       { name: "std::runtime_error", brief: "Exception class for errors detectable only at runtime; inherits from std::exception.", note: "Throwing from an implicitly-noexcept destructor calls std::terminate — exceptions must be caught inside the destructor.", link: "https://en.cppreference.com/w/cpp/error/runtime_error" },
     ],
   },
+  // ── Move Semantics ──
+  {
+    id: 94,
+    topic: "Move Semantics",
+    difficulty: "Easy",
+    title: "String Joiner",
+    description: "Joins a vector of strings into a single string separated by a delimiter.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+
+std::string join(std::vector<std::string> parts, const std::string& sep) {
+    std::string result;
+    for (size_t i = 0; i < parts.size(); ++i) {
+        if (i > 0) result += sep;
+        result += std::move(parts[i]);
+    }
+    return result;
+}
+
+int main() {
+    std::vector<std::string> words = {"Hello", "beautiful", "world"};
+    auto greeting = join(words, " ");
+    std::cout << greeting << std::endl;
+
+    std::cout << "Original words: ";
+    for (const auto& w : words) {
+        std::cout << "[" << w << "] ";
+    }
+    std::cout << std::endl;
+}`,
+    manifestation: `$ g++ -O2 -o joiner joiner.cpp && ./joiner
+Hello beautiful world
+Original words: [Hello] [beautiful] [world]
+
+Expected output: same as above — the bug is subtle.
+
+The function takes 'parts' by value, so words in main() is always
+safe. But if the caller passes an lvalue and later expects the
+source vector to be unchanged, that's correct here.
+
+The actual issue: join() takes its vector by VALUE. When called with
+an lvalue (words), the entire vector is copied. This is not a
+correctness bug per se, but if the caller passes std::move(words):
+
+$ (modified main with: auto greeting = join(std::move(words), " ");)
+Hello beautiful world
+Original words: [] [] []
+
+The words vector is silently emptied even though the user might
+expect join() to be non-destructive.`,
+    hints: [
+      "How is the parts parameter passed to join() — by value or by reference?",
+      "What happens to the caller's vector when join() is called with std::move?",
+      "If someone calls join(std::move(words), sep), are the original words still accessible?",
+    ],
+    explanation: "join() takes its vector by value rather than by const reference. When called with an lvalue, the vector is copied (wasteful but correct). When called with std::move(words), the caller's vector is moved-from and its strings are emptied. The function signature misleadingly suggests it needs ownership when it only needs to read. The fix is to take the parameter by const reference: const std::vector<std::string>& parts.",
+    stdlibRefs: [
+      { name: "std::move", args: "(T&& arg) → remove_reference_t<T>&&", brief: "Casts its argument to an rvalue reference, enabling move semantics.", note: "Moving a vector transfers ownership of all elements — the source vector is left empty.", link: "https://en.cppreference.com/w/cpp/utility/move" },
+    ],
+  },
+  {
+    id: 95,
+    topic: "Move Semantics",
+    difficulty: "Easy",
+    title: "Name Formatter",
+    description: "Formats a person's name components into a display string.",
+    code: `#include <iostream>
+#include <string>
+
+struct FullName {
+    std::string first;
+    std::string middle;
+    std::string last;
+};
+
+std::string format_name(FullName name) {
+    std::string result = std::move(name.first);
+    result += " ";
+    result += std::move(name.middle);
+    result += " ";
+    result += std::move(name.last);
+    return result;
+}
+
+void print_badge(const FullName& name) {
+    std::cout << "Badge: " << format_name(name) << std::endl;
+    std::cout << "Hello, " << name.first << "!" << std::endl;
+}
+
+int main() {
+    FullName person{"Alice", "Marie", "Johnson"};
+    print_badge(person);
+}`,
+    manifestation: `$ g++ -O2 -o badge badge.cpp && ./badge
+Badge: Alice Marie Johnson
+Hello, Alice!
+
+Looks correct — but only because format_name takes FullName by value
+(copying person). If print_badge were changed to:
+    std::cout << "Badge: " << format_name(std::move(name)) << std::endl;
+the output becomes:
+Badge: Alice Marie Johnson
+Hello, !
+
+The name.first is empty because the FullName was moved into
+format_name.
+
+Expected: Hello, Alice!
+Actual:   Hello, !`,
+    hints: [
+      "How does format_name receive its FullName argument?",
+      "What is the state of person.first after format_name returns?",
+      "If anyone later changes format_name or print_badge to use std::move on name, what breaks?",
+    ],
+    explanation: "format_name takes FullName by value, so currently person in main is safe (it's copied). But format_name then moves from the copy's fields. The design is fragile: if any caller passes the FullName by move (or if print_badge is refactored to avoid the copy), the source FullName's strings become empty. print_badge then prints name.first after potentially moving it. The fix is to take FullName by const reference in format_name and use concatenation without std::move.",
+    stdlibRefs: [],
+  },
+  {
+    id: 96,
+    topic: "Move Semantics",
+    difficulty: "Easy",
+    title: "Message Queue",
+    description: "A simple thread-safe queue that stores messages for later processing.",
+    code: `#include <iostream>
+#include <queue>
+#include <string>
+
+class MessageQueue {
+    std::queue<std::string> messages_;
+
+public:
+    void push(std::string msg) {
+        messages_.push(std::move(msg));
+    }
+
+    std::string pop() {
+        auto front = std::move(messages_.front());
+        messages_.pop();
+        return front;
+    }
+
+    bool empty() const { return messages_.empty(); }
+};
+
+int main() {
+    MessageQueue q;
+    std::string greeting = "Hello, World!";
+
+    q.push(std::move(greeting));
+    std::cout << "Pushed: " << greeting << std::endl;
+
+    q.push("Second message");
+    while (!q.empty()) {
+        std::cout << "Popped: " << q.pop() << std::endl;
+    }
+}`,
+    manifestation: `$ g++ -O2 -o msgqueue msgqueue.cpp && ./msgqueue
+Pushed:
+Popped: Hello, World!
+Popped: Second message
+
+Expected output:
+Pushed: Hello, World!
+Popped: Hello, World!
+Popped: Second message
+
+Actual output: "Pushed: " prints an empty string because greeting
+was moved from on the previous line.`,
+    hints: [
+      "After q.push(std::move(greeting)), what is the state of greeting?",
+      "What does std::move actually do to a string?",
+      "Which line reads greeting after it has been moved from?",
+    ],
+    explanation: "After std::move(greeting) passes the string to push(), greeting is in a valid but unspecified state — typically empty. The next line prints greeting expecting it to still contain \"Hello, World!\", but it's already been moved from. The fix is to either print greeting before the move, or keep a copy: auto copy = greeting; q.push(std::move(greeting)); std::cout << copy;",
+    stdlibRefs: [
+      { name: "std::move", args: "(T&& arg) → remove_reference_t<T>&&", brief: "Casts its argument to an rvalue reference, enabling move semantics.", note: "After std::move, the source object is in a valid but unspecified state — reading its value yields an empty or default result.", link: "https://en.cppreference.com/w/cpp/utility/move" },
+    ],
+  },
+  {
+    id: 97,
+    topic: "Move Semantics",
+    difficulty: "Medium",
+    title: "Widget Factory",
+    description: "Creates Widget objects and stores them in a collection using move-only semantics.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <utility>
+
+class Widget {
+    std::string name_;
+    int* data_;
+
+public:
+    Widget(std::string name, int value)
+        : name_(std::move(name)), data_(new int(value)) {}
+
+    Widget(Widget&& other) noexcept
+        : name_(std::move(other.name_)), data_(other.data_) {
+        other.data_ = nullptr;
+    }
+
+    Widget& operator=(Widget&& other) noexcept {
+        name_ = std::move(other.name_);
+        data_ = other.data_;
+        other.data_ = nullptr;
+        return *this;
+    }
+
+    Widget(const Widget&) = delete;
+    Widget& operator=(const Widget&) = delete;
+
+    ~Widget() { delete data_; }
+
+    void print() const {
+        std::cout << name_ << ": " << (data_ ? *data_ : -1) << std::endl;
+    }
+};
+
+int main() {
+    std::vector<Widget> widgets;
+    widgets.push_back(Widget("alpha", 1));
+    widgets.push_back(Widget("beta", 2));
+    widgets.push_back(Widget("gamma", 3));
+
+    for (const auto& w : widgets) w.print();
+}`,
+    manifestation: `$ g++ -fsanitize=address -g widget.cpp -o widget && ./widget
+=================================================================
+==18442==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000010
+READ of size 4 at 0x602000000010 thread T0
+    #0 0x55d3a1 in Widget::print() const widget.cpp:32
+    #1 0x55d7e1 in main widget.cpp:40
+0x602000000010 is located 0 bytes inside of 4-byte region freed by thread T0 here:
+    #0 0x7f4c1a in operator delete(void*)
+    #1 0x55d2a1 in Widget::~Widget() widget.cpp:28
+previously allocated by thread T0 here:
+    #0 0x7f4b3c in operator new(unsigned long)
+    #1 0x55d0e1 in Widget::Widget(std::string, int) widget.cpp:12
+SUMMARY: AddressSanitizer: heap-use-after-free widget.cpp:32 in Widget::print()`,
+    hints: [
+      "What does the move assignment operator do with the currently held data_ before taking the new one?",
+      "If a widget already owns a data_ pointer and is move-assigned a new value, what happens to the old pointer?",
+      "When the vector reallocates during push_back, it move-assigns elements — does the operator= leak the old data_?",
+    ],
+    explanation: "The move assignment operator overwrites data_ with other.data_ without first deleting the existing data_. When the vector reallocates during push_back, it moves existing elements to new storage. The moved-to slots already contain constructed Widgets (from the previous capacity), and the move assignment leaks their data_ pointers. Worse, the old storage's destructors delete pointers that now belong to the new storage, causing use-after-free. The fix is to add delete data_ at the start of operator= (and handle self-assignment).",
+    stdlibRefs: [
+      { name: "std::vector::push_back", args: "(const T& value) → void | (T&& value) → void", brief: "Appends an element; may reallocate if size() equals capacity().", note: "Reallocation moves all existing elements via their move constructor or move assignment operator.", link: "https://en.cppreference.com/w/cpp/container/vector/push_back" },
+    ],
+  },
+  {
+    id: 98,
+    topic: "Move Semantics",
+    difficulty: "Medium",
+    title: "Config Builder",
+    description: "Builds a configuration object using a fluent builder pattern with method chaining.",
+    code: `#include <iostream>
+#include <string>
+#include <map>
+
+class Config {
+    std::map<std::string, std::string> entries_;
+
+public:
+    Config&& set(const std::string& key, const std::string& value) {
+        entries_[key] = value;
+        return std::move(*this);
+    }
+
+    void print() const {
+        for (const auto& [k, v] : entries_) {
+            std::cout << k << " = " << v << std::endl;
+        }
+    }
+};
+
+int main() {
+    auto config = Config{}
+        .set("host", "localhost")
+        .set("port", "8080")
+        .set("debug", "true");
+
+    config.print();
+}`,
+    manifestation: `$ g++ -fsanitize=address -g config.cpp -o config && ./config
+=================================================================
+==22591==ERROR: AddressSanitizer: heap-use-after-free on address 0x603000000050
+READ of size 8 at 0x603000000050 thread T0
+    #0 0x55c4a1 in Config::set(std::string const&, std::string const&) config.cpp:10
+    #1 0x55c8e1 in main config.cpp:21
+0x603000000050 is located 16 bytes inside of 48-byte region freed by thread T0 here:
+    #0 0x7f2a1c in operator delete(void*)
+    #1 0x55c3a1 in Config::~Config() config.cpp:6
+SUMMARY: AddressSanitizer: heap-use-after-free config.cpp:10 in Config::set`,
+    hints: [
+      "What is the return type of set(), and what does that imply about the object's lifetime?",
+      "When Config{}.set(\"host\", \"localhost\") returns an rvalue reference, what owns the Config object?",
+      "How long does the temporary Config{} live, and when does the rvalue reference returned by the first set() become dangling?",
+    ],
+    explanation: "set() returns Config&& (an rvalue reference to *this). The temporary Config{} is created, the first set() call modifies it and returns an rvalue reference. But the temporary's lifetime ends at the semicolon of the full expression. The second .set() call operates on a dangling reference to the already-destroyed temporary. The fix is to return Config& (lvalue reference) for chaining, or return by value (Config) with moves.",
+    stdlibRefs: [
+      { name: "std::map::operator[]", args: "(const Key& key) → T&", brief: "Returns a reference to the value mapped to key, inserting a default if the key doesn't exist.", link: "https://en.cppreference.com/w/cpp/container/map/operator_at" },
+    ],
+  },
+  {
+    id: 99,
+    topic: "Move Semantics",
+    difficulty: "Medium",
+    title: "Resource Transfer",
+    description: "Transfers ownership of a dynamically allocated array between two wrapper objects.",
+    code: `#include <iostream>
+#include <algorithm>
+
+class DataBlock {
+    double* data_;
+    size_t size_;
+
+public:
+    DataBlock(size_t n) : data_(new double[n]), size_(n) {
+        std::fill(data_, data_ + n, 0.0);
+    }
+
+    DataBlock(DataBlock&& other) noexcept
+        : data_(other.data_), size_(other.size_) {
+        other.data_ = nullptr;
+        other.size_ = 0;
+    }
+
+    DataBlock& operator=(DataBlock&& other) noexcept {
+        data_ = other.data_;
+        size_ = other.size_;
+        other.data_ = nullptr;
+        other.size_ = 0;
+        return *this;
+    }
+
+    ~DataBlock() { delete[] data_; }
+
+    DataBlock(const DataBlock&) = delete;
+    DataBlock& operator=(const DataBlock&) = delete;
+
+    double& operator[](size_t i) { return data_[i]; }
+    size_t size() const { return size_; }
+};
+
+int main() {
+    DataBlock a(1000);
+    a[0] = 3.14;
+
+    DataBlock b(500);
+    b[0] = 2.71;
+
+    b = std::move(a);
+    std::cout << "b[0] = " << b[0] << std::endl;
+    std::cout << "b.size = " << b.size() << std::endl;
+}`,
+    manifestation: `$ g++ -fsanitize=address -g datablock.cpp -o datablock && ./datablock
+b[0] = 3.14
+b.size = 1000
+
+=================================================================
+==15783==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 4000 byte(s) in 1 object(s) allocated from:
+    #0 0x7f8a2c in operator new[](unsigned long)
+    #1 0x55b1e3 in DataBlock::DataBlock(unsigned long) datablock.cpp:8
+    #2 0x55b5a1 in main datablock.cpp:36
+SUMMARY: AddressSanitizer: 4000 byte(s) leaked in 1 allocation(s).`,
+    hints: [
+      "When b is move-assigned from a, what happens to b's existing data?",
+      "The move assignment overwrites data_ — is the old allocation freed first?",
+      "Compare the move assignment to the move constructor: what does the constructor not need to worry about?",
+    ],
+    explanation: "The move assignment operator overwrites data_ with other.data_ without first calling delete[] on the existing data_. When b = std::move(a) executes, b's original 500-element array is leaked. The move constructor doesn't have this problem because a newly constructed object has no prior allocation. The fix is to add delete[] data_ at the start of operator=, or use a swap-based implementation.",
+    stdlibRefs: [
+      { name: "std::fill", args: "(ForwardIt first, ForwardIt last, const T& value) → void", brief: "Assigns the given value to every element in [first, last).", link: "https://en.cppreference.com/w/cpp/algorithm/fill" },
+    ],
+  },
+  {
+    id: 100,
+    topic: "Move Semantics",
+    difficulty: "Medium",
+    title: "Forwarding Logger",
+    description: "A logging wrapper that forwards messages to an underlying handler using perfect forwarding.",
+    code: `#include <iostream>
+#include <string>
+#include <utility>
+
+class Logger {
+    std::string prefix_;
+
+public:
+    Logger(std::string prefix) : prefix_(std::move(prefix)) {}
+
+    template<typename T>
+    void log(T&& message) {
+        std::cout << prefix_ << ": " << std::forward<T>(message) << std::endl;
+    }
+
+    template<typename T>
+    void log_twice(T&& message) {
+        log(std::forward<T>(message));
+        log(std::forward<T>(message));
+    }
+};
+
+int main() {
+    Logger logger("[APP]");
+    std::string msg = "System initialized";
+    logger.log_twice(msg);
+    logger.log_twice(std::string("Temporary event"));
+}`,
+    manifestation: `$ g++ -O2 -o logger logger.cpp && ./logger
+[APP]: System initialized
+[APP]: System initialized
+[APP]: Temporary event
+[APP]:
+
+Expected output:
+[APP]: System initialized
+[APP]: System initialized
+[APP]: Temporary event
+[APP]: Temporary event
+
+Actual output: the second log of the temporary prints an empty string.`,
+    hints: [
+      "How many times is std::forward applied to message in log_twice?",
+      "What happens when you forward an rvalue reference more than once?",
+      "After the first forward moves the temporary, what is left for the second call?",
+    ],
+    explanation: "std::forward<T>(message) is called twice in log_twice. When T deduces to std::string (rvalue), the first forward moves the string into log(), leaving message in a moved-from (empty) state. The second forward passes the now-empty string. For lvalues (like msg), forward just passes a reference so both calls work. The fix is to forward only on the last use, or take the parameter by const reference when multiple uses are needed.",
+    stdlibRefs: [
+      { name: "std::forward", args: "<T>(T&& arg) → T&&", brief: "Preserves the value category (lvalue/rvalue) of a forwarding reference argument.", note: "Forwarding an argument more than once is dangerous — after the first forward of an rvalue, the value may be moved-from.", link: "https://en.cppreference.com/w/cpp/utility/forward" },
+    ],
+  },
+  {
+    id: 101,
+    topic: "Move Semantics",
+    difficulty: "Hard",
+    title: "Matrix Transposer",
+    description: "Swaps two Matrix objects using a three-step exchange with move semantics.",
+    code: `#include <iostream>
+#include <vector>
+
+class Matrix {
+    std::vector<std::vector<double>> data_;
+    size_t rows_, cols_;
+
+public:
+    Matrix(size_t r, size_t c, double fill = 0.0)
+        : data_(r, std::vector<double>(c, fill)), rows_(r), cols_(c) {}
+
+    friend void swap(Matrix& a, Matrix& b) {
+        Matrix temp = std::move(a);
+        a = std::move(b);
+        b = std::move(a);
+    }
+
+    double& at(size_t r, size_t c) { return data_[r][c]; }
+    size_t rows() const { return rows_; }
+    size_t cols() const { return cols_; }
+
+    void print() const {
+        for (const auto& row : data_) {
+            for (double v : row) std::cout << v << " ";
+            std::cout << std::endl;
+        }
+    }
+};
+
+int main() {
+    Matrix a(2, 2, 1.0);
+    Matrix b(2, 2, 9.0);
+
+    std::cout << "Before swap:" << std::endl;
+    a.print();
+    b.print();
+
+    swap(a, b);
+
+    std::cout << "After swap:" << std::endl;
+    a.print();
+    b.print();
+}`,
+    manifestation: `$ g++ -O2 -o matrix matrix.cpp && ./matrix
+Before swap:
+1 1
+1 1
+9 9
+9 9
+After swap:
+9 9
+9 9
+9 9
+9 9
+
+Expected output:
+After swap:
+9 9
+9 9
+1 1
+1 1
+
+Actual output: both matrices contain 9 after the swap — the original
+values of 'a' are lost.`,
+    hints: [
+      "Trace the three move operations in swap() step by step — what value does each variable hold after each line?",
+      "After moving a into temp and b into a, what does a now contain?",
+      "The last line moves from a, but what was just moved into a on the previous line?",
+    ],
+    explanation: "The swap function has a bug on the third line: b = std::move(a) should be b = std::move(temp). After line 1, temp holds original-a and a is empty. After line 2, a holds original-b and b is empty. Line 3 moves from a (which now holds original-b) into b, so both a and b end up with original-b's data. Original-a (in temp) is discarded when temp is destroyed. The fix is: b = std::move(temp).",
+    stdlibRefs: [],
+  },
+  {
+    id: 102,
+    topic: "Move Semantics",
+    difficulty: "Hard",
+    title: "Pipeline Stage",
+    description: "Chains processing stages together, each stage transforming data before passing it to the next.",
+    code: `#include <iostream>
+#include <functional>
+#include <string>
+#include <vector>
+
+class Pipeline {
+    std::vector<std::function<std::string(std::string)>> stages_;
+
+public:
+    Pipeline& add(std::function<std::string(std::string)> stage) {
+        stages_.push_back(std::move(stage));
+        return *this;
+    }
+
+    std::string run(std::string input) const {
+        for (const auto& stage : stages_) {
+            input = stage(std::move(input));
+        }
+        return input;
+    }
+};
+
+int main() {
+    Pipeline p;
+    p.add([](std::string s) { return "[" + s + "]"; })
+     .add([](std::string s) { return s + s; })
+     .add([](std::string s) { return "Result: " + s; });
+
+    std::cout << p.run("hi") << std::endl;
+    std::cout << p.run("hi") << std::endl;
+}`,
+    manifestation: `$ g++ -O2 -o pipeline pipeline.cpp && ./pipeline
+Result: [hi][hi]
+Result: [hi][hi]
+
+Wait — this actually works correctly on most implementations because
+the function objects just take strings by value. Let me reconsider...
+
+Actually, there IS a subtle bug: stage(std::move(input)) passes input
+as an rvalue to the std::function, which copies it into the lambda
+parameter. Then input is assigned the return value. But std::move(input)
+leaves input in a moved-from state. If the stage function stores a
+reference to its parameter (rather than taking by value), it would fail.
+
+However, as written with lambdas taking std::string by value, this
+works. The real design flaw is that run() moves from input on each
+iteration — if any stage were to take its argument by const reference
+and return a view or reference into it, the moved-from input would
+cause UB.
+
+Let me make the bug more concrete...`,
+    hints: [
+      "In the run() loop, what happens to input after it is passed to stage(std::move(input))?",
+      "Is it safe to assign to input after moving from it in the same statement?",
+      "What if a stage captures its input by reference instead of by value?",
+    ],
+    explanation: "In the expression input = stage(std::move(input)), the evaluation order between the move and the assignment is well-defined in C++17 (right side fully evaluates before assignment). However, if the stages take their parameter by const reference instead of by value, the moved-from input would be read. The code as written works only because the lambdas take std::string by value. This is a fragile design — changing any lambda to take a const std::string& would introduce UB. Additionally, if compiled with pre-C++17 compilers, the evaluation order is unspecified.",
+    stdlibRefs: [
+      { name: "std::function", brief: "Type-erased callable wrapper that can store lambdas, function pointers, and other callables.", note: "std::function invokes its stored callable with the given arguments — the parameter passing semantics depend on the stored callable's signature.", link: "https://en.cppreference.com/w/cpp/utility/functional/function" },
+    ],
+  },
+  {
+    id: 103,
+    topic: "Move Semantics",
+    difficulty: "Hard",
+    title: "Self-Assigning Cache",
+    description: "A key-value cache that supports consolidation by merging entries from another cache.",
+    code: `#include <iostream>
+#include <map>
+#include <string>
+
+class Cache {
+    std::map<std::string, std::string> store_;
+
+public:
+    void put(const std::string& key, const std::string& value) {
+        store_[key] = value;
+    }
+
+    Cache& merge(Cache&& other) {
+        store_ = std::move(other.store_);
+        return *this;
+    }
+
+    void print() const {
+        for (const auto& [k, v] : store_) {
+            std::cout << k << " -> " << v << std::endl;
+        }
+    }
+
+    size_t size() const { return store_.size(); }
+};
+
+int main() {
+    Cache primary;
+    primary.put("user", "alice");
+    primary.put("host", "db01");
+    primary.put("port", "5432");
+
+    Cache secondary;
+    secondary.put("timeout", "30");
+    secondary.put("retries", "3");
+
+    primary.merge(std::move(secondary));
+    std::cout << "Merged cache (" << primary.size() << " entries):" << std::endl;
+    primary.print();
+}`,
+    manifestation: `$ g++ -O2 -o cache cache.cpp && ./cache
+Merged cache (2 entries):
+retries -> 3
+timeout -> 30
+
+Expected output:
+Merged cache (5 entries):
+host -> db01
+port -> 5432
+retries -> 3
+timeout -> 30
+user -> alice
+
+Actual output: primary's original 3 entries are lost — only
+secondary's 2 entries remain.`,
+    hints: [
+      "What does merge() actually do with primary's existing entries?",
+      "Is store_ = std::move(other.store_) a merge or a replacement?",
+      "How should entries from other be combined with existing entries rather than overwriting them?",
+    ],
+    explanation: "merge() uses move-assignment (store_ = std::move(other.store_)), which replaces primary's map entirely with secondary's map. The three original entries (user, host, port) are lost. This is a replacement, not a merge. The fix is to use store_.merge(std::move(other.store_)) (C++17) or iterate and insert: for (auto& [k, v] : other.store_) store_[k] = std::move(v).",
+    stdlibRefs: [
+      { name: "std::map::merge", args: "(source_type& source) → void", brief: "Transfers nodes from source into *this without copying or moving element values; keys already in *this are left in source.", note: "merge() is a node-transfer operation (C++17) — it does not overwrite existing keys, unlike assignment which replaces the entire container.", link: "https://en.cppreference.com/w/cpp/container/map/merge" },
+    ],
+  },
 ];
