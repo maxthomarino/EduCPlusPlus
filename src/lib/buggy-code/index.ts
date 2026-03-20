@@ -1,4 +1,4 @@
-export type { BuggyProgram, BuggyProgramHighlighted } from "./types";
+export type { BuggyProgram, BuggyProgramHighlighted, StdlibRef } from "./types";
 export { programs } from "./programs";
 
 import { programs } from "./programs";

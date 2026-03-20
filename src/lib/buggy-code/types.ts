@@ -1,3 +1,10 @@
+export interface StdlibRef {
+  name: string;
+  brief: string;
+  note?: string;
+  link: string;
+}
+
 export interface BuggyProgram {
   id: number;
   topic: string;
@@ -8,6 +15,7 @@ export interface BuggyProgram {
   hints: string[];
   explanation: string;
   manifestation: string;
+  stdlibRefs?: StdlibRef[];
 }
 
 export interface BuggyProgramHighlighted extends BuggyProgram {

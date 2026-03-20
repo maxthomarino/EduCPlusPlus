@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "preact/hooks";
 import type { ComponentChildren } from "preact";
-import type { BuggyProgramHighlighted } from "../../lib/buggy-code";
+import type { BuggyProgramHighlighted, StdlibRef } from "../../lib/buggy-code";
 
 type View = "menu" | "list" | "viewer";
 
@@ -162,18 +162,106 @@ const TerminalIcon = (
   </svg>
 );
 
+const BookIcon = (
+  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20" />
+  </svg>
+);
+
 // ── Hints + Explanation block ──
+function StdlibRefCards({ refs }: { refs: StdlibRef[] }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+      {refs.map((ref, i) => (
+        <div
+          key={i}
+          style={{
+            padding: "0.55rem 0.7rem",
+            borderRadius: "0.5rem",
+            border: "1px solid var(--border-soft)",
+            background: "var(--surface-code)",
+          }}
+        >
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+            <code
+              style={{
+                fontFamily: "var(--font-code)",
+                fontSize: "0.8rem",
+                fontWeight: 700,
+                color: "var(--accent)",
+              }}
+            >
+              {ref.name}
+            </code>
+            <a
+              href={ref.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                fontSize: "0.66rem",
+                color: "var(--text-muted)",
+                textDecoration: "none",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
+              }}
+            >
+              cppreference →
+            </a>
+          </div>
+          <p
+            style={{
+              fontSize: "0.78rem",
+              color: "var(--text-secondary)",
+              margin: "0.2rem 0 0 0",
+              lineHeight: "1.5",
+            }}
+          >
+            {ref.brief}
+          </p>
+          {ref.note && (
+            <p
+              style={{
+                fontSize: "0.75rem",
+                color: "var(--warning)",
+                margin: "0.25rem 0 0 0",
+                lineHeight: "1.5",
+                paddingLeft: "0.55rem",
+                borderLeft: "2px solid color-mix(in srgb, var(--warning) 40%, transparent)",
+              }}
+            >
+              {ref.note}
+            </p>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function HintsAndExplanation({
   hints,
   explanation,
   manifestation,
+  stdlibRefs,
 }: {
   hints: string[];
   explanation: string;
   manifestation: string;
+  stdlibRefs?: StdlibRef[];
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem", marginTop: "0.75rem" }}>
+      {stdlibRefs && stdlibRefs.length > 0 && (
+        <Expandable
+          label={`Standard Library Reference (${stdlibRefs.length})`}
+          icon={BookIcon}
+          iconColor="var(--accent)"
+          accentBorder="var(--accent)"
+        >
+          <StdlibRefCards refs={stdlibRefs} />
+        </Expandable>
+      )}
+
       {hints.map((hint, i) => (
         <Expandable
           key={i}
@@ -757,7 +845,7 @@ function ViewerView({
 
         <HighlightedCodeBlock html={program.highlightedHtml} />
 
-        <HintsAndExplanation hints={program.hints} explanation={program.explanation} manifestation={program.manifestation} />
+        <HintsAndExplanation hints={program.hints} explanation={program.explanation} manifestation={program.manifestation} stdlibRefs={program.stdlibRefs} />
       </div>
 
       {/* Navigation */}
