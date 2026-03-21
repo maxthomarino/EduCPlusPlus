@@ -26020,4 +26020,645 @@ function return, making manual clearing unnecessary.)`,
       { name: "std::stack", brief: "A container adaptor that provides LIFO (last-in, first-out) access.", note: "Calling top() or pop() on an empty stack is undefined behavior. Always check empty() first.", link: "https://en.cppreference.com/w/cpp/container/stack" },
     ],
   },
+
+  // ── Preprocessor & Compilation ──
+
+  {
+    id: 394,
+    topic: "Preprocessor & Compilation",
+    difficulty: "Easy",
+    title: "Debug Logger Macro",
+    description: "Defines a debug logging macro that can be disabled at compile time for production builds.",
+    code: `#include <iostream>
+#include <string>
+
+#ifdef DEBUG
+#define LOG(msg) std::cout << "[DEBUG] " << msg << std::endl
+#else
+#define LOG(msg)
+#endif
+
+int computeValue(int x) {
+    int result = x * 2 + 1;
+    LOG("computeValue(" + std::to_string(x) + ") = " + std::to_string(result));
+    return result;
+}
+
+int main() {
+    int sum = 0;
+    for (int i = 0; i < 5; ++i) {
+        sum += computeValue(i);
+    }
+
+    if (sum > 10)
+        LOG("Sum exceeded threshold");
+        std::cout << "Sum: " << sum << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "When DEBUG is not defined, what does `LOG(msg)` expand to?",
+      "Look at the if-statement with LOG. When LOG expands to nothing, what does the if-block contain?",
+    ],
+    explanation: "When DEBUG is not defined, `LOG(msg)` expands to nothing. The if-statement `if (sum > 10) LOG(\"...\");` becomes `if (sum > 10) ;` — the body is an empty statement. The next line `std::cout << \"Sum: \" << sum << std::endl;` is unconditional, which is correct. But if the programmer intended both lines to be conditional, the missing braces make the second line always execute. More dangerously, without braces the indentation is misleading — it looks like both lines are in the if-block. The fix is to always use braces with if-statements, especially around macros.",
+    manifestation: `$ g++ -std=c++17 -Wall macro_log.cpp -o macro_log && ./macro_log
+Sum: 25
+
+$ g++ -std=c++17 -Wall -DDEBUG macro_log.cpp -o macro_log && ./macro_log
+[DEBUG] computeValue(0) = 1
+[DEBUG] computeValue(1) = 3
+[DEBUG] computeValue(2) = 5
+[DEBUG] computeValue(3) = 7
+[DEBUG] computeValue(4) = 9
+[DEBUG] Sum exceeded threshold
+Sum: 25
+
+(The output is the same in both cases — but the indentation
+suggests "Sum: 25" should only print when sum > 10.
+Without DEBUG, the LOG expands to nothing, making the
+if-body empty and the cout unconditional.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 395,
+    topic: "Preprocessor & Compilation",
+    difficulty: "Easy",
+    title: "Header Constant",
+    description: "Defines a constant in a header file that is included by multiple source files.",
+    code: `// config.h - included by multiple .cpp files
+#ifndef CONFIG_H
+#define CONFIG_H
+
+const int MAX_CONNECTIONS = 100;
+const char* APP_NAME = "MyServer";
+
+#endif
+
+// server.cpp
+#include <iostream>
+// #include "config.h"
+
+const int MAX_CONNECTIONS = 100;
+const char* APP_NAME = "MyServer";
+
+void printConfig() {
+    std::cout << APP_NAME << ": max " << MAX_CONNECTIONS
+              << " connections" << std::endl;
+}
+
+// main.cpp (simulated in same file)
+int main() {
+    printConfig();
+    std::cout << "App: " << APP_NAME << std::endl;
+    return 0;
+}`,
+    hints: [
+      "Look at the types of `MAX_CONNECTIONS` and `APP_NAME`. Are they both `const`?",
+      "In C++, what linkage does a `const` variable have? What about a `const char*`?",
+    ],
+    explanation: "`const int MAX_CONNECTIONS` has internal linkage in C++ (each translation unit gets its own copy), so including the header in multiple .cpp files is fine. But `const char* APP_NAME` is a non-const pointer to const char — the pointer itself is NOT const, so it has external linkage. Including this header in multiple .cpp files gives multiple definitions of `APP_NAME`, violating the One Definition Rule and causing a linker error. The fix is `const char* const APP_NAME = \"MyServer\";` (const pointer) or `constexpr auto APP_NAME = \"MyServer\";`.",
+    manifestation: `$ g++ -std=c++17 -Wall -c server.cpp main.cpp
+$ g++ server.o main.o -o app
+/usr/bin/ld: main.o: in function \`main':
+main.cpp:(.text+0x15): multiple definition of 'APP_NAME';
+    server.o:server.cpp:(.data+0x0): first defined here
+collect2: error: ld returned 1 exit status
+
+(MAX_CONNECTIONS links fine — it's const with internal linkage.
+APP_NAME fails — the pointer is non-const, giving it external
+linkage and violating ODR.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 396,
+    topic: "Preprocessor & Compilation",
+    difficulty: "Easy",
+    title: "Min-Max Macros",
+    description: "Defines min/max macros and uses them alongside the STL algorithms.",
+    code: `#include <iostream>
+#include <algorithm>
+#include <vector>
+
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+int main() {
+    int x = 5, y = 10;
+
+    std::cout << "MIN: " << MIN(x, y) << std::endl;
+    std::cout << "MAX: " << MAX(x, y) << std::endl;
+
+    // This breaks std::min and std::max
+    std::cout << "std::min: " << std::min(x, y) << std::endl;
+    std::cout << "std::max: " << std::max(x, y) << std::endl;
+
+    std::vector<int> v = {3, 1, 4, 1, 5, 9};
+    auto [minIt, maxIt] = std::minmax_element(v.begin(), v.end());
+    std::cout << "Min element: " << *minIt << std::endl;
+    std::cout << "Max element: " << *maxIt << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What happens when `std::min(x, y)` is preprocessed and the `MIN` macro exists?",
+      "On Windows with `<windows.h>`, `min` and `max` are macros. Does the same problem apply here?",
+    ],
+    explanation: "On some platforms (especially Windows with `<windows.h>`), `min` and `max` are defined as macros. Here, the user defined `MIN` and `MAX` (uppercase), which don't conflict. However, if the macros were lowercase `min` and `max`, they would replace `std::min(x, y)` with `std::((x) < (y) ? (x) : (y))(x, y)` — a syntax error. The uppercase versions work fine, but `std::minmax_element` could also be affected by macros named `min` or `max`. The fix for the general case is `#undef min` / `#undef max`, or wrapping calls in parentheses: `(std::min)(x, y)` which suppresses macro expansion.",
+    manifestation: `$ g++ -std=c++17 -Wall macros.cpp -o macros && ./macros
+MIN: 5
+MAX: 10
+std::min: 5
+std::max: 10
+Min element: 1
+Max element: 9
+
+(This specific code works fine because the macros are uppercase.
+But if they were lowercase "min" and "max":)
+
+#define min(a, b) ((a) < (b) ? (a) : (b))
+$ g++ -std=c++17 macros_lower.cpp -o macros
+macros.cpp:14: error: expected unqualified-id before '(' token
+   14 |     std::cout << std::min(x, y) << std::endl;
+      |                         ^`,
+    stdlibRefs: [],
+  },
+  {
+    id: 397,
+    topic: "Preprocessor & Compilation",
+    difficulty: "Medium",
+    title: "Template Definition",
+    description: "Separates a template class declaration and definition between header and source files.",
+    code: `// stack.h
+#ifndef STACK_H
+#define STACK_H
+
+#include <vector>
+#include <stdexcept>
+
+template<typename T>
+class Stack {
+    std::vector<T> data_;
+public:
+    void push(const T& val);
+    T pop();
+    bool empty() const;
+    size_t size() const;
+};
+
+#endif
+
+// stack.cpp (definitions in separate file)
+// #include "stack.h"
+#include <vector>
+#include <stdexcept>
+
+template<typename T>
+class Stack {
+    std::vector<T> data_;
+public:
+    void push(const T& val) { data_.push_back(val); }
+    T pop() {
+        if (data_.empty()) throw std::runtime_error("empty stack");
+        T val = data_.back();
+        data_.pop_back();
+        return val;
+    }
+    bool empty() const { return data_.empty(); }
+    size_t size() const { return data_.size(); }
+};
+
+// main.cpp
+// #include "stack.h"
+#include <iostream>
+
+int main() {
+    Stack<int> s;
+    s.push(1);
+    s.push(2);
+    s.push(3);
+
+    while (!s.empty()) {
+        std::cout << s.pop() << " ";
+    }
+    std::cout << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Where are the template member function definitions located relative to the code that uses them?",
+      "When the compiler compiles main.cpp, can it see the template definitions in stack.cpp?",
+    ],
+    explanation: "Template definitions must be visible at the point of instantiation. When `main.cpp` includes `stack.h`, it only sees the declarations, not the definitions. The compiler can't generate `Stack<int>::push()`, `Stack<int>::pop()`, etc. because the function bodies are in `stack.cpp` — a separate translation unit that isn't included. This causes linker errors (undefined references). The fix is to put template definitions in the header file, or use explicit instantiation in the .cpp file: `template class Stack<int>;`.",
+    manifestation: `$ g++ -std=c++17 -c stack.cpp main.cpp
+$ g++ stack.o main.o -o app
+/usr/bin/ld: main.o: in function 'main':
+main.cpp:(.text+0x1a): undefined reference to 'Stack<int>::push(int const&)'
+main.cpp:(.text+0x2f): undefined reference to 'Stack<int>::empty() const'
+main.cpp:(.text+0x3e): undefined reference to 'Stack<int>::pop()'
+collect2: error: ld returned 1 exit status
+
+(Template definitions in .cpp files are not visible to other
+translation units. The linker can't find the instantiated code.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 398,
+    topic: "Preprocessor & Compilation",
+    difficulty: "Medium",
+    title: "Conditional Platform Code",
+    description: "Uses preprocessor conditionals to select platform-specific code paths.",
+    code: `#include <iostream>
+#include <string>
+
+#if defined(_WIN32)
+    #define PATH_SEP '\\\\'
+    #define LINE_END "\\r\\n"
+#elif defined(__linux__)
+    #define PATH_SEP '/'
+    #define LINE_END "\\n"
+#elif defined(__APPLE__)
+    #define PATH_SEP '/'
+    #define LINE_END "\\n"
+#endif
+
+std::string buildPath(const std::string& dir, const std::string& file) {
+    return dir + PATH_SEP + file;
+}
+
+void writeHeader(std::ostream& os, const std::string& title) {
+    os << "Title: " << title << LINE_END;
+    os << "Date: 2024-01-01" << LINE_END;
+}
+
+int main() {
+    std::cout << "Path: " << buildPath("home", "config.txt") << std::endl;
+
+    #ifdef MOBILE
+    std::cout << "Mobile build" << std::endl;
+    #else
+    std::cout << "Desktop build" << std::endl;
+    #endif
+
+    #if FEATURE_FLAG
+    std::cout << "Feature enabled" << std::endl;
+    #endif
+
+    return 0;
+}`,
+    hints: [
+      "What happens if the code is compiled on a platform that isn't Windows, Linux, or macOS?",
+      "What is the value of `FEATURE_FLAG` if it was never defined?",
+    ],
+    explanation: "If compiled on an unsupported platform (e.g., FreeBSD, embedded), none of the `#if defined` branches match, so `PATH_SEP` and `LINE_END` are never defined. Using them would cause compilation errors. The fix is to add an `#else #error \"Unsupported platform\"` or provide default values. Additionally, `#if FEATURE_FLAG` evaluates to `#if 0` when `FEATURE_FLAG` is not defined (undefined macros evaluate to 0 in `#if`), which silently disables the feature rather than flagging the missing definition. Use `#ifdef FEATURE_FLAG` for existence checks.",
+    manifestation: `$ g++ -std=c++17 -Wall platform.cpp -o platform && ./platform
+Path: home/config.txt
+Desktop build
+
+(Works on Linux/macOS — but compile on FreeBSD:)
+$ g++ -std=c++17 platform.cpp -o platform
+platform.cpp:17:26: error: use of undeclared identifier 'PATH_SEP'
+   17 |     return dir + PATH_SEP + file;
+      |                  ^
+
+(Also: FEATURE_FLAG is silently disabled because #if on an
+undefined macro evaluates to 0 without warning.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 399,
+    topic: "Preprocessor & Compilation",
+    difficulty: "Medium",
+    title: "Inline Variable",
+    description: "Defines a global counter that tracks instances across translation units using inline variables.",
+    code: `// counter.h
+#ifndef COUNTER_H
+#define COUNTER_H
+
+int globalCounter = 0;  // NOT inline
+
+class Widget {
+public:
+    Widget() { ++globalCounter; }
+    ~Widget() { --globalCounter; }
+    static int count() { return globalCounter; }
+};
+
+#endif
+
+// a.cpp
+// #include "counter.h"
+
+// b.cpp
+// #include "counter.h"
+
+// main.cpp (simulating multi-TU)
+#include <iostream>
+
+int globalCounter = 0;
+
+class Widget {
+public:
+    Widget() { ++globalCounter; }
+    ~Widget() { --globalCounter; }
+    static int count() { return globalCounter; }
+};
+
+void createWidgetsInA();
+void createWidgetsInB();
+
+int main() {
+    Widget w1, w2;
+    std::cout << "Widgets: " << Widget::count() << std::endl;
+    return 0;
+}`,
+    hints: [
+      "If `counter.h` is included in multiple .cpp files, how many copies of `globalCounter` exist?",
+      "What is the difference between `int globalCounter = 0;` and `inline int globalCounter = 0;`?",
+    ],
+    explanation: "Defining `int globalCounter = 0;` in a header creates a separate definition in every translation unit that includes it. This violates the One Definition Rule — the linker will report multiple definitions of `globalCounter`. Each TU gets its own copy, so the count wouldn't be shared even if it linked. The fix is to use `inline int globalCounter = 0;` (C++17), which allows multiple identical definitions and ensures a single shared instance, or declare it `extern int globalCounter;` in the header and define it in exactly one .cpp file.",
+    manifestation: `$ g++ -std=c++17 -c a.cpp b.cpp main.cpp
+$ g++ a.o b.o main.o -o app
+/usr/bin/ld: b.o:(.data+0x0): multiple definition of
+    'globalCounter'; a.o:(.data+0x0): first defined here
+/usr/bin/ld: main.o:(.data+0x0): multiple definition of
+    'globalCounter'; a.o:(.data+0x0): first defined here
+collect2: error: ld returned 1 exit status
+
+(Each .cpp file that includes counter.h gets its own
+definition of globalCounter — ODR violation.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 400,
+    topic: "Preprocessor & Compilation",
+    difficulty: "Hard",
+    title: "Stringification Trap",
+    description: "Uses the preprocessor stringification operator to create compile-time error messages and assertions.",
+    code: `#include <iostream>
+#include <cassert>
+
+#define STRINGIFY(x) #x
+#define ASSERT_EQ(a, b) \\
+    if ((a) != (b)) { \\
+        std::cerr << "Assertion failed: " << STRINGIFY(a) \\
+                  << " != " << STRINGIFY(b) \\
+                  << " (" << (a) << " != " << (b) << ")" \\
+                  << std::endl; \\
+    }
+
+#define CONCAT(a, b) a ## b
+#define MAKE_VAR(prefix, num) CONCAT(prefix, num)
+
+int main() {
+    int x = 5, y = 10;
+
+    ASSERT_EQ(x, 5);
+    ASSERT_EQ(x + y, 15);
+    ASSERT_EQ(x * 2, y);
+
+    // Create unique variable names
+    int MAKE_VAR(temp, __LINE__) = 42;
+    int MAKE_VAR(temp, __LINE__) = 99;
+
+    std::cout << "Line-specific vars created" << std::endl;
+
+    // Stringify a macro
+    #define VERSION 2
+    std::cout << "Version: " << STRINGIFY(VERSION) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What does `STRINGIFY(VERSION)` produce? Does it expand VERSION first?",
+      "What do the MAKE_VAR calls produce? Are both __LINE__ values different?",
+    ],
+    explanation: "Two issues: (1) `STRINGIFY(VERSION)` produces the string `\"VERSION\"`, not `\"2\"`. The `#` operator stringifies its argument *without* macro expansion. To expand first, you need an extra level of indirection: `#define STRINGIFY2(x) STRINGIFY(x)` and use `STRINGIFY2(VERSION)`. (2) Both `MAKE_VAR(temp, __LINE__)` calls are on different lines (so they get different `__LINE__` values), but `CONCAT(temp, __LINE__)` doesn't expand `__LINE__` before concatenation — it produces the literal token `temp__LINE__`. Both declarations create the same variable name, causing a redefinition error. The fix is `#define MAKE_VAR2(prefix, num) MAKE_VAR(prefix, num)` — extra indirection forces expansion.",
+    manifestation: `$ g++ -std=c++17 -Wall stringify.cpp -o stringify
+stringify.cpp: In function 'int main()':
+stringify.cpp:23:9: error: redefinition of 'int temp__LINE__'
+   23 |     int MAKE_VAR(temp, __LINE__) = 99;
+      |         ^
+stringify.cpp:22:9: note: 'int temp__LINE__' previously declared here
+   22 |     int MAKE_VAR(temp, __LINE__) = 42;
+      |         ^
+
+(Both MAKE_VAR calls produce "temp__LINE__" literally —
+__LINE__ was not expanded before concatenation.
+Similarly, STRINGIFY(VERSION) would produce "VERSION" not "2".)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 401,
+    topic: "Preprocessor & Compilation",
+    difficulty: "Hard",
+    title: "Static Init Order",
+    description: "Defines global objects that depend on each other during initialization across translation units.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+
+// registry.h / registry.cpp
+class Registry {
+    std::vector<std::string> names_;
+public:
+    void add(const std::string& name) {
+        names_.push_back(name);
+    }
+    void print() const {
+        std::cout << "Registered (" << names_.size() << "):" << std::endl;
+        for (auto& n : names_) {
+            std::cout << "  " << n << std::endl;
+        }
+    }
+};
+
+// Global registry
+Registry globalRegistry;
+
+// Auto-registration helper
+struct AutoRegister {
+    AutoRegister(const std::string& name) {
+        globalRegistry.add(name);
+    }
+};
+
+// plugin_a.cpp
+AutoRegister regA("PluginA");
+
+// plugin_b.cpp
+AutoRegister regB("PluginB");
+
+// plugin_c.cpp
+AutoRegister regC("PluginC");
+
+int main() {
+    globalRegistry.print();
+    return 0;
+}`,
+    hints: [
+      "In what order are global objects initialized across different translation units?",
+      "Is `globalRegistry` guaranteed to be constructed before `regA`, `regB`, `regC`?",
+    ],
+    explanation: "The order of initialization of global objects across translation units is unspecified by the C++ standard (the 'static initialization order fiasco'). If `regA` is initialized before `globalRegistry`, `regA`'s constructor calls `globalRegistry.add(\"PluginA\")` on an uninitialized `Registry` — undefined behavior (the vector hasn't been constructed yet). Within a single TU (as this code is written), the order is top-to-bottom, so it works. But in a real multi-TU project, this is a time bomb. The fix is the Meyers singleton: `Registry& getRegistry() { static Registry r; return r; }` — guaranteed to be initialized on first use.",
+    manifestation: `$ g++ -std=c++17 -Wall init_order.cpp -o init_order && ./init_order
+Registered (3):
+  PluginA
+  PluginB
+  PluginC
+
+(Works in a single file! But split into separate .cpp files:)
+$ g++ -std=c++17 plugin_a.cpp plugin_b.cpp registry.cpp main.cpp -o app
+$ ./app
+Segmentation fault (core dumped)
+
+(AutoRegister constructors ran before Registry was constructed
+— calling push_back on an uninitialized vector.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 402,
+    topic: "Preprocessor & Compilation",
+    difficulty: "Hard",
+    title: "Multiline Macro",
+    description: "Defines a macro that executes multiple statements and uses it in if-else branches.",
+    code: `#include <iostream>
+#include <string>
+
+#define SAFE_DELETE(ptr) \\
+    if (ptr != nullptr) { \\
+        delete ptr; \\
+        ptr = nullptr; \\
+    }
+
+#define SWAP(a, b) \\
+    auto temp = a; \\
+    a = b; \\
+    b = temp;
+
+int main() {
+    int* p = new int(42);
+    int* q = nullptr;
+
+    // Works fine standalone
+    SAFE_DELETE(p);
+    std::cout << "p after delete: " << p << std::endl;
+
+    // Breaks in if-else
+    int* r = new int(10);
+    int* s = new int(20);
+    bool condition = true;
+
+    if (condition)
+        SAFE_DELETE(r);
+    else
+        SAFE_DELETE(s);
+
+    // SWAP macro issue
+    int x = 5, y = 10;
+    {
+        SWAP(x, y);
+    }
+    std::cout << "x=" << x << " y=" << y << std::endl;
+
+    // Two swaps in sequence
+    int a = 1, b = 2;
+    SWAP(a, b);
+    SWAP(a, b);  // back to original?
+    std::cout << "a=" << a << " b=" << b << std::endl;
+
+    delete s;
+    return 0;
+}`,
+    hints: [
+      "Expand the `SAFE_DELETE(r)` macro in the if-else context. What does the compiler see?",
+      "The SWAP macro declares `auto temp`. What happens when SWAP is used twice in the same scope?",
+    ],
+    explanation: "Two bugs: (1) `SAFE_DELETE` uses `if` in the macro body. In the context `if (condition) SAFE_DELETE(r); else SAFE_DELETE(s);`, the `else` matches the inner `if` of the first SAFE_DELETE, not the outer `if`. The fix is to wrap the macro in `do { ... } while(0)`. (2) `SWAP` declares `auto temp` — using it twice in the same scope redeclares `temp`, causing a compilation error. The fix is also `do { ... } while(0)` and using a unique variable name.",
+    manifestation: `$ g++ -std=c++17 -Wall multiline.cpp -o multiline
+multiline.cpp: In function 'int main()':
+multiline.cpp:37:5: error: redeclaration of 'auto temp'
+   37 |     SWAP(a, b);
+      |     ^~~~
+multiline.cpp:36:5: note: 'int temp' previously declared here
+   36 |     SWAP(a, b);
+      |     ^~~~
+
+multiline.cpp:30:5: warning: this 'else' clause does not guard...
+    [-Wmisleading-indentation]
+
+(The SWAP macro's second use redeclares 'temp'. The SAFE_DELETE
+macro's if-body confuses the else-binding in if-else chains.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 403,
+    topic: "Preprocessor & Compilation",
+    difficulty: "Medium",
+    title: "Enum Size Mismatch",
+    description: "Uses an unscoped enum for message types and relies on its underlying size for serialization.",
+    code: `#include <iostream>
+#include <cstring>
+#include <cstdint>
+
+enum MessageType {
+    MSG_HELLO = 0,
+    MSG_DATA = 1,
+    MSG_GOODBYE = 2,
+    MSG_ERROR = 256,
+};
+
+struct Header {
+    uint8_t type;
+    uint32_t length;
+} __attribute__((packed));
+
+void serialize(const Header& h, char* buf) {
+    std::memcpy(buf, &h, sizeof(Header));
+}
+
+Header deserialize(const char* buf) {
+    Header h;
+    std::memcpy(&h, buf, sizeof(Header));
+    return h;
+}
+
+int main() {
+    Header h;
+    h.type = MSG_ERROR;
+    h.length = 100;
+
+    std::cout << "Type: " << (int)h.type << std::endl;
+    std::cout << "Length: " << h.length << std::endl;
+
+    char buffer[sizeof(Header)];
+    serialize(h, buffer);
+    auto h2 = deserialize(buffer);
+
+    std::cout << "Deserialized type: " << (int)h2.type << std::endl;
+    std::cout << "Types match: "
+              << (h.type == h2.type ? "yes" : "no") << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What is the value of `MSG_ERROR`? What type is `h.type`?",
+      "Can a `uint8_t` hold the value 256?",
+    ],
+    explanation: "`MSG_ERROR` has value 256, which doesn't fit in `uint8_t` (range 0-255). Assigning 256 to a `uint8_t` wraps to 0 (256 mod 256 = 0). So `h.type` is 0, which is `MSG_HELLO` — the message type is silently corrupted. The deserialized value also shows 0. The fix is to use `uint16_t` for the type field, or use a scoped enum (`enum class MessageType : uint16_t { ... }`) which makes the underlying type explicit.",
+    manifestation: `$ g++ -std=c++17 -Wall enum.cpp -o enum && ./enum
+enum.cpp: In function 'int main()':
+enum.cpp:23:14: warning: unsigned conversion from 'MessageType'
+    to 'uint8_t' {aka 'unsigned char'} changes value from
+    '256' to '0' [-Wconversion]
+   23 |     h.type = MSG_ERROR;
+      |              ^~~~~~~~~
+Type: 0
+Length: 100
+Deserialized type: 0
+Types match: yes
+
+(MSG_ERROR (256) was truncated to 0, which is MSG_HELLO.
+The message type was silently corrupted.)`,
+    stdlibRefs: [],
+  },
 ];
