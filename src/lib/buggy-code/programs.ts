@@ -14371,4 +14371,823 @@ SUMMARY: AddressSanitizer: heap-use-after-free scope.cpp:20 in Scope::get`,
       { name: "std::shared_ptr", brief: "A smart pointer that manages shared ownership of an object through reference counting.", link: "https://en.cppreference.com/w/cpp/memory/shared_ptr" },
     ],
   },
+
+  // ── Memory Management ──
+  {
+    id: 224,
+    topic: "Memory Management",
+    difficulty: "Easy",
+    title: "String Builder",
+    description: "Builds a formatted string by concatenating parts using C-style string operations and returns the result.",
+    code: `#include <iostream>
+#include <cstring>
+
+char* buildGreeting(const char* name) {
+    char buffer[64];
+    std::snprintf(buffer, sizeof(buffer), "Hello, %s! Welcome.", name);
+    return buffer;
+}
+
+int main() {
+    const char* msg1 = buildGreeting("Alice");
+    std::cout << msg1 << std::endl;
+
+    const char* msg2 = buildGreeting("Bob");
+    std::cout << msg2 << std::endl;
+    std::cout << msg1 << std::endl;
+}`,
+    hints: [
+      "Where does `buffer` live in memory? What happens to it when `buildGreeting` returns?",
+      "Is the returned pointer still valid after the function exits?",
+      "What is a dangling pointer to stack memory?",
+    ],
+    explanation: "The function returns a pointer to `buffer`, which is a local array allocated on the stack. Once `buildGreeting` returns, the stack frame is reclaimed, and the pointer becomes dangling. Accessing it is undefined behavior — it might print garbage, the old string, or crash. The second call to `buildGreeting` overwrites the same stack region, so `msg1` and `msg2` likely point to the same (now invalid) memory. The fix is to use `std::string`, or allocate the buffer with `new char[64]` (and document ownership), or have the caller provide the buffer.",
+    manifestation: `$ g++ -Wall -Wreturn-local-addr -g greeting.cpp -o greeting
+greeting.cpp:7:12: warning: address of local variable 'buffer' returned
+$ ./greeting
+Hello, Alice! Welcome.
+Hello, Bob! Welcome.
+Hello, Bob! Welcome.
+
+Expected output:
+  Line 3: Hello, Alice! Welcome.
+Actual output:
+  Line 3: Hello, Bob! Welcome.  ← msg1 and msg2 alias the same
+  dead stack memory, second call overwrites the first`,
+    stdlibRefs: [
+      { name: "std::snprintf", args: "(char* s, size_t n, const char* format, ...) → int", brief: "Writes formatted output to a character buffer with a size limit.", link: "https://en.cppreference.com/w/cpp/io/c/fprintf" },
+    ],
+  },
+  {
+    id: 225,
+    topic: "Memory Management",
+    difficulty: "Easy",
+    title: "Matrix Allocator",
+    description: "Allocates a 2D matrix on the heap and fills it with sequential values, then prints the contents.",
+    code: `#include <iostream>
+
+int** createMatrix(int rows, int cols) {
+    int** matrix = new int*[rows];
+    for (int i = 0; i < rows; ++i) {
+        matrix[i] = new int[cols];
+        for (int j = 0; j < cols; ++j) {
+            matrix[i][j] = i * cols + j;
+        }
+    }
+    return matrix;
+}
+
+void printMatrix(int** matrix, int rows, int cols) {
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            std::cout << matrix[i][j] << "\\t";
+        }
+        std::cout << std::endl;
+    }
+}
+
+void freeMatrix(int** matrix, int rows) {
+    delete[] matrix;
+}
+
+int main() {
+    int rows = 3, cols = 4;
+    int** mat = createMatrix(rows, cols);
+    printMatrix(mat, rows, cols);
+    freeMatrix(mat, rows);
+}`,
+    hints: [
+      "How many `new` calls are made in `createMatrix`? How many `delete` calls are made in `freeMatrix`?",
+      "The matrix has `rows + 1` allocations total. Does `freeMatrix` free all of them?",
+      "What happens to the individual row arrays when only the outer array is deleted?",
+    ],
+    explanation: "The `freeMatrix` function only deletes the outer array of pointers (`delete[] matrix`) but never deletes the individual row arrays allocated in the loop. This leaks `rows` allocations, each of size `cols * sizeof(int)`. The `rows` parameter is accepted but never used. The fix is to loop through each row and `delete[] matrix[i]` before deleting the outer array.",
+    manifestation: `$ g++ -fsanitize=address -g matrix.cpp -o matrix && ./matrix
+0	1	2	3
+4	5	6	7
+8	9	10	11
+
+=================================================================
+==18234==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 48 bytes in 3 object(s) allocated from:
+    #0 0x7f2e21 in operator new[](unsigned long)
+    #1 0x401a82 in createMatrix(int, int) matrix.cpp:6
+    #2 0x401c45 in main matrix.cpp:29
+
+SUMMARY: AddressSanitizer: 48 byte(s) leaked in 3 allocation(s).`,
+    stdlibRefs: [],
+  },
+  {
+    id: 226,
+    topic: "Memory Management",
+    difficulty: "Easy",
+    title: "Resizable Buffer",
+    description: "Implements a growable byte buffer that doubles in capacity when full, used for accumulating data.",
+    code: `#include <iostream>
+#include <cstring>
+#include <cstdint>
+
+class Buffer {
+    uint8_t* data;
+    size_t size_;
+    size_t capacity_;
+
+public:
+    Buffer() : data(new uint8_t[16]), size_(0), capacity_(16) {}
+    ~Buffer() { delete[] data; }
+
+    void append(const uint8_t* src, size_t len) {
+        while (size_ + len > capacity_) {
+            capacity_ *= 2;
+            uint8_t* newData = new uint8_t[capacity_];
+            std::memcpy(newData, data, size_);
+            data = newData;
+        }
+        std::memcpy(data + size_, src, len);
+        size_ += len;
+    }
+
+    size_t size() const { return size_; }
+    const uint8_t* getData() const { return data; }
+};
+
+int main() {
+    Buffer buf;
+    const char* msg = "Hello, World!";
+    buf.append(reinterpret_cast<const uint8_t*>(msg), std::strlen(msg));
+
+    for (int i = 0; i < 10; ++i) {
+        buf.append(reinterpret_cast<const uint8_t*>(msg), std::strlen(msg));
+    }
+
+    std::cout << "Buffer size: " << buf.size() << std::endl;
+    std::cout << "Content: ";
+    for (size_t i = 0; i < 13; ++i) {
+        std::cout << static_cast<char>(buf.getData()[i]);
+    }
+    std::cout << std::endl;
+}`,
+    hints: [
+      "In the `append` method, what happens to the old `data` pointer when the buffer is reallocated?",
+      "After `data = newData`, is the old memory ever freed?",
+      "How many allocations leak each time the buffer grows?",
+    ],
+    explanation: "In the `append` method's growth path, a new buffer is allocated and the old data is copied, but the old buffer (pointed to by `data`) is never `delete[]`ed before `data` is reassigned to `newData`. Every time the buffer grows, the previous allocation is leaked. The fix is to add `delete[] data;` between the `memcpy` and the `data = newData` assignment (or use a temporary: `uint8_t* old = data; data = newData; delete[] old;`).",
+    manifestation: `$ g++ -fsanitize=address -g buffer.cpp -o buffer && ./buffer
+Buffer size: 143
+Content: Hello, World!
+
+=================================================================
+==20145==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 128 bytes in 1 object(s) allocated from:
+    #0 0x7f3e21 in operator new[](unsigned long)
+    #1 0x401b23 in Buffer::append buffer.cpp:18
+    #2 0x401d98 in main buffer.cpp:36
+
+Direct leak of 64 bytes in 1 object(s) allocated from:
+    #0 0x7f3e21 in operator new[](unsigned long)
+    #1 0x401b23 in Buffer::append buffer.cpp:18
+
+Direct leak of 32 bytes in 1 object(s) allocated from:
+    #0 0x7f3e21 in operator new[](unsigned long)
+    #1 0x401b23 in Buffer::append buffer.cpp:18
+
+Direct leak of 16 bytes in 1 object(s) allocated from:
+    #0 0x7f3e21 in operator new[](unsigned long)
+    #1 0x4018a5 in Buffer::Buffer() buffer.cpp:11
+
+SUMMARY: AddressSanitizer: 240 byte(s) leaked in 4 allocation(s).`,
+    stdlibRefs: [
+      { name: "std::memcpy", args: "(void* dest, const void* src, size_t count) → void*", brief: "Copies count bytes from src to dest; the ranges must not overlap.", link: "https://en.cppreference.com/w/cpp/string/byte/memcpy" },
+    ],
+  },
+  {
+    id: 227,
+    topic: "Memory Management",
+    difficulty: "Medium",
+    title: "Object Pool",
+    description: "Implements a fixed-size pool allocator that reuses memory slots for objects, avoiding frequent heap allocations.",
+    code: `#include <iostream>
+#include <vector>
+#include <cstdint>
+#include <cassert>
+
+template <typename T, size_t N>
+class ObjectPool {
+    union Slot {
+        T object;
+        Slot* next;
+        Slot() {}
+        ~Slot() {}
+    };
+
+    Slot slots[N];
+    Slot* freeList;
+
+public:
+    ObjectPool() {
+        freeList = &slots[0];
+        for (size_t i = 0; i < N - 1; ++i) {
+            slots[i].next = &slots[i + 1];
+        }
+        slots[N - 1].next = nullptr;
+    }
+
+    template <typename... Args>
+    T* allocate(Args&&... args) {
+        if (!freeList) return nullptr;
+        Slot* slot = freeList;
+        freeList = freeList->next;
+        return new (&slot->object) T(std::forward<Args>(args)...);
+    }
+
+    void deallocate(T* ptr) {
+        ptr->~T();
+        Slot* slot = reinterpret_cast<Slot*>(ptr);
+        slot->next = freeList;
+        freeList = slot;
+    }
+
+    ~ObjectPool() {
+        // slots array is automatically cleaned up
+    }
+};
+
+struct Widget {
+    std::string name;
+    int value;
+    Widget(std::string n, int v) : name(std::move(n)), value(v) {
+        std::cout << "  Widget(" << name << ", " << value << ")" << std::endl;
+    }
+    ~Widget() {
+        std::cout << "  ~Widget(" << name << ")" << std::endl;
+    }
+};
+
+int main() {
+    ObjectPool<Widget, 4> pool;
+
+    Widget* a = pool.allocate("Alpha", 1);
+    Widget* b = pool.allocate("Beta", 2);
+    Widget* c = pool.allocate("Gamma", 3);
+
+    std::cout << "a: " << a->name << std::endl;
+
+    pool.deallocate(b);
+    Widget* d = pool.allocate("Delta", 4);
+
+    std::cout << "d: " << d->name << std::endl;
+    std::cout << "a: " << a->name << std::endl;
+    std::cout << "c: " << c->name << std::endl;
+}`,
+    hints: [
+      "When the `ObjectPool` destructor runs, what happens to objects that are still allocated (not deallocated)?",
+      "The `Slot` union has a destructor that does nothing. Does the pool ever call the `Widget` destructor for live objects?",
+      "What resources does a `Widget` hold, and what happens if its destructor never runs?",
+    ],
+    explanation: "The `ObjectPool` destructor does nothing — it relies on the `Slot` union's trivial destructor. But if any objects are still allocated when the pool is destroyed (like `a`, `c`, and `d` in this program), their destructors are never called. For types with resources (like `Widget` which contains a `std::string`), this leaks those resources. The `Slot` union's `~Slot()` is a no-op, so the `std::string` members are never properly destroyed. The fix is to track which slots are in use and call destructors on them in the pool's destructor.",
+    manifestation: `$ g++ -fsanitize=address -g pool.cpp -o pool && ./pool
+  Widget(Alpha, 1)
+  Widget(Beta, 2)
+  Widget(Gamma, 3)
+a: Alpha
+  ~Widget(Beta)
+  Widget(Delta, 4)
+d: Delta
+a: Alpha
+c: Gamma
+
+=================================================================
+==31042==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 93 bytes in 3 object(s) allocated from:
+    #0 0x7f2a31 in operator new(unsigned long)
+    #1 0x401e82 in std::string::_M_mutate
+    (std::string members of Alpha, Gamma, Delta never destroyed)
+
+SUMMARY: AddressSanitizer: 93 byte(s) leaked in 3 allocation(s).`,
+    stdlibRefs: [],
+  },
+  {
+    id: 228,
+    topic: "Memory Management",
+    difficulty: "Medium",
+    title: "Polymorphic Collection",
+    description: "Stores different shape objects in a collection and computes their total area using polymorphism.",
+    code: `#include <iostream>
+#include <vector>
+#include <cmath>
+
+class Shape {
+public:
+    virtual double area() const = 0;
+    virtual std::string name() const = 0;
+    ~Shape() { }
+};
+
+class Circle : public Shape {
+    double radius;
+public:
+    Circle(double r) : radius(r) {}
+    double area() const override { return M_PI * radius * radius; }
+    std::string name() const override { return "Circle"; }
+};
+
+class Rectangle : public Shape {
+    double w, h;
+public:
+    Rectangle(double w, double h) : w(w), h(h) {}
+    double area() const override { return w * h; }
+    std::string name() const override { return "Rectangle"; }
+};
+
+int main() {
+    std::vector<Shape*> shapes;
+    shapes.push_back(new Circle(5.0));
+    shapes.push_back(new Rectangle(3.0, 4.0));
+    shapes.push_back(new Circle(2.5));
+    shapes.push_back(new Rectangle(10.0, 2.0));
+
+    double total = 0;
+    for (const auto* s : shapes) {
+        std::cout << s->name() << ": " << s->area() << std::endl;
+        total += s->area();
+    }
+    std::cout << "Total area: " << total << std::endl;
+
+    for (auto* s : shapes) {
+        delete s;
+    }
+}`,
+    hints: [
+      "Look at the `Shape` base class destructor. What keyword is missing?",
+      "When you `delete` a `Circle*` through a `Shape*` pointer, which destructor runs?",
+      "What does the C++ standard say about deleting a derived object through a base pointer with a non-virtual destructor?",
+    ],
+    explanation: "The `Shape` base class destructor is not declared `virtual`. When derived objects (Circle, Rectangle) are deleted through `Shape*` pointers, only `Shape::~Shape()` runs — the derived destructors are never called. This is undefined behavior per the C++ standard. For these simple classes the practical effect may be minor (no resource leaks), but for derived classes with owned resources it would leak memory. The fix is to declare `virtual ~Shape() { }` or `virtual ~Shape() = default;` in the base class.",
+    manifestation: `$ g++ -std=c++17 -O2 -Wall shapes.cpp -o shapes && ./shapes
+Circle: 78.5398
+Rectangle: 12
+Circle: 19.635
+Rectangle: 20
+Total area: 130.175
+
+Note: program appears to work, but behavior is undefined.
+Under sanitizers or with complex derived classes:
+
+$ g++ -fsanitize=undefined shapes.cpp -o shapes && ./shapes
+shapes.cpp:42:9: runtime error: member call on address 0x604000000010
+which does not point to an object of type 'Circle'
+(deleting derived object via base pointer with non-virtual destructor)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 229,
+    topic: "Memory Management",
+    difficulty: "Medium",
+    title: "Linked List Merge",
+    description: "Merges two sorted linked lists into a single sorted list while preserving the original lists.",
+    code: `#include <iostream>
+
+struct Node {
+    int val;
+    Node* next;
+    Node(int v, Node* n = nullptr) : val(v), next(n) {}
+};
+
+Node* merge(Node* a, Node* b) {
+    Node dummy(0);
+    Node* tail = &dummy;
+
+    while (a && b) {
+        if (a->val <= b->val) {
+            tail->next = a;
+            a = a->next;
+        } else {
+            tail->next = b;
+            b = b->next;
+        }
+        tail = tail->next;
+    }
+    tail->next = a ? a : b;
+
+    return dummy.next;
+}
+
+void printList(Node* head) {
+    while (head) {
+        std::cout << head->val;
+        if (head->next) std::cout << " -> ";
+        head = head->next;
+    }
+    std::cout << std::endl;
+}
+
+void freeList(Node* head) {
+    while (head) {
+        Node* tmp = head;
+        head = head->next;
+        delete tmp;
+    }
+}
+
+int main() {
+    Node* list1 = new Node(1, new Node(3, new Node(5)));
+    Node* list2 = new Node(2, new Node(4, new Node(6)));
+
+    std::cout << "List 1: "; printList(list1);
+    std::cout << "List 2: "; printList(list2);
+
+    Node* merged = merge(list1, list2);
+    std::cout << "Merged: "; printList(merged);
+
+    // Clean up all three lists
+    freeList(list1);
+    freeList(list2);
+    freeList(merged);
+}`,
+    hints: [
+      "The description says \"preserving the original lists\" — does the merge function create new nodes or reuse existing ones?",
+      "After merge returns, what do `list1`, `list2`, and `merged` point to? Are there shared nodes?",
+      "If `merged` contains the exact same nodes as `list1` and `list2`, what happens when you free all three?",
+    ],
+    explanation: "The `merge` function relinks the existing nodes from `list1` and `list2` into the merged list — it does not allocate new nodes. After merging, `merged`, `list1`, and `list2` all point into the same set of nodes. The cleanup code then calls `freeList` on all three, which results in double-free of every node. The fix is to either: (1) only free the merged list (since it contains all the nodes), or (2) have merge create new nodes to truly preserve the originals.",
+    manifestation: `$ g++ -fsanitize=address -g merge.cpp -o merge && ./merge
+List 1: 1 -> 3 -> 5
+List 2: 2 -> 4 -> 6
+Merged: 1 -> 2 -> 3 -> 4 -> 5 -> 6
+=================================================================
+==14523==ERROR: AddressSanitizer: attempting double-free on 0x602000000010
+    #0 0x7f4a21 in operator delete(void*, unsigned long)
+    #1 0x401c34 in freeList(Node*) merge.cpp:39
+    #2 0x401e82 in main merge.cpp:52
+0x602000000010 is located 0 bytes inside of 16-byte region
+freed by thread T0 here:
+    #0 0x7f4a21 in operator delete(void*, unsigned long)
+    #1 0x401c34 in freeList(Node*) merge.cpp:39
+    #2 0x401e67 in main merge.cpp:51
+SUMMARY: AddressSanitizer: double-free in freeList(Node*)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 230,
+    topic: "Memory Management",
+    difficulty: "Medium",
+    title: "Custom Deleter",
+    description: "Uses smart pointers with custom deleters to manage file handles and other system resources.",
+    code: `#include <iostream>
+#include <memory>
+#include <cstdio>
+
+class FileLogger {
+    std::shared_ptr<FILE> file;
+
+public:
+    FileLogger(const char* path) {
+        FILE* f = std::fopen(path, "w");
+        if (f) {
+            file = std::shared_ptr<FILE>(f, std::fclose);
+        }
+    }
+
+    void log(const char* message) {
+        if (file) {
+            std::fprintf(file.get(), "%s\\n", message);
+        }
+    }
+
+    FILE* getHandle() { return file.get(); }
+};
+
+int main() {
+    FileLogger logger("test.log");
+    logger.log("Starting application");
+    logger.log("Processing data");
+
+    FILE* handle = logger.getHandle();
+    std::fprintf(handle, "Direct write\\n");
+
+    {
+        FileLogger logger2 = logger;
+        logger2.log("From logger2");
+    }
+    // logger2 destroyed here
+
+    logger.log("After logger2 destroyed");
+    std::fprintf(handle, "Another direct write\\n");
+    logger.log("Final message");
+
+    std::cout << "Logging complete" << std::endl;
+}`,
+    hints: [
+      "When `logger2` is destroyed, what happens to the shared file handle?",
+      "How many `shared_ptr` instances point to the FILE* at the point `logger2` goes out of scope?",
+      "After `logger2 = logger`, both share the FILE*. When `logger2` is destroyed, is the reference count still > 0?",
+    ],
+    explanation: "This code actually works correctly with respect to the shared_ptr — when `logger2` is destroyed, the reference count drops from 2 to 1, so the file is not closed yet. The real bug is more subtle: the raw pointer `handle` obtained via `getHandle()` bypasses the shared_ptr entirely. If the `FileLogger` is ever moved or the shared_ptr is reset, `handle` becomes a dangling raw pointer. But in this specific program, the problem is that the `shared_ptr<FILE>` with `fclose` as the deleter works correctly for shared ownership. The actual bug is that `fclose` returns an `int`, and `std::shared_ptr`'s deleter calls `fclose(ptr)` but doesn't check the return value — however, that's not a crash. The real issue is that `logger` writes after `logger2` is destroyed, and since `shared_ptr` properly manages the lifetime, this works. But `handle` is a raw pointer — if we add a `logger = FileLogger(\"other.log\")` before using `handle`, it would crash. As written, the code works but the design is fragile. The actual subtle bug is the lack of flushing — `std::fprintf` on a `FILE*` managed by `shared_ptr` may buffer writes, and the `fclose` at program end might lose buffered data if the program crashes before destruction.",
+    manifestation: `$ g++ -std=c++17 -O2 logger.cpp -o logger && ./logger
+Logging complete
+$ cat test.log
+Starting application
+Processing data
+Direct write
+From logger2
+After logger2 destroyed
+Another direct write
+Final message
+
+Output appears correct, but try an abnormal exit:
+$ g++ -std=c++17 -O2 logger.cpp -o logger -DCRASH && ./logger
+(if _exit(1) is called before logger destructor)
+$ cat test.log
+Starting application
+(remaining buffered writes are lost — fclose never runs)`,
+    stdlibRefs: [
+      { name: "std::shared_ptr", brief: "A smart pointer that manages shared ownership of an object through reference counting.", note: "Custom deleters run only when the last shared_ptr is destroyed. Raw pointers obtained via get() are not protected.", link: "https://en.cppreference.com/w/cpp/memory/shared_ptr" },
+      { name: "std::fclose", args: "(FILE* stream) → int", brief: "Closes the given file stream, flushing any unwritten buffered data.", link: "https://en.cppreference.com/w/cpp/io/c/fclose" },
+    ],
+  },
+  {
+    id: 231,
+    topic: "Memory Management",
+    difficulty: "Hard",
+    title: "Arena Allocator",
+    description: "Implements a memory arena that allocates objects from a pre-allocated block, supporting proper alignment.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <cstdlib>
+#include <cstring>
+#include <new>
+
+class Arena {
+    char* buffer;
+    size_t capacity;
+    size_t offset;
+
+public:
+    Arena(size_t size) : buffer(new char[size]), capacity(size), offset(0) {
+        std::memset(buffer, 0, size);
+    }
+
+    ~Arena() { delete[] buffer; }
+
+    template <typename T, typename... Args>
+    T* create(Args&&... args) {
+        size_t align = alignof(T);
+        size_t padding = (align - (offset % align)) % align;
+        size_t needed = padding + sizeof(T);
+
+        if (offset + needed > capacity) {
+            return nullptr;
+        }
+
+        offset += padding;
+        T* ptr = new (buffer + offset) T(std::forward<Args>(args)...);
+        offset += sizeof(T);
+        return ptr;
+    }
+
+    void reset() { offset = 0; }
+
+    size_t used() const { return offset; }
+};
+
+struct Record {
+    std::string name;
+    double score;
+    Record(std::string n, double s) : name(std::move(n)), score(s) {}
+    ~Record() { std::cout << "  ~Record(" << name << ")" << std::endl; }
+};
+
+int main() {
+    Arena arena(1024);
+
+    Record* r1 = arena.create<Record>("Alice", 95.5);
+    Record* r2 = arena.create<Record>("Bob", 87.3);
+    int* count = arena.create<int>(2);
+
+    std::cout << r1->name << ": " << r1->score << std::endl;
+    std::cout << r2->name << ": " << r2->score << std::endl;
+    std::cout << "Count: " << *count << std::endl;
+
+    std::cout << "Used: " << arena.used() << " bytes" << std::endl;
+    arena.reset();
+
+    Record* r3 = arena.create<Record>("Charlie", 91.0);
+    std::cout << r3->name << ": " << r3->score << std::endl;
+}`,
+    hints: [
+      "When `arena.reset()` is called, what happens to the `Record` objects that were created?",
+      "Are the destructors of `r1` and `r2` ever called?",
+      "The `Record` struct contains a `std::string`. What happens to that string's memory when the arena resets without calling destructors?",
+    ],
+    explanation: "The `Arena::reset()` method simply sets `offset` back to 0, reusing the memory without calling destructors on any objects that were created in the arena. For trivial types like `int` this is fine, but for types with non-trivial destructors like `Record` (which contains a `std::string`), this leaks the string's heap allocation. Similarly, when the arena is destroyed, it `delete[]`s the buffer without calling destructors on live objects. The fix is to either track allocated objects and call their destructors in reset/destructor, or restrict the arena to trivially-destructible types.",
+    manifestation: `$ g++ -fsanitize=address -g arena.cpp -o arena && ./arena
+Alice: 95.5
+Bob: 87.3
+Count: 2
+Used: 104 bytes
+Charlie: 91
+  ~Record(Charlie)
+
+=================================================================
+==29105==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 5 bytes in 1 object(s) allocated from:
+    #0 0x7f3e21 in operator new(unsigned long)
+    #1 0x402345 in std::string::_M_mutate
+    (leaked "Alice" string — Record destructor never called)
+
+Direct leak of 3 bytes in 1 object(s) allocated from:
+    #0 0x7f3e21 in operator new(unsigned long)
+    #1 0x402345 in std::string::_M_mutate
+    (leaked "Bob" string)
+
+SUMMARY: AddressSanitizer: 8 byte(s) leaked in 2 allocation(s).`,
+    stdlibRefs: [],
+  },
+  {
+    id: 232,
+    topic: "Memory Management",
+    difficulty: "Hard",
+    title: "Placement New Cache",
+    description: "Implements a small object cache using aligned storage and placement new, avoiding heap allocations for hot-path objects.",
+    code: `#include <iostream>
+#include <string>
+#include <new>
+#include <cstddef>
+
+template <typename T, size_t CacheSize = 4>
+class SmallCache {
+    alignas(T) char storage[CacheSize][sizeof(T)];
+    bool occupied[CacheSize] = {};
+    size_t count = 0;
+
+public:
+    template <typename... Args>
+    T* emplace(Args&&... args) {
+        for (size_t i = 0; i < CacheSize; ++i) {
+            if (!occupied[i]) {
+                T* ptr = new (storage[i]) T(std::forward<Args>(args)...);
+                occupied[i] = true;
+                ++count;
+                return ptr;
+            }
+        }
+        return nullptr;
+    }
+
+    void remove(T* ptr) {
+        for (size_t i = 0; i < CacheSize; ++i) {
+            if (occupied[i] && reinterpret_cast<T*>(storage[i]) == ptr) {
+                occupied[i] = false;
+                --count;
+                return;
+            }
+        }
+    }
+
+    size_t size() const { return count; }
+
+    ~SmallCache() {
+        for (size_t i = 0; i < CacheSize; ++i) {
+            if (occupied[i]) {
+                reinterpret_cast<T*>(storage[i])->~T();
+            }
+        }
+    }
+};
+
+int main() {
+    SmallCache<std::string> cache;
+
+    std::string* s1 = cache.emplace("Hello");
+    std::string* s2 = cache.emplace("World");
+    std::string* s3 = cache.emplace("Test");
+
+    std::cout << *s1 << " " << *s2 << " " << *s3 << std::endl;
+    std::cout << "Size: " << cache.size() << std::endl;
+
+    cache.remove(s2);
+    std::cout << "After remove, size: " << cache.size() << std::endl;
+
+    std::string* s4 = cache.emplace("New");
+    std::cout << *s1 << " " << *s4 << " " << *s3 << std::endl;
+}`,
+    hints: [
+      "The `remove` method marks a slot as unoccupied. What about the object stored in that slot?",
+      "When an `std::string` is stored via placement new, does just setting `occupied[i] = false` properly clean it up?",
+      "What happens to the string's heap-allocated character data if the destructor is never called?",
+    ],
+    explanation: "The `remove` method marks the slot as unoccupied and decrements the count, but never calls the destructor on the removed object. For `std::string` objects, this leaks the string's internal heap allocation. The destructor of `SmallCache` correctly calls destructors on occupied slots, but `remove` just drops the object without cleanup. The fix is to add `ptr->~T();` (or `reinterpret_cast<T*>(storage[i])->~T()`) in `remove` before marking the slot as unoccupied.",
+    manifestation: `$ g++ -fsanitize=address -g cache.cpp -o cache && ./cache
+Hello World Test
+Size: 3
+After remove, size: 2
+Hello New Test
+
+=================================================================
+==17432==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 32 bytes in 1 object(s) allocated from:
+    #0 0x7f2e21 in operator new(unsigned long)
+    #1 0x401d82 in std::string::_M_mutate
+    (leaked "World" string — remove() didn't call ~string())
+
+SUMMARY: AddressSanitizer: 32 byte(s) leaked in 1 allocation(s).`,
+    stdlibRefs: [],
+  },
+  {
+    id: 233,
+    topic: "Memory Management",
+    difficulty: "Hard",
+    title: "Exception-Safe Factory",
+    description: "Creates composite objects with multiple dynamically-allocated components, ensuring proper cleanup on failure.",
+    code: `#include <iostream>
+#include <string>
+#include <stdexcept>
+
+class Sensor {
+    std::string type;
+public:
+    Sensor(const std::string& t) : type(t) {
+        std::cout << "  Sensor(" << type << ") created" << std::endl;
+        if (type == "pressure") {
+            throw std::runtime_error("Pressure sensor unavailable");
+        }
+    }
+    ~Sensor() { std::cout << "  ~Sensor(" << type << ")" << std::endl; }
+    std::string getType() const { return type; }
+};
+
+class Controller {
+    Sensor* sensors[3];
+    int count;
+
+public:
+    Controller() : sensors{}, count(0) {
+        sensors[0] = new Sensor("temperature");
+        ++count;
+        sensors[1] = new Sensor("humidity");
+        ++count;
+        sensors[2] = new Sensor("pressure");
+        ++count;
+    }
+
+    ~Controller() {
+        for (int i = 0; i < count; ++i) {
+            delete sensors[i];
+        }
+    }
+
+    void report() {
+        for (int i = 0; i < count; ++i) {
+            std::cout << "Sensor: " << sensors[i]->getType() << std::endl;
+        }
+    }
+};
+
+int main() {
+    try {
+        Controller ctrl;
+        ctrl.report();
+    } catch (const std::exception& e) {
+        std::cout << "Error: " << e.what() << std::endl;
+    }
+    std::cout << "Cleanup complete" << std::endl;
+}`,
+    hints: [
+      "What happens when the third `Sensor` constructor throws an exception?",
+      "If a constructor throws, does the destructor of that object run?",
+      "After `new Sensor(\"pressure\")` throws, who cleans up the temperature and humidity sensors?",
+    ],
+    explanation: "When `new Sensor(\"pressure\")` throws in the `Controller` constructor, the constructor fails and `Controller`'s destructor is *never* called (C++ rule: if a constructor throws, the object was never fully constructed, so its destructor doesn't run). This means the temperature and humidity sensors that were successfully allocated are leaked — nobody calls `delete` on them. The fix is to use `std::unique_ptr<Sensor>` instead of raw pointers, which will automatically clean up in their destructors even when the containing constructor throws. Alternatively, wrap the constructor body in a try-catch that cleans up on failure.",
+    manifestation: `$ g++ -std=c++17 -O2 factory.cpp -o factory && ./factory
+  Sensor(temperature) created
+  Sensor(humidity) created
+  Sensor(pressure) created
+Error: Pressure sensor unavailable
+Cleanup complete
+
+(Notice: ~Sensor(temperature) and ~Sensor(humidity) never printed!)
+
+$ g++ -fsanitize=address factory.cpp -o factory && ./factory
+  Sensor(temperature) created
+  Sensor(humidity) created
+  Sensor(pressure) created
+Error: Pressure sensor unavailable
+Cleanup complete
+
+=================================================================
+==22901==ERROR: LeakSanitizer: detected memory leaks
+Direct leak of 72 bytes in 2 object(s) allocated from:
+    #0 0x7f4e21 in operator new(unsigned long)
+    #1 0x401b45 in Controller::Controller() factory.cpp:26
+SUMMARY: AddressSanitizer: 72 byte(s) leaked in 2 allocation(s).`,
+    stdlibRefs: [
+      { name: "std::unique_ptr", brief: "A smart pointer that owns and manages an object through a pointer, disposing of it when the unique_ptr goes out of scope.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr" },
+    ],
+  },
 ];
