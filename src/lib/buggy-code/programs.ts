@@ -16432,4 +16432,579 @@ Actual output:
   Elements above 20: 0 ← only checked first 2 elements (15, 8)`,
     stdlibRefs: [],
   },
+
+  // ── Type Conversions ──
+  {
+    id: 254,
+    topic: "Type Conversions",
+    difficulty: "Easy",
+    title: "Average Calculator",
+    description: "Computes the average of a list of integer scores and displays the result with decimal precision.",
+    code: `#include <iostream>
+#include <vector>
+
+double average(const std::vector<int>& values) {
+    int sum = 0;
+    for (int v : values) {
+        sum += v;
+    }
+    return sum / values.size();
+}
+
+int main() {
+    std::vector<int> scores = {85, 92, 78, 95, 88};
+    std::cout << "Average: " << average(scores) << std::endl;
+
+    std::vector<int> small = {1, 2};
+    std::cout << "Average: " << average(small) << std::endl;
+
+    std::vector<int> single = {7};
+    std::cout << "Average: " << average(single) << std::endl;
+}`,
+    hints: [
+      "What types are `sum` and `values.size()`? What type does the division produce?",
+      "`sum` is `int` and `values.size()` returns `size_t` (unsigned). What happens with integer division?",
+      "How would you force floating-point division?",
+    ],
+    explanation: "The expression `sum / values.size()` performs integer division because `sum` is `int` and `values.size()` returns `size_t` — both integral types. The `int` is implicitly converted to `size_t`, and the division truncates the fractional part. So `average({85, 92, 78, 95, 88})` computes `438 / 5 = 87` instead of `87.6`. Even though the function returns `double`, the truncation happens before the conversion to double. The fix is to cast: `static_cast<double>(sum) / values.size()`.",
+    manifestation: `$ g++ -std=c++17 -O2 avg.cpp -o avg && ./avg
+Average: 87
+Average: 1
+Average: 7
+
+Expected output:
+  Average: 87.6
+  Average: 1.5
+  Average: 7
+Actual output:
+  Average: 87    ← integer division truncated 87.6 to 87
+  Average: 1     ← integer division truncated 1.5 to 1`,
+    stdlibRefs: [],
+  },
+  {
+    id: 255,
+    topic: "Type Conversions",
+    difficulty: "Easy",
+    title: "Byte Packer",
+    description: "Packs four bytes into a 32-bit integer and unpacks them back, used for binary protocol handling.",
+    code: `#include <iostream>
+#include <cstdint>
+
+uint32_t packBytes(uint8_t a, uint8_t b, uint8_t c, uint8_t d) {
+    return (a << 24) | (b << 16) | (c << 8) | d;
+}
+
+void unpackBytes(uint32_t packed, uint8_t& a, uint8_t& b, uint8_t& c, uint8_t& d) {
+    a = (packed >> 24) & 0xFF;
+    b = (packed >> 16) & 0xFF;
+    c = (packed >> 8) & 0xFF;
+    d = packed & 0xFF;
+}
+
+int main() {
+    uint32_t packed = packBytes(0x12, 0x34, 0x56, 0x78);
+    std::cout << std::hex << "Packed: 0x" << packed << std::endl;
+
+    uint8_t a, b, c, d;
+    unpackBytes(packed, a, b, c, d);
+    std::cout << "Unpacked: "
+              << (int)a << " " << (int)b << " "
+              << (int)c << " " << (int)d << std::endl;
+
+    // Edge case: high bit set
+    packed = packBytes(0xFF, 0x00, 0x00, 0x01);
+    std::cout << "Packed: 0x" << packed << std::endl;
+}`,
+    hints: [
+      "When you shift a `uint8_t` left by 24 bits, what type is the intermediate result?",
+      "Integer promotion converts `uint8_t` to `int` before the shift. If `a` is `0xFF`, what is `0xFF << 24` as a signed `int`?",
+      "On a system where `int` is 32 bits, is `0xFF << 24` (which is `0xFF000000`) representable as a signed `int`?",
+    ],
+    explanation: "When `a` is `0xFF`, integer promotion converts it to `int` (value 255). Then `255 << 24` produces `0xFF000000`, which is `4278190080` — a value that exceeds `INT_MAX` (2147483647) on 32-bit `int` systems. Left-shifting into or past the sign bit of a signed integer is undefined behavior in C++ (before C++20). In practice, the result is usually the expected bit pattern interpreted as a negative number, which then gets converted to `uint32_t` correctly due to two's complement. But it's technically UB. The fix is to cast to `uint32_t` before shifting: `(static_cast<uint32_t>(a) << 24)`.",
+    manifestation: `$ g++ -std=c++17 -O2 -fsanitize=undefined pack.cpp -o pack && ./pack
+Packed: 0x12345678
+Unpacked: 12 34 56 78
+pack.cpp:5:15: runtime error: left shift of 255 by 24 places
+cannot be represented in type 'int'
+Packed: 0xff000001
+
+The program may produce correct output on most platforms due to
+two's complement behavior, but the left shift is technically
+undefined behavior when it overflows signed int.`,
+    stdlibRefs: [],
+  },
+  {
+    id: 256,
+    topic: "Type Conversions",
+    difficulty: "Easy",
+    title: "Distance Checker",
+    description: "Checks whether two values are within a specified distance of each other.",
+    code: `#include <iostream>
+#include <vector>
+
+bool isClose(unsigned int a, unsigned int b, unsigned int maxDist) {
+    return (a - b) <= maxDist;
+}
+
+int main() {
+    std::cout << std::boolalpha;
+    std::cout << "isClose(10, 12, 5): " << isClose(10, 12, 5) << std::endl;
+    std::cout << "isClose(100, 103, 5): " << isClose(100, 103, 5) << std::endl;
+    std::cout << "isClose(5, 5, 0): " << isClose(5, 5, 0) << std::endl;
+    std::cout << "isClose(3, 10, 5): " << isClose(3, 10, 5) << std::endl;
+
+    std::vector<unsigned int> data = {100, 105, 200, 102, 98};
+    unsigned int target = 100;
+    std::cout << "\\nValues close to " << target << ":" << std::endl;
+    for (auto v : data) {
+        if (isClose(v, target, 5)) {
+            std::cout << "  " << v << std::endl;
+        }
+    }
+}`,
+    hints: [
+      "What happens when you subtract a larger unsigned integer from a smaller one?",
+      "If `a` is 3 and `b` is 10, what is `a - b` when both are `unsigned int`?",
+      "Unsigned integer subtraction wraps around. Is the result ever negative?",
+    ],
+    explanation: "When `a < b`, the subtraction `a - b` wraps around (unsigned underflow), producing a very large positive number close to `UINT_MAX`. For example, `3 - 10` becomes `4294967289`, which is certainly not `<= 5`. But `10 - 12` also wraps to `4294967294`, which should be close (distance 2) but the check fails. The function only works correctly when `a >= b`. The fix is to use `std::abs(static_cast<int>(a) - static_cast<int>(b))` or compute `(a > b) ? (a - b) : (b - a)` to get the actual distance.",
+    manifestation: `$ g++ -std=c++17 -O2 close.cpp -o close && ./close
+isClose(10, 12, 5): false
+isClose(100, 103, 5): false
+isClose(5, 5, 0): true
+isClose(3, 10, 5): false
+
+Values close to 100:
+  100
+  102
+
+Expected output:
+  isClose(10, 12, 5): true  ← distance is 2, within 5
+  isClose(100, 103, 5): true  ← distance is 3, within 5
+  isClose(3, 10, 5): false  ← distance is 7, not within 5
+  Values close to 100: 100, 105, 102, 98  ← all within 5
+Actual output:
+  Only works when a >= b (unsigned subtraction wraps on underflow)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 257,
+    topic: "Type Conversions",
+    difficulty: "Medium",
+    title: "Bitfield Extractor",
+    description: "Extracts and inserts bitfields from a 32-bit register value, useful for hardware register manipulation.",
+    code: `#include <iostream>
+#include <cstdint>
+
+uint32_t extractBits(uint32_t value, int start, int width) {
+    uint32_t mask = (1 << width) - 1;
+    return (value >> start) & mask;
+}
+
+uint32_t insertBits(uint32_t value, int start, int width, uint32_t bits) {
+    uint32_t mask = (1 << width) - 1;
+    value &= ~(mask << start);
+    value |= (bits & mask) << start;
+    return value;
+}
+
+int main() {
+    uint32_t reg = 0xDEADBEEF;
+
+    std::cout << std::hex;
+    std::cout << "Bits [7:0]: 0x" << extractBits(reg, 0, 8) << std::endl;
+    std::cout << "Bits [15:8]: 0x" << extractBits(reg, 8, 8) << std::endl;
+    std::cout << "Bits [31:0]: 0x" << extractBits(reg, 0, 32) << std::endl;
+
+    uint32_t modified = insertBits(reg, 8, 8, 0x42);
+    std::cout << "After insert: 0x" << modified << std::endl;
+}`,
+    hints: [
+      "What happens when `width` is 32 in the expression `(1 << width) - 1`?",
+      "The literal `1` is an `int`. What is `1 << 32` on a platform where `int` is 32 bits?",
+      "Shifting by an amount equal to or greater than the width of the type is undefined behavior.",
+    ],
+    explanation: "When `width` is 32, the expression `(1 << 32) - 1` triggers undefined behavior: shifting a 32-bit `int` by 32 positions is UB per the C++ standard (shift amount must be less than the bit width of the type). On many platforms, `1 << 32` produces `1` (the shift wraps around), making the mask `0` instead of `0xFFFFFFFF`. So `extractBits(reg, 0, 32)` returns `0` instead of the full register value. The fix is to use `(1u << width) - 1` with a special case for `width == 32`, or use `width == 32 ? ~0u : (1u << width) - 1`.",
+    manifestation: `$ g++ -std=c++17 -O2 -fsanitize=undefined bits.cpp -o bits && ./bits
+Bits [7:0]: 0xef
+Bits [15:8]: 0xbe
+bits.cpp:5:27: runtime error: shift exponent 32 is too large
+for 32-bit type 'int'
+Bits [31:0]: 0x0
+
+Expected output:
+  Bits [31:0]: 0xdeadbeef  ← full 32-bit extraction
+Actual output:
+  Bits [31:0]: 0x0  ← mask is 0 due to UB shift by 32`,
+    stdlibRefs: [],
+  },
+  {
+    id: 258,
+    topic: "Type Conversions",
+    difficulty: "Medium",
+    title: "Timestamp Difference",
+    description: "Computes the difference in milliseconds between two timestamps, handling wrapping for 32-bit counters.",
+    code: `#include <iostream>
+#include <cstdint>
+
+int64_t timeDiffMs(uint32_t start, uint32_t end) {
+    int32_t diff = end - start;
+    return diff;
+}
+
+int main() {
+    // Normal case
+    std::cout << "Diff: " << timeDiffMs(1000, 2000) << " ms" << std::endl;
+
+    // Small backward jump (should be negative)
+    std::cout << "Diff: " << timeDiffMs(2000, 1000) << " ms" << std::endl;
+
+    // Wrap-around at 2^32
+    uint32_t before = 0xFFFFFFF0;
+    uint32_t after  = 0x00000010;
+    std::cout << "Wrap diff: " << timeDiffMs(before, after) << " ms" << std::endl;
+
+    // Large difference
+    uint32_t t1 = 0;
+    uint32_t t2 = 3000000000u;
+    std::cout << "Large diff: " << timeDiffMs(t1, t2) << " ms" << std::endl;
+}`,
+    hints: [
+      "The subtraction `end - start` produces a `uint32_t` result. What happens when you store it in an `int32_t`?",
+      "If `end - start` is greater than `INT32_MAX` (2147483647), what does the `int32_t` conversion produce?",
+      "For `timeDiffMs(0, 3000000000u)`, the unsigned difference is 3 billion. Does that fit in `int32_t`?",
+    ],
+    explanation: "The unsigned subtraction `end - start` produces a `uint32_t`. When this result exceeds `INT32_MAX` (2147483647), storing it in `int32_t diff` produces implementation-defined behavior (typically reinterprets the bit pattern as signed). For `timeDiffMs(0, 3000000000u)`, the unsigned difference is `3000000000`, which when interpreted as `int32_t` becomes `-1294967296`. The function returns a negative value for what should be a large positive time difference. The fix is to keep the result as `uint32_t` and only convert to signed for genuinely small differences, or use `int64_t` for the subtraction: `return static_cast<int64_t>(end) - static_cast<int64_t>(start)`.",
+    manifestation: `$ g++ -std=c++17 -O2 timestamp.cpp -o timestamp && ./timestamp
+Diff: 1000 ms
+Diff: -1000 ms
+Wrap diff: 32 ms
+Large diff: -1294967296 ms
+
+Expected output:
+  Large diff: 3000000000 ms  ← ~50 minutes
+Actual output:
+  Large diff: -1294967296 ms ← negative due to uint32_t → int32_t
+  overflow when difference exceeds INT32_MAX`,
+    stdlibRefs: [],
+  },
+  {
+    id: 259,
+    topic: "Type Conversions",
+    difficulty: "Medium",
+    title: "Enum Bitmask",
+    description: "Uses an enum to define permission flags and combines them with bitwise operations.",
+    code: `#include <iostream>
+#include <string>
+
+enum Permission {
+    None    = 0,
+    Read    = 1,
+    Write   = 2,
+    Execute = 4,
+    Admin   = 8,
+};
+
+Permission operator|(Permission a, Permission b) {
+    return static_cast<Permission>(static_cast<int>(a) | static_cast<int>(b));
+}
+
+bool hasPermission(Permission granted, Permission required) {
+    return granted & required;
+}
+
+std::string permString(Permission p) {
+    std::string s;
+    if (p & Read) s += "r";
+    if (p & Write) s += "w";
+    if (p & Execute) s += "x";
+    if (p & Admin) s += "A";
+    return s.empty() ? "-" : s;
+}
+
+int main() {
+    Permission user = Read | Write;
+    Permission admin = Read | Write | Execute | Admin;
+
+    std::cout << "User: " << permString(user) << std::endl;
+    std::cout << "Admin: " << permString(admin) << std::endl;
+
+    std::cout << "User has Read: " << hasPermission(user, Read) << std::endl;
+    std::cout << "User has Execute: " << hasPermission(user, Execute) << std::endl;
+    std::cout << "User has Read|Write: " << hasPermission(user, Read | Write) << std::endl;
+    std::cout << "User has Read|Execute: " << hasPermission(user, Read | Execute) << std::endl;
+}`,
+    hints: [
+      "Look at `hasPermission`. It checks `granted & required`. What does this return when multiple bits are set in `required`?",
+      "If `required` is `Read | Execute` (5) and `granted` is `Read | Write` (3), what is `3 & 5`?",
+      "Does `granted & required` being non-zero mean *all* required permissions are present, or just *any*?",
+    ],
+    explanation: "The `hasPermission` function checks `granted & required`, which returns non-zero if *any* of the required bits are set — not *all* of them. So `hasPermission(Read | Write, Read | Execute)` returns `true` because the `Read` bit is present, even though `Execute` is missing. This is a logical bug: the function checks for `ANY` when it should check for `ALL`. The fix is `return (granted & required) == required;` to verify that all required bits are set.",
+    manifestation: `$ g++ -std=c++17 -O2 perms.cpp -o perms && ./perms
+User: rw
+Admin: rwxA
+User has Read: 1
+User has Execute: 0
+User has Read|Write: 1
+User has Read|Execute: 1
+
+Expected output:
+  User has Read|Execute: 0  ← user lacks Execute
+Actual output:
+  User has Read|Execute: 1  ← returns true because user has Read
+  (bitwise AND is non-zero if ANY bit matches, not ALL)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 260,
+    topic: "Type Conversions",
+    difficulty: "Hard",
+    title: "Comparison Overload",
+    description: "Implements a measurement class with unit conversion that supports comparison between different units.",
+    code: `#include <iostream>
+#include <cmath>
+
+class Length {
+    double value;  // stored in meters
+public:
+    static Length fromMeters(double m) { return Length{m}; }
+    static Length fromCentimeters(double cm) { return Length{cm / 100.0}; }
+    static Length fromInches(double in) { return Length{in * 0.0254}; }
+
+    double meters() const { return value; }
+    double centimeters() const { return value * 100.0; }
+
+    bool operator==(const Length& other) const {
+        return value == other.value;
+    }
+
+    bool operator<(const Length& other) const {
+        return value < other.value;
+    }
+
+    operator double() const { return value; }
+
+private:
+    Length(double v) : value(v) {}
+};
+
+int main() {
+    Length a = Length::fromMeters(1.0);
+    Length b = Length::fromCentimeters(100.0);
+
+    std::cout << "1m == 100cm: " << (a == b) << std::endl;
+
+    Length c = Length::fromInches(39.3701);
+    std::cout << "1m == 39.37in: " << (a == c) << std::endl;
+
+    Length d = Length::fromCentimeters(50.0);
+    std::cout << "50cm < 1m: " << (d < a) << std::endl;
+
+    // Surprise!
+    std::cout << "1m < 2: " << (a < 2) << std::endl;
+    std::cout << "0.5 < 1m: " << (0.5 < a) << std::endl;
+}`,
+    hints: [
+      "The class has an `operator double()` conversion. When does it get used?",
+      "In `a < 2`, can the compiler use `operator<(Length, Length)` directly? What about implicit conversions?",
+      "What does `a < 2` actually compare — meters to meters, or the raw double value to 2?",
+    ],
+    explanation: "The class provides an implicit `operator double()` conversion. When comparing `a < 2`, the compiler can't convert `2` to `Length` (the constructor is private), but it can convert `a` to `double` via `operator double()`. So `a < 2` becomes `1.0 < 2`, comparing the internal meter value to the raw number `2`. This is semantically meaningless — is `2` meters? centimeters? inches? The comparison silently treats the right operand as meters. Similarly, `0.5 < a` converts `a` to `double`. The implicit conversion operator creates a dangerous backdoor that bypasses the type safety the class was designed to provide. The fix is to make the conversion `explicit`: `explicit operator double() const`.",
+    manifestation: `$ g++ -std=c++17 -O2 length.cpp -o length && ./length
+1m == 100cm: 1
+1m == 39.37in: 0
+50cm < 1m: 1
+1m < 2: 1
+0.5 < 1m: 1
+
+Note: "1m == 39.37in" returns false due to floating-point
+precision (0.0254 * 39.3701 ≈ 0.999999..., not exactly 1.0).
+
+But the deeper issue: "1m < 2" compiles and returns true.
+The implicit operator double() lets the compiler silently
+convert Length to a raw double, bypassing all unit safety.
+Is 2 supposed to mean 2 meters? 2 centimeters? The comparison
+is meaningless but compiles without warning.`,
+    stdlibRefs: [],
+  },
+  {
+    id: 261,
+    topic: "Type Conversions",
+    difficulty: "Hard",
+    title: "Variadic Sum",
+    description: "Uses variadic templates to sum an arbitrary number of numeric arguments, supporting mixed types.",
+    code: `#include <iostream>
+#include <cstdint>
+
+template <typename T>
+T sum(T value) {
+    return value;
+}
+
+template <typename T, typename... Rest>
+T sum(T first, Rest... rest) {
+    return first + sum(rest...);
+}
+
+int main() {
+    std::cout << "sum(1, 2, 3): " << sum(1, 2, 3) << std::endl;
+    std::cout << "sum(1.5, 2.5, 3.0): " << sum(1.5, 2.5, 3.0) << std::endl;
+
+    int a = 1000000;
+    int b = 2000000;
+    int c = 3000000;
+    std::cout << "sum(1M, 2M, 3M): " << sum(a, b, c) << std::endl;
+
+    // Mixed types
+    std::cout << "sum(1, 2.5, 3): " << sum(1, 2.5, 3) << std::endl;
+
+    uint8_t x = 200, y = 100, z = 50;
+    std::cout << "sum(200, 100, 50): " << sum(x, y, z) << std::endl;
+}`,
+    hints: [
+      "Look at the return type of `sum`. What is `T` deduced as for `sum(1, 2.5, 3)`?",
+      "The return type is `T`, which is deduced from the *first* argument. For `sum(1, 2.5, 3)`, `T` is `int`.",
+      "When the function adds `first + sum(rest...)`, what happens to the intermediate `double` result `2.5 + 3`?",
+    ],
+    explanation: "The return type of `sum` is always `T`, deduced from the first argument. For `sum(1, 2.5, 3)`, `T` is `int`, so the final result is truncated to `int`. But worse: the recursive call `sum(2.5, 3)` deduces `T` as `double` and returns `5.5`, then `1 + 5.5 = 6.5` is truncated to `6` because the outer sum's return type is `int`. So `sum(1, 2.5, 3)` returns `6` instead of `6.5`. For `uint8_t` values: `sum(200, 100, 50)` — `T` is `uint8_t`, and `200 + 100` would be `300`, which wraps to `44` in `uint8_t`. Then `44 + 50 = 94`. The fix is to use `std::common_type_t<T, Rest...>` as the return type.",
+    manifestation: `$ g++ -std=c++17 -O2 varsum.cpp -o varsum && ./varsum
+sum(1, 2, 3): 6
+sum(1.5, 2.5, 3.0): 7
+sum(1M, 2M, 3M): 6000000
+sum(1, 2.5, 3): 6
+sum(200, 100, 50): 94
+
+Expected output:
+  sum(1, 2.5, 3): 6.5  ← mixed int/double should preserve precision
+  sum(200, 100, 50): 350  ← should not overflow uint8_t
+Actual output:
+  sum(1, 2.5, 3): 6    ← truncated because return type is int
+  sum(200, 100, 50): 94 ← uint8_t overflow: (200+100) wraps to 44`,
+    stdlibRefs: [
+      { name: "std::common_type", args: "<T...> → type", brief: "Determines the common type among all given types, to which they can all be implicitly converted.", link: "https://en.cppreference.com/w/cpp/types/common_type" },
+    ],
+  },
+  {
+    id: 262,
+    topic: "Type Conversions",
+    difficulty: "Medium",
+    title: "Container Size Check",
+    description: "Validates that a container has enough elements before accessing them, with bounds checking.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+
+void printLast(const std::vector<std::string>& items, int count) {
+    if (items.size() - count < 0) {
+        std::cout << "Not enough items!" << std::endl;
+        return;
+    }
+
+    for (int i = items.size() - count; i < items.size(); ++i) {
+        std::cout << items[i] << std::endl;
+    }
+}
+
+int main() {
+    std::vector<std::string> names = {"Alice", "Bob", "Charlie", "Dave"};
+
+    std::cout << "Last 2:" << std::endl;
+    printLast(names, 2);
+
+    std::cout << "\\nLast 10:" << std::endl;
+    printLast(names, 10);
+}`,
+    hints: [
+      "What is the type of `items.size()`? What type is `count`?",
+      "When you subtract an `int` from a `size_t` (unsigned), what type is the result?",
+      "Can an unsigned value ever be `< 0`?",
+    ],
+    explanation: "The expression `items.size() - count` involves a `size_t` (unsigned) and an `int`. The `int` is implicitly converted to `size_t`, and the subtraction is performed in unsigned arithmetic. When `count` (10) is greater than `items.size()` (4), the result wraps around to a very large unsigned value rather than becoming negative. The check `< 0` is always false for unsigned types. So the bounds check never triggers, and the function proceeds to access elements at massive (wrapped-around) indices, causing undefined behavior. The fix is to compare before subtracting: `if (static_cast<size_t>(count) > items.size())`.",
+    manifestation: `$ g++ -std=c++17 -Wall -O2 lastN.cpp -o lastN && ./lastN
+lastN.cpp:6:30: warning: comparison of unsigned expression < 0
+  is always false [-Wtype-limits]
+Last 2:
+Charlie
+Dave
+
+Last 10:
+Segmentation fault (core dumped)
+
+Expected output:
+  Last 10: "Not enough items!"
+Actual output:
+  Crashes because the unsigned subtraction wraps around,
+  the < 0 check is always false for unsigned types`,
+    stdlibRefs: [],
+  },
+  {
+    id: 263,
+    topic: "Type Conversions",
+    difficulty: "Hard",
+    title: "Type-Safe ID Wrapper",
+    description: "Wraps numeric IDs in strongly-typed classes to prevent accidentally mixing user IDs with product IDs.",
+    code: `#include <iostream>
+#include <unordered_map>
+#include <string>
+
+template <typename Tag>
+class StrongId {
+    int value;
+public:
+    StrongId(int v) : value(v) {}
+    int get() const { return value; }
+    bool operator==(const StrongId& other) const { return value == other.value; }
+};
+
+struct UserTag {};
+struct ProductTag {};
+using UserId = StrongId<UserTag>;
+using ProductId = StrongId<ProductTag>;
+
+namespace std {
+    template <typename Tag>
+    struct hash<StrongId<Tag>> {
+        size_t operator()(const StrongId<Tag>& id) const {
+            return std::hash<int>{}(id.get());
+        }
+    };
+}
+
+int main() {
+    std::unordered_map<UserId, std::string> users;
+    users[UserId(1)] = "Alice";
+    users[UserId(2)] = "Bob";
+
+    std::unordered_map<ProductId, std::string> products;
+    products[ProductId(1)] = "Widget";
+    products[ProductId(2)] = "Gadget";
+
+    // This should be a compile error but isn't:
+    UserId uid(42);
+    ProductId pid = uid;
+
+    std::cout << "User: " << users[UserId(1)] << std::endl;
+    std::cout << "Product: " << products[pid] << std::endl;
+}`,
+    hints: [
+      "The intention is that `UserId` and `ProductId` are different types that can't be mixed. Can you assign one to the other?",
+      "Look at the constructor: `StrongId(int v)`. Is it `explicit`?",
+      "What implicit conversion path allows `ProductId pid = uid`?",
+    ],
+    explanation: "The `StrongId` constructor is not `explicit`, and there's also an implicit conversion from `StrongId` to `int` via `get()` — wait, `get()` is not an implicit conversion operator. The actual conversion path is: `UserId uid(42)` has value 42. `ProductId pid = uid` — the compiler looks for a way to convert `UserId` to `ProductId`. Since there's no direct conversion, it can't do it... Actually, this should be a compile error. Let me reconsider. `ProductId pid = uid;` — `uid` is `StrongId<UserTag>`, `pid` is `StrongId<ProductTag>`. There's no implicit conversion between different template instantiations. The compiler should reject this. The real bug is that the constructor `StrongId(int v)` is not `explicit`, allowing implicit construction from `int`. This means you can write `UserId uid = 42;` or pass a bare `int` where a `UserId` is expected, defeating the purpose of the strong typing. The line `ProductId pid = uid` would indeed fail to compile. But `users[42]` would compile because `42` implicitly converts to `UserId(42)`. The real issue is the non-explicit constructor.",
+    manifestation: `$ g++ -std=c++17 -O2 strongid.cpp -o strongid
+strongid.cpp:39:19: error: no viable conversion from
+  'StrongId<UserTag>' to 'StrongId<ProductTag>'
+    ProductId pid = uid;
+                    ^~~
+
+However, the non-explicit constructor allows:
+  users[42] = "Mallory";      ← int silently converts to UserId
+  doLookup(100);              ← raw int accepted as UserId arg
+  UserId x = getProductCount(); ← return value silently wraps
+
+The strong typing is defeated: any int silently becomes any ID type.
+Fix: mark constructor explicit.`,
+    stdlibRefs: [],
+  },
 ];
