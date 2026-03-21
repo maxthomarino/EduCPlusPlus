@@ -11555,4 +11555,767 @@ Actual output:
       { name: "std::ofstream::close", args: "() → void", brief: "Closes the associated file, flushing any unwritten data.", note: "Must be called before the stream is overwritten or abandoned; the destructor calls close() but move assignment does not.", link: "https://en.cppreference.com/w/cpp/io/basic_ofstream/close" },
     ],
   },
+  // ── Error Handling ──
+  {
+    id: 184,
+    topic: "Error Handling",
+    difficulty: "Easy",
+    title: "Input Validator",
+    description: "Reads a number from the user and validates that it falls within an expected range.",
+    code: `#include <iostream>
+#include <string>
+#include <sstream>
+
+int parseAge(const std::string& input) {
+    int age;
+    std::istringstream iss(input);
+    iss >> age;
+    return age;
+}
+
+int main() {
+    std::string inputs[] = {"25", "abc", "150", "-3", ""};
+
+    for (const auto& input : inputs) {
+        int age = parseAge(input);
+        if (age >= 0 && age <= 120) {
+            std::cout << "Valid age: " << age << std::endl;
+        } else {
+            std::cout << "Invalid age from: '" << input << "'" << std::endl;
+        }
+    }
+}`,
+    hints: [
+      "What happens when std::istringstream tries to parse 'abc' as an integer?",
+      "If the extraction fails, what value does `age` have?",
+      "Is `age` initialized before the extraction attempt?",
+    ],
+    explanation: "When iss >> age fails (for inputs like \"abc\" or \"\"), the variable `age` is left uninitialized — its value is indeterminate. The function returns this garbage value, which may happen to fall within [0, 120], passing the validation check incorrectly. The code never checks whether the extraction succeeded (via `iss.fail()` or the stream's boolean conversion). The fix is to check `if (iss >> age)` and return an error indicator (like std::optional<int> or -1) on failure.",
+    manifestation: `$ g++ -std=c++17 -O0 -g validate.cpp -o validate && ./validate
+Valid age: 25
+Valid age: 0
+Invalid age from: '150'
+Invalid age from: '-3'
+Valid age: 0
+
+Expected output:
+  Invalid age from: 'abc'   ← should be rejected
+  Invalid age from: ''       ← should be rejected
+Actual output:
+  Valid age: 0               ← uninitialized variable happened to be 0
+  Valid age: 0               ← same for empty string
+
+$ valgrind ./validate
+==14523== Use of uninitialised value of size 8
+==14523==    at 0x401234: parseAge (validate.cpp:8)`,
+    stdlibRefs: [
+      { name: "std::istringstream::operator>>", args: "(T& value) → istream&", brief: "Extracts a formatted value from the stream into the given variable.", note: "If extraction fails, the target variable is left unchanged (unmodified, potentially uninitialized). Always check the stream state after extraction.", link: "https://en.cppreference.com/w/cpp/io/basic_istream/operator_gtgt" },
+    ],
+  },
+  {
+    id: 185,
+    topic: "Error Handling",
+    difficulty: "Easy",
+    title: "Error Code Checker",
+    description: "Performs a series of operations and checks error codes to determine if the overall process succeeded.",
+    code: `#include <iostream>
+#include <string>
+
+enum class ErrorCode { OK, NotFound, PermissionDenied, Timeout, Unknown };
+
+ErrorCode openConnection() { return ErrorCode::OK; }
+ErrorCode authenticate() { return ErrorCode::OK; }
+ErrorCode fetchData() { return ErrorCode::Timeout; }
+ErrorCode closeConnection() { return ErrorCode::OK; }
+
+std::string errorToString(ErrorCode e) {
+    switch (e) {
+        case ErrorCode::OK: return "OK";
+        case ErrorCode::NotFound: return "Not Found";
+        case ErrorCode::PermissionDenied: return "Permission Denied";
+        case ErrorCode::Timeout: return "Timeout";
+    }
+}
+
+int main() {
+    ErrorCode result;
+
+    result = openConnection();
+    std::cout << "Open: " << errorToString(result) << std::endl;
+
+    result = authenticate();
+    std::cout << "Auth: " << errorToString(result) << std::endl;
+
+    result = fetchData();
+    std::cout << "Fetch: " << errorToString(result) << std::endl;
+
+    if (result != ErrorCode::OK) {
+        std::cout << "Aborting due to error" << std::endl;
+    }
+
+    result = closeConnection();
+    std::cout << "Close: " << errorToString(result) << std::endl;
+
+    if (result == ErrorCode::OK) {
+        std::cout << "All operations completed successfully!" << std::endl;
+    }
+}`,
+    hints: [
+      "After fetchData() fails, does the code stop executing further operations?",
+      "What does the final `result == ErrorCode::OK` check actually verify?",
+      "Does the success message at the end reflect the overall status or just the last operation?",
+    ],
+    explanation: "After fetchData() returns Timeout, the code prints 'Aborting due to error' but then continues executing. closeConnection() overwrites `result` with OK, so the final check `result == ErrorCode::OK` passes, printing 'All operations completed successfully!' despite the fetch failure. The error from fetchData was acknowledged but not acted upon — there's no `return` or `exit` after the abort message. The fix is to actually abort execution after detecting the error, or track overall success in a separate variable.",
+    manifestation: `$ g++ -std=c++17 -O2 errcheck.cpp -o errcheck && ./errcheck
+Open: OK
+Auth: OK
+Fetch: Timeout
+Aborting due to error
+Close: OK
+All operations completed successfully!
+
+Expected output:
+  Aborting due to error  ← should stop here
+Actual output:
+  All operations completed successfully!  ← contradicts the abort message`,
+    stdlibRefs: [],
+  },
+  {
+    id: 186,
+    topic: "Error Handling",
+    difficulty: "Easy",
+    title: "File Line Counter",
+    description: "Opens a file, counts the number of lines, and reports the total.",
+    code: `#include <iostream>
+#include <fstream>
+#include <string>
+
+int countLines(const std::string& filename) {
+    std::ifstream file(filename);
+    if (!file) {
+        std::cerr << "Error: cannot open " << filename << std::endl;
+        return -1;
+    }
+
+    int count = 0;
+    std::string line;
+    while (std::getline(file, line)) {
+        count++;
+    }
+
+    return count;
+}
+
+int main() {
+    std::string files[] = {"data.txt", "missing.txt", "empty.txt"};
+
+    int total = 0;
+    for (const auto& f : files) {
+        total += countLines(f);
+    }
+
+    std::cout << "Total lines across all files: " << total << std::endl;
+}`,
+    hints: [
+      "What does countLines return when a file cannot be opened?",
+      "What happens when -1 is added to the running total?",
+      "Is the return value of countLines checked before being used in the sum?",
+    ],
+    explanation: "When a file doesn't exist (like \"missing.txt\"), countLines() returns -1 as an error indicator. But main() adds this return value directly to `total` without checking for errors: `total += countLines(f)` adds -1 to the running total, reducing it by 1. If \"data.txt\" has 10 lines, the total becomes 10 + (-1) + count_of_empty = 9 + count_of_empty, silently corrupting the result. The fix is to check for -1 before adding to the total, or use std::optional<int> as the return type.",
+    manifestation: `$ echo -e "line1\\nline2\\nline3" > data.txt
+$ touch empty.txt
+$ g++ -std=c++17 -O2 linecount.cpp -o linecount && ./linecount
+Error: cannot open missing.txt
+Total lines across all files: 2
+
+Expected output:
+  Total lines across all files: 3  (3 lines in data.txt + 0 in empty.txt)
+Actual output:
+  Total lines across all files: 2  ← -1 from the missing file subtracted from total`,
+    stdlibRefs: [
+      { name: "std::ifstream", brief: "Input file stream that reads from a file on disk.", note: "Check is_open() or the stream's boolean conversion after construction to verify the file was opened successfully.", link: "https://en.cppreference.com/w/cpp/io/basic_ifstream" },
+    ],
+  },
+  {
+    id: 187,
+    topic: "Error Handling",
+    difficulty: "Medium",
+    title: "JSON Parser",
+    description: "A simple key-value parser that extracts string values from a JSON-like format.",
+    code: `#include <iostream>
+#include <string>
+#include <map>
+#include <stdexcept>
+
+std::map<std::string, std::string> parse(const std::string& json) {
+    std::map<std::string, std::string> result;
+
+    size_t pos = json.find('{');
+    if (pos == std::string::npos) throw std::runtime_error("No opening brace");
+
+    while (true) {
+        size_t keyStart = json.find('"', pos + 1);
+        if (keyStart == std::string::npos) break;
+
+        size_t keyEnd = json.find('"', keyStart + 1);
+        std::string key = json.substr(keyStart + 1, keyEnd - keyStart - 1);
+
+        size_t valStart = json.find('"', keyEnd + 1);
+        size_t valEnd = json.find('"', valStart + 1);
+        std::string value = json.substr(valStart + 1, valEnd - valStart - 1);
+
+        result[key] = value;
+        pos = valEnd;
+    }
+
+    return result;
+}
+
+int main() {
+    try {
+        auto data = parse(R"({"name": "Alice", "city": "Paris"})");
+        for (const auto& [k, v] : data) {
+            std::cout << k << " = " << v << std::endl;
+        }
+
+        auto bad = parse(R"({"key": })");
+        std::cout << "key = " << bad["key"] << std::endl;
+
+    } catch (const std::exception& e) {
+        std::cout << "Error: " << e.what() << std::endl;
+    }
+}`,
+    hints: [
+      "What happens when json.find('\"', valStart + 1) doesn't find a closing quote?",
+      "If valStart is std::string::npos, what is valStart + 1?",
+      "Does the parser validate that every find() call succeeded before using the result?",
+    ],
+    explanation: "When parsing malformed JSON like `{\"key\": }`, the search for the value's opening quote (`json.find('\"', keyEnd + 1)`) finds the closing brace position but there's no quote there, so `valStart` becomes npos. Then `valStart + 1` wraps around (npos is the max size_t value), and `json.find('\"', valStart + 1)` searches from position 0, potentially finding an earlier quote. The substr call then computes with wrapped-around values, causing either garbage output or an out-of-range exception. The parser never validates that its find() calls succeed. The fix is to check each find() result against npos before proceeding.",
+    manifestation: `$ g++ -std=c++17 -O2 jsonparse.cpp -o jsonparse && ./jsonparse
+city = Paris
+name = Alice
+terminate called after throwing an instance of 'std::out_of_range'
+  what():  basic_string::substr: __pos (which is 18446744073709551615) > this->size() (which is 10)
+Aborted (core dumped)`,
+    stdlibRefs: [
+      { name: "std::string::find", args: "(char ch, size_type pos) → size_type", brief: "Finds the first occurrence of the character starting from the given position.", note: "Returns std::string::npos (typically the max value of size_type) if not found. Arithmetic on npos wraps around.", link: "https://en.cppreference.com/w/cpp/string/basic_string/find" },
+      { name: "std::string::substr", args: "(size_type pos, size_type count) → string", brief: "Returns a substring starting at pos with at most count characters.", note: "Throws std::out_of_range if pos > size().", link: "https://en.cppreference.com/w/cpp/string/basic_string/substr" },
+    ],
+  },
+  {
+    id: 188,
+    topic: "Error Handling",
+    difficulty: "Medium",
+    title: "Resource Pool",
+    description: "Manages a pool of reusable resources, allocating them on request and returning them when done.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <stdexcept>
+
+class Resource {
+    int id;
+public:
+    Resource(int i) : id(i) {}
+    int getId() const { return id; }
+    void use() { std::cout << "Using resource " << id << std::endl; }
+};
+
+class ResourcePool {
+    std::vector<Resource*> available;
+    std::vector<Resource*> inUse;
+public:
+    ResourcePool(int count) {
+        for (int i = 0; i < count; ++i) {
+            available.push_back(new Resource(i));
+        }
+    }
+
+    Resource* acquire() {
+        if (available.empty()) {
+            throw std::runtime_error("No resources available");
+        }
+        Resource* r = available.back();
+        available.pop_back();
+        inUse.push_back(r);
+        return r;
+    }
+
+    void release(Resource* r) {
+        for (auto it = inUse.begin(); it != inUse.end(); ++it) {
+            if (*it == r) {
+                inUse.erase(it);
+                available.push_back(r);
+                return;
+            }
+        }
+    }
+
+    ~ResourcePool() {
+        for (auto* r : available) delete r;
+    }
+};
+
+int main() {
+    ResourcePool pool(3);
+
+    Resource* r1 = pool.acquire();
+    Resource* r2 = pool.acquire();
+    r1->use();
+    r2->use();
+
+    pool.release(r1);
+    pool.release(r2);
+
+    Resource* r3 = pool.acquire();
+    r3->use();
+}`,
+    hints: [
+      "Look at the destructor. Which resources does it clean up?",
+      "What happens to resources that are currently in the `inUse` vector when the pool is destroyed?",
+      "If a resource is acquired but never released before the pool is destroyed, is it freed?",
+    ],
+    explanation: "The destructor only deletes resources in the `available` vector, not those in the `inUse` vector. Any resource that is acquired but not released before the pool is destroyed will be leaked. In this specific main() all resources are released so it works, but if the code threw an exception between acquire() and release(), or if the user forgot to call release(), those resources would leak. The fix is to also delete resources in `inUse` in the destructor: `for (auto* r : inUse) delete r;`.",
+    manifestation: `$ g++ -fsanitize=address -g pool.cpp -o pool && ./pool
+Using resource 2
+Using resource 1
+Using resource 2
+
+$ # Works... but add an exception before release:
+$ g++ -fsanitize=address -g pool_throw.cpp -o pool && ./pool
+Using resource 2
+Exception caught: simulated error
+
+=================================================================
+==25123==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 4 byte(s) in 1 object(s) allocated from:
+    #0 0x7f2a1b in operator new(unsigned long) (/usr/lib/libasan.so+0xe1b)
+    #1 0x55c1a3 in ResourcePool::ResourcePool(int) pool.cpp:20
+    #2 0x55c4f2 in main pool.cpp:48
+
+SUMMARY: AddressSanitizer: 4 byte(s) leaked in 1 allocation(s).`,
+    stdlibRefs: [],
+  },
+  {
+    id: 189,
+    topic: "Error Handling",
+    difficulty: "Medium",
+    title: "Network Request",
+    description: "Simulates a network request with retry logic and timeout, reporting the outcome.",
+    code: `#include <iostream>
+#include <stdexcept>
+#include <string>
+#include <vector>
+
+class NetworkException : public std::runtime_error {
+public:
+    int statusCode;
+    NetworkException(int code, const std::string& msg)
+        : std::runtime_error(msg), statusCode(code) {}
+};
+
+std::string makeRequest(int attempt) {
+    if (attempt < 3) throw NetworkException(503, "Service Unavailable");
+    return "{ \\"data\\": \\"success\\" }";
+}
+
+std::string fetchWithRetry(int maxRetries) {
+    std::string lastError;
+    for (int i = 0; i <= maxRetries; ++i) {
+        try {
+            return makeRequest(i);
+        } catch (std::exception& e) {
+            lastError = e.what();
+            std::cout << "Attempt " << i + 1 << " failed: " << lastError << std::endl;
+        }
+    }
+    throw std::runtime_error("All retries exhausted: " + lastError);
+}
+
+int main() {
+    try {
+        auto response = fetchWithRetry(3);
+        std::cout << "Response: " << response << std::endl;
+    } catch (const NetworkException& e) {
+        std::cout << "Network error " << e.statusCode << ": " << e.what() << std::endl;
+    } catch (const std::exception& e) {
+        std::cout << "Error: " << e.what() << std::endl;
+    }
+}`,
+    hints: [
+      "Look at the catch block in fetchWithRetry. What type does it catch?",
+      "When a NetworkException is caught as std::exception&, what information is preserved?",
+      "If all retries fail, the function throws std::runtime_error — what happened to the original NetworkException's status code?",
+    ],
+    explanation: "The catch block in fetchWithRetry catches `std::exception&`, which catches NetworkException by its base class. The status code from NetworkException is accessible inside the catch block but is never preserved. When all retries fail, the function throws a new `std::runtime_error` — not a NetworkException — so the statusCode (503) is lost. In main(), the `catch (const NetworkException& e)` handler never triggers because fetchWithRetry rethrew as a plain runtime_error. The fix is to either rethrow the original exception with `throw;`, or construct a NetworkException in the retry exhaustion path.",
+    manifestation: `$ g++ -std=c++17 -O2 network.cpp -o network && ./network
+Attempt 1 failed: Service Unavailable
+Attempt 2 failed: Service Unavailable
+Attempt 3 failed: Service Unavailable
+Response: { "data": "success" }
+
+$ # With maxRetries=2 (not enough):
+$ g++ -std=c++17 -O2 -DMAX_RETRIES=2 network.cpp -o network && ./network
+Attempt 1 failed: Service Unavailable
+Attempt 2 failed: Service Unavailable
+Attempt 3 failed: Service Unavailable
+Error: All retries exhausted: Service Unavailable
+
+Expected output:
+  Network error 503: ...  ← should catch NetworkException with status code
+Actual output:
+  Error: All retries...    ← caught as plain exception, status code lost`,
+    stdlibRefs: [
+      { name: "std::runtime_error", args: "(const std::string& what_arg)", brief: "Exception class for errors detectable only at runtime.", note: "Catching a derived exception by its base class loses access to derived members unless rethrown or dynamic_cast'd.", link: "https://en.cppreference.com/w/cpp/error/runtime_error" },
+    ],
+  },
+  {
+    id: 190,
+    topic: "Error Handling",
+    difficulty: "Medium",
+    title: "Batch Processor",
+    description: "Processes a batch of items, collecting errors for any that fail, and reports a summary at the end.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <stdexcept>
+
+struct Result {
+    std::string item;
+    bool success;
+    std::string error;
+};
+
+std::string processItem(const std::string& item) {
+    if (item.empty()) throw std::invalid_argument("empty item");
+    if (item[0] == '#') throw std::runtime_error("comment not allowed");
+    return "[" + item + "]";
+}
+
+std::vector<Result> processBatch(const std::vector<std::string>& items) {
+    std::vector<Result> results;
+
+    for (const auto& item : items) {
+        try {
+            std::string output = processItem(item);
+            results.push_back({item, true, output});
+        } catch (const std::exception& e) {
+            results.push_back({item, false, e.what()});
+        }
+    }
+
+    return results;
+}
+
+int main() {
+    std::vector<std::string> items = {"hello", "", "world", "#skip", "done"};
+
+    auto results = processBatch(items);
+
+    int successCount = 0;
+    for (const auto& r : results) {
+        if (r.success) {
+            std::cout << "OK: " << r.error << std::endl;
+            successCount++;
+        } else {
+            std::cout << "FAIL: " << r.item << " - " << r.error << std::endl;
+        }
+    }
+
+    std::cout << successCount << "/" << results.size() << " succeeded" << std::endl;
+}`,
+    hints: [
+      "Look at the Result struct. What is the `error` field used for?",
+      "On success, what value is stored in the `error` field?",
+      "Does the field name match its usage in both the success and failure cases?",
+    ],
+    explanation: "The Result struct reuses the `error` field for two different purposes: on failure it stores the error message, but on success it stores the processed output (the return value of processItem). The field name `error` is misleading, and the print code `r.error` on the success path prints the processed output, which happens to work — but it's actually the output, not an error. The real bug is that on success, the output string like \"[hello]\" is stored as an \"error\", and the actual output is never stored in a dedicated field. If someone later adds logic to log all errors, they'd accidentally log successful outputs. The struct conflates output and error into one field.",
+    manifestation: `$ g++ -std=c++17 -O2 batch.cpp -o batch && ./batch
+OK: [hello]
+FAIL:  - empty item
+OK: [world]
+FAIL: #skip - comment not allowed
+OK: [done]
+3/5 succeeded
+
+$ # Output looks fine... but the "OK" lines print r.error which contains
+$ # the processed output, not an error. Misleading field reuse.
+$ # A developer adding error logging would accidentally log successes:
+$
+$ # Expected struct usage:
+$   Result.output = "[hello]"  (success data)
+$   Result.error = ""          (no error)
+$ # Actual struct usage:
+$   Result.error = "[hello]"   ← output masquerading as error field`,
+    stdlibRefs: [],
+  },
+  {
+    id: 191,
+    topic: "Error Handling",
+    difficulty: "Hard",
+    title: "Transaction Manager",
+    description: "Executes a series of operations as a transaction, rolling back on failure to maintain consistency.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <functional>
+#include <stdexcept>
+
+class Transaction {
+    std::vector<std::function<void()>> rollbacks;
+    bool committed = false;
+public:
+    void addStep(std::function<void()> action, std::function<void()> rollback) {
+        action();
+        rollbacks.push_back(rollback);
+    }
+
+    void commit() { committed = true; }
+
+    ~Transaction() {
+        if (!committed) {
+            for (auto it = rollbacks.rbegin(); it != rollbacks.rend(); ++it) {
+                (*it)();
+            }
+        }
+    }
+};
+
+int balance = 1000;
+std::vector<std::string> log_entries;
+
+void transfer(int amount) {
+    Transaction txn;
+
+    txn.addStep(
+        [&]() {
+            balance -= amount;
+            std::cout << "Debited: " << amount << std::endl;
+        },
+        [&]() {
+            balance += amount;
+            std::cout << "Rollback debit: " << amount << std::endl;
+        }
+    );
+
+    txn.addStep(
+        [&]() {
+            if (balance < 0) throw std::runtime_error("Insufficient funds");
+            log_entries.push_back("Transfer: " + std::to_string(amount));
+            std::cout << "Logged transfer" << std::endl;
+        },
+        [&]() {
+            log_entries.pop_back();
+            std::cout << "Rollback log entry" << std::endl;
+        }
+    );
+
+    txn.commit();
+}
+
+int main() {
+    std::cout << "Balance: " << balance << std::endl;
+
+    try {
+        transfer(500);
+    } catch (...) {}
+    std::cout << "Balance: " << balance << std::endl;
+
+    try {
+        transfer(800);
+    } catch (...) {}
+    std::cout << "Balance: " << balance << std::endl;
+    std::cout << "Log entries: " << log_entries.size() << std::endl;
+}`,
+    hints: [
+      "When addStep throws during the action, does the rollback for that step get recorded?",
+      "If the second step's action throws, is the second step's rollback in the rollbacks vector?",
+      "Look at the order: action() runs first, then rollback is pushed. What if action() throws?",
+    ],
+    explanation: "In addStep(), action() is called before rollback is pushed to the vector. If the action throws (as happens in the second step when balance < 0), the rollback for that step is never recorded. The Transaction destructor rolls back the first step (restoring balance) but can't roll back the second step because its rollback was never stored. In this case the second action didn't complete its side effects (the log entry wasn't added), so it appears to work. But if the action performed partial work before throwing, that partial work would not be undone. The fundamental design flaw is that action() and rollback registration aren't atomic.",
+    manifestation: `$ g++ -std=c++17 -O2 txn.cpp -o txn && ./txn
+Balance: 1000
+Debited: 500
+Logged transfer
+Balance: 500
+Debited: 800
+Rollback debit: 800
+Balance: 500
+Log entries: 1
+
+$ # Rollback worked for the debit... but what if the action partially completed?
+$ # The rollback for step 2 was never registered because action() threw first.
+$ # With a different action that does partial work before throwing:
+$
+$ # Expected: both steps rolled back on failure
+$ # Actual: only step 1's rollback ran; step 2's rollback was never registered`,
+    stdlibRefs: [],
+  },
+  {
+    id: 192,
+    topic: "Error Handling",
+    difficulty: "Hard",
+    title: "Exception-Safe Stack",
+    description: "Implements a generic stack with strong exception safety for push and pop operations.",
+    code: `#include <iostream>
+#include <stdexcept>
+#include <algorithm>
+
+template <typename T>
+class Stack {
+    T* data;
+    int capacity;
+    int top_index;
+public:
+    Stack(int cap = 16) : data(new T[cap]), capacity(cap), top_index(-1) {}
+
+    ~Stack() { delete[] data; }
+
+    Stack(const Stack& other)
+        : data(new T[other.capacity]), capacity(other.capacity), top_index(other.top_index) {
+        std::copy(other.data, other.data + other.top_index + 1, data);
+    }
+
+    Stack& operator=(const Stack& other) {
+        delete[] data;
+        capacity = other.capacity;
+        top_index = other.top_index;
+        data = new T[capacity];
+        std::copy(other.data, other.data + top_index + 1, data);
+        return *this;
+    }
+
+    void push(const T& val) {
+        if (top_index + 1 >= capacity) {
+            int newCap = capacity * 2;
+            T* newData = new T[newCap];
+            std::copy(data, data + top_index + 1, newData);
+            delete[] data;
+            data = newData;
+            capacity = newCap;
+        }
+        data[++top_index] = val;
+    }
+
+    T pop() {
+        if (top_index < 0) throw std::runtime_error("stack underflow");
+        return data[top_index--];
+    }
+
+    bool empty() const { return top_index < 0; }
+};
+
+int main() {
+    Stack<std::string> s;
+    s.push("hello");
+    s.push("world");
+
+    Stack<std::string> s2 = s;
+    std::cout << s2.pop() << std::endl;
+    std::cout << s2.pop() << std::endl;
+
+    Stack<std::string> s3;
+    s3 = s;
+    std::cout << s3.pop() << std::endl;
+}`,
+    hints: [
+      "Look at operator=. What happens if `new T[capacity]` throws?",
+      "After `delete[] data`, is the object in a valid state if the next line throws?",
+      "What does `data` point to after the delete but before the new allocation?",
+    ],
+    explanation: "In operator=, `delete[] data` is called first, destroying the current array. If the subsequent `new T[capacity]` throws std::bad_alloc, the object is left in an invalid state: `data` is a dangling pointer, but `top_index` and `capacity` have already been updated to the other stack's values. The destructor will later `delete[]` the dangling pointer — undefined behavior (likely double free). This violates the strong exception safety guarantee. The fix is to allocate the new array first, copy into it, and only then delete the old data (copy-and-swap idiom).",
+    manifestation: `$ g++ -std=c++17 -O2 stack.cpp -o stack && ./stack
+world
+hello
+world
+
+$ # Works with enough memory. But under allocation pressure:
+$ g++ -fsanitize=address -g stack_oom.cpp -o stack && ./stack
+=================================================================
+==31245==ERROR: AddressSanitizer: attempting double-free on 0x604000000010
+    #0 0x7f2a1b in operator delete[](void*) (/usr/lib/libasan.so+0xe1b)
+    #1 0x55c1a3 in Stack<std::string>::~Stack() stack.cpp:12
+    #2 0x55c4f2 in main stack.cpp:50
+SUMMARY: AddressSanitizer: double-free stack.cpp:12 in Stack::~Stack()`,
+    stdlibRefs: [
+      { name: "std::copy", args: "(InputIt first, InputIt last, OutputIt d_first) → OutputIt", brief: "Copies elements from the range [first, last) to the range beginning at d_first.", note: "If the copy throws (e.g., a string's copy constructor throws), some elements may already be copied — the operation is not atomic.", link: "https://en.cppreference.com/w/cpp/algorithm/copy" },
+    ],
+  },
+  {
+    id: 193,
+    topic: "Error Handling",
+    difficulty: "Hard",
+    title: "Custom Error Hierarchy",
+    description: "Defines a hierarchy of application-specific exceptions and handles them at different levels.",
+    code: `#include <iostream>
+#include <string>
+#include <stdexcept>
+#include <vector>
+
+class AppError : public std::exception {
+    std::string message;
+public:
+    AppError(const std::string& msg) : message(msg) {}
+    const char* what() const noexcept override { return message.c_str(); }
+};
+
+class DatabaseError : public AppError {
+    std::string query;
+public:
+    DatabaseError(const std::string& msg, const std::string& q)
+        : AppError(msg), query(q) {}
+    const std::string& getQuery() const { return query; }
+};
+
+class ConnectionError : public DatabaseError {
+    std::string host;
+public:
+    ConnectionError(const std::string& msg, const std::string& h)
+        : DatabaseError(msg, ""), host(h) {}
+    const std::string& getHost() const { return host; }
+};
+
+void handleErrors(const std::vector<int>& errorCodes) {
+    for (int code : errorCodes) {
+        try {
+            switch (code) {
+                case 1: throw AppError("Generic app error");
+                case 2: throw DatabaseError("Query failed", "SELECT * FROM users");
+                case 3: throw ConnectionError("Connection refused", "db.example.com");
+            }
+        } catch (const AppError& e) {
+            std::cout << "App error: " << e.what() << std::endl;
+        } catch (const DatabaseError& e) {
+            std::cout << "DB error: " << e.what()
+                      << " (query: " << e.getQuery() << ")" << std::endl;
+        } catch (const ConnectionError& e) {
+            std::cout << "Connection error: " << e.what()
+                      << " (host: " << e.getHost() << ")" << std::endl;
+        }
+    }
+}
+
+int main() {
+    handleErrors({1, 2, 3});
+}`,
+    hints: [
+      "In what order are the catch blocks evaluated?",
+      "Is DatabaseError derived from AppError? Is ConnectionError derived from DatabaseError?",
+      "When a ConnectionError is thrown, which catch block matches first?",
+    ],
+    explanation: "The catch blocks are ordered from base to derived: AppError is caught first, then DatabaseError, then ConnectionError. Since DatabaseError and ConnectionError both derive from AppError, throwing any of them matches the first `catch (const AppError& e)` block — the more specific handlers never execute. All three errors print as 'App error:' with no access to the derived class members (query, host). The fix is to reverse the catch order: catch ConnectionError first, then DatabaseError, then AppError (most derived to least derived).",
+    manifestation: `$ g++ -std=c++17 -O2 hierarchy.cpp -o hierarchy && ./hierarchy
+App error: Generic app error
+App error: Query failed
+App error: Connection refused
+
+Expected output:
+  App error: Generic app error
+  DB error: Query failed (query: SELECT * FROM users)
+  Connection error: Connection refused (host: db.example.com)
+Actual output:
+  All caught as AppError — specific handlers unreachable`,
+    stdlibRefs: [],
+  },
 ];
