@@ -13029,4 +13029,655 @@ $ # order is unspecified since they compare equal.`,
       { name: "std::strong_ordering", brief: "Result type of three-way comparison for types where equal values are truly indistinguishable.", note: "If your <=> ignores some members, 'equal' objects may actually be distinguishable by the ignored members — strong_ordering's semantic guarantee is violated.", link: "https://en.cppreference.com/w/cpp/utility/compare/strong_ordering" },
     ],
   },
+  // ── Algorithms ──
+  {
+    id: 204,
+    topic: "Algorithms",
+    difficulty: "Easy",
+    title: "Reverse Array",
+    description: "Reverses an array of integers in place and prints the result.",
+    code: `#include <iostream>
+#include <vector>
+
+void reverseInPlace(std::vector<int>& arr) {
+    for (size_t i = 0; i <= arr.size() / 2; ++i) {
+        std::swap(arr[i], arr[arr.size() - 1 - i]);
+    }
+}
+
+int main() {
+    std::vector<int> nums = {1, 2, 3, 4, 5};
+    reverseInPlace(nums);
+
+    std::cout << "Reversed:";
+    for (int n : nums) std::cout << " " << n;
+    std::cout << std::endl;
+
+    std::vector<int> even = {10, 20, 30, 40};
+    reverseInPlace(even);
+
+    std::cout << "Reversed:";
+    for (int n : even) std::cout << " " << n;
+    std::cout << std::endl;
+}`,
+    hints: [
+      "How many iterations does the loop perform?",
+      "For a 5-element array, what happens when i equals arr.size() / 2?",
+      "When i == 2 and size == 5, what element does arr[size - 1 - i] refer to, and is it already swapped?",
+    ],
+    explanation: "The loop condition uses `<=` instead of `<` for the midpoint check. For an odd-length array like {1,2,3,4,5}, size/2 is 2. When i==2, it swaps arr[2] with arr[2] (the middle element with itself), which is harmless. But the real bug is for even-length arrays: for {10,20,30,40}, size/2 is 2. When i==2, it swaps arr[2] with arr[1], but arr[1] and arr[2] were already swapped when i==1. This double-swap undoes the previous swap, leaving the middle two elements in their original positions. The fix is to use `i < arr.size() / 2`.",
+    manifestation: `$ g++ -std=c++17 -O2 reverse.cpp -o reverse && ./reverse
+Reversed: 5 4 3 2 1
+Reversed: 40 20 30 10
+
+Expected output:
+  Reversed: 40 30 20 10
+Actual output:
+  Reversed: 40 20 30 10  ← middle elements swapped back to original`,
+    stdlibRefs: [
+      { name: "std::swap", args: "(T& a, T& b) → void", brief: "Exchanges the values of a and b.", link: "https://en.cppreference.com/w/cpp/algorithm/swap" },
+    ],
+  },
+  {
+    id: 205,
+    topic: "Algorithms",
+    difficulty: "Easy",
+    title: "Maximum Subarray",
+    description: "Finds the contiguous subarray with the largest sum using Kadane's algorithm.",
+    code: `#include <iostream>
+#include <vector>
+#include <climits>
+
+int maxSubarraySum(const std::vector<int>& nums) {
+    int maxSum = 0;
+    int currentSum = 0;
+
+    for (int n : nums) {
+        currentSum += n;
+        if (currentSum > maxSum) {
+            maxSum = currentSum;
+        }
+        if (currentSum < 0) {
+            currentSum = 0;
+        }
+    }
+
+    return maxSum;
+}
+
+int main() {
+    std::vector<int> a = {-2, 1, -3, 4, -1, 2, 1, -5, 4};
+    std::cout << "Max subarray sum: " << maxSubarraySum(a) << std::endl;
+
+    std::vector<int> b = {1, 2, 3, 4};
+    std::cout << "Max subarray sum: " << maxSubarraySum(b) << std::endl;
+
+    std::vector<int> c = {-3, -2, -1, -4};
+    std::cout << "Max subarray sum: " << maxSubarraySum(c) << std::endl;
+}`,
+    hints: [
+      "What is the initial value of maxSum?",
+      "What happens when all elements in the array are negative?",
+      "Can the maximum subarray sum ever be negative in a valid input?",
+    ],
+    explanation: "The initial value of maxSum is 0 instead of INT_MIN (or the first element). When all elements are negative, like {-3, -2, -1, -4}, currentSum is always reset to 0 before it can exceed maxSum, so maxSum stays at 0. The correct answer for all-negative arrays is the least negative element (-1), not 0. Returning 0 implies an empty subarray has the maximum sum, but Kadane's algorithm should find the best non-empty subarray. The fix is to initialize maxSum to INT_MIN or to nums[0].",
+    manifestation: `$ g++ -std=c++17 -O2 maxsub.cpp -o maxsub && ./maxsub
+Max subarray sum: 6
+Max subarray sum: 10
+Max subarray sum: 0
+
+Expected output:
+  Max subarray sum: -1  (the subarray {-1})
+Actual output:
+  Max subarray sum: 0   ← wrong for all-negative input`,
+    stdlibRefs: [],
+  },
+  {
+    id: 206,
+    topic: "Algorithms",
+    difficulty: "Easy",
+    title: "Selection Sort",
+    description: "Sorts an array of strings alphabetically using the selection sort algorithm.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+
+void selectionSort(std::vector<std::string>& arr) {
+    for (size_t i = 0; i < arr.size(); ++i) {
+        size_t minIdx = i;
+        for (size_t j = i + 1; j < arr.size(); ++j) {
+            if (arr[j] < arr[minIdx]) {
+                minIdx = j;
+            }
+        }
+        std::swap(arr[i], arr[minIdx]);
+    }
+}
+
+int main() {
+    std::vector<std::string> words = {"banana", "Apple", "cherry", "date", "Elderberry"};
+    selectionSort(words);
+
+    std::cout << "Sorted:" << std::endl;
+    for (const auto& w : words) {
+        std::cout << "  " << w << std::endl;
+    }
+}`,
+    hints: [
+      "How does std::string's operator< compare characters?",
+      "What is the ASCII value of 'A' compared to 'a'?",
+      "Is 'Apple' less than 'banana' according to lexicographic comparison?",
+    ],
+    explanation: "The selection sort algorithm itself is correct, but std::string's operator< performs lexicographic comparison using ASCII values. Uppercase letters (A=65 to Z=90) have lower ASCII values than lowercase letters (a=97 to z=122), so 'Apple' < 'banana' and 'Elderberry' < 'banana'. The sort produces {Apple, Elderberry, banana, cherry, date} — uppercase words sort before all lowercase words, which is not true alphabetical order. The fix is to use a case-insensitive comparator.",
+    manifestation: `$ g++ -std=c++17 -O2 selsort.cpp -o selsort && ./selsort
+Sorted:
+  Apple
+  Elderberry
+  banana
+  cherry
+  date
+
+Expected output:
+  Apple
+  banana
+  cherry
+  date
+  Elderberry
+Actual output:
+  All uppercase words sort before lowercase — not true alphabetical order`,
+    stdlibRefs: [],
+  },
+  {
+    id: 207,
+    topic: "Algorithms",
+    difficulty: "Medium",
+    title: "Merge Sorted Lists",
+    description: "Merges two sorted vectors into a single sorted vector.",
+    code: `#include <iostream>
+#include <vector>
+
+std::vector<int> merge(const std::vector<int>& a, const std::vector<int>& b) {
+    std::vector<int> result;
+    size_t i = 0, j = 0;
+
+    while (i < a.size() && j < b.size()) {
+        if (a[i] < b[j]) {
+            result.push_back(a[i++]);
+        } else {
+            result.push_back(b[j++]);
+        }
+    }
+
+    while (i < a.size()) result.push_back(a[i++]);
+    while (j < b.size()) result.push_back(b[j++]);
+
+    return result;
+}
+
+int main() {
+    std::vector<int> a = {1, 3, 5, 7};
+    std::vector<int> b = {2, 4, 6, 8};
+
+    auto merged = merge(a, b);
+    for (int n : merged) std::cout << n << " ";
+    std::cout << std::endl;
+
+    // Merge with duplicates
+    std::vector<int> c = {1, 2, 3};
+    std::vector<int> d = {2, 3, 4};
+    auto merged2 = merge(c, d);
+    for (int n : merged2) std::cout << n << " ";
+    std::cout << std::endl;
+
+    // Stability test: equal elements should preserve relative order
+    // from their respective arrays
+    std::vector<int> e = {1, 1, 1};
+    std::vector<int> f = {1, 1};
+    auto merged3 = merge(e, f);
+    std::cout << "Size: " << merged3.size() << std::endl;
+}`,
+    hints: [
+      "When a[i] equals b[j], which branch is taken?",
+      "If the merge is meant to be stable (preserving relative order of equal elements from the first list before the second), does it succeed?",
+      "Is taking from b when a[i] == b[j] the correct choice for a stable merge?",
+    ],
+    explanation: "When a[i] == b[j], the condition `a[i] < b[j]` is false, so the else branch takes elements from b first. In a stable merge, equal elements from a should come before equal elements from b (since a is the 'first' list). The current code reverses this ordering: when a={1,2,3} and b={2,3,4}, the merged sequence is {1,2,2,3,3,4} but with the b's 2 before a's 2. The fix is to use `a[i] <= b[j]` in the condition, or equivalently `!(b[j] < a[i])`, to ensure a's elements take priority on ties.",
+    manifestation: `$ g++ -std=c++17 -O2 mergesort.cpp -o mergesort && ./mergesort
+1 2 3 4 5 6 7 8
+1 2 2 3 3 4
+Size: 5
+
+$ # Values look correct, but stability is violated:
+$ # For merge(c, d) where c={1,2,3} and d={2,3,4}:
+Expected: c's 2 before d's 2, c's 3 before d's 3  (stable merge)
+Actual: d's elements come first on ties (unstable merge)
+
+$ # This matters when merging objects with keys — equal-keyed objects
+$ # from the second list jump ahead of those from the first.`,
+    stdlibRefs: [
+      { name: "std::merge", args: "(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutputIt d_first) → OutputIt", brief: "Merges two sorted ranges into one, preserving order; stable (equal elements from the first range come first).", note: "Uses operator< by default and is guaranteed stable. Hand-written merges that use < instead of <= for equal elements break stability.", link: "https://en.cppreference.com/w/cpp/algorithm/merge" },
+    ],
+  },
+  {
+    id: 208,
+    topic: "Algorithms",
+    difficulty: "Medium",
+    title: "Quick Partition",
+    description: "Implements the partition step of quicksort, placing elements less than a pivot before it and greater after.",
+    code: `#include <iostream>
+#include <vector>
+
+int partition(std::vector<int>& arr, int low, int high) {
+    int pivot = arr[high];
+    int i = low;
+
+    for (int j = low; j < high; ++j) {
+        if (arr[j] <= pivot) {
+            std::swap(arr[i], arr[j]);
+            ++i;
+        }
+    }
+    std::swap(arr[i], arr[high]);
+    return i;
+}
+
+void quicksort(std::vector<int>& arr, int low, int high) {
+    if (low < high) {
+        int p = partition(arr, low, high);
+        quicksort(arr, low, p - 1);
+        quicksort(arr, p + 1, high);
+    }
+}
+
+int main() {
+    std::vector<int> nums = {3, 6, 8, 10, 1, 2, 1};
+    quicksort(nums, 0, nums.size());
+
+    for (int n : nums) std::cout << n << " ";
+    std::cout << std::endl;
+
+    std::vector<int> empty;
+    quicksort(empty, 0, empty.size() - 1);
+}`,
+    hints: [
+      "What value is passed as `high` in the first call to quicksort?",
+      "The function expects `high` to be the index of the last element. What does nums.size() represent?",
+      "What happens when arr[high] is accessed with high == nums.size()?",
+    ],
+    explanation: "The first call passes `nums.size()` (which is 7) as `high`, but `high` should be the index of the last element (6, since indices are 0-based). The partition function accesses `arr[high]` which is `arr[7]` — one past the end of the 7-element vector, causing an out-of-bounds read. Additionally, the empty vector case computes `empty.size() - 1` which underflows to a huge number (size_t is unsigned), passing a massive value as `high`. The fix is to call `quicksort(nums, 0, nums.size() - 1)` and guard against empty vectors.",
+    manifestation: `$ g++ -fsanitize=address -g quicksort.cpp -o quicksort && ./quicksort
+=================================================================
+==24891==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x60400000003c
+READ of size 4 at 0x60400000003c thread T0
+    #0 0x55a1b3 in partition(std::vector<int>&, int, int) quicksort.cpp:5
+    #1 0x55a4f2 in quicksort(std::vector<int>&, int, int) quicksort.cpp:19
+    #2 0x55a6a1 in main quicksort.cpp:26
+SUMMARY: AddressSanitizer: heap-buffer-overflow quicksort.cpp:5 in partition`,
+    stdlibRefs: [],
+  },
+  {
+    id: 209,
+    topic: "Algorithms",
+    difficulty: "Medium",
+    title: "Power Calculator",
+    description: "Computes integer exponentiation using the fast exponentiation algorithm (repeated squaring).",
+    code: `#include <iostream>
+#include <cstdint>
+
+int64_t power(int64_t base, int exp) {
+    int64_t result = 1;
+    while (exp > 0) {
+        if (exp % 2 == 1) {
+            result *= base;
+        }
+        base *= base;
+        exp /= 2;
+    }
+    return result;
+}
+
+int main() {
+    std::cout << "2^10 = " << power(2, 10) << std::endl;
+    std::cout << "3^5 = " << power(3, 5) << std::endl;
+    std::cout << "7^0 = " << power(7, 0) << std::endl;
+    std::cout << "5^3 = " << power(5, 3) << std::endl;
+
+    // Large exponent
+    std::cout << "2^40 = " << power(2, 40) << std::endl;
+
+    // Negative exponent
+    std::cout << "2^(-3) = " << power(2, -3) << std::endl;
+}`,
+    hints: [
+      "What does the while condition check?",
+      "What happens when exp is negative?",
+      "Is integer exponentiation with negative exponents even meaningful for int64_t?",
+    ],
+    explanation: "When `exp` is negative (like -3), the while condition `exp > 0` is immediately false, so the loop never executes and the function returns 1. The correct answer for 2^(-3) is 0.125, which can't be represented as an int64_t anyway. The function silently returns 1 for any negative exponent without any error indication. The fix is to either check for negative exponents and throw an exception, return a double, or document that negative exponents are not supported.",
+    manifestation: `$ g++ -std=c++17 -O2 power.cpp -o power && ./power
+2^10 = 1024
+3^5 = 243
+7^0 = 1
+5^3 = 125
+2^40 = 1099511627776
+2^(-3) = 1
+
+Expected output:
+  2^(-3) = 0.125  (or an error)
+Actual output:
+  2^(-3) = 1  ← silently returns 1 for negative exponents`,
+    stdlibRefs: [],
+  },
+  {
+    id: 210,
+    topic: "Algorithms",
+    difficulty: "Medium",
+    title: "Duplicate Remover",
+    description: "Removes duplicate elements from a sorted array, keeping only unique values.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+
+std::vector<int> removeDuplicates(std::vector<int> nums) {
+    if (nums.empty()) return nums;
+
+    std::sort(nums.begin(), nums.end());
+
+    auto last = std::unique(nums.begin(), nums.end());
+    nums.erase(last, nums.end());
+
+    return nums;
+}
+
+int main() {
+    std::vector<int> a = {3, 1, 4, 1, 5, 9, 2, 6, 5, 3, 5};
+    auto unique_a = removeDuplicates(a);
+
+    std::cout << "Unique:";
+    for (int n : unique_a) std::cout << " " << n;
+    std::cout << std::endl;
+
+    // Original should be unchanged
+    std::cout << "Original:";
+    for (int n : a) std::cout << " " << n;
+    std::cout << std::endl;
+
+    // Use with floating point
+    std::vector<double> prices = {9.99, 10.00, 9.99, 10.00, 9.990000001};
+    std::sort(prices.begin(), prices.end());
+    auto lastP = std::unique(prices.begin(), prices.end());
+    prices.erase(lastP, prices.end());
+
+    std::cout << "Unique prices:";
+    for (double p : prices) std::cout << " " << p;
+    std::cout << std::endl;
+}`,
+    hints: [
+      "How does std::unique determine if two elements are duplicates?",
+      "For doubles, when are two floating-point values considered equal by operator==?",
+      "Is 9.99 exactly equal to 9.990000001 in floating-point representation?",
+    ],
+    explanation: "std::unique uses operator== to compare adjacent elements. For the double case, 9.99 and 9.990000001 are not exactly equal in IEEE 754, so std::unique treats them as distinct values. The user likely expects these near-equal prices to be deduplicated. The output keeps both 9.99 and 9.99 (the latter being 9.990000001 which displays differently depending on precision). The fix is to use a custom comparator with an epsilon tolerance: `std::unique(begin, end, [](double a, double b) { return std::abs(a - b) < 1e-6; })`.",
+    manifestation: `$ g++ -std=c++17 -O2 dedup.cpp -o dedup && ./dedup
+Unique: 1 2 3 4 5 6 9
+Original: 3 1 4 1 5 9 2 6 5 3 5
+Unique prices: 9.99 9.99 10
+
+Expected output:
+  Unique prices: 9.99 10  ← two unique prices
+Actual output:
+  Unique prices: 9.99 9.99 10  ← 9.990000001 not deduplicated with 9.99`,
+    stdlibRefs: [
+      { name: "std::unique", args: "(ForwardIt first, ForwardIt last) → ForwardIt | (ForwardIt first, ForwardIt last, BinaryPredicate p) → ForwardIt", brief: "Removes consecutive duplicate elements; returns iterator to the new logical end.", note: "Uses operator== by default, which for floating-point types requires exact bitwise equality — near-equal values are not deduplicated.", link: "https://en.cppreference.com/w/cpp/algorithm/unique" },
+    ],
+  },
+  {
+    id: 211,
+    topic: "Algorithms",
+    difficulty: "Hard",
+    title: "Topological Sort",
+    description: "Performs a topological sort on a directed acyclic graph represented as an adjacency list.",
+    code: `#include <iostream>
+#include <vector>
+#include <queue>
+#include <string>
+#include <unordered_map>
+
+std::vector<std::string> topologicalSort(
+    const std::unordered_map<std::string, std::vector<std::string>>& graph)
+{
+    std::unordered_map<std::string, int> inDegree;
+
+    // Initialize in-degree for all nodes
+    for (const auto& [node, neighbors] : graph) {
+        if (inDegree.find(node) == inDegree.end()) inDegree[node] = 0;
+        for (const auto& n : neighbors) {
+            inDegree[n]++;
+        }
+    }
+
+    // Enqueue nodes with 0 in-degree
+    std::queue<std::string> q;
+    for (const auto& [node, degree] : inDegree) {
+        if (degree == 0) q.push(node);
+    }
+
+    std::vector<std::string> result;
+    while (!q.empty()) {
+        std::string node = q.front();
+        q.pop();
+        result.push_back(node);
+
+        for (const auto& neighbor : graph.at(node)) {
+            if (--inDegree[neighbor] == 0) {
+                q.push(neighbor);
+            }
+        }
+    }
+
+    return result;
+}
+
+int main() {
+    std::unordered_map<std::string, std::vector<std::string>> deps = {
+        {"A", {"B", "C"}},
+        {"B", {"D"}},
+        {"C", {"D"}},
+        {"D", {"E"}},
+        {"E", {}},
+        {"F", {"B"}},
+    };
+
+    auto order = topologicalSort(deps);
+    std::cout << "Build order:";
+    for (const auto& s : order) std::cout << " " << s;
+    std::cout << std::endl;
+
+    // What about a node with no entry in the graph?
+    std::unordered_map<std::string, std::vector<std::string>> deps2 = {
+        {"X", {"Y"}},
+    };
+    auto order2 = topologicalSort(deps2);
+    std::cout << "Order2:";
+    for (const auto& s : order2) std::cout << " " << s;
+    std::cout << std::endl;
+}`,
+    hints: [
+      "When processing a node's neighbors, what does graph.at(node) do if the node has no entry in the graph?",
+      "Is 'Y' in the graph map? It's referenced as a dependency but never listed as a key.",
+      "What exception does std::unordered_map::at() throw for a missing key?",
+    ],
+    explanation: "When node 'Y' is dequeued (it has 0 in-degree), `graph.at(node)` is called. But 'Y' has no entry as a key in the graph — it only appears as a value in X's neighbor list. `graph.at(\"Y\")` throws std::out_of_range because the key doesn't exist. The first example works because every node (including E with an empty list) is explicitly listed as a key. The fix is to use `graph.find(node)` and skip missing nodes, or use `graph.count(node)` to check existence before calling at().",
+    manifestation: `$ g++ -std=c++17 -O2 toposort.cpp -o toposort && ./toposort
+Build order: A F C B D E
+terminate called after throwing an instance of 'std::out_of_range'
+  what():  _Map_base::at
+Aborted (core dumped)`,
+    stdlibRefs: [
+      { name: "std::unordered_map::at", args: "(const key_type& key) → mapped_type&", brief: "Returns a reference to the mapped value of the element with the given key.", note: "Throws std::out_of_range if the key does not exist — unlike operator[], it does not insert a default value.", link: "https://en.cppreference.com/w/cpp/container/unordered_map/at" },
+    ],
+  },
+  {
+    id: 212,
+    topic: "Algorithms",
+    difficulty: "Hard",
+    title: "LCS Finder",
+    description: "Finds the longest common subsequence of two strings using dynamic programming.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+
+std::string lcs(const std::string& a, const std::string& b) {
+    int m = a.size(), n = b.size();
+    std::vector<std::vector<int>> dp(m + 1, std::vector<int>(n + 1, 0));
+
+    for (int i = 1; i <= m; ++i) {
+        for (int j = 1; j <= n; ++j) {
+            if (a[i - 1] == b[j - 1]) {
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+            } else {
+                dp[i][j] = std::max(dp[i - 1][j], dp[i][j - 1]);
+            }
+        }
+    }
+
+    // Backtrack to find the actual subsequence
+    std::string result;
+    int i = m, j = n;
+    while (i > 0 && j > 0) {
+        if (a[i - 1] == b[j - 1]) {
+            result += a[i - 1];
+            --i; --j;
+        } else if (dp[i - 1][j] > dp[i][j - 1]) {
+            --i;
+        } else {
+            --j;
+        }
+    }
+
+    return result;
+}
+
+int main() {
+    std::cout << "LCS: " << lcs("ABCBDAB", "BDCAB") << std::endl;
+    std::cout << "LCS: " << lcs("AGGTAB", "GXTXAYB") << std::endl;
+    std::cout << "LCS: " << lcs("ABC", "DEF") << std::endl;
+}`,
+    hints: [
+      "Look at the backtracking step. In what order are characters added to `result`?",
+      "The backtracking goes from (m,n) to (0,0) — does the subsequence come out forwards or backwards?",
+      "Is the result string reversed before returning?",
+    ],
+    explanation: "The backtracking step builds the result by appending characters as it traverses from the bottom-right to the top-left of the DP table. This produces the LCS in reverse order. For example, lcs(\"ABCBDAB\", \"BDCAB\") should return \"BCAB\" but instead returns \"BACB\". The function never reverses the result string before returning. The fix is to add `std::reverse(result.begin(), result.end());` before the return statement, or build the string with `result = a[i-1] + result` (prepend instead of append).",
+    manifestation: `$ g++ -std=c++17 -O2 lcs.cpp -o lcs && ./lcs
+LCS: BACB
+LCS: BATG
+LCS:
+
+Expected output:
+  LCS: BCAB
+  LCS: GTAB
+Actual output:
+  LCS: BACB  ← reversed
+  LCS: BATG  ← reversed`,
+    stdlibRefs: [
+      { name: "std::reverse", args: "(BidirIt first, BidirIt last) → void", brief: "Reverses the order of elements in the range [first, last).", link: "https://en.cppreference.com/w/cpp/algorithm/reverse" },
+    ],
+  },
+  {
+    id: 213,
+    topic: "Algorithms",
+    difficulty: "Hard",
+    title: "Hash Table Probe",
+    description: "Implements an open-addressing hash table with linear probing for collision resolution.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <optional>
+#include <functional>
+
+template <typename K, typename V>
+class HashTable {
+    struct Entry {
+        K key;
+        V value;
+        bool occupied = false;
+    };
+    std::vector<Entry> table;
+    size_t count = 0;
+
+    size_t hash(const K& key) const {
+        return std::hash<K>{}(key) % table.size();
+    }
+
+public:
+    HashTable(size_t capacity = 16) : table(capacity) {}
+
+    void put(const K& key, const V& value) {
+        size_t idx = hash(key);
+        while (table[idx].occupied && table[idx].key != key) {
+            idx = (idx + 1) % table.size();
+        }
+        if (!table[idx].occupied) ++count;
+        table[idx] = {key, value, true};
+    }
+
+    std::optional<V> get(const K& key) const {
+        size_t idx = hash(key);
+        while (table[idx].occupied) {
+            if (table[idx].key == key) return table[idx].value;
+            idx = (idx + 1) % table.size();
+        }
+        return std::nullopt;
+    }
+
+    void remove(const K& key) {
+        size_t idx = hash(key);
+        while (table[idx].occupied) {
+            if (table[idx].key == key) {
+                table[idx].occupied = false;
+                --count;
+                return;
+            }
+            idx = (idx + 1) % table.size();
+        }
+    }
+
+    size_t size() const { return count; }
+};
+
+int main() {
+    HashTable<std::string, int> ht(8);
+
+    ht.put("alice", 100);
+    ht.put("bob", 200);
+    ht.put("carol", 300);
+    ht.put("dave", 400);
+
+    std::cout << "bob: " << ht.get("bob").value_or(-1) << std::endl;
+
+    ht.remove("bob");
+    std::cout << "bob after remove: " << ht.get("bob").value_or(-1) << std::endl;
+    std::cout << "carol: " << ht.get("carol").value_or(-1) << std::endl;
+}`,
+    hints: [
+      "In linear probing, what happens when you remove an entry that was part of a collision chain?",
+      "After removing 'bob', if 'carol' was placed after 'bob' due to a collision, can get() still find 'carol'?",
+      "What does the get() function do when it encounters a non-occupied slot?",
+    ],
+    explanation: "The remove() function simply marks a slot as unoccupied. In linear probing, this breaks the collision chain. If 'carol' was placed in a slot after 'bob' due to a hash collision, and 'bob' is removed (marked unoccupied), then get(\"carol\") will encounter the empty slot where 'bob' was and stop probing — it won't continue to find 'carol' further in the chain. The result is that 'carol' becomes unreachable even though it's still in the table. The fix is to use tombstone markers (a 'deleted' flag separate from 'occupied') or to rehash the subsequent cluster after removal.",
+    manifestation: `$ g++ -std=c++17 -O2 hashtable.cpp -o hashtable && ./hashtable
+bob: 200
+bob after remove: -1
+carol: -1
+
+Expected output:
+  carol: 300  ← carol should still be findable
+Actual output:
+  carol: -1   ← removal of bob broke the probe chain to carol`,
+    stdlibRefs: [
+      { name: "std::hash", args: "<T>()(const T& key) → size_t", brief: "Function object that computes a hash value for the given key.", link: "https://en.cppreference.com/w/cpp/utility/hash" },
+    ],
+  },
 ];
