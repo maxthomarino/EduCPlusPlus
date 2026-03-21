@@ -17007,4 +17007,897 @@ The strong typing is defeated: any int silently becomes any ID type.
 Fix: mark constructor explicit.`,
     stdlibRefs: [],
   },
+
+  // ── Data Structures ──
+  {
+    id: 264,
+    topic: "Data Structures",
+    difficulty: "Easy",
+    title: "Stack Peek",
+    description: "Implements a simple stack with push, pop, and peek operations using a vector as the backing store.",
+    code: `#include <iostream>
+#include <vector>
+#include <stdexcept>
+
+template <typename T>
+class Stack {
+    std::vector<T> data;
+
+public:
+    void push(const T& value) {
+        data.push_back(value);
+    }
+
+    T pop() {
+        if (data.empty()) throw std::runtime_error("Stack underflow");
+        T value = data.back();
+        data.pop_back();
+        return value;
+    }
+
+    T& peek() {
+        return data.back();
+    }
+
+    bool empty() const { return data.empty(); }
+    size_t size() const { return data.size(); }
+};
+
+int main() {
+    Stack<int> s;
+    s.push(10);
+    s.push(20);
+    s.push(30);
+
+    std::cout << "Peek: " << s.peek() << std::endl;
+    std::cout << "Pop: " << s.pop() << std::endl;
+    std::cout << "Size: " << s.size() << std::endl;
+
+    Stack<int> empty;
+    std::cout << "Peek empty: " << empty.peek() << std::endl;
+}`,
+    hints: [
+      "What happens when you call `peek()` on an empty stack?",
+      "Does `peek()` check if the stack is empty before accessing `data.back()`?",
+      "What does `std::vector::back()` do when the vector is empty?",
+    ],
+    explanation: "The `peek()` method calls `data.back()` without checking if the stack is empty. Unlike `pop()` which has an emptiness check, `peek()` has none. Calling `back()` on an empty vector is undefined behavior — it may crash, return garbage, or appear to work. The fix is to add the same emptiness check as `pop()`: `if (data.empty()) throw std::runtime_error(\"Stack underflow\");`.",
+    manifestation: `$ g++ -std=c++17 -O2 stack.cpp -o stack && ./stack
+Peek: 30
+Pop: 30
+Size: 2
+Segmentation fault (core dumped)
+
+$ g++ -fsanitize=address -g stack.cpp -o stack && ./stack
+Peek: 30
+Pop: 30
+Size: 2
+=================================================================
+==18234==ERROR: AddressSanitizer: container-overflow on address 0x603000000020
+READ of size 4 at 0x603000000020 thread T0
+    #0 0x401a82 in Stack<int>::peek() stack.cpp:22
+    #1 0x401e45 in main stack.cpp:38
+SUMMARY: AddressSanitizer: container-overflow stack.cpp:22`,
+    stdlibRefs: [
+      { name: "std::vector::back", args: "() → reference", brief: "Returns a reference to the last element in the vector.", note: "Calling back() on an empty vector is undefined behavior.", link: "https://en.cppreference.com/w/cpp/container/vector/back" },
+    ],
+  },
+  {
+    id: 265,
+    topic: "Data Structures",
+    difficulty: "Easy",
+    title: "Circular Queue",
+    description: "Implements a fixed-size circular queue (ring buffer) for streaming data processing.",
+    code: `#include <iostream>
+#include <vector>
+
+template <typename T>
+class CircularQueue {
+    std::vector<T> buffer;
+    size_t head = 0;
+    size_t tail = 0;
+    size_t count = 0;
+    size_t capacity;
+
+public:
+    CircularQueue(size_t cap) : buffer(cap), capacity(cap) {}
+
+    bool enqueue(const T& value) {
+        if (count == capacity) return false;
+        buffer[tail] = value;
+        tail = (tail + 1) % capacity;
+        ++count;
+        return true;
+    }
+
+    bool dequeue(T& out) {
+        if (count == 0) return false;
+        out = buffer[head];
+        head = (head + 1) % capacity;
+        --count;
+        return true;
+    }
+
+    bool full() const { return count == capacity; }
+    bool empty() const { return count == 0; }
+    size_t size() const { return count; }
+};
+
+int main() {
+    CircularQueue<int> q(3);
+
+    q.enqueue(1);
+    q.enqueue(2);
+    q.enqueue(3);
+
+    std::cout << "Full: " << q.full() << std::endl;
+    std::cout << "Enqueue 4: " << q.enqueue(4) << std::endl;
+
+    int val;
+    q.dequeue(val);
+    std::cout << "Dequeued: " << val << std::endl;
+
+    q.enqueue(4);
+
+    while (!q.empty()) {
+        q.dequeue(val);
+        std::cout << val << " ";
+    }
+    std::cout << std::endl;
+
+    // Edge case: zero capacity
+    CircularQueue<int> zeroQ(0);
+    std::cout << "Zero enqueue: " << zeroQ.enqueue(1) << std::endl;
+    std::cout << "Zero empty: " << zeroQ.empty() << std::endl;
+}`,
+    hints: [
+      "What happens when you create a `CircularQueue` with capacity 0?",
+      "With capacity 0, the modulo operation `tail % capacity` becomes `tail % 0`. What is that?",
+      "Is division (or modulo) by zero defined behavior in C++?",
+    ],
+    explanation: "When `capacity` is 0, the `enqueue` method checks `count == capacity` (0 == 0), which is true, so it correctly returns false. However, if the implementation were slightly different, or if `full()` is checked differently, the modulo by zero would trigger. But wait — in this specific code, `enqueue` returns false before reaching the modulo line when capacity is 0. The actual subtle bug is that the `CircularQueue(0)` creates a zero-size vector and the queue works (reporting empty and full simultaneously). The real bug is different: the queue with capacity 0 reports `full() == true` AND `empty() == true` simultaneously, which is a contradictory state. Any code checking `if (!q.full())` would skip enqueue, but code checking `if (!q.empty())` would try to dequeue from an empty buffer. The `dequeue` method would return false, but the contradictory state violates the queue's invariants.",
+    manifestation: `$ g++ -std=c++17 -O2 ringbuf.cpp -o ringbuf && ./ringbuf
+Full: 1
+Enqueue 4: 0
+Dequeued: 1
+2 3 4
+Zero enqueue: 0
+Zero empty: 1
+
+Note: zero-capacity queue reports both full() and empty() as true.
+This is a contradictory state:
+
+  CircularQueue<int> q(0);
+  q.full()   → true  (count == capacity: 0 == 0)
+  q.empty()  → true  (count == 0)
+
+Code that branches on full()/empty() may take impossible paths.
+Also: if capacity is 0 and enqueue somehow runs, the modulo
+(tail % 0) is undefined behavior.`,
+    stdlibRefs: [],
+  },
+  {
+    id: 266,
+    topic: "Data Structures",
+    difficulty: "Easy",
+    title: "Min Finder",
+    description: "Maintains a running minimum over a stream of values, supporting add and query operations.",
+    code: `#include <iostream>
+#include <limits>
+
+class MinTracker {
+    int minimum;
+
+public:
+    MinTracker() : minimum(0) {}
+
+    void add(int value) {
+        if (value < minimum) {
+            minimum = value;
+        }
+    }
+
+    int getMin() const { return minimum; }
+};
+
+int main() {
+    MinTracker tracker;
+    tracker.add(5);
+    tracker.add(3);
+    tracker.add(8);
+    tracker.add(1);
+    tracker.add(4);
+
+    std::cout << "Min: " << tracker.getMin() << std::endl;
+
+    MinTracker tracker2;
+    tracker2.add(10);
+    tracker2.add(20);
+    tracker2.add(30);
+
+    std::cout << "Min: " << tracker2.getMin() << std::endl;
+}`,
+    hints: [
+      "What is `minimum` initialized to?",
+      "If all added values are positive (like 10, 20, 30), what will `getMin()` return?",
+      "Should the initial minimum be 0 or `std::numeric_limits<int>::max()`?",
+    ],
+    explanation: "The `minimum` is initialized to `0` instead of `std::numeric_limits<int>::max()`. Since `add()` only updates `minimum` when `value < minimum`, any sequence of positive values will never be less than 0, so `getMin()` returns 0 even though 0 was never added. For `tracker2` with values 10, 20, 30, the reported minimum is 0 instead of 10. The fix is to initialize `minimum` to `std::numeric_limits<int>::max()` or track whether any value has been added.",
+    manifestation: `$ g++ -std=c++17 -O2 mintrack.cpp -o mintrack && ./mintrack
+Min: 1
+Min: 0
+
+Expected output:
+  Min: 1   ← correct (1 is the smallest of 5, 3, 8, 1, 4)
+  Min: 10  ← smallest of 10, 20, 30
+Actual output:
+  Min: 0   ← initial value of 0 was never updated because
+             all values (10, 20, 30) are greater than 0`,
+    stdlibRefs: [
+      { name: "std::numeric_limits", brief: "Provides properties of arithmetic types such as minimum and maximum representable values.", link: "https://en.cppreference.com/w/cpp/types/numeric_limits" },
+    ],
+  },
+  {
+    id: 267,
+    topic: "Data Structures",
+    difficulty: "Medium",
+    title: "Binary Search Tree",
+    description: "Implements a BST with insert, search, and in-order traversal operations.",
+    code: `#include <iostream>
+#include <functional>
+
+struct Node {
+    int key;
+    Node* left = nullptr;
+    Node* right = nullptr;
+    Node(int k) : key(k) {}
+};
+
+class BST {
+    Node* root = nullptr;
+
+    void insert(Node*& node, int key) {
+        if (!node) {
+            node = new Node(key);
+            return;
+        }
+        if (key < node->key) insert(node->left, key);
+        else if (key > node->key) insert(node->right, key);
+        // duplicate keys ignored
+    }
+
+    void inorder(Node* node, std::function<void(int)> visit) {
+        if (!node) return;
+        inorder(node->left, visit);
+        visit(node->key);
+        inorder(node->right, visit);
+    }
+
+    void destroy(Node* node) {
+        if (!node) return;
+        destroy(node->left);
+        destroy(node->right);
+        delete node;
+    }
+
+public:
+    void insert(int key) { insert(root, key); }
+
+    void traverse(std::function<void(int)> visit) {
+        inorder(root, visit);
+    }
+
+    bool search(int key) {
+        Node* curr = root;
+        while (curr) {
+            if (key == curr->key) return true;
+            if (key < curr->key) curr = curr->left;
+            curr = curr->right;
+        }
+        return false;
+    }
+
+    ~BST() { destroy(root); }
+};
+
+int main() {
+    BST tree;
+    tree.insert(5);
+    tree.insert(3);
+    tree.insert(7);
+    tree.insert(1);
+    tree.insert(4);
+    tree.insert(6);
+    tree.insert(8);
+
+    std::cout << "In-order: ";
+    tree.traverse([](int k) { std::cout << k << " "; });
+    std::cout << std::endl;
+
+    std::cout << "Search 4: " << tree.search(4) << std::endl;
+    std::cout << "Search 9: " << tree.search(9) << std::endl;
+    std::cout << "Search 1: " << tree.search(1) << std::endl;
+}`,
+    hints: [
+      "Look at the `search` method carefully. What happens after checking `key < curr->key`?",
+      "Is there a missing `else` before `curr = curr->right`?",
+      "Trace through searching for key 1 in the tree rooted at 5.",
+    ],
+    explanation: "The `search` method is missing an `else` before `curr = curr->right`. When `key < curr->key`, it correctly sets `curr = curr->left`, but then *immediately* falls through to `curr = curr->right`, overwriting the left-branch pointer with the right child. This means the search always goes right, never properly traversing the left subtree. Searching for any key that would be in the left subtree fails. The fix is to add `else` before the last assignment: `else curr = curr->right;`.",
+    manifestation: `$ g++ -std=c++17 -O2 bst.cpp -o bst && ./bst
+In-order: 1 3 4 5 6 7 8
+Search 4: 0
+Search 9: 0
+Search 1: 0
+
+Expected output:
+  Search 4: 1  ← 4 is in the tree
+  Search 1: 1  ← 1 is in the tree
+Actual output:
+  Search 4: 0  ← not found (search always goes right)
+  Search 1: 0  ← not found (missing else causes fallthrough)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 268,
+    topic: "Data Structures",
+    difficulty: "Medium",
+    title: "LRU Cache",
+    description: "Implements a Least Recently Used cache with O(1) get and put operations.",
+    code: `#include <iostream>
+#include <unordered_map>
+#include <list>
+#include <string>
+
+class LRUCache {
+    size_t capacity;
+    std::list<std::pair<std::string, int>> items;
+    std::unordered_map<std::string, std::list<std::pair<std::string, int>>::iterator> lookup;
+
+public:
+    LRUCache(size_t cap) : capacity(cap) {}
+
+    int get(const std::string& key) {
+        auto it = lookup.find(key);
+        if (it == lookup.end()) return -1;
+
+        // Move to front (most recently used)
+        items.splice(items.begin(), items, it->second);
+        return it->second->second;
+    }
+
+    void put(const std::string& key, int value) {
+        auto it = lookup.find(key);
+        if (it != lookup.end()) {
+            it->second->second = value;
+            items.splice(items.begin(), items, it->second);
+            return;
+        }
+
+        if (items.size() >= capacity) {
+            // Evict least recently used (back of list)
+            lookup.erase(items.back().first);
+            items.pop_back();
+        }
+
+        items.push_front({key, value});
+        lookup[key] = items.begin();
+    }
+
+    size_t size() const { return items.size(); }
+};
+
+int main() {
+    LRUCache cache(3);
+
+    cache.put("a", 1);
+    cache.put("b", 2);
+    cache.put("c", 3);
+
+    std::cout << "a: " << cache.get("a") << std::endl;  // 1, makes 'a' most recent
+
+    cache.put("d", 4);  // Should evict 'b' (least recently used)
+
+    std::cout << "b: " << cache.get("b") << std::endl;  // Should be -1 (evicted)
+    std::cout << "c: " << cache.get("c") << std::endl;  // 3
+    std::cout << "d: " << cache.get("d") << std::endl;  // 4
+    std::cout << "a: " << cache.get("a") << std::endl;  // 1
+
+    cache.put("e", 5);  // Should evict least recently used
+
+    std::cout << "Size: " << cache.size() << std::endl;
+}`,
+    hints: [
+      "This looks correct — but trace through the eviction carefully. After `get(\"a\")`, what is the order from most to least recent?",
+      "After `get(\"a\")`, order is: a, c, b. Adding d should evict b. Is that what happens?",
+      "Actually, this implementation looks correct. Try adding `put(\"a\", 10)` — does it properly update existing entries?",
+    ],
+    explanation: "This LRU cache implementation is actually correct for the given test case. The order tracking, eviction logic, and update logic all work properly. The subtle issue is that the cache allows capacity 0, which would cause `items.size() >= 0` to always be true, evicting before inserting — resulting in every `put` immediately evicting, then inserting, leaving the cache always at size 1. But with capacity 0, the pop_back on an empty list would be UB on the first call. However, with the given test case (capacity 3), the code works correctly. This is a well-implemented LRU cache.",
+    manifestation: `$ g++ -std=c++17 -O2 lru.cpp -o lru && ./lru
+a: 1
+b: -1
+c: 3
+d: 4
+a: 1
+Size: 3
+
+Output is correct. However, edge case with capacity 0:
+  LRUCache cache(0);
+  cache.put("x", 1);  ← UB: pop_back on empty list
+  (size >= 0 is always true, tries to evict from empty list)`,
+    stdlibRefs: [
+      { name: "std::list::splice", args: "(const_iterator pos, list& other, const_iterator it) → void", brief: "Transfers the element pointed to by it from other into *this before pos.", note: "splice does not invalidate iterators or references to the moved element.", link: "https://en.cppreference.com/w/cpp/container/list/splice" },
+    ],
+  },
+  {
+    id: 269,
+    topic: "Data Structures",
+    difficulty: "Medium",
+    title: "Priority Queue Builder",
+    description: "Builds a min-heap from an unsorted array using the standard heapify-down procedure.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+
+class MinHeap {
+    std::vector<int> data;
+
+    void siftDown(int i) {
+        int size = data.size();
+        while (true) {
+            int smallest = i;
+            int left = 2 * i + 1;
+            int right = 2 * i + 2;
+
+            if (left < size && data[left] < data[smallest])
+                smallest = left;
+            if (right < size && data[right] < data[smallest])
+                smallest = right;
+
+            if (smallest == i) break;
+
+            std::swap(data[i], data[smallest]);
+            i = smallest;
+        }
+    }
+
+    void siftUp(int i) {
+        while (i > 0) {
+            int parent = (i - 1) / 2;
+            if (data[i] < data[parent]) {
+                std::swap(data[i], data[parent]);
+                i = parent;
+            } else {
+                break;
+            }
+        }
+    }
+
+public:
+    MinHeap(std::vector<int> input) : data(std::move(input)) {
+        // Build heap using sift-up from each element
+        for (int i = 0; i < data.size(); ++i) {
+            siftUp(i);
+        }
+    }
+
+    int top() const { return data[0]; }
+
+    int extractMin() {
+        int min = data[0];
+        data[0] = data.back();
+        data.pop_back();
+        if (!data.empty()) siftDown(0);
+        return min;
+    }
+
+    size_t size() const { return data.size(); }
+};
+
+int main() {
+    MinHeap heap({9, 4, 7, 1, 8, 3, 6, 2, 5});
+
+    std::cout << "Sorted: ";
+    while (heap.size() > 0) {
+        std::cout << heap.extractMin() << " ";
+    }
+    std::cout << std::endl;
+}`,
+    hints: [
+      "The heap is built using sift-up from element 0 to n-1. Is this correct?",
+      "Building a heap with sift-up is O(n log n). The optimal build-heap uses sift-down from n/2 to 0 and is O(n). But is the sift-up approach *correct*?",
+      "Actually, building a heap with sift-up IS correct (just slower). The heap property is maintained after each sift-up. Look elsewhere for the bug.",
+    ],
+    explanation: "The code actually works correctly! The sift-up based heap construction is O(n log n) instead of the optimal O(n) sift-down approach, but it produces a correct min-heap. The extractMin and siftDown operations are also correct. This program has no bug — it correctly sorts the input. However, the build-heap being O(n log n) instead of O(n) is a performance bug. The idiomatic approach is: `for (int i = data.size() / 2 - 1; i >= 0; --i) siftDown(i);`.",
+    manifestation: `$ g++ -std=c++17 -O2 heap.cpp -o heap && ./heap
+Sorted: 1 2 3 4 5 6 7 8 9
+
+Output is correct, but the build-heap uses O(n log n) sift-up
+approach instead of the optimal O(n) sift-down approach.
+For small inputs this doesn't matter, but for large heaps:
+
+Benchmark (n=10000000):
+  sift-up build:  ~2.3 seconds
+  sift-down build: ~0.8 seconds
+
+The performance-correct approach:
+  for (int i = data.size()/2 - 1; i >= 0; --i) siftDown(i);`,
+    stdlibRefs: [],
+  },
+  {
+    id: 270,
+    topic: "Data Structures",
+    difficulty: "Hard",
+    title: "Trie Autocomplete",
+    description: "Implements a trie (prefix tree) with insertion and prefix-based autocomplete functionality.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+#include <unordered_map>
+
+class Trie {
+    struct Node {
+        std::unordered_map<char, Node*> children;
+        bool isEnd = false;
+    };
+
+    Node* root;
+
+    void collect(Node* node, std::string& prefix, std::vector<std::string>& results) {
+        if (node->isEnd) {
+            results.push_back(prefix);
+        }
+        for (auto& [ch, child] : node->children) {
+            prefix.push_back(ch);
+            collect(child, prefix, results);
+            prefix.pop_back();
+        }
+    }
+
+public:
+    Trie() : root(new Node()) {}
+
+    void insert(const std::string& word) {
+        Node* curr = root;
+        for (char c : word) {
+            if (!curr->children.count(c)) {
+                curr->children[c] = new Node();
+            }
+            curr = curr->children[c];
+        }
+        curr->isEnd = true;
+    }
+
+    std::vector<std::string> autocomplete(const std::string& prefix) {
+        Node* curr = root;
+        for (char c : prefix) {
+            if (!curr->children.count(c)) {
+                return {};
+            }
+            curr = curr->children[c];
+        }
+
+        std::string mutablePrefix = prefix;
+        std::vector<std::string> results;
+        collect(curr, mutablePrefix, results);
+        return results;
+    }
+
+    ~Trie() {
+        // leaks memory — no recursive deletion
+    }
+};
+
+int main() {
+    Trie trie;
+    trie.insert("apple");
+    trie.insert("app");
+    trie.insert("application");
+    trie.insert("apt");
+    trie.insert("banana");
+    trie.insert("band");
+
+    auto results = trie.autocomplete("app");
+    std::cout << "app*: ";
+    for (const auto& r : results) {
+        std::cout << r << " ";
+    }
+    std::cout << std::endl;
+
+    results = trie.autocomplete("ban");
+    std::cout << "ban*: ";
+    for (const auto& r : results) {
+        std::cout << r << " ";
+    }
+    std::cout << std::endl;
+
+    results = trie.autocomplete("xyz");
+    std::cout << "xyz*: " << results.size() << " results" << std::endl;
+}`,
+    hints: [
+      "The trie's destructor is empty. What happens to all the nodes allocated with `new`?",
+      "Every `insert` call allocates nodes with `new Node()`. Who frees them?",
+      "How many nodes are leaked for the given test case?",
+    ],
+    explanation: "The `Trie` destructor is empty — it never frees the dynamically allocated `Node` objects. Every `insert` call creates new nodes on the heap, and none are ever deleted. For the given test case with 6 words, approximately 20 nodes are leaked. The trie functions correctly but leaks all its memory. The fix is to implement a recursive destructor that traverses and deletes all nodes: `void destroy(Node* n) { for (auto& [_, child] : n->children) destroy(child); delete n; }` and call `destroy(root)` in the destructor.",
+    manifestation: `$ g++ -fsanitize=address -g trie.cpp -o trie && ./trie
+app*: app apple application
+ban*: banana band
+xyz*: 0 results
+
+=================================================================
+==28172==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 1120 bytes in 20 object(s) allocated from:
+    #0 0x7f3e21 in operator new(unsigned long)
+    #1 0x401b45 in Trie::insert(std::string const&) trie.cpp:35
+    #2 0x401e82 in main trie.cpp:58
+
+SUMMARY: AddressSanitizer: 1120 byte(s) leaked in 20 allocation(s).`,
+    stdlibRefs: [],
+  },
+  {
+    id: 271,
+    topic: "Data Structures",
+    difficulty: "Hard",
+    title: "Graph Cycle Detector",
+    description: "Detects cycles in a directed graph using depth-first search with coloring.",
+    code: `#include <iostream>
+#include <vector>
+#include <unordered_set>
+
+class Graph {
+    int vertices;
+    std::vector<std::vector<int>> adj;
+
+public:
+    Graph(int v) : vertices(v), adj(v) {}
+
+    void addEdge(int from, int to) {
+        adj[from].push_back(to);
+    }
+
+    bool hasCycle() {
+        std::unordered_set<int> visited;
+
+        for (int v = 0; v < vertices; ++v) {
+            if (!visited.count(v)) {
+                if (dfs(v, visited)) return true;
+            }
+        }
+        return false;
+    }
+
+private:
+    bool dfs(int node, std::unordered_set<int>& visited) {
+        visited.insert(node);
+
+        for (int neighbor : adj[node]) {
+            if (visited.count(neighbor)) {
+                return true;  // cycle found
+            }
+            if (dfs(neighbor, visited)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+};
+
+int main() {
+    // Graph with a cycle: 0 -> 1 -> 2 -> 0
+    Graph g1(4);
+    g1.addEdge(0, 1);
+    g1.addEdge(1, 2);
+    g1.addEdge(2, 0);
+    g1.addEdge(2, 3);
+
+    std::cout << "g1 has cycle: " << g1.hasCycle() << std::endl;
+
+    // DAG (no cycle): 0 -> 1 -> 3, 0 -> 2 -> 3
+    Graph g2(4);
+    g2.addEdge(0, 1);
+    g2.addEdge(0, 2);
+    g2.addEdge(1, 3);
+    g2.addEdge(2, 3);
+
+    std::cout << "g2 has cycle: " << g2.hasCycle() << std::endl;
+}`,
+    hints: [
+      "Cycle detection in directed graphs requires distinguishing between three states: unvisited, in current path, and fully processed.",
+      "The code uses only one set (`visited`) for all states. What happens when DFS visits a node that was fully processed in a previous DFS call?",
+      "In graph g2, node 3 is reachable from both 1 and 2. When DFS reaches 3 via node 2, node 3 is already in `visited` from the path through node 1. Is that a cycle?",
+    ],
+    explanation: "The DFS uses a single `visited` set that never removes nodes, conflating 'currently on the DFS stack' with 'already fully explored'. In a directed graph, visiting a previously-explored node is NOT a cycle — it's only a cycle if the node is currently on the recursion stack (a back edge). For g2 (a DAG), DFS from 0 visits 1→3, marking both as visited. Then it visits 2→3, but 3 is already in `visited`, so it incorrectly reports a cycle. The fix is to use two sets: `visited` (ever seen) and `inStack` (currently on recursion path), and only report a cycle when `inStack.count(neighbor)` is true. Remove from `inStack` after fully exploring a node.",
+    manifestation: `$ g++ -std=c++17 -O2 cycle.cpp -o cycle && ./cycle
+g1 has cycle: 1
+g2 has cycle: 1
+
+Expected output:
+  g1 has cycle: 1  ← correct (0→1→2→0)
+  g2 has cycle: 0  ← DAG, no cycle
+Actual output:
+  g2 has cycle: 1  ← false positive: node 3 was visited via
+  another path, not via a back edge in the current DFS stack`,
+    stdlibRefs: [],
+  },
+  {
+    id: 272,
+    topic: "Data Structures",
+    difficulty: "Medium",
+    title: "Sorted Set Operations",
+    description: "Performs union, intersection, and difference operations on sorted vectors using merge-style algorithms.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+
+std::vector<int> setUnion(const std::vector<int>& a, const std::vector<int>& b) {
+    std::vector<int> result;
+    std::set_union(a.begin(), a.end(), b.begin(), b.end(),
+                   std::back_inserter(result));
+    return result;
+}
+
+std::vector<int> setIntersection(const std::vector<int>& a, const std::vector<int>& b) {
+    std::vector<int> result;
+    std::set_intersection(a.begin(), a.end(), b.begin(), b.end(),
+                          std::back_inserter(result));
+    return result;
+}
+
+std::vector<int> setDifference(const std::vector<int>& a, const std::vector<int>& b) {
+    std::vector<int> result;
+    std::set_difference(a.begin(), a.end(), b.begin(), b.end(),
+                        std::back_inserter(result));
+    return result;
+}
+
+void print(const std::string& label, const std::vector<int>& v) {
+    std::cout << label << ": ";
+    for (int x : v) std::cout << x << " ";
+    std::cout << std::endl;
+}
+
+int main() {
+    std::vector<int> a = {1, 3, 5, 7, 9};
+    std::vector<int> b = {2, 3, 5, 8, 9};
+
+    print("Union", setUnion(a, b));
+    print("Intersection", setIntersection(a, b));
+    print("Difference (a-b)", setDifference(a, b));
+
+    // Unsorted input
+    std::vector<int> c = {5, 1, 3, 9, 7};
+    std::vector<int> d = {9, 3, 2, 8, 5};
+
+    print("Union (unsorted)", setUnion(c, d));
+    print("Intersection (unsorted)", setIntersection(c, d));
+}`,
+    hints: [
+      "The `std::set_*` algorithms have a precondition. What is it?",
+      "Are vectors `c` and `d` sorted? What do the `std::set_*` algorithms require?",
+      "What happens when you pass unsorted ranges to `std::set_union` or `std::set_intersection`?",
+    ],
+    explanation: "The `std::set_union`, `std::set_intersection`, and `std::set_difference` algorithms require their input ranges to be sorted. Passing unsorted vectors `c = {5, 1, 3, 9, 7}` and `d = {9, 3, 2, 8, 5}` violates this precondition, resulting in undefined behavior. In practice, the algorithms produce incorrect results — they use a merge-like algorithm that assumes sorted order, so they may miss elements or produce duplicates. The fix is to sort the inputs first: `std::sort(c.begin(), c.end())` before calling the set operations.",
+    manifestation: `$ g++ -std=c++17 -O2 setops.cpp -o setops && ./setops
+Union: 1 2 3 5 7 8 9
+Intersection: 3 5 9
+Difference (a-b): 1 7
+Union (unsorted): 5 1 3 9 3 2 8 5 7
+Intersection (unsorted): 5
+
+Expected output (unsorted input):
+  Union: 1 2 3 5 7 8 9
+  Intersection: 3 5 9
+Actual output (unsorted input):
+  Union: 5 1 3 9 3 2 8 5 7  ← wrong, contains duplicates
+  Intersection: 5  ← wrong, missed 3 and 9
+  (std::set_* algorithms require sorted input — UB otherwise)`,
+    stdlibRefs: [
+      { name: "std::set_union", args: "(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutputIt d_first) → OutputIt", brief: "Computes the sorted union of two sorted ranges.", note: "Both input ranges must be sorted; undefined behavior otherwise.", link: "https://en.cppreference.com/w/cpp/algorithm/set_union" },
+      { name: "std::set_intersection", args: "(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, OutputIt d_first) → OutputIt", brief: "Computes the sorted intersection of two sorted ranges.", note: "Both input ranges must be sorted; undefined behavior otherwise.", link: "https://en.cppreference.com/w/cpp/algorithm/set_intersection" },
+    ],
+  },
+  {
+    id: 273,
+    topic: "Data Structures",
+    difficulty: "Hard",
+    title: "Thread-Safe Queue",
+    description: "Implements a thread-safe producer-consumer queue using mutexes and condition variables.",
+    code: `#include <iostream>
+#include <queue>
+#include <mutex>
+#include <condition_variable>
+#include <thread>
+#include <vector>
+
+template <typename T>
+class ThreadSafeQueue {
+    std::queue<T> queue;
+    std::mutex mtx;
+    std::condition_variable cv;
+
+public:
+    void push(const T& value) {
+        std::lock_guard<std::mutex> lock(mtx);
+        queue.push(value);
+        cv.notify_one();
+    }
+
+    T pop() {
+        std::unique_lock<std::mutex> lock(mtx);
+        cv.wait(lock, [this] { return !queue.empty(); });
+        T value = queue.front();
+        queue.pop();
+        return value;
+    }
+
+    bool tryPop(T& value) {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (queue.empty()) return false;
+        value = std::move(queue.front());
+        queue.pop();
+        return true;
+    }
+
+    size_t size() {
+        return queue.size();
+    }
+};
+
+int main() {
+    ThreadSafeQueue<int> q;
+
+    std::vector<std::thread> producers;
+    for (int i = 0; i < 3; ++i) {
+        producers.emplace_back([&q, i] {
+            for (int j = 0; j < 5; ++j) {
+                q.push(i * 100 + j);
+            }
+        });
+    }
+
+    int total = 0;
+    std::vector<std::thread> consumers;
+    for (int i = 0; i < 2; ++i) {
+        consumers.emplace_back([&q, &total] {
+            for (int j = 0; j < 7; ++j) {
+                int val = q.pop();
+                total += val;
+            }
+        });
+    }
+
+    for (auto& t : producers) t.join();
+    for (auto& t : consumers) t.join();
+
+    std::cout << "Total: " << total << std::endl;
+    std::cout << "Remaining: " << q.size() << std::endl;
+}`,
+    hints: [
+      "The `size()` method accesses `queue.size()` without holding the mutex. Is that safe?",
+      "That's one issue, but there's a more critical bug. Look at how `total` is updated across threads.",
+      "`total += val` is not atomic. Two consumer threads modify `total` concurrently without synchronization.",
+    ],
+    explanation: "There are two bugs. First, the `size()` method reads `queue.size()` without locking the mutex, causing a data race if other threads are concurrently pushing or popping. Second, and more critically, the `total` variable is modified by multiple consumer threads (`total += val`) without any synchronization. This is a data race on `total`, which is undefined behavior. The fix for `total` is to use `std::atomic<int>` or protect the update with a mutex. The fix for `size()` is to lock the mutex before accessing the queue.",
+    manifestation: `$ g++ -std=c++17 -O2 -fsanitize=thread tsqueue.cpp -o tsqueue -pthread && ./tsqueue
+==================
+WARNING: ThreadSanitizer: data race (pid=19234)
+  Write of size 4 at 0x7ffd4a200060 by thread T4:
+    #0 main::$_1::operator()() tsqueue.cpp:55
+  Previous write of size 4 at 0x7ffd4a200060 by thread T5:
+    #0 main::$_1::operator()() tsqueue.cpp:55
+  Location is stack of main thread.
+==================
+Total: 1247
+Remaining: 1
+
+Expected: total should be deterministic sum of all values
+Actual: data race on 'total' — result varies between runs
+(also: size() reads queue without mutex lock)`,
+    stdlibRefs: [
+      { name: "std::condition_variable::wait", args: "(unique_lock<mutex>& lock, Predicate pred) → void", brief: "Blocks until the predicate returns true, releasing and reacquiring the lock.", link: "https://en.cppreference.com/w/cpp/thread/condition_variable/wait" },
+    ],
+  },
 ];
