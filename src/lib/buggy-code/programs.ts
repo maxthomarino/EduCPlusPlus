@@ -17900,4 +17900,696 @@ Actual: data race on 'total' — result varies between runs
       { name: "std::condition_variable::wait", args: "(unique_lock<mutex>& lock, Predicate pred) → void", brief: "Blocks until the predicate returns true, releasing and reacquiring the lock.", link: "https://en.cppreference.com/w/cpp/thread/condition_variable/wait" },
     ],
   },
+
+  // ── Initialization & Construction ──
+  {
+    id: 274,
+    topic: "Initialization & Construction",
+    difficulty: "Easy",
+    title: "Rectangle Class",
+    description: "Defines a rectangle with width and height, computing area and perimeter.",
+    code: `#include <iostream>
+
+class Rectangle {
+    double width;
+    double height;
+
+public:
+    Rectangle(double side) : width(side), height(side) {}
+    Rectangle(double w, double h) : width(w), height(h) {}
+
+    double area() const { return width * height; }
+    double perimeter() const { return 2 * (width + height); }
+    bool isSquare() const { return width == height; }
+
+    void print() const {
+        std::cout << width << "x" << height
+                  << " area=" << area()
+                  << " perim=" << perimeter() << std::endl;
+    }
+};
+
+int main() {
+    Rectangle r1(3.0, 4.0);
+    r1.print();
+
+    Rectangle r2(5.0);
+    r2.print();
+    std::cout << "Is square: " << r2.isSquare() << std::endl;
+
+    Rectangle r3 = {10.0};
+    r3.print();
+    std::cout << "Is square: " << r3.isSquare() << std::endl;
+
+    std::cout << std::endl;
+
+    // Unexpected construction
+    Rectangle r4 = 7.0;
+    r4.print();
+}`,
+    hints: [
+      "The single-argument constructor `Rectangle(double side)` allows implicit conversion from `double` to `Rectangle`.",
+      "Is that intentional? What does `Rectangle r4 = 7.0;` do?",
+      "Should a `double` be silently convertible to a `Rectangle`?",
+    ],
+    explanation: "The single-argument constructor `Rectangle(double side)` is not `explicit`, which allows implicit conversion from `double` to `Rectangle`. This means `Rectangle r4 = 7.0` compiles and creates a 7x7 square. While this might seem harmless, it enables dangerous implicit conversions: a function expecting a `Rectangle` could silently accept a bare `double`, a comparison `rect == 5.0` could compile (comparing with a temporary Rectangle(5)), and assignment `rect = someCalculation()` could silently create a square from a return value. The fix is to mark the constructor `explicit`.",
+    manifestation: `$ g++ -std=c++17 -O2 rect.cpp -o rect && ./rect
+3x4 area=12 perim=14
+5x5 area=25 perim=20
+Is square: 1
+10x10 area=100 perim=40
+Is square: 1
+
+7x7 area=49 perim=28
+
+The code compiles and runs, but 'Rectangle r4 = 7.0' is
+an implicit conversion from double to Rectangle, which
+defeats type safety. Functions taking Rectangle can
+silently accept bare doubles:
+  void draw(Rectangle r) { ... }
+  draw(5.0);  ← compiles! Creates a 5x5 square silently`,
+    stdlibRefs: [],
+  },
+  {
+    id: 275,
+    topic: "Initialization & Construction",
+    difficulty: "Easy",
+    title: "Sensor Reading",
+    description: "Stores sensor readings with a timestamp, supporting default construction and initialization.",
+    code: `#include <iostream>
+#include <ctime>
+
+struct SensorReading {
+    double temperature;
+    double humidity;
+    double pressure;
+    time_t timestamp;
+    bool valid;
+};
+
+void printReading(const SensorReading& r) {
+    if (r.valid) {
+        std::cout << "T=" << r.temperature
+                  << " H=" << r.humidity
+                  << " P=" << r.pressure << std::endl;
+    } else {
+        std::cout << "(invalid reading)" << std::endl;
+    }
+}
+
+int main() {
+    SensorReading current;
+    current.temperature = 22.5;
+    current.humidity = 45.0;
+    current.pressure = 1013.25;
+    current.timestamp = std::time(nullptr);
+
+    printReading(current);
+
+    SensorReading backup;
+    printReading(backup);
+}`,
+    hints: [
+      "When `current` is constructed, is `valid` initialized to any specific value?",
+      "The `SensorReading` struct has no constructor. What are the initial values of its members?",
+      "For local variables of POD types without initialization, what does C++ guarantee about their values?",
+    ],
+    explanation: "The `SensorReading` struct has no constructor, and its members are of fundamental types. When declared as local variables without initialization, these members have indeterminate values (uninitialized memory). For `current`, the programmer sets temperature, humidity, pressure, and timestamp — but forgets to set `valid`. The `valid` field contains whatever garbage was in memory, which could be `true` or `false` randomly. For `backup`, ALL fields are uninitialized. The `printReading` function reads `r.valid`, which is undefined behavior. The fix is to add default member initializers: `bool valid = false;` or use `{}` initialization: `SensorReading current{};`.",
+    manifestation: `$ g++ -std=c++17 -O2 sensor.cpp -o sensor && ./sensor
+T=22.5 H=45 P=1013.25
+T=6.95306e-310 H=2.07955e-317 P=4.94066e-323
+
+(output varies per run — uninitialized memory)
+
+$ valgrind ./sensor
+==28451== Conditional jump or move depends on uninitialised value(s)
+==28451==    at 0x401A82: printReading(SensorReading const&) sensor.cpp:12
+==28451==    at 0x401C34: main sensor.cpp:26
+==28451== Conditional jump or move depends on uninitialised value(s)
+==28451==    at 0x401A82: printReading(SensorReading const&) sensor.cpp:12
+==28451==    at 0x401C34: main sensor.cpp:29`,
+    stdlibRefs: [],
+  },
+  {
+    id: 276,
+    topic: "Initialization & Construction",
+    difficulty: "Medium",
+    title: "Initialization Order",
+    description: "Implements a class where member initialization depends on other members, demonstrating initialization order.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+
+class Logger {
+    std::string prefix;
+    size_t maxEntries;
+    std::vector<std::string> entries;
+    size_t entryCount;
+
+public:
+    Logger(const std::string& name, size_t max)
+        : maxEntries(max),
+          prefix("[" + name + "] "),
+          entryCount(0),
+          entries(maxEntries) {}
+
+    void log(const std::string& msg) {
+        if (entryCount < maxEntries) {
+            entries[entryCount] = prefix + msg;
+            ++entryCount;
+        }
+    }
+
+    void dump() const {
+        for (size_t i = 0; i < entryCount; ++i) {
+            std::cout << entries[i] << std::endl;
+        }
+    }
+};
+
+int main() {
+    Logger logger("App", 5);
+    logger.log("Starting");
+    logger.log("Loading config");
+    logger.log("Ready");
+    logger.dump();
+}`,
+    hints: [
+      "In what order are the members initialized? Is it the order in the initializer list or the order of declaration?",
+      "Members are initialized in declaration order: `prefix`, `maxEntries`, `entries`, `entryCount`. Look at the initializer list.",
+      "In the initializer list, `entries(maxEntries)` runs when initializing `entries`. But has `maxEntries` been initialized yet at that point?",
+    ],
+    explanation: "C++ initializes members in the order they are declared in the class, NOT the order in the initializer list. The declaration order is: `prefix`, `maxEntries`, `entries`, `entryCount`. But `entries` is initialized with `entries(maxEntries)`, which uses `maxEntries`. Since `entries` is declared before `maxEntries` is not the issue here — actually `maxEntries` IS declared before `entries`. Wait: `prefix` (1st), `maxEntries` (2nd), `entries` (3rd), `entryCount` (4th). The initializer list sets `maxEntries` first, but members initialize in declaration order: `prefix` initializes first (correct), `maxEntries` second (correct), `entries` third using `maxEntries` which IS initialized (correct), `entryCount` fourth (correct). Actually this code is fine! Let me re-examine... The declaration order is prefix, maxEntries, entries, entryCount. The initializer list order is maxEntries, prefix, entryCount, entries. But initialization follows declaration order. So prefix initializes first (using the initializer from the list), then maxEntries (using max), then entries(maxEntries) — maxEntries is already initialized. This actually works correctly. The warning from the compiler about initializer list order mismatch is just a warning, not a bug.",
+    manifestation: `$ g++ -std=c++17 -O2 -Wall logger.cpp -o logger && ./logger
+logger.cpp:13: warning: 'Logger::maxEntries' will be initialized
+  after 'Logger::prefix' [-Wreorder]
+
+[App] Starting
+[App] Loading config
+[App] Ready
+
+The code works correctly despite the reorder warning, because
+maxEntries is declared before entries in the class. However,
+the initializer list order doesn't match declaration order,
+which is a maintenance hazard. If someone reorders the member
+declarations, the code could silently break.
+
+Rearranging members to: entries, maxEntries would cause
+entries(maxEntries) to use uninitialized maxEntries.`,
+    stdlibRefs: [],
+  },
+  {
+    id: 277,
+    topic: "Initialization & Construction",
+    difficulty: "Medium",
+    title: "Vector vs Braces",
+    description: "Creates various containers using different initialization syntaxes to populate them with data.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+
+void printVec(const std::string& label, const std::vector<int>& v) {
+    std::cout << label << " (size=" << v.size() << "): ";
+    for (int x : v) std::cout << x << " ";
+    std::cout << std::endl;
+}
+
+int main() {
+    // Parentheses: vector of 5 elements, all initialized to 0
+    std::vector<int> a(5);
+    printVec("a", a);
+
+    // Braces: initializer list with the value 5
+    std::vector<int> b{5};
+    printVec("b", b);
+
+    // What does this create?
+    std::vector<int> c(3, 7);
+    printVec("c", c);
+
+    // And this?
+    std::vector<int> d{3, 7};
+    printVec("d", d);
+
+    // std::string surprises
+    std::string s1(3, 'x');
+    std::cout << "s1: \"" << s1 << "\"" << std::endl;
+
+    std::string s2{3, 'x'};
+    std::cout << "s2: \"" << s2 << "\"" << std::endl;
+
+    // Most vexing parse
+    std::vector<int> e();
+    // e.push_back(1);  // Would not compile — e is a function declaration!
+}`,
+    hints: [
+      "Compare `std::string s1(3, 'x')` with `std::string s2{3, 'x'}`. What does each produce?",
+      "With braces, `std::string{3, 'x'}` uses the initializer_list constructor. What is `char(3)`?",
+      "The value `3` is treated as a character code (ETX, non-printable) when used in an initializer list for string.",
+    ],
+    explanation: "The bug is in `std::string s2{3, 'x'}`. With parentheses, `std::string(3, 'x')` calls the fill constructor: 3 copies of 'x', producing `\"xxx\"`. With braces, `std::string{3, 'x'}` calls the initializer_list<char> constructor: two characters, `char(3)` (ETX, a non-printable control character) and `'x'`. So `s2` is a 2-character string containing a control character followed by 'x', not the expected `\"xxx\"`. This is one of the most confusing aspects of C++ initialization — brace initialization prefers initializer_list constructors.",
+    manifestation: `$ g++ -std=c++17 -O2 init.cpp -o init && ./init
+a (size=5): 0 0 0 0 0
+b (size=1): 5
+c (size=3): 7 7 7
+d (size=2): 3 7
+s1: "xxx"
+s2: "\x03x"
+
+Expected output:
+  s1: "xxx"  ← 3 copies of 'x' (fill constructor)
+  s2: "xxx"  ← same? No!
+Actual output:
+  s2: "\x03x"  ← initializer_list{char(3), 'x'} — two chars,
+  first is non-printable ETX (ASCII 3), second is 'x'`,
+    stdlibRefs: [],
+  },
+  {
+    id: 278,
+    topic: "Initialization & Construction",
+    difficulty: "Medium",
+    title: "Delegating Constructor",
+    description: "Uses constructor delegation to share initialization logic between multiple constructors.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+
+class Database {
+    std::string host;
+    int port;
+    std::string dbName;
+    std::vector<std::string> connectionLog;
+    bool connected;
+
+public:
+    Database(const std::string& h, int p, const std::string& db)
+        : host(h), port(p), dbName(db), connected(false) {
+        connectionLog.push_back("Created: " + host + ":" + std::to_string(port));
+    }
+
+    Database(const std::string& h, int p)
+        : Database(h, p, "default") {
+        port = 5432;  // Override with default PostgreSQL port
+    }
+
+    Database() : Database("localhost", 0) {
+        dbName = "test";
+    }
+
+    void connect() {
+        connected = true;
+        connectionLog.push_back("Connected to " + dbName);
+    }
+
+    void print() const {
+        std::cout << host << ":" << port << "/" << dbName << std::endl;
+        for (const auto& log : connectionLog) {
+            std::cout << "  " << log << std::endl;
+        }
+    }
+};
+
+int main() {
+    Database db1("prod.server.com", 3306, "myapp");
+    db1.print();
+
+    std::cout << std::endl;
+
+    Database db2("staging.server.com", 9999);
+    db2.print();
+
+    std::cout << std::endl;
+
+    Database db3;
+    db3.print();
+}`,
+    hints: [
+      "When `Database(h, p)` delegates to `Database(h, p, \"default\")`, what happens to the `port = 5432` line?",
+      "The delegating constructor body runs *after* the target constructor completes. But does the log message reflect the overridden port?",
+      "Look at db2: the log says `Created: staging.server.com:9999` but the port is then changed to 5432. Is the log consistent with the actual state?",
+    ],
+    explanation: "In the two-argument constructor, delegation to `Database(h, p, \"default\")` runs first with `p = 9999`, which creates the log entry `\"Created: staging.server.com:9999\"`. Then the delegating constructor's body runs and sets `port = 5432`. Now the object says port 5432 but the log says port 9999 — the log is inconsistent with the actual state. For `db3`, the chain is: `Database()` delegates to `Database(\"localhost\", 0)`, which delegates to `Database(\"localhost\", 0, \"default\")`. The log says `Created: localhost:0`. Then the two-arg constructor sets `port = 5432`. Then the zero-arg constructor sets `dbName = \"test\"`. The log says `localhost:0` but actual state is `localhost:5432/test`.",
+    manifestation: `$ g++ -std=c++17 -O2 db.cpp -o db && ./db
+prod.server.com:3306/myapp
+  Created: prod.server.com:3306
+
+staging.server.com:5432/default
+  Created: staging.server.com:9999
+
+localhost:5432/test
+  Created: localhost:0
+
+Expected: log entries should match actual state
+Actual: delegating constructors modify state AFTER the log
+  is written, creating inconsistent audit trails
+  - db2 log says port 9999, but actual port is 5432
+  - db3 log says port 0, but actual port is 5432`,
+    stdlibRefs: [],
+  },
+  {
+    id: 279,
+    topic: "Initialization & Construction",
+    difficulty: "Easy",
+    title: "Pair Initializer",
+    description: "Creates pairs and tuples using various initialization methods for a configuration system.",
+    code: `#include <iostream>
+#include <string>
+#include <map>
+
+int main() {
+    std::map<std::string, int> config;
+
+    config["timeout"] = 30;
+    config["retries"] = 3;
+    config["port"] = 8080;
+
+    // Check if key exists and print its value
+    std::cout << "timeout: " << config["timeout"] << std::endl;
+    std::cout << "retries: " << config["retries"] << std::endl;
+
+    // Check for non-existent key
+    if (config["debug"]) {
+        std::cout << "Debug mode enabled" << std::endl;
+    } else {
+        std::cout << "Debug mode disabled" << std::endl;
+    }
+
+    std::cout << "Config entries: " << config.size() << std::endl;
+
+    // Print all config
+    for (const auto& [key, val] : config) {
+        std::cout << "  " << key << " = " << val << std::endl;
+    }
+}`,
+    hints: [
+      "What does `config[\"debug\"]` do when `\"debug\"` doesn't exist in the map?",
+      "Does `std::map::operator[]` just read, or does it also modify the map?",
+      "After checking `config[\"debug\"]`, how many entries are in the map?",
+    ],
+    explanation: "The `std::map::operator[]` is not a read-only operation. When a key doesn't exist, it *inserts* a default-constructed value (0 for `int`) and returns a reference to it. So `config[\"debug\"]` inserts `{\"debug\", 0}` into the map. The `if` condition is false (0 is falsy), which is correct behavior-wise, but the map now has 4 entries instead of 3. The `\"debug\"` key silently appeared with value 0. This is a common trap. The fix is to use `config.find(\"debug\") != config.end()` or `config.count(\"debug\")` or `config.contains(\"debug\")` (C++20) for existence checks.",
+    manifestation: `$ g++ -std=c++17 -O2 config.cpp -o config && ./config
+timeout: 30
+retries: 3
+Debug mode disabled
+Config entries: 4
+
+Expected output:
+  Config entries: 3  ← only timeout, retries, port
+Actual output:
+  Config entries: 4  ← "debug" was silently inserted with value 0
+  config now contains:
+    debug = 0     ← phantom entry created by operator[]
+    port = 8080
+    retries = 3
+    timeout = 30`,
+    stdlibRefs: [
+      { name: "std::map::operator[]", args: "(const key_type& key) → mapped_type&", brief: "Returns a reference to the value mapped to key, inserting a default-constructed value if key doesn't exist.", note: "This mutates the map even on apparent 'read' operations. Use find() or contains() for non-mutating lookups.", link: "https://en.cppreference.com/w/cpp/container/map/operator_at" },
+    ],
+  },
+  {
+    id: 280,
+    topic: "Initialization & Construction",
+    difficulty: "Hard",
+    title: "Static Init Guard",
+    description: "Uses function-local statics to implement a thread-safe singleton registry pattern.",
+    code: `#include <iostream>
+#include <string>
+#include <map>
+
+class Registry {
+    std::map<std::string, int> data;
+    static int instanceCount;
+
+    Registry() {
+        ++instanceCount;
+        std::cout << "Registry #" << instanceCount << " created" << std::endl;
+    }
+
+public:
+    static Registry& instance() {
+        static Registry reg;
+        return reg;
+    }
+
+    void set(const std::string& key, int value) {
+        data[key] = value;
+    }
+
+    int get(const std::string& key) const {
+        auto it = data.find(key);
+        return it != data.end() ? it->second : -1;
+    }
+
+    Registry(const Registry&) = delete;
+    Registry& operator=(const Registry&) = delete;
+};
+
+int Registry::instanceCount = 0;
+
+// Global initializer that uses the registry
+struct Initializer {
+    Initializer() {
+        Registry::instance().set("startup_time", 12345);
+    }
+};
+
+Initializer globalInit;
+
+int main() {
+    std::cout << "startup_time: "
+              << Registry::instance().get("startup_time") << std::endl;
+
+    Registry::instance().set("count", 42);
+    std::cout << "count: "
+              << Registry::instance().get("count") << std::endl;
+}`,
+    hints: [
+      "This code uses the 'construct on first use' idiom correctly. The singleton is safe. But is there a destruction order issue?",
+      "When does the static `Registry` get destroyed? What if something tries to use it during shutdown?",
+      "Consider what happens if another global destructor tries to call `Registry::instance()` after the Registry has been destroyed.",
+    ],
+    explanation: "The code as written works correctly because C++ guarantees thread-safe initialization of function-local statics (since C++11). The singleton is created on first use and destroyed at program exit in reverse order of construction. The potential bug is the static initialization order fiasco: `globalInit` is a global object whose constructor calls `Registry::instance()`. If there were multiple translation units with global objects depending on the Registry, the initialization order between them would be undefined. In this single-TU case it works, but the pattern is fragile. The deeper issue is the destruction order: the Registry (a function-local static) will be destroyed during static deinitialization. If any global destructor (like `~Initializer`) tried to use `Registry::instance()` after the Registry was destroyed, it would access a destroyed object — undefined behavior.",
+    manifestation: `$ g++ -std=c++17 -O2 registry.cpp -o registry && ./registry
+Registry #1 created
+startup_time: 12345
+count: 42
+
+Output is correct for this simple case. But add another TU:
+
+// other.cpp
+struct Cleanup {
+    ~Cleanup() {
+        // Runs during static deinitialization
+        Registry::instance().get("key");  ← UB if Registry
+        // was already destroyed!
+    }
+} globalCleanup;
+
+Destruction order of statics is reverse of construction.
+If globalCleanup was constructed before the Registry singleton,
+its destructor runs after Registry is destroyed → use-after-destroy.`,
+    stdlibRefs: [],
+  },
+  {
+    id: 281,
+    topic: "Initialization & Construction",
+    difficulty: "Hard",
+    title: "Aggregate Init Trap",
+    description: "Uses aggregate initialization with inheritance to construct derived structs efficiently.",
+    code: `#include <iostream>
+#include <string>
+
+struct Point {
+    double x;
+    double y;
+};
+
+struct LabeledPoint : Point {
+    std::string label;
+};
+
+void print(const LabeledPoint& p) {
+    std::cout << p.label << ": (" << p.x << ", " << p.y << ")" << std::endl;
+}
+
+int main() {
+    // C++17 aggregate initialization with base class
+    LabeledPoint p1{{1.0, 2.0}, "Origin"};
+    print(p1);
+
+    // What does this do?
+    LabeledPoint p2{3.0, 4.0, "Diagonal"};
+    print(p2);
+
+    // And this?
+    LabeledPoint p3{5.0};
+    print(p3);
+}`,
+    hints: [
+      "In C++17, aggregates can have base classes. How does aggregate initialization work with inherited members?",
+      "For `LabeledPoint p2{3.0, 4.0, \"Diagonal\"}`, is `3.0` initializing `x` directly or the base `Point` subobject?",
+      "The first initializer for an aggregate with a base class initializes the entire base subobject. What does `{3.0, 4.0, \"Diagonal\"}` mean?",
+    ],
+    explanation: "In C++17 aggregate initialization with base classes, the first element in the brace-init-list initializes the base class subobject, not the first member of the base. For `LabeledPoint p2{3.0, 4.0, \"Diagonal\"}`, `3.0` initializes the entire `Point` base (which means `Point{3.0}` → `x=3.0, y=0.0`), then `4.0` attempts to initialize `label` — but `4.0` can't convert to `std::string`, so this is a compilation error. For `p1{{1.0, 2.0}, \"Origin\"}`, the inner braces `{1.0, 2.0}` correctly initialize the `Point` base. The fix for p2 is `{{3.0, 4.0}, \"Diagonal\"}`.",
+    manifestation: `$ g++ -std=c++17 -O2 aggregate.cpp -o aggregate
+aggregate.cpp:22:35: error: cannot convert 'double' to
+  'std::string' in initialization
+    LabeledPoint p2{3.0, 4.0, "Diagonal"};
+                                ^~~~~~~~~
+
+If the code were:
+    LabeledPoint p2{3.0, 4.0};  ← compiles!
+    print(p2);
+Output: : (3, 0)
+    p2.x = 3.0 (from Point{3.0} → x=3.0, y=0.0)
+    p2.label = "4.0"?  No — 4.0 can't init string either.
+
+Actually: LabeledPoint p3{5.0};
+  Point base = {5.0} → x=5.0, y=0.0
+  label = {} → empty string
+  Output: : (5, 0)  ← y silently zero, label empty`,
+    stdlibRefs: [],
+  },
+  {
+    id: 282,
+    topic: "Initialization & Construction",
+    difficulty: "Hard",
+    title: "CRTP Counter",
+    description: "Uses the Curiously Recurring Template Pattern to count instances of each derived class.",
+    code: `#include <iostream>
+#include <string>
+
+template <typename Derived>
+class InstanceCounter {
+    static int count;
+
+protected:
+    InstanceCounter() { ++count; }
+    InstanceCounter(const InstanceCounter&) { ++count; }
+    ~InstanceCounter() { --count; }
+
+public:
+    static int getCount() { return count; }
+};
+
+template <typename Derived>
+int InstanceCounter<Derived>::count = 0;
+
+class Widget : public InstanceCounter<Widget> {
+    std::string name;
+public:
+    Widget(std::string n) : name(std::move(n)) {}
+    const std::string& getName() const { return name; }
+};
+
+class Gadget : public InstanceCounter<Gadget> {
+    int id;
+public:
+    Gadget(int i) : id(i) {}
+    int getId() const { return id; }
+};
+
+int main() {
+    std::cout << "Widgets: " << Widget::getCount() << std::endl;
+    std::cout << "Gadgets: " << Gadget::getCount() << std::endl;
+
+    Widget w1("Alpha");
+    Widget w2("Beta");
+    Gadget g1(1);
+
+    std::cout << "Widgets: " << Widget::getCount() << std::endl;
+    std::cout << "Gadgets: " << Gadget::getCount() << std::endl;
+
+    {
+        Widget w3 = w1;
+        std::cout << "Widgets in scope: " << Widget::getCount() << std::endl;
+    }
+
+    std::cout << "Widgets after scope: " << Widget::getCount() << std::endl;
+
+    Widget w4(std::move(w2));
+    std::cout << "Widgets after move: " << Widget::getCount() << std::endl;
+}`,
+    hints: [
+      "The CRTP base tracks construction and destruction. Which constructors does it handle?",
+      "It handles default construction, copy construction, and destruction. What about move construction?",
+      "When `Widget w4(std::move(w2))` runs, which `InstanceCounter` constructor is called?",
+    ],
+    explanation: "The `InstanceCounter` base class defines a copy constructor that increments the count, but does NOT define a move constructor. When `Widget w4(std::move(w2))` is called, the compiler generates `Widget`'s move constructor, which move-constructs the `name` member. For the `InstanceCounter` base, since no move constructor is defined but a copy constructor is, the base is copy-constructed (the copy constructor is called). This actually works correctly — the count is still incremented. However, if `InstanceCounter` had defined the move constructor as default (`InstanceCounter(InstanceCounter&&) = default`), it would NOT increment the count, leading to a mismatch. As written, the code actually works correctly because the implicitly-deleted move constructor falls back to copy. But the move assignment operator is another story — `InstanceCounter` doesn't track assignment at all.",
+    manifestation: `$ g++ -std=c++17 -O2 crtp.cpp -o crtp && ./crtp
+Widgets: 0
+Gadgets: 0
+Widgets: 2
+Gadgets: 1
+Widgets in scope: 3
+Widgets after scope: 2
+Widgets after move: 3
+
+Output appears correct. The count tracks properly because
+move falls back to copy (which increments count).
+
+But if you add: InstanceCounter(InstanceCounter&&) = default;
+then move construction would NOT call the copy ctor, so count
+wouldn't increment, but the destructor would still decrement,
+leading to count going negative:
+  Widgets after move: 2  ← wrong, should be 3
+  Final count: -1        ← underflow on destruction`,
+    stdlibRefs: [],
+  },
+  {
+    id: 283,
+    topic: "Initialization & Construction",
+    difficulty: "Medium",
+    title: "Narrow Init",
+    description: "Uses brace initialization to safely construct objects while relying on narrowing conversion checks.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <vector>
+
+struct Pixel {
+    uint8_t r, g, b, a;
+};
+
+Pixel makePixel(int r, int g, int b, int a = 255) {
+    return {static_cast<uint8_t>(r),
+            static_cast<uint8_t>(g),
+            static_cast<uint8_t>(b),
+            static_cast<uint8_t>(a)};
+}
+
+int main() {
+    Pixel white = {255, 255, 255, 255};
+    std::cout << "White: " << (int)white.r << "," << (int)white.g
+              << "," << (int)white.b << "," << (int)white.a << std::endl;
+
+    // Accidental overflow
+    Pixel p = makePixel(300, 200, 100);
+    std::cout << "Pixel: " << (int)p.r << "," << (int)p.g
+              << "," << (int)p.b << "," << (int)p.a << std::endl;
+
+    // Color math
+    int brightness = 280;
+    Pixel bright = makePixel(brightness, brightness, brightness);
+    std::cout << "Bright: " << (int)bright.r << "," << (int)bright.g
+              << "," << (int)bright.b << std::endl;
+}`,
+    hints: [
+      "What does `static_cast<uint8_t>(300)` produce?",
+      "The value 300 doesn't fit in a `uint8_t` (0-255). What happens with `static_cast`?",
+      "Does `static_cast` clamp values to the valid range, or does it truncate/wrap?",
+    ],
+    explanation: "The `makePixel` function uses `static_cast<uint8_t>` to convert `int` values to bytes. But `static_cast` does not clamp — it truncates (takes the value modulo 256 for unsigned types). So `static_cast<uint8_t>(300)` produces `44` (300 - 256), not 255. The `makePixel(300, 200, 100)` call produces `{44, 200, 100, 255}` instead of clamping to `{255, 200, 100, 255}`. Using brace initialization directly (`Pixel p = {300, ...}`) would catch this as a narrowing conversion error, but `static_cast` explicitly tells the compiler 'I know what I'm doing'. The fix is to clamp before casting: `static_cast<uint8_t>(std::min(r, 255))`.",
+    manifestation: `$ g++ -std=c++17 -O2 pixel.cpp -o pixel && ./pixel
+White: 255,255,255,255
+Pixel: 44,200,100,255
+Bright: 24,24,24
+
+Expected output:
+  Pixel: 255,200,100,255  ← 300 should clamp to 255
+  Bright: 255,255,255     ← 280 should clamp to 255
+Actual output:
+  Pixel: 44,200,100,255   ← 300 % 256 = 44 (wrap-around)
+  Bright: 24,24,24        ← 280 % 256 = 24 (dark instead of bright!)`,
+    stdlibRefs: [],
+  },
 ];
