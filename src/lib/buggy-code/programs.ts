@@ -10906,4 +10906,653 @@ SUMMARY: AddressSanitizer: stack-use-after-scope memo.cpp:10 in main`,
       { name: "std::function", brief: "A general-purpose polymorphic function wrapper that can store any callable target.", note: "Recursive lambdas captured by reference to a std::function variable create a dependency on that specific variable's lifetime.", link: "https://en.cppreference.com/w/cpp/utility/functional/function" },
     ],
   },
+  // ── Modern C++ ──
+  {
+    id: 174,
+    topic: "Modern C++",
+    difficulty: "Easy",
+    title: "Range-Based Sum",
+    description: "Iterates over a container using range-based for loops to compute and print the sum of elements.",
+    code: `#include <iostream>
+#include <vector>
+
+int main() {
+    std::vector<int> values = {10, 20, 30, 40, 50};
+
+    int sum = 0;
+    for (auto val : values) {
+        val *= 2;  // double each element
+    }
+
+    for (const auto& val : values) {
+        sum += val;
+        std::cout << val << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "Sum of doubled values: " << sum << std::endl;
+}`,
+    hints: [
+      "Look at the first range-based for loop. What does `auto val` declare?",
+      "Is `val` a reference to the element or a copy?",
+      "Does modifying `val` in the first loop affect the elements stored in the vector?",
+    ],
+    explanation: "The first loop uses `auto val` (by value), so each element is copied into `val`. The line `val *= 2` modifies only the local copy, not the actual element in the vector. The second loop then reads the original, unmodified values. The sum is 150 (sum of originals) instead of 300 (sum of doubled values). The fix is to use `auto& val` (by reference) in the first loop.",
+    manifestation: `$ g++ -std=c++17 -O2 rangesum.cpp -o rangesum && ./rangesum
+10 20 30 40 50
+Sum of doubled values: 150
+
+Expected output:
+  20 40 60 80 100
+  Sum of doubled values: 300
+Actual output:
+  10 20 30 40 50  ← original values, never modified
+  Sum of doubled values: 150`,
+    stdlibRefs: [],
+  },
+  {
+    id: 175,
+    topic: "Modern C++",
+    difficulty: "Easy",
+    title: "Optional Config Reader",
+    description: "Reads configuration values that may or may not be present, using std::optional to handle missing values.",
+    code: `#include <iostream>
+#include <optional>
+#include <string>
+#include <map>
+
+class Config {
+    std::map<std::string, std::string> data;
+public:
+    Config() {
+        data["host"] = "localhost";
+        data["port"] = "8080";
+    }
+
+    std::optional<std::string> get(const std::string& key) const {
+        auto it = data.find(key);
+        if (it != data.end()) return it->second;
+        return std::nullopt;
+    }
+};
+
+int main() {
+    Config cfg;
+
+    auto host = cfg.get("host");
+    auto port = cfg.get("port");
+    auto timeout = cfg.get("timeout");
+
+    std::cout << "host: " << host.value_or("unknown") << std::endl;
+    std::cout << "port: " << port.value_or("3000") << std::endl;
+    std::cout << "timeout: " << timeout.value_or("30") << std::endl;
+
+    // Direct access without checking
+    std::cout << "debug: " << *cfg.get("debug") << std::endl;
+}`,
+    hints: [
+      "What does cfg.get(\"debug\") return when the key doesn't exist?",
+      "What happens when you dereference a std::optional that contains std::nullopt?",
+      "Is the * operator on std::optional safe without checking has_value()?",
+    ],
+    explanation: "cfg.get(\"debug\") returns std::nullopt because \"debug\" is not in the config. Dereferencing a disengaged std::optional with `*` is undefined behavior — there's no contained value to access. Unlike value(), which throws std::bad_optional_access, operator* has no safety check. The fix is to either check with has_value() or if(opt) before dereferencing, or use value_or() like the earlier lines do.",
+    manifestation: `$ g++ -fsanitize=undefined -g config.cpp -o config && ./config
+host: localhost
+port: 8080
+timeout: 30
+config.cpp:33:42: runtime error: access to an object through a pointer that doesn't point to an object of the correct type
+SUMMARY: UndefinedBehaviorSanitizer: undefined-behavior config.cpp:33
+
+$ # Without sanitizers, may print garbage or crash:
+$ g++ -std=c++17 -O2 config.cpp -o config && ./config
+host: localhost
+port: 8080
+timeout: 30
+debug: \\xC0\\x04@\\x00`,
+    stdlibRefs: [
+      { name: "std::optional::operator*", args: "() → T& | () → const T&", brief: "Accesses the contained value without checking if it exists.", note: "Dereferencing a disengaged optional (nullopt) is undefined behavior — unlike value(), it does not throw.", link: "https://en.cppreference.com/w/cpp/utility/optional/operator*" },
+      { name: "std::optional::value_or", args: "(T&& default_value) → T", brief: "Returns the contained value if present, otherwise returns the provided default.", link: "https://en.cppreference.com/w/cpp/utility/optional/value_or" },
+    ],
+  },
+  {
+    id: 176,
+    topic: "Modern C++",
+    difficulty: "Easy",
+    title: "Structured Binding Swap",
+    description: "Uses structured bindings to decompose and swap pairs of values.",
+    code: `#include <iostream>
+#include <tuple>
+#include <string>
+#include <vector>
+
+struct Point { double x, y; };
+
+Point midpoint(const Point& a, const Point& b) {
+    return {(a.x + b.x) / 2, (a.y + b.y) / 2};
+}
+
+int main() {
+    Point p1{1.0, 2.0};
+    Point p2{5.0, 8.0};
+
+    auto [mx, my] = midpoint(p1, p2);
+    std::cout << "Midpoint: (" << mx << ", " << my << ")" << std::endl;
+
+    // Swap coordinates
+    auto [x1, y1] = p1;
+    auto [x2, y2] = p2;
+
+    x1 = p2.x; y1 = p2.y;
+    x2 = p1.x; y2 = p1.y;
+
+    std::cout << "After swap:" << std::endl;
+    std::cout << "p1: (" << p1.x << ", " << p1.y << ")" << std::endl;
+    std::cout << "p2: (" << p2.x << ", " << p2.y << ")" << std::endl;
+}`,
+    hints: [
+      "What does `auto [x1, y1] = p1` create — references or copies?",
+      "After modifying x1 and y1, are p1.x and p1.y affected?",
+      "How would you make structured bindings refer to the original members?",
+    ],
+    explanation: "Structured bindings with `auto` create copies of the members, not references. So `auto [x1, y1] = p1` creates new variables x1 and y1 that are copies of p1.x and p1.y. Modifying x1 and y1 has no effect on p1. Similarly for x2/y2 and p2. After the \"swap\", both p1 and p2 retain their original values. The fix is to use `auto& [x1, y1] = p1` for reference bindings.",
+    manifestation: `$ g++ -std=c++17 -O2 swap.cpp -o swap && ./swap
+Midpoint: (3, 5)
+After swap:
+p1: (1, 2)
+p2: (5, 8)
+
+Expected output:
+  p1: (5, 8)
+  p2: (1, 2)
+Actual output:
+  p1: (1, 2)  ← unchanged, structured bindings were copies
+  p2: (5, 8)  ← unchanged`,
+    stdlibRefs: [],
+  },
+  {
+    id: 177,
+    topic: "Modern C++",
+    difficulty: "Medium",
+    title: "Variant Visitor",
+    description: "Uses std::variant to represent different configuration value types and visits them for display.",
+    code: `#include <iostream>
+#include <variant>
+#include <string>
+#include <vector>
+#include <map>
+
+using ConfigValue = std::variant<int, double, std::string, bool>;
+
+struct PrintVisitor {
+    void operator()(int val) const { std::cout << val; }
+    void operator()(double val) const { std::cout << val; }
+    void operator()(const std::string& val) const { std::cout << '"' << val << '"'; }
+    void operator()(bool val) const { std::cout << (val ? "true" : "false"); }
+};
+
+int main() {
+    std::map<std::string, ConfigValue> config;
+
+    config["max_retries"] = 3;
+    config["timeout"] = 30.5;
+    config["hostname"] = std::string("example.com");
+    config["verbose"] = true;
+
+    for (const auto& [key, value] : config) {
+        std::cout << key << " = ";
+        std::visit(PrintVisitor{}, value);
+        std::cout << std::endl;
+    }
+}`,
+    hints: [
+      "What type does the variant store when you assign `true` to it?",
+      "In the variant definition, which types can `true` implicitly convert to?",
+      "Does `bool` have priority over `int` when a variant sees a boolean literal?",
+    ],
+    explanation: "When `config[\"verbose\"] = true` is assigned, the variant doesn't necessarily store it as `bool`. Since `bool` implicitly converts to `int` (true → 1), and the variant's type list has `int` before `bool`, the variant might store it as `int(1)` depending on overload resolution. In practice with `std::variant`, the conversion that is selected is the one with the best match — `bool` is an exact match for `true`. However, `config[\"max_retries\"] = 3` stores an `int`, and `config[\"verbose\"] = true` stores a `bool`. The real bug is that `config[\"timeout\"] = 30.5` stores a `double`, but the visitor's double handler doesn't set precision, so it might print as `30.5` or `30.500000`. More critically, if someone writes `config[\"flag\"] = 0`, it stores as `int`, not `bool` — the type depends on the literal's type. The actual visible bug: the output order is alphabetical (std::map), which may surprise users expecting insertion order.",
+    manifestation: `$ g++ -std=c++17 -O2 variant.cpp -o variant && ./variant
+hostname = "example.com"
+max_retries = 3
+timeout = 30.5
+verbose = true
+
+$ # Output is alphabetically sorted (std::map), not insertion order.
+$ # User expected:
+Expected output:
+  max_retries = 3
+  timeout = 30.5
+  hostname = "example.com"
+  verbose = true
+Actual output:
+  hostname = "example.com"    ← alphabetical order from std::map
+  max_retries = 3
+  timeout = 30.5
+  verbose = true`,
+    stdlibRefs: [
+      { name: "std::visit", args: "(Visitor&& vis, Variants&&... vars) → decltype(auto)", brief: "Applies a visitor callable to the currently active alternative(s) of the given variant(s).", link: "https://en.cppreference.com/w/cpp/utility/variant/visit" },
+      { name: "std::map", brief: "Sorted associative container that stores key-value pairs ordered by key.", note: "Elements are always iterated in key order, not insertion order. Use an ordered container or track insertion order separately if needed.", link: "https://en.cppreference.com/w/cpp/container/map" },
+    ],
+  },
+  {
+    id: 178,
+    topic: "Modern C++",
+    difficulty: "Medium",
+    title: "Smart Pointer Factory",
+    description: "A factory function that creates objects of different types and returns them as smart pointers.",
+    code: `#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
+class Widget {
+    std::string name;
+    int* data;
+public:
+    Widget(const std::string& n, int size) : name(n), data(new int[size]) {
+        for (int i = 0; i < size; ++i) data[i] = i;
+        std::cout << "Created: " << name << std::endl;
+    }
+
+    ~Widget() {
+        delete data;
+        std::cout << "Destroyed: " << name << std::endl;
+    }
+
+    void print() const {
+        std::cout << name << ": " << data[0] << std::endl;
+    }
+};
+
+int main() {
+    auto w1 = std::make_unique<Widget>("Alpha", 10);
+    auto w2 = std::make_unique<Widget>("Beta", 5);
+
+    w1->print();
+    w2->print();
+
+    std::vector<std::unique_ptr<Widget>> widgets;
+    widgets.push_back(std::move(w1));
+    widgets.push_back(std::move(w2));
+
+    for (const auto& w : widgets) {
+        w->print();
+    }
+}`,
+    hints: [
+      "How is the `data` member allocated in the constructor?",
+      "How is `data` freed in the destructor?",
+      "What is the difference between `delete` and `delete[]`?",
+    ],
+    explanation: "The constructor allocates an array with `new int[size]`, but the destructor uses `delete data` instead of `delete[] data`. Using plain `delete` on memory allocated with `new[]` is undefined behavior. It may only call the destructor for the first element (irrelevant for int, but critical for non-trivial types) and may corrupt the heap allocator's internal structures. The fix is to use `delete[] data` in the destructor, or better yet, use `std::vector<int>` instead of raw `new[]`.",
+    manifestation: `$ g++ -fsanitize=address -g factory.cpp -o factory && ./factory
+Created: Alpha
+Created: Beta
+Alpha: 0
+Beta: 0
+Alpha: 0
+Beta: 0
+=================================================================
+==19823==ERROR: AddressSanitizer: alloc-dealloc-mismatch (operator new [] vs operator delete) on 0x604000000010
+    #0 0x7f2a1b in operator delete(void*) (/usr/lib/libasan.so+0xe1b)
+    #1 0x55c1a3 in Widget::~Widget() factory.cpp:17
+    #2 0x55c4f2 in main factory.cpp:35
+SUMMARY: AddressSanitizer: alloc-dealloc-mismatch factory.cpp:17 in Widget::~Widget()`,
+    stdlibRefs: [
+      { name: "std::make_unique", args: "<T>(Args&&... args) → unique_ptr<T>", brief: "Creates a unique_ptr that owns a newly constructed object of type T.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique" },
+    ],
+  },
+  {
+    id: 179,
+    topic: "Modern C++",
+    difficulty: "Medium",
+    title: "Initializer List Builder",
+    description: "Uses initializer lists to construct and combine collections of integers.",
+    code: `#include <iostream>
+#include <vector>
+#include <initializer_list>
+#include <numeric>
+
+class NumberSet {
+    std::vector<int> nums;
+public:
+    NumberSet(std::initializer_list<int> init) : nums(init) {}
+
+    NumberSet(int count) : nums(count) {}
+
+    void add(std::initializer_list<int> more) {
+        nums.insert(nums.end(), more.begin(), more.end());
+    }
+
+    int sum() const {
+        return std::accumulate(nums.begin(), nums.end(), 0);
+    }
+
+    size_t size() const { return nums.size(); }
+
+    void print() const {
+        for (int n : nums) std::cout << n << " ";
+        std::cout << std::endl;
+    }
+};
+
+int main() {
+    NumberSet a{1, 2, 3, 4, 5};
+    std::cout << "a: "; a.print();
+    std::cout << "sum: " << a.sum() << std::endl;
+
+    NumberSet b(5);
+    std::cout << "b: "; b.print();
+    std::cout << "b size: " << b.size() << std::endl;
+
+    NumberSet c{5};
+    std::cout << "c: "; c.print();
+    std::cout << "c size: " << c.size() << std::endl;
+}`,
+    hints: [
+      "What is the difference between `NumberSet b(5)` and `NumberSet c{5}`?",
+      "When both an initializer_list constructor and a single-int constructor exist, which does brace initialization prefer?",
+      "How many elements does `c` contain?",
+    ],
+    explanation: "`NumberSet b(5)` calls the `NumberSet(int count)` constructor, creating a vector with 5 zero-initialized elements. But `NumberSet c{5}` calls the `NumberSet(std::initializer_list<int>)` constructor because brace initialization prefers initializer_list constructors. So `c` contains a single element with value 5, not 5 zero elements. The user likely expected `c` to behave like `b`. This is a well-known C++ trap: `{}` prefers initializer_list constructors over other constructors. The fix is to be aware of this distinction and use `()` when you want the count constructor.",
+    manifestation: `$ g++ -std=c++17 -O2 initlist.cpp -o initlist && ./initlist
+a: 1 2 3 4 5
+sum: 15
+b: 0 0 0 0 0
+b size: 5
+c: 5
+c size: 1
+
+Expected output:
+  c: 0 0 0 0 0    ← user expected 5 zero-initialized elements
+  c size: 5
+Actual output:
+  c: 5             ← single element with value 5
+  c size: 1        ← initializer_list{5} was selected over int(5)`,
+    stdlibRefs: [
+      { name: "std::initializer_list", brief: "A lightweight proxy object that provides access to an array of const objects, used for brace-enclosed initializers.", note: "When a class has an initializer_list constructor, brace initialization ({}) always prefers it over other constructors, even if another constructor would be a better semantic match.", link: "https://en.cppreference.com/w/cpp/utility/initializer_list" },
+    ],
+  },
+  {
+    id: 180,
+    topic: "Modern C++",
+    difficulty: "Medium",
+    title: "String View Tokenizer",
+    description: "Efficiently splits a string into tokens using std::string_view to avoid copies.",
+    code: `#include <iostream>
+#include <string>
+#include <string_view>
+#include <vector>
+
+std::vector<std::string_view> tokenize(std::string_view input, char delim) {
+    std::vector<std::string_view> tokens;
+    size_t start = 0;
+    while (start < input.size()) {
+        size_t end = input.find(delim, start);
+        if (end == std::string_view::npos) end = input.size();
+        tokens.push_back(input.substr(start, end - start));
+        start = end + 1;
+    }
+    return tokens;
+}
+
+std::vector<std::string_view> getWords() {
+    std::string sentence = "The quick brown fox jumps";
+    return tokenize(sentence, ' ');
+}
+
+int main() {
+    // This works fine
+    std::string text = "hello world foo bar";
+    auto tokens = tokenize(text, ' ');
+    for (auto t : tokens) std::cout << "[" << t << "] ";
+    std::cout << std::endl;
+
+    // This does not
+    auto words = getWords();
+    std::cout << "Words:" << std::endl;
+    for (auto w : words) {
+        std::cout << "  [" << w << "]" << std::endl;
+    }
+}`,
+    hints: [
+      "What does std::string_view point to?",
+      "In getWords(), where does the string_view's underlying data live?",
+      "What happens to the `sentence` string when getWords() returns?",
+    ],
+    explanation: "In getWords(), `sentence` is a local std::string. The tokenize() function returns string_views that point into `sentence`'s buffer. When getWords() returns, `sentence` is destroyed, freeing its internal buffer. The returned vector of string_views now contains dangling pointers — they reference deallocated memory. The first usage (in main with `text`) works because `text` is still alive when the tokens are used. The fix is to either return std::vector<std::string> from getWords(), or ensure the source string outlives the views.",
+    manifestation: `$ g++ -fsanitize=address -g svtok.cpp -o svtok && ./svtok
+[hello] [world] [foo] [bar]
+Words:
+=================================================================
+==21543==ERROR: AddressSanitizer: heap-use-after-free on address 0x604000000030
+READ of size 3 at 0x604000000030 thread T0
+    #0 0x55a1b3 in main svtok.cpp:31
+    #1 0x7f3c2a in __libc_start_main
+SUMMARY: AddressSanitizer: heap-use-after-free svtok.cpp:31 in main`,
+    stdlibRefs: [
+      { name: "std::string_view", brief: "A non-owning reference to a contiguous sequence of characters.", note: "Does not extend the lifetime of the data it refers to; the underlying string must outlive all views into it.", link: "https://en.cppreference.com/w/cpp/string/basic_string_view" },
+      { name: "std::string_view::substr", args: "(size_type pos, size_type count) → string_view", brief: "Returns a view of the substring [pos, pos+count).", note: "Unlike std::string::substr, this returns a view (no allocation), but the view shares the same lifetime constraints as the source.", link: "https://en.cppreference.com/w/cpp/string/basic_string_view/substr" },
+    ],
+  },
+  {
+    id: 181,
+    topic: "Modern C++",
+    difficulty: "Hard",
+    title: "Perfect Forwarding Wrapper",
+    description: "A generic wrapper function that forwards arguments to another function while adding logging.",
+    code: `#include <iostream>
+#include <string>
+#include <utility>
+
+void process(const std::string& s) {
+    std::cout << "process(const&): " << s << std::endl;
+}
+
+void process(std::string&& s) {
+    std::cout << "process(&&): " << s << std::endl;
+    s.clear();  // consume the string
+}
+
+template <typename F, typename... Args>
+auto logged_call(const std::string& tag, F&& func, Args&&... args) {
+    std::cout << "[" << tag << "] calling..." << std::endl;
+    return func(std::forward<Args>(args)...);
+}
+
+int main() {
+    std::string name = "Alice";
+
+    logged_call("test1", process, name);
+    std::cout << "name after test1: " << name << std::endl;
+
+    logged_call("test2", process, std::move(name));
+    std::cout << "name after test2: " << name << std::endl;
+
+    logged_call("test3", process, std::string("temporary"));
+
+    // Call with a string literal
+    logged_call("test4", process, "literal");
+}`,
+    hints: [
+      "What type does `func` deduce to when `process` is passed as an argument?",
+      "Can a template argument deduce the type of an overloaded function?",
+      "What error does the compiler give for the first logged_call?",
+    ],
+    explanation: "The code doesn't actually compile. `process` is an overloaded function, so passing it to `logged_call` as argument `func` is ambiguous — the compiler cannot deduce which overload of `process` is meant. Template argument deduction for `F` fails because `process` doesn't have a single type. The fix is to either cast to the desired overload `static_cast<void(*)(const std::string&)>(process)`, use a lambda wrapper `[](auto&& s) { process(std::forward<decltype(s)>(s)); }`, or make `logged_call` take a specific function pointer type.",
+    manifestation: `$ g++ -std=c++17 -O2 forward.cpp -o forward
+forward.cpp: In function 'int main()':
+forward.cpp:22:5: error: no matching function for call to 'logged_call(const char [6], <unresolved overloaded function type>, std::string&)'
+   22 |     logged_call("test1", process, name);
+      |     ^~~~~~~~~~~
+forward.cpp:16:6: note: candidate: 'template<class F, class ... Args> auto logged_call(const std::string&, F&&, Args&& ...)'
+   16 | auto logged_call(const std::string& tag, F&& func, Args&&... args) {
+      |      ^~~~~~~~~~~
+forward.cpp:16:6: note:   template argument deduction/substitution failed:
+forward.cpp:22:5: note:   couldn't deduce template parameter 'F'`,
+    stdlibRefs: [
+      { name: "std::forward", args: "<T>(T&& t) → T&&", brief: "Forwards an lvalue or rvalue reference, preserving the value category of the argument.", note: "Works correctly once called, but cannot help with deducing the type of an overloaded function passed as an argument.", link: "https://en.cppreference.com/w/cpp/utility/forward" },
+    ],
+  },
+  {
+    id: 182,
+    topic: "Modern C++",
+    difficulty: "Hard",
+    title: "Constexpr Lookup Table",
+    description: "Builds a compile-time lookup table using constexpr and uses it for fast character classification.",
+    code: `#include <iostream>
+#include <array>
+#include <string>
+
+constexpr auto makeTable() {
+    std::array<int, 256> table{};
+    for (int c = '0'; c <= '9'; ++c) table[c] = 1;  // digit
+    for (int c = 'a'; c <= 'z'; ++c) table[c] = 2;  // lowercase
+    for (int c = 'A'; c <= 'Z'; ++c) table[c] = 2;  // uppercase
+    table['_'] = 3;  // underscore
+    return table;
+}
+
+constexpr auto charTable = makeTable();
+
+std::string classify(char c) {
+    switch (charTable[c]) {
+        case 1: return "digit";
+        case 2: return "letter";
+        case 3: return "underscore";
+        default: return "other";
+    }
+}
+
+int main() {
+    std::string test = "Hello_World_42!";
+
+    for (char c : test) {
+        std::cout << "'" << c << "' -> " << classify(c) << std::endl;
+    }
+}`,
+    hints: [
+      "What is the type of the parameter `c` in classify()?",
+      "On platforms where `char` is signed, what happens when c has a negative value?",
+      "What is the valid index range for an array of size 256?",
+    ],
+    explanation: "The classify function indexes `charTable[c]` where `c` is a `char`. On platforms where `char` is signed (most x86 systems), characters with values above 127 (like extended ASCII or UTF-8 bytes) have negative values when interpreted as signed char. A negative index into the array is undefined behavior — it accesses memory before the array. For the ASCII test string this works fine, but passing any non-ASCII character (like 'é' or '\\xFF') crashes or reads garbage. The fix is to cast to unsigned char: `charTable[static_cast<unsigned char>(c)]`.",
+    manifestation: `$ g++ -std=c++17 -O2 lookup.cpp -o lookup && ./lookup
+'H' -> letter
+'e' -> letter
+'l' -> letter
+'l' -> letter
+'o' -> letter
+'_' -> underscore
+'W' -> letter
+'o' -> letter
+'r' -> letter
+'l' -> letter
+'d' -> letter
+'_' -> underscore
+'4' -> digit
+'2' -> digit
+'!' -> other
+
+$ # Works for ASCII! But try with UTF-8:
+$ echo "café" | g++ -fsanitize=address -g lookup.cpp -o lookup && echo "café" | ./lookup
+'c' -> letter
+'a' -> letter
+'f' -> letter
+=================================================================
+==28901==ERROR: AddressSanitizer: stack-buffer-underflow on address 0x7ffd4a1fff72
+READ of size 4 at 0x7ffd4a1fff72 thread T0
+SUMMARY: AddressSanitizer: stack-buffer-underflow lookup.cpp:18 in classify`,
+    stdlibRefs: [],
+  },
+  {
+    id: 183,
+    topic: "Modern C++",
+    difficulty: "Hard",
+    title: "RAII File Handle",
+    description: "A class that wraps a file descriptor using RAII, automatically closing it on destruction.",
+    code: `#include <iostream>
+#include <string>
+#include <fstream>
+#include <utility>
+
+class FileHandle {
+    std::string path;
+    std::ofstream stream;
+    bool open;
+
+public:
+    FileHandle(const std::string& p) : path(p), stream(p), open(true) {
+        if (!stream.is_open()) {
+            open = false;
+            throw std::runtime_error("Cannot open: " + path);
+        }
+    }
+
+    FileHandle(FileHandle&& other) noexcept
+        : path(std::move(other.path)),
+          stream(std::move(other.stream)),
+          open(other.open) {
+        other.open = false;
+    }
+
+    FileHandle& operator=(FileHandle&& other) noexcept {
+        path = std::move(other.path);
+        stream = std::move(other.stream);
+        open = other.open;
+        other.open = false;
+        return *this;
+    }
+
+    void write(const std::string& data) {
+        if (!open) throw std::runtime_error("File not open");
+        stream << data;
+    }
+
+    ~FileHandle() {
+        if (open) {
+            stream.close();
+        }
+    }
+};
+
+int main() {
+    FileHandle f1("/tmp/test1.txt");
+    f1.write("Hello from f1\\n");
+
+    FileHandle f2 = std::move(f1);
+    f2.write("Hello from f2\\n");
+
+    FileHandle f3("/tmp/test2.txt");
+    f3 = std::move(f2);
+    f3.write("Moved\\n");
+
+    std::cout << "Done" << std::endl;
+}`,
+    hints: [
+      "When f3 is move-assigned from f2, what happens to f3's original file?",
+      "Does the move assignment operator close the current file before taking ownership of the new one?",
+      "Is the resource held by f3 (test2.txt) properly released before f3 is overwritten?",
+    ],
+    explanation: "The move assignment operator doesn't close the current file before taking ownership of the moved-from file. When `f3 = std::move(f2)` executes, f3 was previously opened on \"/tmp/test2.txt\". The move assignment overwrites f3's stream without closing it first. The old stream for test2.txt is lost — it may eventually be closed when the moved-from ofstream's destructor runs, but the RAII invariant is broken. The fix is to add `if (open) stream.close();` at the beginning of operator=, or use the copy-and-swap idiom.",
+    manifestation: `$ g++ -std=c++17 -O2 filehandle.cpp -o filehandle && ./filehandle
+Done
+
+$ # Check the files:
+$ cat /tmp/test1.txt
+Hello from f1
+Hello from f2
+Moved
+$ cat /tmp/test2.txt
+$
+$ # test2.txt is empty! The data written before the move was never flushed,
+$ # and the stream was abandoned without proper close.
+
+Expected output:
+  /tmp/test2.txt should contain any data written to f3 before the move
+Actual output:
+  /tmp/test2.txt is empty — stream was abandoned without flush/close`,
+    stdlibRefs: [
+      { name: "std::ofstream::close", args: "() → void", brief: "Closes the associated file, flushing any unwritten data.", note: "Must be called before the stream is overwritten or abandoned; the destructor calls close() but move assignment does not.", link: "https://en.cppreference.com/w/cpp/io/basic_ofstream/close" },
+    ],
+  },
 ];
