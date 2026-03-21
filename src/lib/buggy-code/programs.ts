@@ -19318,4 +19318,569 @@ Monitor: ti    ← output corrupted, thread killed mid-write`,
       { name: "std::thread::detach", args: "() → void", brief: "Separates the thread of execution from the thread object, allowing execution to continue independently.", note: "Detached threads are terminated when main() exits. There is no way to join or wait for them.", link: "https://en.cppreference.com/w/cpp/thread/thread/detach" },
     ],
   },
+
+  // ── Language Traps ──
+
+  {
+    id: 294,
+    topic: "Language Traps",
+    difficulty: "Easy",
+    title: "Widget Factory",
+    description: "Creates a Widget object and prints its value.",
+    code: `#include <iostream>
+
+class Widget {
+    int value_;
+public:
+    Widget() : value_(42) {}
+    Widget(int v) : value_(v) {}
+    int value() const { return value_; }
+};
+
+int main() {
+    Widget w();
+    std::cout << "Widget value: " << w.value() << std::endl;
+    return 0;
+}`,
+    hints: [
+      "Look carefully at how `w` is declared. Is it really creating an object?",
+      "What does the C++ standard say about declarations that look like function prototypes?",
+    ],
+    explanation: "This is the 'most vexing parse.' The declaration `Widget w();` doesn't create a Widget object — it declares a function named `w` that takes no arguments and returns a Widget. Calling `w.value()` then tries to invoke `.value()` on a function, which won't compile. The fix is to use `Widget w;` or `Widget w{};` for value initialization.",
+    manifestation: `$ g++ -std=c++17 -Wall widget.cpp -o widget
+widget.cpp: In function 'int main()':
+widget.cpp:14:40: error: request for member 'value' in 'w',
+    which is of non-class type 'Widget()'
+   14 |     std::cout << "Widget value: " << w.value() << std::endl;
+      |                                        ^~~~~`,
+    stdlibRefs: [],
+  },
+  {
+    id: 295,
+    topic: "Language Traps",
+    difficulty: "Easy",
+    title: "Bitmask Check",
+    description: "Checks if specific permission bits are set in a bitmask and grants access accordingly.",
+    code: `#include <iostream>
+
+constexpr int READ  = 0x01;
+constexpr int WRITE = 0x02;
+constexpr int EXEC  = 0x04;
+
+bool hasPermission(int userPerms, int requiredPerm) {
+    return userPerms & requiredPerm == requiredPerm;
+}
+
+int main() {
+    int perms = READ | WRITE;  // user has read + write
+
+    std::cout << "Has READ:  " << hasPermission(perms, READ)  << std::endl;
+    std::cout << "Has WRITE: " << hasPermission(perms, WRITE) << std::endl;
+    std::cout << "Has EXEC:  " << hasPermission(perms, EXEC)  << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Focus on the `return` expression in `hasPermission`. What is the order of evaluation?",
+      "What is the precedence of `==` relative to `&` in C++?",
+    ],
+    explanation: "The `==` operator has higher precedence than `&`, so `userPerms & requiredPerm == requiredPerm` is parsed as `userPerms & (requiredPerm == requiredPerm)`, which is `userPerms & 1`. This means the function returns whether the lowest bit is set, not whether the required permission bits are set. The fix is to add parentheses: `(userPerms & requiredPerm) == requiredPerm`.",
+    manifestation: `$ g++ -std=c++17 -Wall bitmask.cpp -o bitmask
+bitmask.cpp:8:24: warning: suggest parentheses around comparison
+    in operand of '&' [-Wparentheses]
+    8 |     return userPerms & requiredPerm == requiredPerm;
+      |                        ~~~~~~~~~~~~^~~~~~~~~~~~~~~
+$ ./bitmask
+Has READ:  1
+Has WRITE: 1
+Has EXEC:  1
+
+Expected output:
+Has READ:  1
+Has WRITE: 1
+Has EXEC:  0`,
+    stdlibRefs: [],
+  },
+  {
+    id: 296,
+    topic: "Language Traps",
+    difficulty: "Easy",
+    title: "Range Sum",
+    description: "Computes the sum of all integers in a half-open range [low, high) using a comma-separated expression.",
+    code: `#include <iostream>
+
+int rangeSum(int low, int high) {
+    int total = 0;
+    for (int i = low; i < high; i++) {
+        total += i;
+    }
+    return total;
+}
+
+int main() {
+    int result = 0;
+
+    // Sum ranges [0,5) and [10,15)
+    result = rangeSum(0, 5), rangeSum(10, 15);
+
+    std::cout << "Combined sum: " << result << std::endl;
+    return 0;
+}`,
+    hints: [
+      "What value does `result` actually hold after the assignment line?",
+      "How does the comma operator interact with the assignment operator in terms of precedence?",
+    ],
+    explanation: "The comma operator has the lowest precedence of all C++ operators, lower than assignment. So `result = rangeSum(0, 5), rangeSum(10, 15)` is parsed as `(result = rangeSum(0, 5)), rangeSum(10, 15)`. The second call's return value is discarded. `result` only contains the sum of [0,5) which is 10, not the combined sum of 60. The fix is to write `result = rangeSum(0, 5) + rangeSum(10, 15);`.",
+    manifestation: `$ g++ -std=c++17 -Wall range.cpp -o range
+range.cpp:15:41: warning: right operand of comma operator has
+    no effect [-Wunused-value]
+   15 |     result = rangeSum(0, 5), rangeSum(10, 15);
+      |                              ~~~~~~~~~~~~~~~^
+$ ./range
+Combined sum: 10
+
+Expected output:
+Combined sum: 60`,
+    stdlibRefs: [],
+  },
+  {
+    id: 297,
+    topic: "Language Traps",
+    difficulty: "Medium",
+    title: "Square Macro",
+    description: "Defines a macro to square a number and uses it in arithmetic expressions.",
+    code: `#include <iostream>
+
+#define SQUARE(x) x * x
+
+int main() {
+    int a = 3;
+    int b = 4;
+
+    int result1 = SQUARE(a + b);
+    int result2 = 100 / SQUARE(5);
+    int result3 = SQUARE(a++);
+
+    std::cout << "SQUARE(3+4) = " << result1 << std::endl;
+    std::cout << "100/SQUARE(5) = " << result2 << std::endl;
+    std::cout << "SQUARE(a++) with a=3: " << result3 << std::endl;
+    std::cout << "a after SQUARE(a++): " << a << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Expand the macro by hand for each call. What does `SQUARE(a + b)` actually produce?",
+      "How many times is the argument evaluated when the macro expands?",
+      "What happens when a side-effecting expression like `a++` is evaluated twice?",
+    ],
+    explanation: "The macro `SQUARE(x)` expands to `x * x` without parenthesizing the parameter or the whole expression. `SQUARE(a + b)` becomes `a + b * b + a` = `3 + 4*4 + 3` = 22 instead of 49. `100 / SQUARE(5)` becomes `100 / 5 * 5` = 100 instead of 4. `SQUARE(a++)` becomes `a++ * a++`, which is undefined behavior (double modification without a sequence point). The fix is `#define SQUARE(x) ((x) * (x))`, but even that doesn't fix the double-evaluation of side effects — an inline function is the proper solution.",
+    manifestation: `$ g++ -std=c++17 -Wall macro.cpp -o macro && ./macro
+SQUARE(3+4) = 22
+100/SQUARE(5) = 100
+SQUARE(a++) with a=3: 9
+a after SQUARE(a++): 5
+
+Expected output:
+SQUARE(3+4) = 49
+100/SQUARE(5) = 4
+SQUARE(a++) with a=3: 9
+a after SQUARE(a++): 4`,
+    stdlibRefs: [],
+  },
+  {
+    id: 298,
+    topic: "Language Traps",
+    difficulty: "Medium",
+    title: "Shape Hierarchy",
+    description: "Defines a base Shape class and derived Circle class, calling display through a base pointer.",
+    code: `#include <iostream>
+#include <string>
+#include <cmath>
+
+class Shape {
+public:
+    virtual std::string name() const { return "Shape"; }
+    virtual double area() const = 0;
+    void display(std::ostream& os) const {
+        os << name() << ": area = " << area() << std::endl;
+    }
+    virtual ~Shape() = default;
+};
+
+class Circle : public Shape {
+    double radius_;
+public:
+    Circle(double r) : radius_(r) {}
+    std::string name() const { return "Circle"; }
+    double area() const { return M_PI * radius_ * radius_; }
+    void display(std::ostream& os) const {
+        os << name() << ": radius = " << radius_
+           << ", area = " << area() << std::endl;
+    }
+};
+
+int main() {
+    Circle c(5.0);
+    Shape* s = &c;
+    s->display(std::cout);
+    return 0;
+}`,
+    hints: [
+      "Is `display()` virtual in the base class?",
+      "When calling through a base pointer, which version of a non-virtual method is invoked?",
+    ],
+    explanation: "The `display()` method is not declared `virtual` in the base class, so calling `s->display()` through a `Shape*` pointer invokes `Shape::display()`, not `Circle::display()`. Since `name()` and `area()` *are* virtual, they dispatch to `Circle`'s overrides, but the output format is Shape's version (which omits the radius). The Circle's custom display format is never used. The fix is to make `display()` virtual in the base class, or better yet, override it with `override`.",
+    manifestation: `$ g++ -std=c++17 -Wall shape.cpp -o shape && ./shape
+Circle: area = 78.5398
+
+Expected output:
+Circle: radius = 5, area = 78.5398`,
+    stdlibRefs: [],
+  },
+  {
+    id: 299,
+    topic: "Language Traps",
+    difficulty: "Medium",
+    title: "Config Loader",
+    description: "Parses a semicolon-delimited configuration string into key-value pairs using string_view for efficiency.",
+    code: `#include <iostream>
+#include <string>
+#include <string_view>
+#include <vector>
+#include <utility>
+
+std::vector<std::pair<std::string_view, std::string_view>>
+parseConfig(const std::string& input) {
+    std::vector<std::pair<std::string_view, std::string_view>> result;
+    std::string_view sv(input);
+
+    while (!sv.empty()) {
+        auto semi = sv.find(';');
+        auto entry = sv.substr(0, semi);
+
+        auto eq = entry.find('=');
+        if (eq != std::string_view::npos) {
+            result.emplace_back(entry.substr(0, eq), entry.substr(eq + 1));
+        }
+
+        if (semi == std::string_view::npos) break;
+        sv.remove_prefix(semi + 1);
+    }
+    return result;
+}
+
+int main() {
+    auto config = parseConfig("host=localhost;port=8080;debug=true");
+
+    for (auto& [key, value] : config) {
+        std::cout << key << " => " << value << std::endl;
+    }
+    return 0;
+}`,
+    hints: [
+      "What is the lifetime of the string that the `string_view`s point into?",
+      "When `parseConfig` takes a `const std::string&`, what happens if the argument is a temporary?",
+    ],
+    explanation: "The string literal `\"host=localhost;port=8080;debug=true\"` is implicitly converted to a temporary `std::string`, which is passed by const reference to `parseConfig`. The returned `string_view`s point into this temporary. After the function call, the temporary `std::string` is destroyed, leaving all the `string_view`s dangling. Accessing them in the for loop is undefined behavior. The fix is to either return `std::string` pairs, or ensure the source string outlives the views.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=address -g config.cpp -o config && ./config
+=================================================================
+==14523==ERROR: AddressSanitizer: stack-use-after-scope on address
+    0x7ffd3a2c1e50 at pc 0x5591c3a01f23 bp 0x7ffd3a2c1d90
+READ of size 1 at 0x7ffd3a2c1e50 thread T0
+    #0 0x5591c3a01f22 in main config.cpp:31
+    #1 0x7f2a8c429d8f in __libc_start_call_main
+    #2 0x7f2a8c429e3f in __libc_start_main
+    #3 0x5591c3a01a04 in _start`,
+    stdlibRefs: [
+      { name: "std::string_view", brief: "A non-owning reference to a contiguous sequence of characters.", note: "string_view does not extend the lifetime of the underlying data. If the source string is destroyed, the view dangles.", link: "https://en.cppreference.com/w/cpp/string/basic_string_view" },
+    ],
+  },
+  {
+    id: 300,
+    topic: "Language Traps",
+    difficulty: "Medium",
+    title: "Derived Logger",
+    description: "Extends a base Logger class with a FileLogger that adds file-path logging capability.",
+    code: `#include <iostream>
+#include <string>
+
+class Logger {
+public:
+    void log(const std::string& msg) {
+        std::cout << "[INFO] " << msg << std::endl;
+    }
+    void log(const std::string& msg, int level) {
+        std::string prefix = (level >= 2) ? "[WARN] " : "[INFO] ";
+        std::cout << prefix << msg << std::endl;
+    }
+};
+
+class FileLogger : public Logger {
+    std::string filepath_;
+public:
+    FileLogger(const std::string& path) : filepath_(path) {}
+
+    void log(const std::string& msg, const std::string& category) {
+        std::cout << "[" << category << "] "
+                  << filepath_ << ": " << msg << std::endl;
+    }
+};
+
+int main() {
+    FileLogger flog("/var/log/app.log");
+
+    flog.log("Application started");
+    flog.log("Disk full", 2);
+
+    return 0;
+}`,
+    hints: [
+      "FileLogger defines its own `log` overload. What happens to the base class overloads?",
+      "Does declaring a function with the same name in a derived class 'add' to the overload set, or does it hide the base versions?",
+    ],
+    explanation: "Declaring `log(const std::string&, const std::string&)` in `FileLogger` hides all `Logger::log` overloads due to name hiding. The calls `flog.log(\"Application started\")` and `flog.log(\"Disk full\", 2)` won't compile because the only visible `log` in `FileLogger` takes two `std::string` arguments. The integer `2` cannot be implicitly converted to `std::string`. The fix is to add `using Logger::log;` in `FileLogger` to bring the base overloads into scope.",
+    manifestation: `$ g++ -std=c++17 -Wall logger.cpp -o logger
+logger.cpp: In function 'int main()':
+logger.cpp:30:30: error: no matching function for call to
+    'FileLogger::log(const char [20])'
+   30 |     flog.log("Application started");
+      |                              ^
+logger.cpp:22:10: note: candidate: 'void FileLogger::log(
+    const string&, const string&)'
+   22 |     void log(const std::string& msg, const std::string& category) {
+      |          ^~~
+logger.cpp:22:10: note:   candidate expects 2 arguments, 1 provided
+logger.cpp:31:30: error: no matching function for call to
+    'FileLogger::log(const char [10], int)'
+   31 |     flog.log("Disk full", 2);
+      |                              ^`,
+    stdlibRefs: [],
+  },
+  {
+    id: 301,
+    topic: "Language Traps",
+    difficulty: "Hard",
+    title: "Event Dispatcher",
+    description: "Stores callbacks for named events and dispatches them, printing whether each callback was successfully invoked.",
+    code: `#include <iostream>
+#include <functional>
+#include <map>
+#include <string>
+#include <vector>
+#include <optional>
+
+class EventDispatcher {
+    std::map<std::string, std::vector<std::function<void()>>> handlers_;
+public:
+    void on(const std::string& event, std::function<void()> fn) {
+        handlers_[event].push_back(std::move(fn));
+    }
+
+    int dispatch(const std::string& event) {
+        auto it = handlers_.find(event);
+        if (it == handlers_.end()) return 0;
+        int count = 0;
+        for (auto& fn : it->second) {
+            fn();
+            ++count;
+        }
+        return count;
+    }
+
+    std::optional<std::string> mostPopular() const {
+        std::string best;
+        size_t bestCount = 0;
+        for (auto& [name, fns] : handlers_) {
+            if (fns.size() > bestCount) {
+                bestCount = fns.size();
+                best = name;
+            }
+        }
+        return best;
+    }
+};
+
+int main() {
+    EventDispatcher ed;
+    ed.on("click", []{ std::cout << "Button clicked" << std::endl; });
+    ed.on("click", []{ std::cout << "Analytics: click" << std::endl; });
+    ed.on("hover", []{ std::cout << "Tooltip shown" << std::endl; });
+
+    auto popular = ed.mostPopular();
+    if (popular) {
+        std::cout << "Most popular event: " << *popular << std::endl;
+    } else {
+        std::cout << "No events registered" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Look at `mostPopular()`. Under what conditions would it return an empty optional?",
+      "What value does `std::optional<std::string>` hold when constructed from an empty `std::string`?",
+    ],
+    explanation: "The `mostPopular()` function always returns `best`, which is a `std::string`. If `handlers_` is empty, `best` is an empty string `\"\"`. But `std::optional<std::string>` constructed from an empty string is still an *engaged* optional — it holds a value (the empty string), so `if (popular)` evaluates to `true`. The function never actually returns `std::nullopt`. When no events are registered, it prints 'Most popular event: ' (with an empty name) instead of 'No events registered'. The fix is to explicitly return `std::nullopt` when `bestCount == 0`.",
+    manifestation: `$ g++ -std=c++17 -Wall dispatch.cpp -o dispatch && ./dispatch
+Most popular event: click
+
+# But with an empty dispatcher:
+$ g++ -std=c++17 -Wall dispatch2.cpp -o dispatch2 && ./dispatch2
+Most popular event:
+
+Expected output:
+No events registered`,
+    stdlibRefs: [
+      { name: "std::optional", brief: "A wrapper that may or may not contain a value of type T.", note: "An optional containing an empty string is still engaged (has_value() is true). Only std::nullopt or a default-constructed optional is disengaged.", link: "https://en.cppreference.com/w/cpp/utility/optional" },
+    ],
+  },
+  {
+    id: 302,
+    topic: "Language Traps",
+    difficulty: "Hard",
+    title: "Matrix Formatter",
+    description: "Formats a 2D matrix into a string representation with aligned columns using structured bindings.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <algorithm>
+
+struct Matrix {
+    std::vector<std::vector<int>> data;
+    size_t rows() const { return data.size(); }
+    size_t cols() const { return data.empty() ? 0 : data[0].size(); }
+};
+
+std::string formatMatrix(const Matrix& m) {
+    // Find max width per column
+    std::vector<int> widths(m.cols(), 0);
+    for (size_t r = 0; r < m.rows(); ++r) {
+        for (size_t c = 0; c < m.cols(); ++c) {
+            int w = std::to_string(m.data[r][c]).length();
+            widths[c] = std::max(widths[c], w);
+        }
+    }
+
+    std::ostringstream oss;
+    for (size_t r = 0; r < m.rows(); ++r) {
+        oss << "| ";
+        for (size_t c = 0; c < m.cols(); ++c) {
+            auto s = std::to_string(m.data[r][c]);
+            for (int pad = widths[c] - s.length(); pad > 0; --pad)
+                oss << ' ';
+            oss << s << " | ";
+        }
+        oss << '\\n';
+    }
+    return oss.str();
+}
+
+int main() {
+    Matrix m{{{1, 200, 3}, {4000, 5, 60}, {7, 80, 900}}};
+    std::cout << formatMatrix(m);
+    return 0;
+}`,
+    hints: [
+      "Look at the types involved in `widths[c] - s.length()`. What are they?",
+      "What happens when you subtract a larger unsigned value from a smaller unsigned value?",
+    ],
+    explanation: "The variable `widths[c]` is `int`, but `s.length()` returns `size_t` (unsigned). In the expression `widths[c] - s.length()`, the `int` is implicitly converted to `size_t`. When the string is already wider than the width (which can't happen here but the compiler doesn't know), or more critically, `pad` is declared as `int` but initialized from an unsigned subtraction. The real trap: `std::to_string(...).length()` returns `size_t`, and assigning it to `int w` is a narrowing conversion. If any number has more than ~2 billion digits (impossible in practice) it wraps. But the actual bug is `widths[c] - s.length()` — since `widths[c]` is converted to unsigned, if `s.length()` exceeds `widths[c]`, the subtraction wraps to a huge positive number, and the padding loop runs for billions of iterations. This happens when column content varies and max-width tracking has an off-by-one. The fix is to cast to `int` before subtracting: `int pad = widths[c] - static_cast<int>(s.length())`.",
+    manifestation: `$ g++ -std=c++17 -Wall matrix.cpp -o matrix
+matrix.cpp:19:51: warning: conversion from 'size_t' to 'int'
+    may change value [-Wconversion]
+   19 |             int w = std::to_string(m.data[r][c]).length();
+      |                     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^~~~~~~
+matrix.cpp:28:47: warning: comparison of integer expressions of
+    different signedness: 'int' and 'size_t' [-Wsign-compare]
+   28 |             for (int pad = widths[c] - s.length(); pad > 0; --pad)
+
+$ ./matrix
+| 1    | 200 |   3 |
+| 4000 |   5 |  60 |
+|    7 |  80 | 900 |
+
+(Works correctly by luck — but change data so a column width is
+0 and the unsigned wrap produces billions of spaces)`,
+    stdlibRefs: [
+      { name: "std::to_string", args: "(int value) → std::string | (double value) → std::string", brief: "Converts a numeric value to std::string.", link: "https://en.cppreference.com/w/cpp/string/basic_string/to_string" },
+    ],
+  },
+  {
+    id: 303,
+    topic: "Language Traps",
+    difficulty: "Hard",
+    title: "Plugin Registry",
+    description: "A plugin system where derived plugin classes register themselves using virtual functions during construction.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+#include <memory>
+
+class Plugin {
+    static std::vector<std::string> registry_;
+public:
+    Plugin() {
+        registry_.push_back(pluginName());
+        std::cout << "Registered: " << pluginName() << std::endl;
+    }
+    virtual std::string pluginName() const { return "BasePlugin"; }
+    virtual void execute() = 0;
+    virtual ~Plugin() = default;
+
+    static void listPlugins() {
+        std::cout << "Registered plugins:" << std::endl;
+        for (auto& name : registry_) {
+            std::cout << "  - " << name << std::endl;
+        }
+    }
+};
+
+std::vector<std::string> Plugin::registry_;
+
+class AudioPlugin : public Plugin {
+public:
+    std::string pluginName() const override { return "AudioPlugin"; }
+    void execute() override {
+        std::cout << "Processing audio..." << std::endl;
+    }
+};
+
+class VideoPlugin : public Plugin {
+public:
+    std::string pluginName() const override { return "VideoPlugin"; }
+    void execute() override {
+        std::cout << "Processing video..." << std::endl;
+    }
+};
+
+int main() {
+    auto audio = std::make_unique<AudioPlugin>();
+    auto video = std::make_unique<VideoPlugin>();
+
+    Plugin::listPlugins();
+    return 0;
+}`,
+    hints: [
+      "When does the `Plugin()` constructor run relative to the `AudioPlugin` constructor?",
+      "During base class construction, what is the dynamic type of the object?",
+      "Can virtual dispatch reach derived-class overrides before the derived constructor has run?",
+    ],
+    explanation: "During base class construction, the dynamic type of the object is the base class, not the derived class. When `Plugin()` calls `pluginName()`, virtual dispatch resolves to `Plugin::pluginName()` (returning \"BasePlugin\"), not to the derived override. Both plugins are registered as \"BasePlugin\" instead of their actual names. This is a fundamental C++ rule: virtual functions do not dispatch to derived classes during construction or destruction. The fix is to pass the name as a constructor argument rather than relying on virtual dispatch.",
+    manifestation: `$ g++ -std=c++17 -Wall plugin.cpp -o plugin && ./plugin
+Registered: BasePlugin
+Registered: BasePlugin
+Registered plugins:
+  - BasePlugin
+  - BasePlugin
+
+Expected output:
+Registered: AudioPlugin
+Registered: VideoPlugin
+Registered plugins:
+  - AudioPlugin
+  - VideoPlugin`,
+    stdlibRefs: [
+      { name: "std::make_unique", args: "<T>(Args&&... args) → std::unique_ptr<T>", brief: "Creates a unique_ptr that owns a newly constructed object of type T.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique" },
+    ],
+  },
 ];
