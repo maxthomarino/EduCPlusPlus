@@ -121,4 +121,40 @@ export const learningPaths: LearningPath[] = [
     description: "Integer division, switch fallthrough, and operator precedence — ten beginner-level programs with traps hiding in plain sight.",
     programIds: [3, 10, 214, 215, 216, 217, 218, 219, 220, 221],
   },
+  {
+    id: "language-traps",
+    title: "Language Traps",
+    description: "Most vexing parse, operator precedence, and name hiding — ten programs that exploit the dark corners of C++ syntax.",
+    programIds: [294, 295, 296, 297, 298, 299, 300, 301, 302, 303],
+  },
+  {
+    id: "stdlib-surprises",
+    title: "Standard Library Surprises",
+    description: "Optional misuse, invalid comparators, and silent copies — ten programs where the standard library doesn't do what you assumed.",
+    programIds: [304, 305, 306, 307, 308, 309, 310, 311, 312, 313],
+  },
+  {
+    id: "object-anatomy",
+    title: "Object Anatomy",
+    description: "Slicing, hidden overloads, and suppressed moves — ten programs that reveal how C++ objects really behave.",
+    programIds: [314, 315, 316, 317, 318, 319, 320, 321, 322, 323],
+  },
+  {
+    id: "concurrency-patterns",
+    title: "Concurrency Patterns",
+    description: "Memory ordering, false sharing, and lock-free pitfalls — ten programs that push beyond basic mutexes.",
+    programIds: [324, 325, 326, 327, 328, 329, 330, 331, 332, 333],
+  },
+  {
+    id: "template-depths",
+    title: "Template Depths",
+    description: "SFINAE failures, deduction traps, and double-forwarding — ten programs that test your template metaprogramming instincts.",
+    programIds: [334, 335, 336, 337, 338, 339, 340, 341, 342, 343],
+  },
+  {
+    id: "lifetime-puzzles",
+    title: "Lifetime Puzzles",
+    description: "Dangling captures, temporary extension rules, and thread-local destruction — ten programs about when things stop existing.",
+    programIds: [344, 345, 346, 347, 348, 349, 350, 351, 352, 353],
+  },
 ];
