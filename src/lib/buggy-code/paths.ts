@@ -175,4 +175,16 @@ export const learningPaths: LearningPath[] = [
     description: "Virtual destructors, diamond inheritance, and CRTP typos — ten programs that push polymorphism to its limits.",
     programIds: [374, 375, 376, 377, 378, 379, 380, 381, 382, 383],
   },
+  {
+    id: "container-gotchas",
+    title: "Container Gotchas",
+    description: "Boolean vectors, map insertion side effects, and priority queue limitations — ten programs that expose container assumptions.",
+    programIds: [384, 385, 386, 387, 388, 389, 390, 391, 392, 393],
+  },
+  {
+    id: "compilation-traps",
+    title: "Compilation Traps",
+    description: "ODR violations, macro hygiene, and template linkage — ten programs that break between compile and link.",
+    programIds: [394, 395, 396, 397, 398, 399, 400, 401, 402, 403],
+  },
 ];
