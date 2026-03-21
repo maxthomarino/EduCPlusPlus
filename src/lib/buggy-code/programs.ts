@@ -8151,4 +8151,621 @@ Sum of squares: 333383335000
       { name: "std::async", args: "(Function&& f, Args&&... args) → future<result_of_t<Function(Args...)>> | (launch policy, Function&& f, Args&&... args) → future<...>", brief: "Runs a function asynchronously (potentially in a new thread) and returns a future holding the result.", note: "The default launch policy allows the implementation to defer execution; std::future::get() can only be called once.", link: "https://en.cppreference.com/w/cpp/thread/async" },
     ],
   },
+  // ── Templates ──
+  {
+    id: 134,
+    topic: "Templates",
+    difficulty: "Easy",
+    title: "Stack Container",
+    description: "Implements a simple generic stack using a vector, supporting push, pop, and top operations.",
+    code: `#include <iostream>
+#include <vector>
+#include <stdexcept>
+
+template <typename T>
+class Stack {
+    std::vector<T> data;
+public:
+    void push(const T& val) { data.push_back(val); }
+
+    void pop() {
+        if (data.empty()) throw std::runtime_error("empty stack");
+        data.pop_back();
+    }
+
+    T top() const {
+        if (data.empty()) throw std::runtime_error("empty stack");
+        return data.back();
+    }
+
+    bool empty() const { return data.empty(); }
+};
+
+int main() {
+    Stack<std::string> s;
+    s.push("hello");
+    s.push("world");
+
+    const std::string& ref = s.top();
+    s.pop();
+    std::cout << ref << std::endl;
+}`,
+    hints: [
+      "What does top() return — a reference or a copy?",
+      "Look at the return type of top(). What happens to ref after pop() is called?",
+      "Does binding a const reference to a return-by-value result extend the lifetime here?",
+    ],
+    explanation: "The top() method returns T by value, so calling s.top() creates a temporary std::string. Binding that temporary to `const std::string& ref` extends its lifetime until ref goes out of scope — so far so good. But then pop() is called, which removes the element from the vector. The reference `ref` is actually bound to the temporary returned by top(), not to the element inside the vector, so it still works. However, the real bug is that top() returns by value when the user clearly intends reference semantics — calling top() on a Stack<LargeObject> copies the entire object. The actual crash happens if top() is changed to return const T& (as the user likely intended): then ref would be a reference into the vector, and pop() invalidates it, making the cout line undefined behavior. With the current code, the bug is that top() returns by value making `ref` safe but semantically misleading — the code appears to work but the pattern is fragile and breaks the moment top() is corrected to return a reference.",
+    manifestation: `$ g++ -std=c++17 -O2 stack.cpp -o stack && ./stack
+world
+
+$ # Seems fine... but change top() to return const T& as intended:
+$ g++ -fsanitize=address -g stack_fixed.cpp -o stack && ./stack
+=================================================================
+==18432==ERROR: AddressSanitizer: heap-use-after-free on address 0x604000000050
+READ of size 8 at 0x604000000050 thread T0
+    #0 0x55a1b3 in main stack.cpp:30
+    #1 0x7f3c2a in __libc_start_main
+SUMMARY: AddressSanitizer: heap-use-after-free stack.cpp:30 in main`,
+    stdlibRefs: [
+      { name: "std::vector::pop_back", args: "() → void", brief: "Removes the last element of the vector.", note: "Invalidates iterators and references to the last element, as well as the end() iterator.", link: "https://en.cppreference.com/w/cpp/container/vector/pop_back" },
+    ],
+  },
+  {
+    id: 135,
+    topic: "Templates",
+    difficulty: "Easy",
+    title: "Pair Printer",
+    description: "A generic function that prints any pair of values separated by a comma.",
+    code: `#include <iostream>
+#include <string>
+
+template <typename T1, typename T2>
+void print_pair(T1 a, T2 b) {
+    std::cout << "(" << a << ", " << b << ")" << std::endl;
+}
+
+template <>
+void print_pair(const char* a, const char* b) {
+    std::cout << "('" << a << "', '" << b << "')" << std::endl;
+}
+
+int main() {
+    print_pair(1, 2);
+    print_pair(3.14, 2.72);
+
+    std::string name = "Alice";
+    print_pair(name, 42);
+
+    print_pair("hello", "world");
+}`,
+    hints: [
+      "Which overload is called for each of the four print_pair calls?",
+      "When T1 is std::string, what happens to the argument — is it copied or referenced?",
+      "What is the cost of passing a std::string by value to a template function?",
+    ],
+    explanation: "The template function takes parameters by value (T1 a, T2 b), not by const reference. When called with `name` (a std::string), the entire string is copied into the function parameter. This is a performance bug that becomes severe in loops or with large strings. The fix is to use `const T1& a, const T2& b`. The explicit specialization for const char* also has a subtle issue: it won't match std::string arguments because the specialization is for const char*, not std::string, so string arguments always go through the primary template and get copied.",
+    manifestation: `$ g++ -std=c++17 -O0 -g pair.cpp -o pair && ./pair
+(1, 2)
+(3.14, 2.72)
+(Alice, 42)
+('hello', 'world')
+
+Expected output:
+  ('Alice', 42)   ← user expected the specialization to handle strings too
+Actual output:
+  (Alice, 42)     ← primary template was called, string was copied by value
+
+$ # Adding instrumentation shows the copy:
+$ g++ -std=c++17 -DCOUNT_COPIES pair_instrumented.cpp -o pair && ./pair
+std::string copy constructor called for: Alice
+(Alice, 42)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 136,
+    topic: "Templates",
+    difficulty: "Easy",
+    title: "Numeric Accumulator",
+    description: "Sums all elements of a container using a template function and returns the total.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+
+template <typename Container>
+auto accumulate(const Container& c) {
+    typename Container::value_type sum = 0;
+    for (const auto& elem : c) {
+        sum += elem;
+    }
+    return sum;
+}
+
+int main() {
+    std::vector<int> ints = {1, 2, 3, 4, 5};
+    std::cout << "int sum: " << accumulate(ints) << std::endl;
+
+    std::vector<double> dbls = {1.1, 2.2, 3.3};
+    std::cout << "double sum: " << accumulate(dbls) << std::endl;
+
+    std::vector<unsigned char> bytes = {200, 200, 200};
+    std::cout << "byte sum: " << accumulate(bytes) << std::endl;
+}`,
+    hints: [
+      "What type is `sum` when the container holds unsigned char?",
+      "What is the maximum value an unsigned char can hold?",
+      "What happens when you add 200 + 200 in an unsigned char?",
+    ],
+    explanation: "When Container is std::vector<unsigned char>, the sum variable is of type unsigned char, which can only hold values 0–255. Adding 200 + 200 overflows to 144 (400 mod 256), then adding another 200 gives 88 (344 mod 256). The result is 88 instead of the expected 600. The fix is to use a wider accumulator type, such as making the return type configurable or using std::common_type with a wider default.",
+    manifestation: `$ g++ -std=c++17 -O2 accum.cpp -o accum && ./accum
+int sum: 15
+double sum: 6.6
+byte sum: 88
+
+Expected output:
+  byte sum: 600
+Actual output:
+  byte sum: 88`,
+    stdlibRefs: [
+      { name: "std::numeric_limits", args: "<T>", brief: "Provides properties of arithmetic types such as min, max, and digits.", note: "unsigned char has a max of 255; arithmetic on narrow types silently wraps.", link: "https://en.cppreference.com/w/cpp/types/numeric_limits" },
+    ],
+  },
+  {
+    id: 137,
+    topic: "Templates",
+    difficulty: "Medium",
+    title: "Type-Safe Registry",
+    description: "A registry that stores and retrieves objects by string key, where each key maps to a specific type.",
+    code: `#include <iostream>
+#include <unordered_map>
+#include <any>
+#include <string>
+#include <typeinfo>
+
+class Registry {
+    std::unordered_map<std::string, std::any> store;
+public:
+    template <typename T>
+    void put(const std::string& key, T&& value) {
+        store[key] = std::forward<T>(value);
+    }
+
+    template <typename T>
+    T& get(const std::string& key) {
+        return std::any_cast<T&>(store.at(key));
+    }
+};
+
+int main() {
+    Registry reg;
+
+    reg.put("count", 42);
+    reg.put("name", std::string("Alice"));
+    reg.put("ratio", 3.14);
+
+    int& count = reg.get<int>("count");
+    count = 100;
+
+    std::cout << "count: " << reg.get<int>("count") << std::endl;
+
+    const char* greeting = "hello";
+    reg.put("msg", greeting);
+    std::string& msg = reg.get<std::string>("msg");
+    std::cout << "msg: " << msg << std::endl;
+}`,
+    hints: [
+      "What type does template argument deduction pick for T when you call put() with a const char*?",
+      "What type is actually stored in the std::any when you put a const char*?",
+      "Does std::any_cast<std::string&> succeed when the stored type is const char*?",
+    ],
+    explanation: "When reg.put(\"msg\", greeting) is called with a const char*, T deduces to const char*, so the std::any stores a const char*, not a std::string. Then reg.get<std::string>(\"msg\") tries to std::any_cast<std::string&>, which fails because the stored type (const char*) doesn't match the requested type (std::string). This throws std::bad_any_cast at runtime. The fix is to either explicitly call reg.put<std::string>(\"msg\", greeting) or add an overload that converts const char* to std::string.",
+    manifestation: `$ g++ -std=c++17 -g registry.cpp -o registry && ./registry
+count: 100
+terminate called after throwing an instance of 'std::bad_any_cast'
+  what():  bad any_cast
+Aborted (core dumped)`,
+    stdlibRefs: [
+      { name: "std::any_cast", args: "<T>(any& operand) → T | <T>(const any& operand) → T | <T>(any* operand) → T*", brief: "Type-safe access to the contained value of a std::any object.", note: "Throws std::bad_any_cast if the stored type does not exactly match the requested type — no implicit conversions are performed.", link: "https://en.cppreference.com/w/cpp/utility/any/any_cast" },
+      { name: "std::forward", args: "<T>(T&& t) → T&&", brief: "Forwards an lvalue or rvalue reference, preserving the value category of the argument.", link: "https://en.cppreference.com/w/cpp/utility/forward" },
+    ],
+  },
+  {
+    id: 138,
+    topic: "Templates",
+    difficulty: "Medium",
+    title: "Minimum Element Finder",
+    description: "Finds the minimum element in a container using a generic comparison function.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+
+template <typename T>
+const T& find_min(const std::vector<T>& vec) {
+    const T* min_elem = &vec[0];
+    for (size_t i = 1; i < vec.size(); ++i) {
+        if (vec[i] < *min_elem) {
+            min_elem = &vec[i];
+        }
+    }
+    return *min_elem;
+}
+
+template <typename T, typename Compare>
+const T& find_min(const std::vector<T>& vec, Compare comp) {
+    const T* min_elem = &vec[0];
+    for (size_t i = 1; i < vec.size(); ++i) {
+        if (comp(vec[i], *min_elem)) {
+            min_elem = &vec[i];
+        }
+    }
+    return *min_elem;
+}
+
+int main() {
+    std::vector<std::string> names = {"Charlie", "Alice", "Bob", "Dave"};
+
+    // Find lexicographically smallest
+    std::cout << "min: " << find_min(names) << std::endl;
+
+    // Find shortest name
+    auto by_length = [](const std::string& a, const std::string& b) {
+        return a.size() < b.size();
+    };
+    std::cout << "shortest: " << find_min(names, by_length) << std::endl;
+
+    // Find min of empty vector
+    std::vector<int> empty;
+    std::cout << "empty min: " << find_min(empty) << std::endl;
+}`,
+    hints: [
+      "What happens on the first line of find_min when the vector has no elements?",
+      "Does vec[0] check bounds? What is &vec[0] when vec is empty?",
+      "How many elements does the function assume the vector has?",
+    ],
+    explanation: "Both overloads of find_min access vec[0] unconditionally without checking if the vector is empty. When called with an empty vector, vec[0] is undefined behavior — it accesses memory past the end of the internal buffer. The function dereferences this invalid pointer and returns a reference to garbage memory. The fix is to either throw an exception or return an iterator/optional when the vector is empty.",
+    manifestation: `$ g++ -fsanitize=address -g minelem.cpp -o minelem && ./minelem
+min: Alice
+shortest: Bob
+=================================================================
+==22154==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x602000000010
+READ of size 8 at 0x602000000010 thread T0
+    #0 0x55b1a3 in const int& find_min<int>(std::vector<int> const&) minelem.cpp:7
+    #1 0x55b4f2 in main minelem.cpp:37
+    #2 0x7f3c2a in __libc_start_main
+SUMMARY: AddressSanitizer: heap-buffer-overflow minelem.cpp:7 in main`,
+    stdlibRefs: [
+      { name: "std::vector::operator[]", args: "(size_type pos) → reference", brief: "Returns a reference to the element at the given position without bounds checking.", note: "Accessing an out-of-bounds index (including index 0 on an empty vector) is undefined behavior.", link: "https://en.cppreference.com/w/cpp/container/vector/operator_at" },
+    ],
+  },
+  {
+    id: 139,
+    topic: "Templates",
+    difficulty: "Medium",
+    title: "Compile-Time Factorial",
+    description: "Calculates factorials at compile time using template metaprogramming and constexpr.",
+    code: `#include <iostream>
+#include <cstdint>
+
+template <int N>
+struct Factorial {
+    static constexpr int64_t value = N * Factorial<N - 1>::value;
+};
+
+template <>
+struct Factorial<0> {
+    static constexpr int64_t value = 1;
+};
+
+template <int N>
+constexpr int64_t factorial() {
+    if constexpr (N <= 1) return 1;
+    else return N * factorial<N - 1>();
+}
+
+int main() {
+    std::cout << "5! = " << Factorial<5>::value << std::endl;
+    std::cout << "10! = " << Factorial<10>::value << std::endl;
+    std::cout << "20! = " << Factorial<20>::value << std::endl;
+    std::cout << "25! = " << factorial<25>() << std::endl;
+
+    // Compute ratio of large factorials
+    constexpr int64_t ratio = Factorial<21>::value / Factorial<20>::value;
+    std::cout << "21!/20! = " << ratio << std::endl;
+}`,
+    hints: [
+      "How large is 21! in decimal? How many bits does int64_t have?",
+      "What is the maximum value of int64_t?",
+      "What happens to signed integer overflow in a constexpr context?",
+    ],
+    explanation: "21! is 51,090,942,171,709,440,000 which exceeds INT64_MAX (9,223,372,036,854,775,807). The value of Factorial<21>::value silently overflows int64_t, wrapping to a negative number. The division Factorial<21>::value / Factorial<20>::value then produces a garbage ratio instead of 21. In C++20 and later, signed overflow in constexpr is a compile error, but in C++17 mode it may silently wrap. The fix is to use unsigned __int128, or detect overflow, or limit the input range.",
+    manifestation: `$ g++ -std=c++17 -O2 factorial.cpp -o factorial && ./factorial
+5! = 120
+10! = 3628800
+20! = 2432902008176640000
+25! = 7034535277573963776
+21!/20! = -4249290049419214848
+
+Expected output:
+  25! = 15511210043330985984000000
+  21!/20! = 21
+Actual output:
+  25! = 7034535277573963776  (silently overflowed)
+  21!/20! = -4249290049419214848  (garbage from overflowed division)`,
+    stdlibRefs: [
+      { name: "std::numeric_limits", args: "<T>", brief: "Provides properties of arithmetic types such as min, max, and digits.", note: "INT64_MAX is 9,223,372,036,854,775,807; 21! exceeds this, causing signed overflow.", link: "https://en.cppreference.com/w/cpp/types/numeric_limits" },
+    ],
+  },
+  {
+    id: 140,
+    topic: "Templates",
+    difficulty: "Medium",
+    title: "Flexible Formatter",
+    description: "A variadic template function that formats and prints any number of arguments separated by spaces.",
+    code: `#include <iostream>
+#include <sstream>
+#include <string>
+
+template <typename T>
+std::string to_str(const T& val) {
+    std::ostringstream oss;
+    oss << val;
+    return oss.str();
+}
+
+template <typename... Args>
+std::string format(const Args&... args) {
+    std::string result;
+    bool first = true;
+    // Fold expression to concatenate all arguments
+    ((result += (first ? (first = false, "") : " ") + to_str(args)), ...);
+    return result;
+}
+
+int main() {
+    std::cout << format("Name:", "Alice", "Age:", 30) << std::endl;
+    std::cout << format(1, 2.5, 'A', true) << std::endl;
+    std::cout << format("Score:", 95, "out of", 100) << std::endl;
+    std::cout << format() << std::endl;
+
+    // Format with booleans
+    std::cout << format("active:", true, "admin:", false) << std::endl;
+}`,
+    hints: [
+      "What does `std::cout << true` print by default in C++?",
+      "How does the ostringstream format a bool value?",
+      "Is '1' and '0' what the user expects when printing boolean status?",
+    ],
+    explanation: "When a bool is inserted into an ostringstream, it prints as 1 or 0, not \"true\" or \"false\". So format(\"active:\", true, \"admin:\", false) outputs \"active: 1 admin: 0\" instead of the expected \"active: true admin: false\". This is because std::boolalpha is not set on the ostringstream. The fix is to add oss << std::boolalpha before inserting the value, or to provide a template specialization for bool.",
+    manifestation: `$ g++ -std=c++17 -O2 formatter.cpp -o formatter && ./formatter
+Name: Alice Age: 30
+1 2.5 A 1
+Score: 95 out of 100
+
+active: 1 admin: 0
+
+Expected output:
+  1 2.5 A true
+  active: true admin: false
+Actual output:
+  1 2.5 A 1
+  active: 1 admin: 0`,
+    stdlibRefs: [
+      { name: "std::boolalpha", args: "(std::ios_base& str) → std::ios_base&", brief: "Sets the boolalpha format flag so that bool values are inserted/extracted as \"true\"/\"false\" instead of 1/0.", link: "https://en.cppreference.com/w/cpp/io/manip/boolalpha" },
+    ],
+  },
+  {
+    id: 141,
+    topic: "Templates",
+    difficulty: "Hard",
+    title: "CRTP Counter",
+    description: "Uses the Curiously Recurring Template Pattern to count how many instances of each class type exist.",
+    code: `#include <iostream>
+#include <string>
+
+template <typename Derived>
+class InstanceCounter {
+    static int count;
+public:
+    InstanceCounter() { ++count; }
+    ~InstanceCounter() { --count; }
+    static int getCount() { return count; }
+};
+
+template <typename Derived>
+int InstanceCounter<Derived>::count = 0;
+
+class Widget : public InstanceCounter<Widget> {
+    std::string name;
+public:
+    Widget(const std::string& n) : name(n) {}
+    Widget(const Widget& other) : name(other.name) {}
+    Widget& operator=(const Widget& other) { name = other.name; return *this; }
+};
+
+class Gadget : public InstanceCounter<Gadget> {
+    int id;
+public:
+    Gadget(int i) : id(i) {}
+};
+
+int main() {
+    Widget w1("alpha");
+    Widget w2("beta");
+    Gadget g1(1);
+
+    std::cout << "Widgets: " << Widget::getCount() << std::endl;
+    std::cout << "Gadgets: " << Gadget::getCount() << std::endl;
+
+    {
+        Widget w3 = w1;
+        std::cout << "Widgets after copy: " << Widget::getCount() << std::endl;
+    }
+
+    std::cout << "Widgets after scope: " << Widget::getCount() << std::endl;
+}`,
+    hints: [
+      "When Widget is copied, which constructors are invoked?",
+      "Does the user-defined copy constructor call the base class constructor?",
+      "What does the InstanceCounter constructor do, and is it called during a copy?",
+    ],
+    explanation: "The user-defined copy constructor Widget(const Widget& other) does not explicitly call the base class InstanceCounter<Widget> constructor in its initializer list. However, in C++, when no base class constructor is explicitly called, the default constructor of the base is called implicitly. So InstanceCounter() IS called during the copy, and count IS incremented. The code actually works correctly. But there's a real bug: the user-defined operator= copies `name` but the base class InstanceCounter has no operator= — this is fine since there's nothing to assign. The actual bug is that Widget's copy constructor doesn't need to be user-defined at all, but since it IS user-defined, the move constructor is implicitly deleted. This means `Widget w3 = std::move(w1)` would silently fall back to copying instead of moving, and if Widget held expensive resources, this would be a significant performance bug.",
+    manifestation: `$ g++ -std=c++17 -O2 crtp.cpp -o crtp && ./crtp
+Widgets: 2
+Gadgets: 1
+Widgets after copy: 3
+Widgets after scope: 2
+
+$ # Seems correct... but add a move test:
+$ g++ -std=c++17 -O2 -DMOVE_TEST crtp_test.cpp -o crtp && ./crtp
+Widget copy ctor called!   ← move was silently downgraded to copy
+Widgets: 3                 ← count is correct, but move didn't happen
+
+$ # The user-defined copy ctor suppresses implicit move generation.
+$ # std::move(w1) silently copies instead of moving.`,
+    stdlibRefs: [],
+  },
+  {
+    id: 142,
+    topic: "Templates",
+    difficulty: "Hard",
+    title: "Type Traits Dispatcher",
+    description: "Uses SFINAE and type traits to dispatch function calls based on whether a type is integral, floating-point, or a string.",
+    code: `#include <iostream>
+#include <string>
+#include <type_traits>
+#include <vector>
+
+template <typename T>
+typename std::enable_if<std::is_integral<T>::value, std::string>::type
+classify(T val) {
+    return "integer: " + std::to_string(val);
+}
+
+template <typename T>
+typename std::enable_if<std::is_floating_point<T>::value, std::string>::type
+classify(T val) {
+    return "float: " + std::to_string(val);
+}
+
+template <typename T>
+typename std::enable_if<!std::is_integral<T>::value &&
+                        !std::is_floating_point<T>::value, std::string>::type
+classify(T val) {
+    return "other: " + val;
+}
+
+int main() {
+    std::cout << classify(42) << std::endl;
+    std::cout << classify(3.14) << std::endl;
+    std::cout << classify(std::string("hello")) << std::endl;
+    std::cout << classify('A') << std::endl;
+    std::cout << classify(true) << std::endl;
+}`,
+    hints: [
+      "What does std::is_integral return for `char` and `bool`?",
+      "Is `char` classified as integral or as 'other' by the type traits?",
+      "What does std::to_string do with a char value?",
+    ],
+    explanation: "Both `char` and `bool` are integral types in C++, so classify('A') and classify(true) match the integral overload, not the 'other' overload. classify('A') calls std::to_string(65) (the ASCII value), printing \"integer: 65\" instead of the expected \"integer: A\" or character output. classify(true) prints \"integer: 1\" instead of something like \"bool: true\". The type traits correctly identify these as integral, but the user likely expected char to be treated as a character and bool as a boolean, not as numbers.",
+    manifestation: `$ g++ -std=c++17 -O2 classify.cpp -o classify && ./classify
+integer: 42
+float: 3.140000
+other: hello
+integer: 65
+integer: 1
+
+Expected output:
+  integer: A    (or: other: A)
+  bool: true    (or: other: true)
+Actual output:
+  integer: 65   ← char is integral, printed as its ASCII code
+  integer: 1    ← bool is integral, printed as 1`,
+    stdlibRefs: [
+      { name: "std::is_integral", args: "<T>", brief: "Type trait that checks if T is an integral type (bool, char, int, etc.).", note: "char, wchar_t, char8_t, char16_t, char32_t, and bool are all integral types.", link: "https://en.cppreference.com/w/cpp/types/is_integral" },
+      { name: "std::to_string", args: "(int value) → string | (double value) → string | ...", brief: "Converts a numeric value to its string representation.", note: "Converts char to its numeric ASCII value, not to the character itself.", link: "https://en.cppreference.com/w/cpp/string/basic_string/to_string" },
+    ],
+  },
+  {
+    id: 143,
+    topic: "Templates",
+    difficulty: "Hard",
+    title: "Static Singleton Cache",
+    description: "A template class that provides a per-type singleton cache with lazy initialization.",
+    code: `#include <iostream>
+#include <unordered_map>
+#include <string>
+#include <memory>
+
+template <typename Key, typename Value>
+class Cache {
+    static Cache* instance;
+    std::unordered_map<Key, Value> data;
+
+    Cache() = default;
+public:
+    Cache(const Cache&) = delete;
+    Cache& operator=(const Cache&) = delete;
+
+    static Cache& getInstance() {
+        if (!instance) {
+            instance = new Cache();
+        }
+        return *instance;
+    }
+
+    void put(const Key& key, const Value& value) {
+        data[key] = value;
+    }
+
+    Value get(const Key& key) const {
+        return data.at(key);
+    }
+
+    bool has(const Key& key) const {
+        return data.count(key) > 0;
+    }
+};
+
+template <typename Key, typename Value>
+Cache<Key, Value>* Cache<Key, Value>::instance = nullptr;
+
+int main() {
+    auto& cache1 = Cache<std::string, int>::getInstance();
+    cache1.put("score", 100);
+
+    auto& cache2 = Cache<std::string, int>::getInstance();
+    std::cout << "score: " << cache2.get("score") << std::endl;
+
+    auto& strCache = Cache<int, std::string>::getInstance();
+    strCache.put(1, "hello");
+    std::cout << "1: " << strCache.get(1) << std::endl;
+    std::cout << "same instance: " << (&cache1 == &cache2) << std::endl;
+}`,
+    hints: [
+      "How is the singleton memory managed? What happens when the program exits?",
+      "Is `instance = new Cache()` ever matched by a delete?",
+      "What tool would detect this problem at runtime?",
+    ],
+    explanation: "The singleton is created with `new Cache()` but is never deleted — there is no destructor, cleanup function, or atexit handler that calls delete. This is a memory leak: every instantiation of Cache<K,V> leaks one allocation. While many developers consider singleton leaks acceptable (the OS reclaims memory at exit), sanitizers flag it, and in library code or long-running processes with dlopen/dlclose, the leak becomes real. The fix is to use a function-local static variable (`static Cache instance; return instance;`) which is safely initialized on first use and destroyed at program exit.",
+    manifestation: `$ g++ -fsanitize=address -g cache.cpp -o cache && ./cache
+score: 100
+1: hello
+same instance: 1
+
+=================================================================
+==31024==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 56 byte(s) in 1 object(s) allocated from:
+    #0 0x7f2a1b in operator new(unsigned long) (/usr/lib/libasan.so+0xe1b)
+    #1 0x55d1a3 in Cache<std::string, int>::getInstance() cache.cpp:18
+    #2 0x55d4f2 in main cache.cpp:38
+
+Direct leak of 56 byte(s) in 1 object(s) allocated from:
+    #0 0x7f2a1b in operator new(unsigned long) (/usr/lib/libasan.so+0xe1b)
+    #1 0x55d2b1 in Cache<int, std::string>::getInstance() cache.cpp:18
+    #2 0x55d5a1 in main cache.cpp:42
+
+SUMMARY: AddressSanitizer: 112 byte(s) leaked in 2 allocation(s).`,
+    stdlibRefs: [],
+  },
 ];
