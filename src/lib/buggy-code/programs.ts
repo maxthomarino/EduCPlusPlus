@@ -23739,4 +23739,800 @@ undefined behavior for r >= 128 because the result exceeds
 INT_MAX when shifted left 24 places in a signed int.)`,
     stdlibRefs: [],
   },
+
+  // ── RAII & Resource Safety ──
+
+  {
+    id: 364,
+    topic: "RAII & Resource Safety",
+    difficulty: "Easy",
+    title: "Multi-File Processor",
+    description: "Opens multiple files, processes them sequentially, and closes them all when done.",
+    code: `#include <iostream>
+#include <fstream>
+#include <string>
+#include <vector>
+
+void processFiles(const std::vector<std::string>& filenames) {
+    std::vector<std::ifstream*> files;
+
+    for (auto& name : filenames) {
+        auto* f = new std::ifstream(name);
+        if (!f->is_open()) {
+            std::cerr << "Failed to open: " << name << std::endl;
+            return;  // early return on error
+        }
+        files.push_back(f);
+    }
+
+    // Process each file
+    for (auto* f : files) {
+        std::string line;
+        while (std::getline(*f, line)) {
+            std::cout << line << std::endl;
+        }
+    }
+
+    // Clean up
+    for (auto* f : files) {
+        delete f;
+    }
+}
+
+int main() {
+    processFiles({"file1.txt", "file2.txt", "file3.txt"});
+    return 0;
+}`,
+    hints: [
+      "What happens to the already-opened files when one fails to open?",
+      "When the function returns early, is the cleanup code reached?",
+    ],
+    explanation: "If the second or third file fails to open, the function returns early. The files that were successfully opened (and allocated with `new`) are never `delete`d — they leak both the ifstream objects and the file handles. The `new` ifstream that failed to open also leaks. The fix is to use RAII: store `std::unique_ptr<std::ifstream>` or just use stack-allocated `std::ifstream` objects, or use a scope guard to ensure cleanup on all exit paths.",
+    manifestation: `$ g++ -std=c++17 -Wall multi.cpp -o multi -fsanitize=leak && echo "hello" > file1.txt && ./multi
+hello
+Failed to open: file2.txt
+
+=================================================================
+==28901==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 568 bytes in 1 object(s) allocated from:
+    #0 0x7f2a8c4b3e8f in operator new(unsigned long)
+    #1 0x5555557581a3 in processFiles multi.cpp:10
+
+Direct leak of 568 bytes in 1 object(s) allocated from:
+    #0 0x7f2a8c4b3e8f in operator new(unsigned long)
+    #1 0x5555557581a3 in processFiles multi.cpp:10
+
+SUMMARY: LeakSanitizer: 1136 byte(s) leaked in 2 object(s).`,
+    stdlibRefs: [
+      { name: "std::ifstream", brief: "An input file stream that provides facilities for reading from files.", note: "ifstream closes its file automatically in its destructor. Using new/delete instead of stack allocation defeats this RAII behavior.", link: "https://en.cppreference.com/w/cpp/io/basic_ifstream" },
+    ],
+  },
+  {
+    id: 365,
+    topic: "RAII & Resource Safety",
+    difficulty: "Easy",
+    title: "Lock Juggler",
+    description: "Acquires multiple locks to perform a compound operation on shared data structures.",
+    code: `#include <iostream>
+#include <mutex>
+#include <string>
+#include <map>
+
+std::mutex userMtx, logMtx;
+std::map<int, std::string> users;
+std::string logBuffer;
+
+void updateUser(int id, const std::string& name) {
+    userMtx.lock();
+
+    if (users.find(id) == users.end()) {
+        userMtx.unlock();
+        std::cerr << "User " << id << " not found" << std::endl;
+        return;
+    }
+
+    users[id] = name;
+
+    logMtx.lock();
+    logBuffer += "Updated user " + std::to_string(id) + "\\n";
+    logMtx.unlock();
+
+    // Forgot to unlock userMtx on success path
+}
+
+int main() {
+    users[1] = "Alice";
+    users[2] = "Bob";
+
+    updateUser(1, "Alice Smith");
+    std::cout << "First update done" << std::endl;
+
+    updateUser(2, "Bob Jones");
+    std::cout << "Second update done" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Trace all the lock/unlock paths. Is `userMtx` always unlocked before the function returns?",
+      "What happens on the error path vs the success path?",
+    ],
+    explanation: "On the error path (user not found), `userMtx` is correctly unlocked before returning. But on the success path, `userMtx.lock()` is called at the top but never unlocked — the function falls off the end with `userMtx` still locked. The second call to `updateUser` tries to lock `userMtx` again, causing a deadlock. The fix is to use `std::lock_guard<std::mutex>` or `std::unique_lock` to ensure the mutex is always unlocked via RAII, regardless of the exit path.",
+    manifestation: `$ g++ -std=c++17 -Wall lock.cpp -o lock -pthread && ./lock
+First update done
+(hangs — deadlock on second call)
+
+^C
+
+(The first call succeeded but never unlocked userMtx.
+The second call blocks forever trying to acquire it.)`,
+    stdlibRefs: [
+      { name: "std::lock_guard", args: "<Mutex>(Mutex& m)", brief: "RAII wrapper that locks a mutex on construction and unlocks on destruction.", note: "Prefer lock_guard over manual lock()/unlock() to prevent deadlocks from missed unlock calls on any exit path.", link: "https://en.cppreference.com/w/cpp/thread/lock_guard" },
+    ],
+  },
+  {
+    id: 366,
+    topic: "RAII & Resource Safety",
+    difficulty: "Easy",
+    title: "Dynamic Array",
+    description: "Implements a dynamic array that grows when needed, using raw pointers for storage.",
+    code: `#include <iostream>
+#include <cstring>
+#include <stdexcept>
+
+class DynArray {
+    int* data_;
+    size_t size_;
+    size_t capacity_;
+
+public:
+    DynArray() : data_(nullptr), size_(0), capacity_(0) {}
+
+    void push_back(int val) {
+        if (size_ == capacity_) {
+            size_t newCap = capacity_ == 0 ? 4 : capacity_ * 2;
+            int* newData = new int[newCap];
+            if (data_) {
+                std::memcpy(newData, data_, size_ * sizeof(int));
+            }
+            data_ = newData;
+            capacity_ = newCap;
+        }
+        data_[size_++] = val;
+    }
+
+    int at(size_t index) const {
+        if (index >= size_) throw std::out_of_range("index");
+        return data_[index];
+    }
+
+    size_t size() const { return size_; }
+
+    ~DynArray() { delete[] data_; }
+};
+
+int main() {
+    DynArray arr;
+    for (int i = 0; i < 20; ++i) {
+        arr.push_back(i * 10);
+    }
+
+    for (size_t i = 0; i < arr.size(); ++i) {
+        std::cout << arr.at(i) << " ";
+    }
+    std::cout << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "When the array grows, a new buffer is allocated. What happens to the old buffer?",
+      "After `data_ = newData`, is the old `data_` still reachable?",
+    ],
+    explanation: "When the array grows, a new buffer is allocated and the old data is memcpy'd into it. Then `data_ = newData` overwrites the old pointer without `delete[]`-ing it first. Every reallocation leaks the previous buffer. With 20 elements and initial capacity 4, the array grows through capacities 4 → 8 → 16 → 32, leaking three buffers totaling (4 + 8 + 16) × 4 = 112 bytes. The fix is to add `delete[] data_;` before `data_ = newData;`.",
+    manifestation: `$ g++ -std=c++17 -Wall -fsanitize=leak dynarray.cpp -o dynarray && ./dynarray
+0 10 20 30 40 50 60 70 80 90 100 110 120 130 140 150 160 170 180 190
+
+=================================================================
+==31456==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 64 bytes in 1 object(s) allocated from:
+    #0 0x7f2a8c4b3e8f in operator new[](unsigned long)
+    #1 0x555555758123 in DynArray::push_back(int) dynarray.cpp:16
+
+Direct leak of 32 bytes in 1 object(s) allocated from:
+    ...
+Direct leak of 16 bytes in 1 object(s) allocated from:
+    ...
+
+SUMMARY: LeakSanitizer: 112 byte(s) leaked in 3 object(s).`,
+    stdlibRefs: [],
+  },
+  {
+    id: 367,
+    topic: "RAII & Resource Safety",
+    difficulty: "Medium",
+    title: "Two-Phase Init",
+    description: "Constructs an object that acquires two resources and ensures cleanup if the second acquisition fails.",
+    code: `#include <iostream>
+#include <stdexcept>
+#include <string>
+
+class FileHandle {
+    std::string name_;
+    bool open_;
+public:
+    FileHandle(const std::string& name) : name_(name), open_(true) {
+        std::cout << "Opened: " << name_ << std::endl;
+        if (name == "bad.log") {
+            throw std::runtime_error("Cannot open " + name);
+        }
+    }
+    ~FileHandle() {
+        if (open_) {
+            std::cout << "Closed: " << name_ << std::endl;
+            open_ = false;
+        }
+    }
+};
+
+class Logger {
+    FileHandle* dataFile_;
+    FileHandle* logFile_;
+public:
+    Logger(const std::string& dataPath, const std::string& logPath) {
+        dataFile_ = new FileHandle(dataPath);
+        logFile_ = new FileHandle(logPath);  // may throw
+    }
+
+    ~Logger() {
+        delete logFile_;
+        delete dataFile_;
+    }
+};
+
+int main() {
+    try {
+        Logger logger("data.csv", "bad.log");
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+
+    std::cout << "Program continues..." << std::endl;
+    return 0;
+}`,
+    hints: [
+      "If `new FileHandle(logPath)` throws, does the Logger destructor run?",
+      "C++ guarantees that destructors run for fully constructed objects. Is the Logger fully constructed when the exception is thrown?",
+    ],
+    explanation: "When the second `new FileHandle(logPath)` throws, the Logger constructor hasn't completed, so Logger's destructor is NOT called. The first FileHandle (dataFile_) was allocated with `new` and its pointer was stored, but since Logger's destructor won't run, `delete dataFile_` never happens — it leaks. The FileHandle for 'data.csv' was constructed but never destroyed. The fix is to use `std::unique_ptr<FileHandle>` for both members — their destructors run even if the owning constructor throws.",
+    manifestation: `$ g++ -std=c++17 -Wall -fsanitize=leak twophase.cpp -o twophase && ./twophase
+Opened: data.csv
+Opened: bad.log
+Error: Cannot open bad.log
+Program continues...
+
+=================================================================
+==34567==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 40 bytes in 1 object(s) allocated from:
+    #0 0x7f2a8c4b3e8f in operator new(unsigned long)
+    #1 0x555555758234 in Logger::Logger() twophase.cpp:28
+
+SUMMARY: LeakSanitizer: 40 byte(s) leaked in 1 object(s).
+
+(data.csv was never "Closed" — Logger's destructor didn't run
+because the constructor threw before completing)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 368,
+    topic: "RAII & Resource Safety",
+    difficulty: "Medium",
+    title: "Deferred Transaction",
+    description: "Implements a database transaction wrapper that commits on success and rolls back on failure.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+#include <stdexcept>
+
+class Transaction {
+    std::string name_;
+    bool committed_;
+    std::vector<std::string> operations_;
+public:
+    Transaction(const std::string& name)
+        : name_(name), committed_(false) {
+        std::cout << "BEGIN " << name_ << std::endl;
+    }
+
+    void execute(const std::string& op) {
+        operations_.push_back(op);
+        std::cout << "  " << op << std::endl;
+        if (op.find("INVALID") != std::string::npos) {
+            throw std::runtime_error("Invalid operation: " + op);
+        }
+    }
+
+    void commit() {
+        std::cout << "COMMIT " << name_ << std::endl;
+        committed_ = true;
+    }
+
+    ~Transaction() {
+        if (!committed_) {
+            std::cout << "ROLLBACK " << name_
+                      << " (" << operations_.size() << " ops undone)"
+                      << std::endl;
+        }
+    }
+};
+
+void transferFunds() {
+    Transaction txn("transfer");
+    txn.execute("DEBIT account_a 100");
+    txn.execute("CREDIT account_b 100");
+    txn.commit();
+}
+
+void failingTransfer() {
+    Transaction txn("failing_transfer");
+    txn.execute("DEBIT account_a 200");
+    txn.execute("INVALID_OPERATION");
+    txn.execute("CREDIT account_b 200");
+    txn.commit();
+}
+
+int main() {
+    transferFunds();
+    std::cout << "---" << std::endl;
+
+    try {
+        failingTransfer();
+    } catch (const std::exception& e) {
+        std::cerr << "Caught: " << e.what() << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "This looks like correct RAII. But is the rollback in the destructor doing actual work?",
+      "When the destructor prints 'ROLLBACK', does it actually undo the DEBIT operation?",
+    ],
+    explanation: "The Transaction's destructor prints a ROLLBACK message, but it doesn't actually undo any operations — it just logs. The DEBIT of 200 from account_a was 'executed' but the CREDIT to account_b never happened (exception was thrown). The rollback is cosmetic only — it doesn't reverse the debit. In a real system, this would leave the database in an inconsistent state: money was debited but never credited. The fix is for rollback to actually issue compensating operations, or use a two-phase commit where operations are staged and only applied on commit.",
+    manifestation: `$ g++ -std=c++17 -Wall txn.cpp -o txn && ./txn
+BEGIN transfer
+  DEBIT account_a 100
+  CREDIT account_b 100
+COMMIT transfer
+---
+BEGIN failing_transfer
+  DEBIT account_a 200
+  INVALID_OPERATION
+ROLLBACK failing_transfer (2 ops undone)
+Caught: Invalid operation: INVALID_OPERATION
+
+(The ROLLBACK is cosmetic — it says "2 ops undone" but
+account_a was already debited 200 with no actual reversal.
+The 'undo' is a lie.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 369,
+    topic: "RAII & Resource Safety",
+    difficulty: "Medium",
+    title: "Shared Buffer Pool",
+    description: "Provides a pool of reusable buffers using shared_ptr with a custom deleter that returns buffers to the pool.",
+    code: `#include <iostream>
+#include <memory>
+#include <vector>
+#include <cstring>
+
+class BufferPool {
+    std::vector<char*> available_;
+    size_t bufSize_;
+
+public:
+    BufferPool(size_t bufSize, size_t count)
+        : bufSize_(bufSize) {
+        for (size_t i = 0; i < count; ++i) {
+            available_.push_back(new char[bufSize]);
+        }
+        std::cout << "Pool created with " << count << " buffers" << std::endl;
+    }
+
+    std::shared_ptr<char> acquire() {
+        if (available_.empty()) {
+            return nullptr;
+        }
+        char* buf = available_.back();
+        available_.pop_back();
+
+        return std::shared_ptr<char>(buf, [this](char* p) {
+            std::cout << "Returning buffer to pool" << std::endl;
+            available_.push_back(p);
+        });
+    }
+
+    ~BufferPool() {
+        std::cout << "Destroying pool with " << available_.size()
+                  << " buffers" << std::endl;
+        for (auto* p : available_) {
+            delete[] p;
+        }
+    }
+
+    size_t availableCount() const { return available_.size(); }
+};
+
+int main() {
+    auto pool = std::make_shared<BufferPool>(1024, 3);
+
+    auto buf1 = pool->acquire();
+    auto buf2 = pool->acquire();
+
+    std::cout << "Available: " << pool->availableCount() << std::endl;
+
+    std::memset(buf1.get(), 'A', 1024);
+    std::cout << "Buffer content: " << buf1.get()[0] << std::endl;
+
+    pool.reset();  // destroy the pool
+    std::cout << "Pool destroyed" << std::endl;
+
+    // buf1 and buf2 still alive — their deleters reference the pool!
+    buf1.reset();  // triggers custom deleter
+    buf2.reset();
+
+    return 0;
+}`,
+    hints: [
+      "The custom deleter captures `this` (the BufferPool pointer). What happens when the pool is destroyed before the buffers?",
+      "After `pool.reset()`, is the `this` pointer in the deleter still valid?",
+    ],
+    explanation: "The custom deleter lambda captures `this` (the `BufferPool*`). When `pool.reset()` destroys the pool, the `this` pointer in the deleters becomes dangling. When `buf1.reset()` triggers the deleter, it tries to `available_.push_back(p)` on a destroyed `BufferPool` — use-after-free. The fix is to have the buffers hold a `std::shared_ptr<BufferPool>` (via `shared_from_this()`) in their deleters to keep the pool alive as long as any buffer exists.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=address -g pool.cpp -o pool && ./pool
+Pool created with 3 buffers
+Available: 1
+Buffer content: A
+Destroying pool with 1 buffers
+Pool destroyed
+=================================================================
+==37890==ERROR: AddressSanitizer: heap-use-after-free on address
+    0x602000000010 at pc 0x555555758e12 bp 0x7fffffffd890
+READ of size 8 at 0x602000000010 thread T0
+    #0 0x555555758e11 in std::vector<char*>::push_back
+    #1 0x555555759123 in BufferPool::acquire()::$_0::operator()()
+    #2 0x555555759456 in std::shared_ptr<char>::reset()`,
+    stdlibRefs: [
+      { name: "std::shared_ptr", brief: "A smart pointer that manages shared ownership of an object through reference counting.", note: "Custom deleters that capture a raw pointer to the pool must ensure the pool outlives all shared_ptrs using it.", link: "https://en.cppreference.com/w/cpp/memory/shared_ptr" },
+    ],
+  },
+  {
+    id: 370,
+    topic: "RAII & Resource Safety",
+    difficulty: "Hard",
+    title: "Exception-Safe Swap",
+    description: "Implements an exception-safe container that maintains invariants even when copy operations throw.",
+    code: `#include <iostream>
+#include <stdexcept>
+#include <string>
+
+class ThrowingString {
+    char* data_;
+    size_t len_;
+    static int copyCount_;
+public:
+    ThrowingString(const char* s) {
+        len_ = std::strlen(s);
+        data_ = new char[len_ + 1];
+        std::strcpy(data_, s);
+    }
+
+    ThrowingString(const ThrowingString& other) {
+        ++copyCount_;
+        if (copyCount_ % 3 == 0) {
+            throw std::runtime_error("Copy failed!");
+        }
+        len_ = other.len_;
+        data_ = new char[len_ + 1];
+        std::strcpy(data_, other.data_);
+    }
+
+    ThrowingString& operator=(const ThrowingString& other) {
+        delete[] data_;
+        len_ = other.len_;
+        data_ = new char[len_ + 1];
+        if (copyCount_ % 2 == 0) {
+            throw std::runtime_error("Assignment failed!");
+        }
+        std::strcpy(data_, other.data_);
+        ++copyCount_;
+        return *this;
+    }
+
+    ~ThrowingString() { delete[] data_; }
+
+    const char* c_str() const { return data_; }
+};
+
+int ThrowingString::copyCount_ = 0;
+
+int main() {
+    try {
+        ThrowingString a("hello");
+        ThrowingString b("world");
+        a = b;
+        std::cout << "a = " << a.c_str() << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+    return 0;
+}`,
+    hints: [
+      "In the assignment operator, what happens to `data_` before the exception can be thrown?",
+      "If `new char[len_ + 1]` succeeds but the subsequent throw executes, what state is the object in?",
+      "After `delete[] data_` and the throw, what does the destructor delete?",
+    ],
+    explanation: "The assignment operator first deletes the old `data_`, then allocates new memory, then checks for the throw condition. If the throw happens after `delete[] data_` but after `data_ = new char[...]` succeeded, the object has new memory but the data hasn't been copied (strcpy hasn't run yet). If it throws before the new allocation, `data_` is deleted but `data_` still points to the freed memory — the destructor will double-free. The operator violates the strong exception guarantee: after an exception, the object is in a corrupted state. The fix is the copy-and-swap idiom: copy first, then swap, so the original is untouched if anything throws.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=address -g swap.cpp -o swap && ./swap
+=================================================================
+==41234==ERROR: AddressSanitizer: attempting double-free on
+    0x602000000010 in thread T0:
+    #0 0x7f2a8c4b3c17 in operator delete[](void*)
+    #1 0x555555758a23 in ThrowingString::~ThrowingString() swap.cpp:33
+    #2 0x555555759123 in main swap.cpp:43
+
+0x602000000010 is located 0 bytes inside of 6-byte region
+    [0x602000000010,0x602000000016)
+freed by thread T0 here:
+    #0 0x7f2a8c4b3c17 in operator delete[](void*)
+    #1 0x555555758812 in ThrowingString::operator=() swap.cpp:26`,
+    stdlibRefs: [],
+  },
+  {
+    id: 371,
+    topic: "RAII & Resource Safety",
+    difficulty: "Hard",
+    title: "Smart Pointer Cycle",
+    description: "Models a parent-child relationship using shared_ptr to allow children to reference their parent.",
+    code: `#include <iostream>
+#include <memory>
+#include <vector>
+#include <string>
+
+class Node : public std::enable_shared_from_this<Node> {
+    std::string name_;
+    std::shared_ptr<Node> parent_;
+    std::vector<std::shared_ptr<Node>> children_;
+public:
+    Node(const std::string& name) : name_(name) {
+        std::cout << "Created: " << name_ << std::endl;
+    }
+
+    ~Node() {
+        std::cout << "Destroyed: " << name_ << std::endl;
+    }
+
+    void addChild(std::shared_ptr<Node> child) {
+        child->parent_ = shared_from_this();
+        children_.push_back(std::move(child));
+    }
+
+    void print(int depth = 0) const {
+        for (int i = 0; i < depth; ++i) std::cout << "  ";
+        std::cout << name_ << std::endl;
+        for (auto& c : children_) {
+            c->print(depth + 1);
+        }
+    }
+};
+
+int main() {
+    {
+        auto root = std::make_shared<Node>("root");
+        auto child1 = std::make_shared<Node>("child1");
+        auto child2 = std::make_shared<Node>("child2");
+        auto grandchild = std::make_shared<Node>("grandchild");
+
+        root->addChild(child1);
+        root->addChild(child2);
+        child1->addChild(grandchild);
+
+        root->print();
+        std::cout << "--- leaving scope ---" << std::endl;
+    }
+    std::cout << "--- after scope ---" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Each child stores a `shared_ptr` to its parent. Each parent stores `shared_ptr`s to its children. What does this create?",
+      "When the scope ends, can the reference count of `root` reach zero?",
+    ],
+    explanation: "The parent holds `shared_ptr` to children, and children hold `shared_ptr` to their parent — a reference cycle. When the scope ends and local `shared_ptr`s are destroyed, the internal reference counts never reach zero because each node keeps its related nodes alive. None of the nodes are destroyed, leaking all of them. The fix is to make `parent_` a `std::weak_ptr<Node>` instead of `std::shared_ptr<Node>`, which doesn't contribute to the reference count.",
+    manifestation: `$ g++ -std=c++17 -Wall -fsanitize=leak cycle.cpp -o cycle && ./cycle
+Created: root
+Created: child1
+Created: child2
+Created: grandchild
+root
+  child1
+    grandchild
+  child2
+--- leaving scope ---
+--- after scope ---
+
+=================================================================
+==44567==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 128 bytes in 1 object(s) ...
+    in Node::Node() cycle.cpp:13
+Indirect leak of 384 bytes in 3 object(s) ...
+
+SUMMARY: LeakSanitizer: 512 byte(s) leaked in 4 object(s).
+
+(No "Destroyed" messages — all 4 nodes leaked due to the
+circular shared_ptr reference between parents and children)`,
+    stdlibRefs: [
+      { name: "std::weak_ptr", brief: "A smart pointer that holds a non-owning reference to a shared_ptr-managed object.", note: "Use weak_ptr to break reference cycles. It doesn't contribute to the reference count, allowing the owned object to be destroyed.", link: "https://en.cppreference.com/w/cpp/memory/weak_ptr" },
+    ],
+  },
+  {
+    id: 372,
+    topic: "RAII & Resource Safety",
+    difficulty: "Hard",
+    title: "Temporary File Manager",
+    description: "Creates temporary files for processing and ensures they are deleted when no longer needed.",
+    code: `#include <iostream>
+#include <fstream>
+#include <string>
+#include <filesystem>
+#include <vector>
+#include <stdexcept>
+
+namespace fs = std::filesystem;
+
+class TempFile {
+    fs::path path_;
+public:
+    TempFile(const std::string& prefix) {
+        path_ = fs::temp_directory_path() / (prefix + "_temp.dat");
+        std::ofstream ofs(path_);
+        if (!ofs) throw std::runtime_error("Cannot create: " + path_.string());
+        std::cout << "Created: " << path_ << std::endl;
+    }
+
+    void write(const std::string& data) {
+        std::ofstream ofs(path_, std::ios::app);
+        ofs << data;
+    }
+
+    std::string read() const {
+        std::ifstream ifs(path_);
+        return std::string(std::istreambuf_iterator<char>(ifs),
+                           std::istreambuf_iterator<char>());
+    }
+
+    const fs::path& path() const { return path_; }
+
+    ~TempFile() {
+        std::error_code ec;
+        fs::remove(path_, ec);
+        if (!ec) {
+            std::cout << "Deleted: " << path_ << std::endl;
+        }
+    }
+};
+
+void processData() {
+    TempFile input("input");
+    TempFile output("output");
+
+    input.write("test data\\n");
+
+    // Process: read input, transform, write to output
+    std::string data = input.read();
+    output.write("processed: " + data);
+
+    TempFile intermediate("inter");
+    intermediate.write("intermediate results");
+
+    // Oops — copy the temp file manager
+    TempFile backup = intermediate;  // implicit copy
+    std::cout << "Backup path: " << backup.path() << std::endl;
+}
+
+int main() {
+    processData();
+    std::cout << "Done" << std::endl;
+    return 0;
+}`,
+    hints: [
+      "Does `TempFile` have a copy constructor? What does the default one do?",
+      "When both `intermediate` and `backup` are destroyed, what happens to the file?",
+    ],
+    explanation: "TempFile has no user-defined copy constructor, so the compiler generates a default one that copies the `path_` member. Now both `intermediate` and `backup` point to the same file path. When the first one is destroyed, it deletes the temp file. When the second one is destroyed, it tries to delete the same file again — the `fs::remove` silently fails (file already gone), but conceptually this is a double-cleanup bug. Worse, if TempFile had any other resources (file handles, memory), the shallow copy would cause double-free. The fix is to delete the copy constructor and copy assignment operator (`TempFile(const TempFile&) = delete;`), making TempFile move-only.",
+    manifestation: `$ g++ -std=c++17 -Wall tempfile.cpp -o tempfile && ./tempfile
+Created: /tmp/input_temp.dat
+Created: /tmp/output_temp.dat
+Created: /tmp/inter_temp.dat
+Backup path: /tmp/inter_temp.dat
+Deleted: /tmp/inter_temp.dat
+Deleted: /tmp/inter_temp.dat    ← double delete (file already gone)
+Deleted: /tmp/output_temp.dat
+Deleted: /tmp/input_temp.dat
+Done
+
+(The second "Deleted: /tmp/inter_temp.dat" is a double-cleanup.
+With real resources, this would be a double-free.)`,
+    stdlibRefs: [
+      { name: "std::filesystem::remove", args: "(const path& p) → bool | (const path& p, error_code& ec) → bool", brief: "Deletes a file or empty directory.", note: "Silently succeeds if the file doesn't exist (returns false). This masks double-cleanup bugs.", link: "https://en.cppreference.com/w/cpp/filesystem/remove" },
+    ],
+  },
+  {
+    id: 373,
+    topic: "RAII & Resource Safety",
+    difficulty: "Medium",
+    title: "Array Deleter",
+    description: "Uses unique_ptr to manage a dynamically allocated array of objects.",
+    code: `#include <iostream>
+#include <memory>
+#include <string>
+
+struct Sensor {
+    std::string name;
+    double value;
+
+    Sensor() : name("unset"), value(0) {
+        std::cout << "Sensor default constructed" << std::endl;
+    }
+
+    Sensor(const std::string& n, double v) : name(n), value(v) {
+        std::cout << "Sensor created: " << name << std::endl;
+    }
+
+    ~Sensor() {
+        std::cout << "Sensor destroyed: " << name << std::endl;
+    }
+};
+
+int main() {
+    // Create array of 3 sensors
+    auto sensors = std::unique_ptr<Sensor>(new Sensor[3]{
+        {"Temperature", 22.5},
+        {"Humidity", 65.0},
+        {"Pressure", 1013.25},
+    });
+
+    for (int i = 0; i < 3; ++i) {
+        std::cout << sensors.get()[i].name << ": "
+                  << sensors.get()[i].value << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Look at the type of `unique_ptr`. Is it `unique_ptr<Sensor>` or `unique_ptr<Sensor[]>`?",
+      "What destructor does `unique_ptr<Sensor>` call — `delete` or `delete[]`?",
+    ],
+    explanation: "`std::unique_ptr<Sensor>` calls `delete` in its destructor, but the array was allocated with `new Sensor[3]`. Using `delete` on memory allocated with `new[]` is undefined behavior — it may only call the destructor for the first element, and the heap metadata mismatch can corrupt memory. The fix is to use `std::unique_ptr<Sensor[]>`: `auto sensors = std::unique_ptr<Sensor[]>(new Sensor[3]{...});` or better yet, `auto sensors = std::make_unique<Sensor[]>(3);`.",
+    manifestation: `$ g++ -std=c++17 -Wall -fsanitize=address array.cpp -o array && ./array
+Sensor created: Temperature
+Sensor created: Humidity
+Sensor created: Pressure
+Temperature: 22.5
+Humidity: 65
+Pressure: 1013.25
+Sensor destroyed: Temperature
+=================================================================
+==47890==ERROR: AddressSanitizer: alloc-dealloc-mismatch
+    (operator new [] vs operator delete) on 0x604000000010
+    #0 0x7f2a8c4b3c17 in operator delete(void*)
+    #1 0x555555758a23 in std::unique_ptr<Sensor>::~unique_ptr()
+
+(Only the first sensor's destructor ran — new[]/delete mismatch
+caused undefined behavior. Two sensors were not properly destroyed.)`,
+    stdlibRefs: [
+      { name: "std::unique_ptr<T[]>", brief: "A specialization of unique_ptr for arrays that calls delete[] instead of delete.", note: "unique_ptr<T> uses delete; unique_ptr<T[]> uses delete[]. Mismatching allocation and deallocation is undefined behavior.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr" },
+    ],
+  },
 ];
