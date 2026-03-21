@@ -21206,4 +21206,710 @@ numeric.cpp:33:13: error: no match for 'operator<' (operand types
       |         double`,
     stdlibRefs: [],
   },
+
+  // ── Concurrency Patterns ──
+
+  {
+    id: 324,
+    topic: "Concurrency Patterns",
+    difficulty: "Easy",
+    title: "Spin Counter",
+    description: "Two threads increment a shared counter using atomic operations, printing the final total.",
+    code: `#include <iostream>
+#include <thread>
+#include <atomic>
+
+std::atomic<int> counter{0};
+
+void increment(int times) {
+    for (int i = 0; i < times; ++i) {
+        counter.store(counter.load(std::memory_order_relaxed) + 1,
+                      std::memory_order_relaxed);
+    }
+}
+
+int main() {
+    std::thread t1(increment, 500000);
+    std::thread t2(increment, 500000);
+    t1.join();
+    t2.join();
+    std::cout << "Counter: " << counter.load() << std::endl;
+    std::cout << "Expected: 1000000" << std::endl;
+    return 0;
+}`,
+    hints: [
+      "Look at the increment operation. Is it truly atomic, or is it a load-then-store?",
+      "What happens if two threads both load the same value before either stores?",
+    ],
+    explanation: "The increment is a separate `load()` followed by a `store()`. Between the load and the store, the other thread can also load the same value, and both threads store `old_value + 1` — losing one increment. This is a classic lost-update race condition. Even though `counter` is atomic, the compound read-modify-write is not atomic. The fix is to use `counter.fetch_add(1, std::memory_order_relaxed)` which is a single atomic read-modify-write operation.",
+    manifestation: `$ g++ -std=c++17 -O2 spin.cpp -o spin -pthread && ./spin
+Counter: 672314
+Expected: 1000000
+
+$ ./spin
+Counter: 691205
+Expected: 1000000
+
+(Lost updates — different count each run)`,
+    stdlibRefs: [
+      { name: "std::atomic::fetch_add", args: "(T arg, memory_order order) → T", brief: "Atomically adds arg to the stored value and returns the previous value.", note: "Unlike a separate load+store, fetch_add is a single atomic read-modify-write operation with no race window.", link: "https://en.cppreference.com/w/cpp/atomic/atomic/fetch_add" },
+    ],
+  },
+  {
+    id: 325,
+    topic: "Concurrency Patterns",
+    difficulty: "Easy",
+    title: "Producer Flag",
+    description: "A producer thread prepares data and sets a flag; a consumer thread waits for the flag then reads the data.",
+    code: `#include <iostream>
+#include <thread>
+#include <atomic>
+#include <string>
+
+std::string sharedData;
+std::atomic<bool> ready{false};
+
+void producer() {
+    sharedData = "Hello from producer!";
+    ready.store(true, std::memory_order_relaxed);
+}
+
+void consumer() {
+    while (!ready.load(std::memory_order_relaxed)) {
+        // spin
+    }
+    std::cout << "Received: " << sharedData << std::endl;
+}
+
+int main() {
+    std::thread t1(consumer);
+    std::thread t2(producer);
+    t1.join();
+    t2.join();
+    return 0;
+}`,
+    hints: [
+      "What memory ordering is used for the flag? What guarantees does `relaxed` provide?",
+      "Can the consumer see `ready == true` but still read the old value of `sharedData`?",
+    ],
+    explanation: "Using `memory_order_relaxed` for both the store and load of the flag provides no synchronization guarantees. The consumer may observe `ready == true` but still see `sharedData` as empty because relaxed ordering allows the processor and compiler to reorder the non-atomic write to `sharedData` after the atomic store to `ready`. The fix is to use `memory_order_release` for the store and `memory_order_acquire` for the load, which establishes a happens-before relationship.",
+    manifestation: `$ g++ -std=c++17 -O2 flag.cpp -o flag -pthread && ./flag
+Received:
+
+$ ./flag
+Received: Hello from producer!
+
+$ ./flag
+Received:
+
+(Race condition: sometimes the data is visible, sometimes it's
+empty. The relaxed ordering doesn't synchronize the non-atomic
+string write with the atomic flag.)`,
+    stdlibRefs: [
+      { name: "std::atomic::store", args: "(T desired, memory_order order) → void", brief: "Atomically stores a value.", note: "memory_order_relaxed provides atomicity but no ordering guarantees for surrounding non-atomic operations. Use release/acquire for synchronization.", link: "https://en.cppreference.com/w/cpp/atomic/atomic/store" },
+    ],
+  },
+  {
+    id: 326,
+    topic: "Concurrency Patterns",
+    difficulty: "Easy",
+    title: "Bounded Work Queue",
+    description: "Implements a thread-safe queue where producers wait when the queue is full and consumers wait when it's empty.",
+    code: `#include <iostream>
+#include <queue>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+
+template<typename T, size_t MaxSize = 5>
+class BoundedQueue {
+    std::queue<T> queue_;
+    std::mutex mtx_;
+    std::condition_variable cv_;
+public:
+    void push(T item) {
+        std::unique_lock<std::mutex> lock(mtx_);
+        cv_.wait(lock, [this]{ return queue_.size() < MaxSize; });
+        queue_.push(std::move(item));
+        cv_.notify_one();
+    }
+
+    T pop() {
+        std::unique_lock<std::mutex> lock(mtx_);
+        if (queue_.empty()) {
+            cv_.wait(lock);
+        }
+        T item = std::move(queue_.front());
+        queue_.pop();
+        cv_.notify_one();
+        return item;
+    }
+};
+
+int main() {
+    BoundedQueue<int> q;
+
+    std::thread producer([&q] {
+        for (int i = 0; i < 10; ++i) {
+            q.push(i);
+            std::cout << "Produced: " << i << std::endl;
+        }
+    });
+
+    std::thread consumer([&q] {
+        for (int i = 0; i < 10; ++i) {
+            int val = q.pop();
+            std::cout << "Consumed: " << val << std::endl;
+        }
+    });
+
+    producer.join();
+    consumer.join();
+    return 0;
+}`,
+    hints: [
+      "Compare how `push()` and `pop()` wait on the condition variable. Is there a difference?",
+      "Can a condition variable wake up even when no one called `notify`? What is a 'spurious wakeup'?",
+    ],
+    explanation: "The `pop()` method uses a bare `cv_.wait(lock)` without a predicate, while `push()` correctly uses `cv_.wait(lock, predicate)`. Without a predicate, `pop()` is vulnerable to spurious wakeups — the thread may wake up even though no element was pushed. It then calls `queue_.front()` on an empty queue, which is undefined behavior. The fix is to use a predicate: `cv_.wait(lock, [this]{ return !queue_.empty(); });`.",
+    manifestation: `$ g++ -std=c++17 -O2 -fsanitize=thread queue.cpp -o queue -pthread && ./queue
+Produced: 0
+Consumed: 0
+Produced: 1
+Consumed: 1
+...
+(Usually works — but under heavy load or specific scheduling:)
+
+$ stress --cpu 8 & ./queue
+Segmentation fault (core dumped)
+
+(Spurious wakeup caused pop() to access an empty queue)`,
+    stdlibRefs: [
+      { name: "std::condition_variable::wait", args: "(unique_lock<mutex>& lock) → void | (unique_lock<mutex>& lock, Predicate pred) → void", brief: "Blocks the current thread until the condition variable is notified.", note: "The no-predicate overload is susceptible to spurious wakeups. Always use the predicate overload to re-check the condition.", link: "https://en.cppreference.com/w/cpp/thread/condition_variable/wait" },
+    ],
+  },
+  {
+    id: 327,
+    topic: "Concurrency Patterns",
+    difficulty: "Medium",
+    title: "Cache-Aligned Counters",
+    description: "Provides per-thread counters that are summed at the end to avoid contention on a single atomic.",
+    code: `#include <iostream>
+#include <thread>
+#include <vector>
+#include <atomic>
+#include <chrono>
+
+struct Counters {
+    std::atomic<long long> count1{0};
+    std::atomic<long long> count2{0};
+};
+
+void worker1(Counters& c, int iterations) {
+    for (int i = 0; i < iterations; ++i) {
+        c.count1.fetch_add(1, std::memory_order_relaxed);
+    }
+}
+
+void worker2(Counters& c, int iterations) {
+    for (int i = 0; i < iterations; ++i) {
+        c.count2.fetch_add(1, std::memory_order_relaxed);
+    }
+}
+
+int main() {
+    Counters c;
+    const int N = 10000000;
+
+    auto start = std::chrono::steady_clock::now();
+
+    std::thread t1(worker1, std::ref(c), N);
+    std::thread t2(worker2, std::ref(c), N);
+    t1.join();
+    t2.join();
+
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start).count();
+
+    std::cout << "count1: " << c.count1 << std::endl;
+    std::cout << "count2: " << c.count2 << std::endl;
+    std::cout << "Elapsed: " << elapsed << "ms" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The two counters are in the same struct. How large is an `std::atomic<long long>`?",
+      "What happens when two frequently-modified variables share the same cache line?",
+      "Look up 'false sharing'. Are the two atomics on the same 64-byte cache line?",
+    ],
+    explanation: "Both `count1` and `count2` are adjacent in the struct, so they almost certainly share the same 64-byte cache line. Each thread modifying its counter causes the other thread's cache line to be invalidated, forcing a cache reload on every access — this is 'false sharing.' The program is functionally correct (both counters reach N) but performs far worse than expected due to constant cache invalidation. The fix is to pad the struct: use `alignas(64)` or `std::hardware_destructive_interference_size` to put each counter on its own cache line.",
+    manifestation: `$ g++ -std=c++17 -O2 counters.cpp -o counters -pthread && ./counters
+count1: 10000000
+count2: 10000000
+Elapsed: 312ms
+
+(With cache-line padding applied:)
+$ ./counters_fixed
+count1: 10000000
+count2: 10000000
+Elapsed: 47ms
+
+(~6.6x slower due to false sharing — both atomics share the
+same cache line, causing constant cache invalidation between cores)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 328,
+    topic: "Concurrency Patterns",
+    difficulty: "Medium",
+    title: "Read-Write Cache",
+    description: "Uses a shared mutex to allow many concurrent readers but exclusive access for writers.",
+    code: `#include <iostream>
+#include <shared_mutex>
+#include <thread>
+#include <map>
+#include <string>
+#include <vector>
+#include <chrono>
+
+class Cache {
+    std::map<std::string, std::string> data_;
+    mutable std::shared_mutex mtx_;
+public:
+    std::string get(const std::string& key) const {
+        std::shared_lock<std::shared_mutex> lock(mtx_);
+        auto it = data_.find(key);
+        if (it != data_.end()) {
+            return it->second;
+        }
+        // Cache miss — need to compute and store
+        lock.unlock();
+        std::string value = "computed_" + key;  // simulate computation
+
+        std::unique_lock<std::shared_mutex> wlock(mtx_);
+        data_[key] = value;
+        return value;
+    }
+
+    void set(const std::string& key, const std::string& value) {
+        std::unique_lock<std::shared_mutex> lock(mtx_);
+        data_[key] = value;
+    }
+};
+
+int main() {
+    Cache cache;
+    cache.set("user:1", "Alice");
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 4; ++i) {
+        threads.emplace_back([&cache, i] {
+            for (int j = 0; j < 100; ++j) {
+                auto val = cache.get("user:" + std::to_string(i));
+                (void)val;
+            }
+        });
+    }
+
+    for (auto& t : threads) t.join();
+    std::cout << "Done" << std::endl;
+    return 0;
+}`,
+    hints: [
+      "Look at the `get` method. What happens between unlocking the shared lock and acquiring the unique lock?",
+      "Can the `get` method modify `data_` while the object is `const`?",
+      "Multiple threads miss the cache simultaneously. Do they all try to upgrade to a write lock?",
+    ],
+    explanation: "The `get()` method is `const` but tries to modify `data_` (a non-mutable member) through the unique_lock path — this won't compile. Beyond that, the pattern of unlocking the shared lock and then taking a unique lock creates a window where another thread can also miss the cache and both try to write. There is no atomic upgrade from shared to exclusive lock in C++. The fix is to either make `data_` mutable and handle the race (double-checked locking), or make `get()` non-const.",
+    manifestation: `$ g++ -std=c++17 -Wall cache.cpp -o cache -pthread
+cache.cpp: In member function 'std::string Cache::get(
+    const std::string&) const':
+cache.cpp:23:19: error: passing 'const std::map<std::string,
+    std::string>' as 'this' argument discards qualifiers
+   23 |         data_[key] = value;
+      |                   ^
+/usr/include/c++/11/bits/stl_map.h:492:7: note: 'mapped_type&
+    std::map<_Key, _Tp>::operator[]' is not marked const`,
+    stdlibRefs: [
+      { name: "std::shared_mutex", brief: "A mutex that allows multiple shared (read) locks or one exclusive (write) lock.", note: "C++ provides no atomic upgrade from shared lock to exclusive lock. You must unlock the shared lock first, creating a race window.", link: "https://en.cppreference.com/w/cpp/thread/shared_mutex" },
+    ],
+  },
+  {
+    id: 329,
+    topic: "Concurrency Patterns",
+    difficulty: "Medium",
+    title: "Async Exception Handler",
+    description: "Runs computations asynchronously and handles exceptions from the async tasks.",
+    code: `#include <iostream>
+#include <future>
+#include <stdexcept>
+#include <vector>
+#include <string>
+
+double safeDivide(double a, double b) {
+    if (b == 0.0) {
+        throw std::runtime_error("Division by zero");
+    }
+    return a / b;
+}
+
+int main() {
+    std::vector<std::pair<double, double>> inputs = {
+        {10.0, 2.0}, {15.0, 0.0}, {20.0, 4.0}, {8.0, 0.0}
+    };
+
+    std::vector<std::future<double>> futures;
+    for (auto& [a, b] : inputs) {
+        futures.push_back(std::async(std::launch::async, safeDivide, a, b));
+    }
+
+    for (size_t i = 0; i < futures.size(); ++i) {
+        double result = futures[i].get();
+        std::cout << "Result " << i << ": " << result << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "What happens when `safeDivide` throws inside an async task?",
+      "Where does the exception surface? Is the calling code prepared for it?",
+    ],
+    explanation: "When `safeDivide` throws inside an async task, the exception is captured in the `std::future`. When `futures[i].get()` is called, the exception is rethrown. The code has no try-catch around `get()`, so the first division-by-zero (at index 1) will terminate the program with an unhandled exception. The remaining futures (including successful ones) are never retrieved. The fix is to wrap `futures[i].get()` in a try-catch block to handle exceptions from individual tasks.",
+    manifestation: `$ g++ -std=c++17 -O2 async_exc.cpp -o async_exc -pthread && ./async_exc
+Result 0: 5
+terminate called after throwing an instance of 'std::runtime_error'
+  what():  Division by zero
+Aborted (core dumped)
+
+Expected output:
+Result 0: 5
+Result 1: Error: Division by zero
+Result 2: 5
+Result 3: Error: Division by zero`,
+    stdlibRefs: [
+      { name: "std::future::get", args: "() → T", brief: "Blocks until the result is available, then returns the stored value or rethrows the stored exception.", note: "If the async task threw an exception, get() rethrows it. Always wrap get() in try-catch if the task might throw.", link: "https://en.cppreference.com/w/cpp/thread/future/get" },
+    ],
+  },
+  {
+    id: 330,
+    topic: "Concurrency Patterns",
+    difficulty: "Hard",
+    title: "Lock-Free Stack",
+    description: "Implements a lock-free stack using compare-and-swap for concurrent push and pop operations.",
+    code: `#include <iostream>
+#include <atomic>
+#include <thread>
+#include <vector>
+
+template<typename T>
+class LockFreeStack {
+    struct Node {
+        T data;
+        Node* next;
+        Node(T val) : data(std::move(val)), next(nullptr) {}
+    };
+
+    std::atomic<Node*> head_{nullptr};
+
+public:
+    void push(T val) {
+        Node* newNode = new Node(std::move(val));
+        newNode->next = head_.load(std::memory_order_relaxed);
+        while (!head_.compare_exchange_weak(
+            newNode->next, newNode,
+            std::memory_order_release, std::memory_order_relaxed)) {
+            // CAS failed, newNode->next was updated by CAS
+        }
+    }
+
+    bool pop(T& result) {
+        Node* oldHead = head_.load(std::memory_order_acquire);
+        while (oldHead) {
+            if (head_.compare_exchange_weak(
+                    oldHead, oldHead->next,
+                    std::memory_order_release, std::memory_order_relaxed)) {
+                result = std::move(oldHead->data);
+                delete oldHead;
+                return true;
+            }
+        }
+        return false;
+    }
+
+    ~LockFreeStack() {
+        T dummy;
+        while (pop(dummy)) {}
+    }
+};
+
+int main() {
+    LockFreeStack<int> stack;
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < 4; ++i) {
+        threads.emplace_back([&stack, i] {
+            for (int j = 0; j < 1000; ++j) {
+                stack.push(i * 1000 + j);
+            }
+        });
+    }
+    for (auto& t : threads) t.join();
+
+    int count = 0, val;
+    while (stack.pop(val)) ++count;
+    std::cout << "Popped " << count << " items" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "In `pop()`, look at the line `oldHead->next`. When is `oldHead->next` read relative to the CAS?",
+      "After another thread pops and deletes `oldHead`, what happens when this thread reads `oldHead->next`?",
+      "Look up the 'ABA problem' in lock-free data structures.",
+    ],
+    explanation: "The `pop()` function reads `oldHead->next` inside the CAS call. But between loading `oldHead` and the CAS, another thread could pop the same node, delete it, and push a new node at the same memory address (ABA problem). Reading `oldHead->next` after another thread deleted `oldHead` is use-after-free. Even without ABA, the `delete oldHead` immediately after a successful CAS is dangerous because other threads may still hold a copy of `oldHead` and could dereference it. The fix requires hazard pointers or epoch-based reclamation to safely defer deletion.",
+    manifestation: `$ g++ -std=c++17 -O2 -fsanitize=address lockfree.cpp -o lockfree -pthread && ./lockfree
+=================================================================
+==31245==ERROR: AddressSanitizer: heap-use-after-free on address
+    0x602000004a18 at pc 0x555555758e12 bp 0x7f3a9c0ffc90
+READ of size 8 at 0x602000004a18 thread T2
+    #0 0x555555758e11 in LockFreeStack<int>::pop(int&) lockfree.cpp:31
+    #1 0x555555759a23 in main::$_0::operator()() lockfree.cpp:51
+0x602000004a18 is located 8 bytes inside of 16-byte region
+    [0x602000004a10,0x602000004a20)
+freed by thread T1 here:
+    #0 0x7f3aa0ab3b6f in operator delete(void*)
+    #1 0x555555758f45 in LockFreeStack<int>::pop(int&) lockfree.cpp:33`,
+    stdlibRefs: [
+      { name: "std::atomic::compare_exchange_weak", args: "(T& expected, T desired, memory_order success, memory_order failure) → bool", brief: "Atomically compares and conditionally replaces the stored value. May fail spuriously.", note: "CAS on a pointer doesn't protect the memory the pointer points to. Between loading a pointer and the CAS, the pointee may have been freed (ABA problem).", link: "https://en.cppreference.com/w/cpp/atomic/atomic/compare_exchange" },
+    ],
+  },
+  {
+    id: 331,
+    topic: "Concurrency Patterns",
+    difficulty: "Hard",
+    title: "Thread Pool Shutdown",
+    description: "Implements a simple thread pool that processes submitted tasks and gracefully shuts down.",
+    code: `#include <iostream>
+#include <thread>
+#include <vector>
+#include <queue>
+#include <functional>
+#include <mutex>
+#include <condition_variable>
+
+class ThreadPool {
+    std::vector<std::thread> workers_;
+    std::queue<std::function<void()>> tasks_;
+    std::mutex mtx_;
+    std::condition_variable cv_;
+    bool stop_ = false;
+
+public:
+    ThreadPool(size_t numThreads) {
+        for (size_t i = 0; i < numThreads; ++i) {
+            workers_.emplace_back([this] {
+                while (true) {
+                    std::function<void()> task;
+                    {
+                        std::unique_lock<std::mutex> lock(mtx_);
+                        cv_.wait(lock, [this] {
+                            return stop_ || !tasks_.empty();
+                        });
+                        if (stop_) return;
+                        task = std::move(tasks_.front());
+                        tasks_.pop();
+                    }
+                    task();
+                }
+            });
+        }
+    }
+
+    void submit(std::function<void()> task) {
+        {
+            std::unique_lock<std::mutex> lock(mtx_);
+            tasks_.push(std::move(task));
+        }
+        cv_.notify_one();
+    }
+
+    ~ThreadPool() {
+        {
+            std::unique_lock<std::mutex> lock(mtx_);
+            stop_ = true;
+        }
+        cv_.notify_all();
+        for (auto& w : workers_) w.join();
+    }
+};
+
+int main() {
+    ThreadPool pool(4);
+
+    for (int i = 0; i < 20; ++i) {
+        pool.submit([i] {
+            std::cout << "Task " << i << " done" << std::endl;
+        });
+    }
+
+    // pool destructor runs here
+    return 0;
+}`,
+    hints: [
+      "When `stop_` is set to true and workers wake up, what condition do they check?",
+      "If there are still pending tasks in the queue when shutdown begins, will they be processed?",
+    ],
+    explanation: "The worker loop checks `if (stop_) return;` immediately after waking, without first checking if there are remaining tasks. When the destructor sets `stop_ = true` and notifies all workers, any worker that wakes up will exit immediately even if tasks are still queued. This means some of the 20 submitted tasks may never be executed. The fix is to change the exit condition to: `if (stop_ && tasks_.empty()) return;` — only exit when stopped AND no tasks remain.",
+    manifestation: `$ g++ -std=c++17 -O2 pool.cpp -o pool -pthread && ./pool
+Task 0 done
+Task 1 done
+Task 2 done
+Task 3 done
+Task 4 done
+Task 5 done
+Task 6 done
+Task 7 done
+
+(Only 8 of 20 tasks completed — the remaining 12 were
+dropped when the pool shut down before draining the queue)`,
+    stdlibRefs: [
+      { name: "std::condition_variable::notify_all", args: "() → void", brief: "Unblocks all threads waiting on this condition variable.", link: "https://en.cppreference.com/w/cpp/thread/condition_variable/notify_all" },
+    ],
+  },
+  {
+    id: 332,
+    topic: "Concurrency Patterns",
+    difficulty: "Hard",
+    title: "Double-Checked Singleton",
+    description: "Implements a thread-safe singleton using double-checked locking to minimize lock contention.",
+    code: `#include <iostream>
+#include <mutex>
+#include <thread>
+#include <vector>
+
+class Database {
+    static Database* instance_;
+    static std::mutex mtx_;
+
+    std::string connectionString_;
+
+    Database() : connectionString_("db://localhost:5432/mydb") {
+        // Simulate slow initialization
+        std::cout << "Database initialized" << std::endl;
+    }
+
+public:
+    static Database* getInstance() {
+        if (instance_ == nullptr) {
+            std::lock_guard<std::mutex> lock(mtx_);
+            if (instance_ == nullptr) {
+                instance_ = new Database();
+            }
+        }
+        return instance_;
+    }
+
+    const std::string& connectionString() const {
+        return connectionString_;
+    }
+};
+
+Database* Database::instance_ = nullptr;
+std::mutex Database::mtx_;
+
+int main() {
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 10; ++i) {
+        threads.emplace_back([] {
+            auto* db = Database::getInstance();
+            std::cout << "Connection: " << db->connectionString() << std::endl;
+        });
+    }
+    for (auto& t : threads) t.join();
+    return 0;
+}`,
+    hints: [
+      "In the double-checked locking pattern, the outer `if` reads `instance_` without a lock. Is this safe with a raw pointer?",
+      "Can a thread see a non-null `instance_` pointer before the Database constructor has finished running?",
+      "What ordering guarantees does a raw pointer provide versus `std::atomic<Database*>`?",
+    ],
+    explanation: "The classic double-checked locking pattern with a raw pointer is broken in C++. The compiler or CPU can reorder the store to `instance_` before the Database constructor has finished writing `connectionString_`. Another thread can read a non-null `instance_` in the outer check but access a partially constructed object. The fix is to make `instance_` a `std::atomic<Database*>` with appropriate memory ordering, or better yet, use the C++11 Meyers singleton: `static Database& getInstance() { static Database instance; return instance; }` — which is thread-safe by the standard.",
+    manifestation: `$ g++ -std=c++17 -O2 -fsanitize=thread singleton.cpp -o singleton -pthread && ./singleton
+==================
+WARNING: ThreadSanitizer: data race (pid=28934)
+  Read of size 8 at 0x555555784040 by thread T2:
+    #0 Database::getInstance() singleton.cpp:20
+  Previous write of size 8 at 0x555555784040 by thread T1:
+    #0 Database::getInstance() singleton.cpp:22
+==================
+Database initialized
+Connection: db://localhost:5432/mydb
+Connection: db://localhost:5432/mydb
+...`,
+    stdlibRefs: [],
+  },
+  {
+    id: 333,
+    topic: "Concurrency Patterns",
+    difficulty: "Medium",
+    title: "Notification Barrier",
+    description: "Uses a promise/future pair to signal completion between threads, with error handling.",
+    code: `#include <iostream>
+#include <future>
+#include <thread>
+#include <stdexcept>
+
+void worker(std::promise<int> p) {
+    try {
+        // Simulate work
+        int result = 42;
+        bool success = true;
+
+        if (success) {
+            p.set_value(result);
+        }
+
+        // More work after setting the value
+        std::cout << "Worker: continuing after notification" << std::endl;
+
+        // Oops, something goes wrong
+        throw std::runtime_error("Unexpected error after notification");
+
+    } catch (const std::exception& e) {
+        p.set_exception(std::current_exception());
+    }
+}
+
+int main() {
+    std::promise<int> promise;
+    auto future = promise.get_future();
+
+    std::thread t(worker, std::move(promise));
+
+    try {
+        int result = future.get();
+        std::cout << "Result: " << result << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+
+    t.join();
+    return 0;
+}`,
+    hints: [
+      "Can you call `set_value()` and then `set_exception()` on the same promise?",
+      "What happens when you set a value or exception on a promise that has already been satisfied?",
+    ],
+    explanation: "The promise is already satisfied by `set_value(result)` when the code succeeds. When the later exception is caught, `set_exception()` is called on an already-satisfied promise, which throws `std::future_error` with `promise_already_satisfied`. This exception is not caught by the catch block (it re-throws), causing `std::terminate`. The fix is to either not catch and re-set after the promise is satisfied, or check whether the promise has already been set before calling set_exception.",
+    manifestation: `$ g++ -std=c++17 -O2 barrier.cpp -o barrier -pthread && ./barrier
+Result: 42
+Worker: continuing after notification
+terminate called after throwing an instance of 'std::future_error'
+  what():  std::future_error: Promise already satisfied
+Aborted (core dumped)`,
+    stdlibRefs: [
+      { name: "std::promise::set_value", args: "(const T& value) → void | (T&& value) → void", brief: "Stores the value as the shared state and makes the future ready.", note: "Can only be called once. Calling set_value or set_exception on an already-satisfied promise throws std::future_error.", link: "https://en.cppreference.com/w/cpp/thread/promise/set_value" },
+      { name: "std::promise::set_exception", args: "(std::exception_ptr p) → void", brief: "Stores the exception pointer as the shared state and makes the future ready.", link: "https://en.cppreference.com/w/cpp/thread/promise/set_exception" },
+    ],
+  },
 ];
