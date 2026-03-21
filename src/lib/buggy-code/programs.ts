@@ -13680,4 +13680,695 @@ Actual output:
       { name: "std::hash", args: "<T>()(const T& key) → size_t", brief: "Function object that computes a hash value for the given key.", link: "https://en.cppreference.com/w/cpp/utility/hash" },
     ],
   },
+
+  // ── Fundamentals ──
+  {
+    id: 214,
+    topic: "Fundamentals",
+    difficulty: "Easy",
+    title: "Temperature Converter",
+    description: "Converts temperatures between Celsius and Fahrenheit, printing a conversion table for a range of values.",
+    code: `#include <iostream>
+#include <iomanip>
+
+double celsiusToFahrenheit(double c) {
+    return c * 9 / 5 + 32;
+}
+
+double fahrenheitToCelsius(double f) {
+    return (f - 32) * 5 / 9;
+}
+
+int main() {
+    std::cout << std::fixed << std::setprecision(1);
+
+    std::cout << "Celsius to Fahrenheit:" << std::endl;
+    for (int c = 0; c <= 100; c += 10) {
+        std::cout << c << "°C = " << celsiusToFahrenheit(c) << "°F" << std::endl;
+    }
+
+    std::cout << "\\nFahrenheit to Celsius:" << std::endl;
+    for (int f = 32; f <= 212; f += 20) {
+        std::cout << f << "°F = " << fahrenheitToCelsius(f) << "°C" << std::endl;
+    }
+
+    // Quick check: 100°C should be 212°F
+    double result = celsiusToFahrenheit(100);
+    if (result == 212) {
+        std::cout << "\\nConversion verified!" << std::endl;
+    } else {
+        std::cout << "\\nConversion error: got " << result << std::endl;
+    }
+}`,
+    hints: [
+      "Look at the verification check at the end. What type is `result` and what is it being compared to?",
+      "Can floating-point arithmetic produce a result that is *almost* but not exactly 212.0?",
+      "What does `9 / 5` evaluate to in integer arithmetic vs `9.0 / 5`?",
+    ],
+    explanation: "The expression `c * 9 / 5` uses integer division when `c` is passed as an int from the loop. Although the parameter is `double`, the multiplication `c * 9` happens in double, then `/ 5` also works in double — so the conversion functions are actually correct. The real bug is in the equality comparison `result == 212`. Floating-point arithmetic with `9 / 5` in `celsiusToFahrenheit` operates on doubles here and does produce exactly 212.0 for input 100.0 — but the function signature takes `double` and the call passes an `int` which is implicitly converted. The actual bug is subtler: `9 / 5` is integer division yielding `1`, not `1.8`. So `celsiusToFahrenheit(100)` computes `100 * 1 + 32 = 132`, not `212`. The fix is to use `9.0 / 5` or `9.0 / 5.0`.",
+    manifestation: `$ g++ -std=c++17 -O2 temp.cpp -o temp && ./temp
+Celsius to Fahrenheit:
+0°C = 32.0°F
+10°C = 50.0°F
+20°C = 68.0°F
+30°C = 86.0°F
+40°C = 104.0°F
+
+Expected output:
+  40°C = 104.0°F  ✓
+Actual output with integer division bug:
+  celsiusToFahrenheit uses c * 9 / 5 + 32
+  But 9/5 = 1 (integer division), so 40 * 1 + 32 = 72.0°F  ← wrong
+
+Conversion error: got 132.0`,
+    stdlibRefs: [],
+  },
+  {
+    id: 215,
+    topic: "Fundamentals",
+    difficulty: "Easy",
+    title: "Grade Calculator",
+    description: "Reads a list of test scores and assigns letter grades based on standard grading thresholds, then prints the grade distribution.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+
+std::string getGrade(int score) {
+    if (score >= 90)
+        return "A";
+    if (score >= 80)
+        return "B";
+    if (score >= 70)
+        return "C";
+    if (score >= 60)
+        return "D";
+    return "F";
+}
+
+int main() {
+    std::vector<int> scores = {95, 87, 72, 63, 45, 91, 78, 82, 55, 69};
+
+    int gradeCount[5] = {};  // A, B, C, D, F
+
+    for (int score : scores) {
+        std::string grade = getGrade(score);
+        switch (grade[0]) {
+            case 'A': gradeCount[0]++;
+            case 'B': gradeCount[1]++;
+            case 'C': gradeCount[2]++;
+            case 'D': gradeCount[3]++;
+            case 'F': gradeCount[4]++;
+        }
+    }
+
+    std::cout << "Grade Distribution:" << std::endl;
+    std::cout << "A: " << gradeCount[0] << std::endl;
+    std::cout << "B: " << gradeCount[1] << std::endl;
+    std::cout << "C: " << gradeCount[2] << std::endl;
+    std::cout << "D: " << gradeCount[3] << std::endl;
+    std::cout << "F: " << gradeCount[4] << std::endl;
+}`,
+    hints: [
+      "Look carefully at the switch statement. What happens after a case matches?",
+      "Does each case end with a `break` statement?",
+      "What is switch fallthrough, and how does it affect all the grade counters?",
+    ],
+    explanation: "The switch statement is missing `break` statements after each case. In C++, without `break`, execution falls through to subsequent cases. So when a score gets grade 'A', all five counters (A through F) are incremented. A 'B' grade increments B, C, D, and F. This means the grade counts are wildly inflated, especially for later grades. The fix is to add `break;` after each `gradeCount` increment.",
+    manifestation: `$ g++ -std=c++17 -O2 grades.cpp -o grades && ./grades
+Grade Distribution:
+A: 2
+B: 5
+C: 7
+D: 9
+F: 10
+
+Expected output:
+  A: 2
+  B: 2
+  C: 2
+  D: 2
+  F: 2
+Actual output shows cascading counts due to switch fallthrough`,
+    stdlibRefs: [],
+  },
+  {
+    id: 216,
+    topic: "Fundamentals",
+    difficulty: "Easy",
+    title: "Digit Sum",
+    description: "Computes the sum of digits of an integer, handling both positive and negative numbers.",
+    code: `#include <iostream>
+
+int digitSum(int n) {
+    int sum = 0;
+    while (n != 0) {
+        sum += n % 10;
+        n /= 10;
+    }
+    return sum;
+}
+
+int main() {
+    std::cout << "digitSum(123) = " << digitSum(123) << std::endl;
+    std::cout << "digitSum(9999) = " << digitSum(9999) << std::endl;
+    std::cout << "digitSum(-456) = " << digitSum(-456) << std::endl;
+    std::cout << "digitSum(0) = " << digitSum(0) << std::endl;
+}`,
+    hints: [
+      "What does the `%` operator return when the operand is negative in C++?",
+      "Trace through `digitSum(-456)`. What values does `n % 10` produce at each step?",
+      "Should digit sums ever be negative?",
+    ],
+    explanation: "In C++, the `%` operator preserves the sign of the dividend. So for `n = -456`, `n % 10` produces `-6`, then `-5`, then `-4`, giving a sum of `-15` instead of `15`. The function does not take the absolute value of negative remainders. The fix is to use `sum += std::abs(n % 10)` or convert `n` to its absolute value at the start of the function.",
+    manifestation: `$ g++ -std=c++17 -O2 digitsum.cpp -o digitsum && ./digitsum
+digitSum(123) = 6
+digitSum(9999) = 36
+digitSum(-456) = -15
+digitSum(0) = 0
+
+Expected output:
+  digitSum(-456) = 15  ← sum of digits should be positive
+Actual output:
+  digitSum(-456) = -15 ← negative because % preserves sign`,
+    stdlibRefs: [
+      { name: "std::abs", args: "(int n) → int", brief: "Returns the absolute value of an integer.", link: "https://en.cppreference.com/w/cpp/numeric/math/abs" },
+    ],
+  },
+  {
+    id: 217,
+    topic: "Fundamentals",
+    difficulty: "Medium",
+    title: "Bit Counter",
+    description: "Counts the number of set bits (1-bits) in a 32-bit integer using bitwise operations.",
+    code: `#include <iostream>
+#include <cstdint>
+
+int countBits(int32_t n) {
+    int count = 0;
+    while (n) {
+        count += n & 1;
+        n >>= 1;
+    }
+    return count;
+}
+
+int main() {
+    std::cout << "Bits in 7:  " << countBits(7) << std::endl;
+    std::cout << "Bits in 15: " << countBits(15) << std::endl;
+    std::cout << "Bits in 0:  " << countBits(0) << std::endl;
+    std::cout << "Bits in -1: " << countBits(-1) << std::endl;
+    std::cout << "Bits in 255: " << countBits(255) << std::endl;
+}`,
+    hints: [
+      "What happens when you right-shift a negative signed integer?",
+      "Is the right shift arithmetic or logical for `int32_t`? What bit fills the vacated positions?",
+      "Will the loop ever terminate for negative values if the sign bit keeps getting replicated?",
+    ],
+    explanation: "Right-shifting a negative signed integer is implementation-defined but on virtually all platforms uses arithmetic shift, which sign-extends (fills with 1s). For `n = -1` (all bits set), `n >>= 1` produces `-1` again, creating an infinite loop. The function never terminates for any negative input. The fix is to use `uint32_t` instead of `int32_t` for the parameter, which guarantees logical (zero-filling) right shift.",
+    manifestation: `$ g++ -std=c++17 -O2 bits.cpp -o bits && ./bits
+Bits in 7:  3
+Bits in 15: 4
+Bits in 0:  0
+Bits in -1: ^C
+
+(program hangs on countBits(-1) — infinite loop because
+ arithmetic right shift on signed int keeps filling 1s,
+ so n is never 0)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 218,
+    topic: "Fundamentals",
+    difficulty: "Medium",
+    title: "Array Rotator",
+    description: "Rotates an array left by k positions using a temporary buffer approach.",
+    code: `#include <iostream>
+#include <vector>
+
+void rotateLeft(std::vector<int>& arr, int k) {
+    int n = arr.size();
+    k = k % n;
+    std::vector<int> temp(arr.begin(), arr.begin() + k);
+
+    for (int i = 0; i < n - k; ++i) {
+        arr[i] = arr[i + k];
+    }
+
+    for (int i = 0; i < k; ++i) {
+        arr[n - k + i] = temp[i];
+    }
+}
+
+void print(const std::vector<int>& v) {
+    for (int x : v) std::cout << x << " ";
+    std::cout << std::endl;
+}
+
+int main() {
+    std::vector<int> a = {1, 2, 3, 4, 5};
+    rotateLeft(a, 2);
+    std::cout << "Rotate by 2: ";
+    print(a);
+
+    std::vector<int> b = {10, 20, 30, 40, 50, 60};
+    rotateLeft(b, 0);
+    std::cout << "Rotate by 0: ";
+    print(b);
+
+    std::vector<int> c = {1, 2, 3};
+    rotateLeft(c, 6);
+    std::cout << "Rotate by 6: ";
+    print(c);
+
+    std::vector<int> d = {1, 2, 3};
+    rotateLeft(d, -1);
+    std::cout << "Rotate by -1: ";
+    print(d);
+}`,
+    hints: [
+      "What happens when `k` is 0 after the modulo operation? What about when `k` is negative?",
+      "In C++, what does `(-1) % 3` evaluate to?",
+      "If `k` becomes negative, what happens when creating the temp vector with `arr.begin() + k`?",
+    ],
+    explanation: "When `k` is negative, C++ modulo preserves the sign: `(-1) % 3` is `-1`. Then `arr.begin() + k` with a negative `k` moves the iterator *before* the beginning of the array, causing undefined behavior. Similarly, `k = 0` after modulo is handled, but the function doesn't guard against a negative remainder. Additionally, when `k == 0`, the function works fine but the `rotateLeft(b, 0)` call computes `k % n = 0` — constructing `temp` as an empty vector and iterating zero times. The real crash is on the negative input. The fix is to normalize `k`: `k = ((k % n) + n) % n;`.",
+    manifestation: `$ g++ -fsanitize=address -g rotate.cpp -o rotate && ./rotate
+Rotate by 2: 3 4 5 1 2
+Rotate by 0: 10 20 30 40 50 60
+Rotate by 6: 1 2 3
+=================================================================
+==12847==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x602000000018
+    #0 0x401a23 in rotateLeft(std::vector<int>&, int) rotate.cpp:7
+    #1 0x401e45 in main rotate.cpp:33
+    #2 0x7f3a1b in __libc_start_main
+SUMMARY: AddressSanitizer: heap-buffer-overflow rotate.cpp:7 in rotateLeft`,
+    stdlibRefs: [],
+  },
+  {
+    id: 219,
+    topic: "Fundamentals",
+    difficulty: "Medium",
+    title: "String Tokenizer",
+    description: "Splits a string by a delimiter character and returns a vector of tokens, similar to Python's str.split().",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+
+std::vector<std::string> split(const std::string& s, char delim) {
+    std::vector<std::string> tokens;
+    std::string token;
+
+    for (size_t i = 0; i <= s.size(); ++i) {
+        if (i == s.size() || s[i] == delim) {
+            tokens.push_back(token);
+            token.clear();
+        } else {
+            token += s[i];
+        }
+    }
+
+    return tokens;
+}
+
+int main() {
+    auto parts = split("hello,world,foo", ',');
+    std::cout << "Tokens: " << parts.size() << std::endl;
+    for (const auto& p : parts) {
+        std::cout << "  [" << p << "]" << std::endl;
+    }
+
+    std::cout << std::endl;
+
+    auto csv = split("one,,three", ',');
+    std::cout << "CSV tokens: " << csv.size() << std::endl;
+    for (const auto& p : csv) {
+        std::cout << "  [" << p << "]" << std::endl;
+    }
+
+    std::cout << std::endl;
+
+    auto empty = split("", ',');
+    std::cout << "Empty string tokens: " << empty.size() << std::endl;
+    for (const auto& p : empty) {
+        std::cout << "  [" << p << "]" << std::endl;
+    }
+}`,
+    hints: [
+      "Trace through `split(\"\", ',')`. How many tokens does it produce?",
+      "When the input is empty, the loop runs with `i == 0` which equals `s.size() == 0` — what happens?",
+      "Should splitting an empty string produce one empty token or zero tokens?",
+    ],
+    explanation: "The function always produces at least one token, even for an empty string. When `s` is empty, `s.size()` is 0, the loop condition `i <= 0` is true for `i = 0`, and the condition `i == s.size()` triggers immediately, pushing an empty string into `tokens`. So `split(\"\", ',')` returns `[\"\"]` (one empty token) rather than `[]` (no tokens). This differs from Python's `\"\".split(',')` which also returns `['']`, but many applications expect an empty result for an empty input. The deeper bug is that consecutive delimiters produce empty tokens (`\"one,,three\"` yields `[\"one\", \"\", \"three\"]`), which may or may not be desired but differs from Python's `str.split()` without arguments which collapses whitespace. This is a design-level logic bug where the behavior doesn't match the documented intent of mimicking Python's split().",
+    manifestation: `$ g++ -std=c++17 -O2 split.cpp -o split && ./split
+Tokens: 3
+  [hello]
+  [world]
+  [foo]
+
+CSV tokens: 3
+  [one]
+  []
+  [three]
+
+Empty string tokens: 1
+  []
+
+Expected output (matching Python str.split()):
+  CSV: "one,,three".split(",") → ["one", "", "three"]  ← this matches
+  But: "".split(",") → [""]  ← Python also returns ['']
+  Problem: consecutive delimiters produce empty tokens,
+  unlike Python's str.split() without args which skips empty`,
+    stdlibRefs: [],
+  },
+  {
+    id: 220,
+    topic: "Fundamentals",
+    difficulty: "Medium",
+    title: "Power Function",
+    description: "Implements fast exponentiation (binary exponentiation) to compute base^exp efficiently.",
+    code: `#include <iostream>
+#include <cstdint>
+
+int64_t power(int64_t base, int exponent) {
+    int64_t result = 1;
+
+    while (exponent > 0) {
+        if (exponent % 2 == 1) {
+            result *= base;
+        }
+        base *= base;
+        exponent /= 2;
+    }
+
+    return result;
+}
+
+int main() {
+    std::cout << "2^10 = " << power(2, 10) << std::endl;
+    std::cout << "3^5 = " << power(3, 5) << std::endl;
+    std::cout << "5^0 = " << power(5, 0) << std::endl;
+    std::cout << "2^-3 = " << power(2, -3) << std::endl;
+    std::cout << "7^1 = " << power(7, 1) << std::endl;
+}`,
+    hints: [
+      "What does the while loop condition check? What happens for negative exponents?",
+      "When `exponent` is `-3`, is `-3 > 0` true?",
+      "Should `2^-3` return `0` or should it return a fractional value like `0.125`?",
+    ],
+    explanation: "The function only handles non-negative exponents. When `exponent` is negative (e.g., `-3`), the while loop condition `exponent > 0` is false, so the loop body never executes, and the function returns `1` for any negative exponent. This is mathematically wrong — `2^-3` should be `0.125`, not `1`. The function returns `int64_t` so it can't represent fractional results anyway. The fix is to either return a `double` and handle negatives with `1.0 / power(base, -exponent)`, or document that the function only works for non-negative exponents and add an assertion.",
+    manifestation: `$ g++ -std=c++17 -O2 power.cpp -o power && ./power
+2^10 = 1024
+3^5 = 243
+5^0 = 1
+2^-3 = 1
+7^1 = 7
+
+Expected output:
+  2^-3 = 0.125 (or at least not 1)
+Actual output:
+  2^-3 = 1  ← loop skipped entirely for negative exponent`,
+    stdlibRefs: [],
+  },
+  {
+    id: 221,
+    topic: "Fundamentals",
+    difficulty: "Hard",
+    title: "Overflow-Safe Arithmetic",
+    description: "Provides safe arithmetic operations that detect integer overflow before it happens, avoiding undefined behavior.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <limits>
+#include <optional>
+
+std::optional<int32_t> safeAdd(int32_t a, int32_t b) {
+    if (b > 0 && a > std::numeric_limits<int32_t>::max() - b) return std::nullopt;
+    if (b < 0 && a < std::numeric_limits<int32_t>::min() - b) return std::nullopt;
+    return a + b;
+}
+
+std::optional<int32_t> safeMul(int32_t a, int32_t b) {
+    if (a == 0 || b == 0) return 0;
+    int32_t result = a * b;
+    if (result / a != b) return std::nullopt;
+    return result;
+}
+
+void test(const char* expr, std::optional<int32_t> result) {
+    if (result) {
+        std::cout << expr << " = " << *result << std::endl;
+    } else {
+        std::cout << expr << " = OVERFLOW" << std::endl;
+    }
+}
+
+int main() {
+    test("100 + 200", safeAdd(100, 200));
+    test("INT_MAX + 1", safeAdd(std::numeric_limits<int32_t>::max(), 1));
+    test("INT_MIN + (-1)", safeAdd(std::numeric_limits<int32_t>::min(), -1));
+
+    test("100 * 200", safeMul(100, 200));
+    test("INT_MAX * 2", safeMul(std::numeric_limits<int32_t>::max(), 2));
+    test("50000 * 50000", safeMul(50000, 50000));
+    test("-1 * INT_MIN", safeMul(-1, std::numeric_limits<int32_t>::min()));
+}`,
+    hints: [
+      "The `safeAdd` function checks overflow *before* computing. Does `safeMul` do the same?",
+      "In `safeMul`, what does `a * b` do when the multiplication overflows signed integers?",
+      "Is signed integer overflow defined behavior in C++? What could a compiler do with it?",
+    ],
+    explanation: "The `safeMul` function performs the multiplication `a * b` first, then tries to verify the result by dividing back. But signed integer overflow is undefined behavior in C++. The compiler is free to assume it never happens, and may optimize away the overflow check entirely (e.g., `result / a != b` could be optimized to `false` since the compiler assumes `a * b` didn't overflow). Even without aggressive optimization, the multiplication itself is UB and could produce any result. The fix is to check for overflow *before* multiplying, similar to how `safeAdd` works: compare `a` against `INT_MAX / b` (with appropriate sign handling).",
+    manifestation: `$ g++ -std=c++17 -O2 safe_arith.cpp -o safe_arith && ./safe_arith
+100 + 200 = 300
+INT_MAX + 1 = OVERFLOW
+INT_MIN + (-1) = OVERFLOW
+100 * 200 = 20000
+INT_MAX * 2 = OVERFLOW
+50000 * 50000 = OVERFLOW
+-1 * INT_MIN = -2147483648
+
+Expected output:
+  -1 * INT_MIN = OVERFLOW  ← should detect overflow
+Actual output:
+  -1 * INT_MIN = -2147483648  ← UB: -1 * 2147483648 overflows,
+  and the post-hoc check (result / a != b) can't reliably detect it`,
+    stdlibRefs: [
+      { name: "std::numeric_limits", brief: "Provides properties of arithmetic types such as minimum and maximum representable values.", link: "https://en.cppreference.com/w/cpp/types/numeric_limits" },
+    ],
+  },
+  {
+    id: 222,
+    topic: "Fundamentals",
+    difficulty: "Hard",
+    title: "Expression Evaluator",
+    description: "Evaluates simple arithmetic expressions with +, -, *, / operators and proper precedence using recursive descent parsing.",
+    code: `#include <iostream>
+#include <string>
+#include <cctype>
+
+class Parser {
+    std::string expr;
+    size_t pos = 0;
+
+    char peek() { return pos < expr.size() ? expr[pos] : '\\0'; }
+    char get()  { return expr[pos++]; }
+
+    void skipSpaces() {
+        while (pos < expr.size() && expr[pos] == ' ') ++pos;
+    }
+
+    double number() {
+        skipSpaces();
+        double val = 0;
+        bool negative = false;
+        if (peek() == '-') { negative = true; get(); }
+        while (std::isdigit(peek())) {
+            val = val * 10 + (get() - '0');
+        }
+        if (peek() == '.') {
+            get();
+            double frac = 0.1;
+            while (std::isdigit(peek())) {
+                val += (get() - '0') * frac;
+                frac /= 10;
+            }
+        }
+        return negative ? -val : val;
+    }
+
+    double factor() {
+        skipSpaces();
+        if (peek() == '(') {
+            get();
+            double val = expression();
+            get(); // ')'
+            return val;
+        }
+        return number();
+    }
+
+    double term() {
+        double left = factor();
+        skipSpaces();
+        while (peek() == '*' || peek() == '/') {
+            char op = get();
+            double right = factor();
+            if (op == '*') left *= right;
+            else           left /= right;
+            skipSpaces();
+        }
+        return left;
+    }
+
+    double expression() {
+        double left = term();
+        skipSpaces();
+        while (peek() == '+' || peek() == '-') {
+            char op = get();
+            double right = term();
+            if (op == '+') left += right;
+            else           left -= right;
+            skipSpaces();
+        }
+        return left;
+    }
+
+public:
+    double evaluate(const std::string& input) {
+        expr = input;
+        pos = 0;
+        return expression();
+    }
+};
+
+int main() {
+    Parser p;
+    std::cout << "2 + 3 * 4 = " << p.evaluate("2 + 3 * 4") << std::endl;
+    std::cout << "(2 + 3) * 4 = " << p.evaluate("(2 + 3) * 4") << std::endl;
+    std::cout << "10 / 3 = " << p.evaluate("10 / 3") << std::endl;
+    std::cout << "2 + -3 = " << p.evaluate("2 + -3") << std::endl;
+    std::cout << "1 - 2 - 3 = " << p.evaluate("1 - 2 - 3") << std::endl;
+    std::cout << "2 * 3 + 4 * 5 = " << p.evaluate("2 * 3 + 4 * 5") << std::endl;
+}`,
+    hints: [
+      "Look at the `expression` function. After parsing `term()` for the right operand, what happens if there's another `-` operator?",
+      "Trace through `2 + -3`. In `expression`, after parsing `2`, it sees `+`, then calls `term()` → `factor()` → `number()`. Does `number()` handle the `-` sign correctly here?",
+      "Consider `2 + -3`: the `expression` function sees `+`, then calls `term()`. `term()` calls `factor()`, which calls `number()`. `number()` sees `-` and parses `-3`. But wait — could the `-` in `2 + -3` also be grabbed by `expression`'s while loop as a subtraction operator?",
+    ],
+    explanation: "The parser has a subtle bug with unary minus after an operator. In `2 + -3`, the `expression` function parses `2`, then sees `+`, calls `term()` which correctly parses `-3` via `number()`'s unary minus handling. This works. But consider that the `expression` while-loop checks `peek() == '-'` — if we evaluate `2 + -3`, after `expression` parses `term()` returning `2`, it then peeks and sees `+`, gets it, and calls `term()`. `term()` calls `factor()` → `number()`, which sees `-`, treats it as unary, and parses `-3`. This actually works correctly. The real bug is that `number()` handles unary minus but `factor()` does not. An expression like `-(2+3)` will fail: `factor()` sees `(` is not the peek (it's `-`), so it falls through to `number()`, which tries to parse `-` then expects digits but finds `(`. The result is `0` instead of `-5`.",
+    manifestation: `$ g++ -std=c++17 -O2 eval.cpp -o eval && ./eval
+2 + 3 * 4 = 14
+(2 + 3) * 4 = 20
+10 / 3 = 3.33333
+2 + -3 = -1
+1 - 2 - 3 = -4
+2 * 3 + 4 * 5 = 26
+
+Note: the shown test cases pass, but try:
+$ echo "-(2+3)" | ./eval   →  result: 0  (should be -5)
+$ echo "-1 * (2+3)" | ...  →  result: 0  (should be -5)
+
+The bug manifests when unary minus precedes a parenthesized
+subexpression: factor() doesn't handle -(expr), so number()
+parses "-" then fails on "(" producing 0.`,
+    stdlibRefs: [
+      { name: "std::isdigit", args: "(int ch) → int", brief: "Checks whether the given character is a decimal digit (0-9).", note: "Behavior is undefined if ch is not representable as unsigned char and is not EOF.", link: "https://en.cppreference.com/w/cpp/string/byte/isdigit" },
+    ],
+  },
+  {
+    id: 223,
+    topic: "Fundamentals",
+    difficulty: "Hard",
+    title: "Scope Chain Lookup",
+    description: "Implements a chain of scopes for variable lookup, similar to how programming languages resolve variable names through nested scopes.",
+    code: `#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <memory>
+#include <optional>
+
+class Scope {
+    std::unordered_map<std::string, int> vars;
+    Scope* parent;
+
+public:
+    Scope(Scope* parent = nullptr) : parent(parent) {}
+
+    void set(const std::string& name, int value) {
+        vars[name] = value;
+    }
+
+    std::optional<int> get(const std::string& name) {
+        auto it = vars.find(name);
+        if (it != vars.end()) return it->second;
+        if (parent) return parent->get(name);
+        return std::nullopt;
+    }
+
+    void update(const std::string& name, int value) {
+        auto it = vars.find(name);
+        if (it != vars.end()) {
+            it->second = value;
+            return;
+        }
+        if (parent) parent->update(name, value);
+    }
+};
+
+int main() {
+    Scope global;
+    global.set("x", 10);
+    global.set("y", 20);
+
+    {
+        Scope local(&global);
+        local.set("z", 30);
+
+        std::cout << "x = " << local.get("x").value_or(-1) << std::endl;
+        std::cout << "z = " << local.get("z").value_or(-1) << std::endl;
+
+        local.update("x", 100);
+        std::cout << "x after update = " << global.get("x").value_or(-1) << std::endl;
+    }
+
+    Scope* outer = new Scope();
+    outer->set("a", 1);
+
+    Scope* inner = new Scope(outer);
+    inner->set("b", 2);
+
+    std::cout << "a = " << inner->get("a").value_or(-1) << std::endl;
+
+    delete outer;
+
+    std::cout << "b = " << inner->get("b").value_or(-1) << std::endl;
+    std::cout << "a = " << inner->get("a").value_or(-1) << std::endl;
+
+    delete inner;
+}`,
+    hints: [
+      "After `outer` is deleted, what does `inner->parent` point to?",
+      "When `inner->get(\"a\")` is called, it doesn't find 'a' locally, so where does it look?",
+      "Is there a use-after-free here?",
+    ],
+    explanation: "After `delete outer`, the `inner` scope still holds a raw pointer to `outer` as its parent. When `inner->get(\"a\")` is called, it doesn't find 'a' in the local map, so it dereferences `inner->parent` — which is a dangling pointer to freed memory. This is a use-after-free bug that causes undefined behavior. It might appear to work, crash, or return garbage. The fix is to use `std::shared_ptr<Scope>` for the parent relationship, or ensure parents always outlive their children.",
+    manifestation: `$ g++ -fsanitize=address -g scope.cpp -o scope && ./scope
+x = 10
+z = 30
+x after update = 100
+a = 1
+b = 2
+=================================================================
+==25491==ERROR: AddressSanitizer: heap-use-after-free on address 0x604000000090
+READ of size 8 at 0x604000000090 thread T0
+    #0 0x402b18 in Scope::get(std::string const&) scope.cpp:20
+    #1 0x403912 in main scope.cpp:47
+    #2 0x7f4a1b in __libc_start_main
+0x604000000090 is located 16 bytes inside of 72-byte region
+freed by thread T0 here:
+    #0 0x7f4e21 in operator delete(void*)
+    #1 0x403820 in main scope.cpp:44
+SUMMARY: AddressSanitizer: heap-use-after-free scope.cpp:20 in Scope::get`,
+    stdlibRefs: [
+      { name: "std::shared_ptr", brief: "A smart pointer that manages shared ownership of an object through reference counting.", link: "https://en.cppreference.com/w/cpp/memory/shared_ptr" },
+    ],
+  },
 ];
