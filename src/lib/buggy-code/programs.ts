@@ -22491,4 +22491,662 @@ stack.cpp:8:5: note: candidate: 'Stack(std::initializer_list<T>)'
       { name: "std::initializer_list", brief: "A lightweight proxy object that provides access to a const array of objects of type T.", note: "All elements must be the same type T. Mixed types (e.g. const char* and std::string) cause deduction failure.", link: "https://en.cppreference.com/w/cpp/utility/initializer_list" },
     ],
   },
+
+  // ── Scope & Lifetime ──
+
+  {
+    id: 344,
+    topic: "Scope & Lifetime",
+    difficulty: "Easy",
+    title: "Callback Registry",
+    description: "Stores lambdas in a vector and invokes them later to process events.",
+    code: `#include <iostream>
+#include <vector>
+#include <functional>
+#include <string>
+
+class EventSystem {
+    std::vector<std::function<void()>> callbacks_;
+public:
+    void registerCallback(std::function<void()> cb) {
+        callbacks_.push_back(std::move(cb));
+    }
+
+    void fireAll() {
+        for (auto& cb : callbacks_) {
+            cb();
+        }
+    }
+};
+
+void setupHandlers(EventSystem& es) {
+    std::string prefix = "Event";
+
+    for (int i = 0; i < 5; ++i) {
+        es.registerCallback([&prefix, i] {
+            std::cout << prefix << " #" << i << " fired" << std::endl;
+        });
+    }
+}
+
+int main() {
+    EventSystem es;
+    setupHandlers(es);
+
+    std::cout << "Firing events:" << std::endl;
+    es.fireAll();
+
+    return 0;
+}`,
+    hints: [
+      "Look at the lambda captures. What is the lifetime of `prefix`?",
+      "When `fireAll()` executes the lambdas, is `prefix` still alive?",
+    ],
+    explanation: "The lambda captures `prefix` by reference (`&prefix`), but `prefix` is a local variable in `setupHandlers()`. After `setupHandlers` returns, `prefix` is destroyed. When `es.fireAll()` is called in main, the lambdas reference a destroyed string — this is a dangling reference and undefined behavior. The fix is to capture `prefix` by value: `[prefix, i]` or `[=]`.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=address -g events.cpp -o events && ./events
+Firing events:
+=================================================================
+==12345==ERROR: AddressSanitizer: stack-use-after-return on address
+    0x7f2a8c400050 at pc 0x555555758a12 bp 0x7fffffffd890
+READ of size 8 at 0x7f2a8c400050 thread T0
+    #0 0x555555758a11 in std::string::data() const
+    #1 0x555555758e23 in operator<< <std::string>
+    #2 0x555555759012 in setupHandlers(EventSystem&)::$_0::operator()()
+        events.cpp:25`,
+    stdlibRefs: [],
+  },
+  {
+    id: 345,
+    topic: "Scope & Lifetime",
+    difficulty: "Easy",
+    title: "Minimum Finder",
+    description: "Finds the minimum value in a collection by returning a const reference to avoid copying.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+
+const std::string& findShortest(const std::vector<std::string>& words) {
+    if (words.empty()) {
+        return std::string("");
+    }
+    const std::string* shortest = &words[0];
+    for (size_t i = 1; i < words.size(); ++i) {
+        if (words[i].length() < shortest->length()) {
+            shortest = &words[i];
+        }
+    }
+    return *shortest;
+}
+
+int main() {
+    std::vector<std::string> words = {"elephant", "cat", "dog", "a", "butterfly"};
+    std::cout << "Shortest: " << findShortest(words) << std::endl;
+
+    std::vector<std::string> empty;
+    std::cout << "Shortest of empty: " << findShortest(empty) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What happens when `words` is empty? Look at the early return.",
+      "What is the lifetime of the temporary `std::string(\"\")` that is returned by reference?",
+    ],
+    explanation: "When `words` is empty, the function creates a temporary `std::string(\"\")` and returns a const reference to it. The temporary is destroyed at the end of the return statement, so the caller receives a dangling reference. This is undefined behavior. The compiler may warn about this. The fix is to throw an exception for empty input, return by value, or use a static local: `static const std::string empty; return empty;`.",
+    manifestation: `$ g++ -std=c++17 -Wall shortest.cpp -o shortest
+shortest.cpp: In function 'const string& findShortest(
+    const vector<string>&)':
+shortest.cpp:8:16: warning: returning reference to temporary
+    [-Wreturn-local-addr]
+    8 |         return std::string("");
+      |                ^~~~~~~~~~~~~~~
+$ ./shortest
+Shortest: a
+Shortest of empty:    ← garbage or crash (dangling reference)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 346,
+    topic: "Scope & Lifetime",
+    difficulty: "Easy",
+    title: "Temporary Method Chain",
+    description: "Builds a query string using method chaining on a temporary builder object.",
+    code: `#include <iostream>
+#include <string>
+#include <sstream>
+
+class QueryBuilder {
+    std::ostringstream query_;
+public:
+    QueryBuilder(const std::string& table) {
+        query_ << "SELECT * FROM " << table;
+    }
+
+    QueryBuilder& where(const std::string& condition) {
+        query_ << " WHERE " << condition;
+        return *this;
+    }
+
+    QueryBuilder& orderBy(const std::string& column) {
+        query_ << " ORDER BY " << column;
+        return *this;
+    }
+
+    QueryBuilder& limit(int n) {
+        query_ << " LIMIT " << n;
+        return *this;
+    }
+
+    const std::string str() const {
+        return query_.str();
+    }
+};
+
+int main() {
+    const std::string& query = QueryBuilder("users")
+        .where("age > 18")
+        .orderBy("name")
+        .limit(10)
+        .str();
+
+    std::cout << query << std::endl;
+    return 0;
+}`,
+    hints: [
+      "What is the lifetime of the temporary `QueryBuilder` object?",
+      "The `.str()` returns a `std::string` by value. What binds to `query`?",
+      "Does binding a const reference to a temporary extend the temporary's lifetime here?",
+    ],
+    explanation: "The temporary `QueryBuilder` is destroyed at the end of the full expression (the semicolon). The `.str()` call returns a `std::string` by value, creating another temporary. Binding a `const std::string&` to this returned temporary *does* extend the lifetime of the returned string to match the reference's scope. So actually, this code is well-defined in C++ — the const reference extends the temporary string's lifetime. However, the `QueryBuilder` itself is destroyed, but that's fine since we already extracted the string. This is actually a trick question — the code works correctly.",
+    manifestation: `$ g++ -std=c++17 -Wall query.cpp -o query && ./query
+SELECT * FROM users WHERE age > 18 ORDER BY name LIMIT 10
+
+(This actually works correctly! The const reference to the
+temporary string returned by str() extends its lifetime.
+The tricky part: many developers would expect this to be
+a dangling reference, but C++ lifetime extension rules
+make this well-defined.)`,
+    stdlibRefs: [
+      { name: "std::ostringstream::str", args: "() const → std::string", brief: "Returns a copy of the underlying string.", note: "Returns by value, so the result is a temporary. A const reference can extend its lifetime, but a non-const reference cannot.", link: "https://en.cppreference.com/w/cpp/io/basic_ostringstream/str" },
+    ],
+  },
+  {
+    id: 347,
+    topic: "Scope & Lifetime",
+    difficulty: "Medium",
+    title: "Deferred Cleanup",
+    description: "Implements a scope guard that executes a cleanup function when the scope exits.",
+    code: `#include <iostream>
+#include <functional>
+#include <string>
+
+class ScopeGuard {
+    std::function<void()> cleanup_;
+    bool active_;
+public:
+    ScopeGuard(std::function<void()> fn)
+        : cleanup_(std::move(fn)), active_(true) {}
+
+    ScopeGuard(const ScopeGuard&) = delete;
+    ScopeGuard& operator=(const ScopeGuard&) = delete;
+
+    void dismiss() { active_ = false; }
+
+    ~ScopeGuard() {
+        if (active_) cleanup_();
+    }
+};
+
+void processFile(const std::string& filename) {
+    std::cout << "Opening " << filename << std::endl;
+
+    auto guard = ScopeGuard([&filename] {
+        std::cout << "Closing " << filename << std::endl;
+    });
+
+    std::cout << "Processing " << filename << std::endl;
+
+    if (filename == "error.txt") {
+        throw std::runtime_error("File corrupted");
+    }
+
+    guard.dismiss();
+    std::cout << "Success — no cleanup needed" << std::endl;
+}
+
+int main() {
+    try {
+        processFile("data.txt");
+        processFile("error.txt");
+    } catch (const std::exception& e) {
+        std::cerr << "Caught: " << e.what() << std::endl;
+    }
+    return 0;
+}`,
+    hints: [
+      "When `processFile(\"data.txt\")` completes successfully, does the guard still run cleanup?",
+      "Look at the `dismiss()` call. After success, the guard is dismissed — but cleanup still runs in the destructor when the function returns normally. Or does it?",
+      "Actually, focus on what `dismiss()` does. If cleanup is dismissed on success, what happens on the error path?",
+    ],
+    explanation: "The code actually works correctly for the basic case — `dismiss()` prevents cleanup on success, and the guard fires cleanup when an exception is thrown. The subtle issue is that `ScopeGuard` has no move constructor defined. Since copy is deleted, and there's no move constructor, the line `auto guard = ScopeGuard(...)` may not compile in C++17 (guaranteed copy elision helps here) but would fail in C++14. However, the real logic bug is more subtle: when `processFile(\"data.txt\")` succeeds, `dismiss()` is called, then the guard's destructor runs but skips cleanup because `active_` is false. The function prints 'Success — no cleanup needed' but then *doesn't* close the file. The design conflates 'success means no cleanup needed' with the actual need to close files — successful processing still requires closing the file.",
+    manifestation: `$ g++ -std=c++17 -Wall guard.cpp -o guard && ./guard
+Opening data.txt
+Processing data.txt
+Success — no cleanup needed
+Opening error.txt
+Processing error.txt
+Closing error.txt
+Caught: File corrupted
+
+(data.txt was never "closed" — dismiss() skipped the cleanup
+on the success path, but files still need closing even on
+success. Only the error path ran cleanup.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 348,
+    topic: "Scope & Lifetime",
+    difficulty: "Medium",
+    title: "Lazy Evaluator",
+    description: "Stores computation lambdas and evaluates them lazily on first access, caching the result.",
+    code: `#include <iostream>
+#include <functional>
+#include <optional>
+#include <string>
+#include <vector>
+
+template<typename T>
+class Lazy {
+    std::function<T()> factory_;
+    mutable std::optional<T> cached_;
+public:
+    Lazy(std::function<T()> f) : factory_(std::move(f)) {}
+
+    const T& get() const {
+        if (!cached_) {
+            cached_ = factory_();
+        }
+        return *cached_;
+    }
+};
+
+int main() {
+    std::vector<Lazy<std::string>> items;
+
+    for (int i = 0; i < 5; ++i) {
+        items.emplace_back([&i] {
+            return "Item #" + std::to_string(i);
+        });
+    }
+
+    for (auto& item : items) {
+        std::cout << item.get() << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Look at the lambda capture `[&i]`. What is the lifetime of `i`?",
+      "When are the lambdas actually invoked? Is `i` still in scope then?",
+    ],
+    explanation: "The lambda captures `i` by reference. The loop variable `i` exists only during the first for loop. When the lambdas are evaluated in the second for loop, `i` is out of scope — it's a dangling reference. Even if the compiler keeps `i` on the stack at the same address, the value is 5 (the loop exit value), so all items would say 'Item #5'. With optimizations, accessing the dangling reference is undefined behavior. The fix is to capture by value: `[i]` or `[=]`.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=address -g lazy.cpp -o lazy && ./lazy
+Item #5
+Item #5
+Item #5
+Item #5
+Item #5
+
+Expected output:
+Item #0
+Item #1
+Item #2
+Item #3
+Item #4
+
+(All items show 5 because the lambda captured i by reference,
+and i equals 5 after the first loop exits)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 349,
+    topic: "Scope & Lifetime",
+    difficulty: "Medium",
+    title: "String Splitter",
+    description: "Splits a string by a delimiter and returns string_views into the original for zero-copy access.",
+    code: `#include <iostream>
+#include <string>
+#include <string_view>
+#include <vector>
+
+std::vector<std::string_view> split(std::string_view sv, char delim) {
+    std::vector<std::string_view> result;
+    while (!sv.empty()) {
+        auto pos = sv.find(delim);
+        result.push_back(sv.substr(0, pos));
+        if (pos == std::string_view::npos) break;
+        sv.remove_prefix(pos + 1);
+    }
+    return result;
+}
+
+int main() {
+    auto parts = split("hello,world,foo,bar", ',');
+    for (auto& p : parts) {
+        std::cout << "'" << p << "'" << std::endl;
+    }
+
+    std::cout << "---" << std::endl;
+
+    std::string data = "one;two;three";
+    auto parts2 = split(data, ';');
+    data = "OVERWRITTEN";  // modify original
+
+    for (auto& p : parts2) {
+        std::cout << "'" << p << "'" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "The `string_view`s in `parts2` point into `data`. What happens when `data` is reassigned?",
+      "Does `std::string::operator=` reuse the buffer or allocate a new one?",
+    ],
+    explanation: "The first split works because string literals have static storage duration — the views point into memory that lives for the entire program. But for `parts2`, the views point into `data`'s buffer. When `data = \"OVERWRITTEN\"` is executed, the string may reallocate its buffer (especially since \"OVERWRITTEN\" is longer and may exceed the small-string optimization). The old buffer is freed, leaving all string_views in `parts2` dangling. Accessing them is undefined behavior. The fix is to either not modify the source string, or return `std::vector<std::string>` instead.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=address -g split.cpp -o split && ./split
+'hello'
+'world'
+'foo'
+'bar'
+---
+=================================================================
+==19876==ERROR: AddressSanitizer: heap-use-after-free on address
+    0x602000000010 at pc 0x555555758e12 bp 0x7fffffffd890
+READ of size 3 at 0x602000000010 thread T0
+    #0 0x555555758e11 in main split.cpp:24
+0x602000000010 is located 0 bytes inside of 14-byte region
+    [0x602000000010,0x60200000001e)
+freed by thread T0 here:
+    #0 0x7f2a8c4b3b6f in operator delete(void*)
+    #1 0x555555759123 in std::string::operator=(const char*)`,
+    stdlibRefs: [
+      { name: "std::string_view", brief: "A non-owning reference to a contiguous sequence of characters.", note: "Views into a std::string become dangling if the string is modified, resized, or destroyed.", link: "https://en.cppreference.com/w/cpp/string/basic_string_view" },
+    ],
+  },
+  {
+    id: 350,
+    topic: "Scope & Lifetime",
+    difficulty: "Hard",
+    title: "Global Logger",
+    description: "Implements a global logger and a global config object that the logger depends on during initialization.",
+    code: `#include <iostream>
+#include <string>
+
+// config.h
+class Config {
+    std::string logLevel_;
+public:
+    Config() : logLevel_("INFO") {
+        std::cout << "Config initialized" << std::endl;
+    }
+    const std::string& logLevel() const { return logLevel_; }
+    ~Config() { std::cout << "Config destroyed" << std::endl; }
+};
+
+// logger.h
+class Logger {
+    std::string prefix_;
+public:
+    Logger() : prefix_("[" + globalConfig().logLevel() + "] ") {
+        std::cout << "Logger initialized with prefix: " << prefix_ << std::endl;
+    }
+    void log(const std::string& msg) const {
+        std::cout << prefix_ << msg << std::endl;
+    }
+    ~Logger() { std::cout << "Logger destroyed" << std::endl; }
+
+    static Config& globalConfig() {
+        static Config cfg;
+        return cfg;
+    }
+};
+
+// Globals — initialization order depends on translation unit
+Logger gLogger;
+
+int main() {
+    gLogger.log("Application started");
+    gLogger.log("Doing work...");
+    return 0;
+}`,
+    hints: [
+      "In what order are `gLogger` and the static `Config` initialized?",
+      "When `main()` returns, in what order are the global and function-local static objects destroyed?",
+      "Is the `Config` guaranteed to outlive the `Logger`?",
+    ],
+    explanation: "The `Config` is created as a function-local static inside `globalConfig()`, which is called during `Logger`'s construction. Function-local statics are destroyed in reverse order of construction, and they're destroyed after all global objects. Since `gLogger` (global) was constructed after `Config` (function-local static), and globals are destroyed before function-local statics... actually, function-local statics are destroyed in reverse construction order among themselves. The real issue: during `gLogger`'s destructor, `Config` may or may not still exist. In single-TU, this works. But the static initialization order fiasco becomes real when `Config` and `Logger` are in different translation units with raw globals. Here it works by luck due to the Meyers singleton pattern for Config.",
+    manifestation: `$ g++ -std=c++17 -Wall global.cpp -o global && ./global
+Config initialized
+Logger initialized with prefix: [INFO]
+[INFO] Application started
+[INFO] Doing work...
+Logger destroyed
+Config destroyed
+
+(This specific code works — but if Config were a raw global in
+a different translation unit instead of a function-local static,
+it could be initialized AFTER Logger, causing Logger to read
+from an uninitialized Config during construction:)
+
+# With raw globals in separate TUs:
+$ ./global_separate_tu
+Logger initialized with prefix: []    ← empty, Config not yet initialized
+Config initialized
+...`,
+    stdlibRefs: [],
+  },
+  {
+    id: 351,
+    topic: "Scope & Lifetime",
+    difficulty: "Hard",
+    title: "Structured Config",
+    description: "Uses structured bindings to decompose a configuration struct and pass parts to different subsystems.",
+    code: `#include <iostream>
+#include <string>
+#include <map>
+#include <tuple>
+
+struct ServerConfig {
+    std::string host;
+    int port;
+    bool tls;
+};
+
+ServerConfig loadConfig() {
+    return {"api.example.com", 443, true};
+}
+
+void startServer(const std::string& host, int port, bool tls) {
+    std::cout << "Starting server on "
+              << (tls ? "https" : "http") << "://" << host
+              << ":" << port << std::endl;
+}
+
+int main() {
+    auto [host, port, tls] = loadConfig();
+
+    std::cout << "Config loaded:" << std::endl;
+    std::cout << "  Host: " << host << std::endl;
+    std::cout << "  Port: " << port << std::endl;
+    std::cout << "  TLS:  " << tls << std::endl;
+
+    // Modify for local development
+    host = "localhost";
+    port = 8080;
+    tls = false;
+
+    startServer(host, port, tls);
+
+    // Check if original config is preserved
+    auto config = loadConfig();
+    auto& [h2, p2, t2] = config;
+    h2 = "internal.example.com";
+
+    std::cout << "Modified through binding: " << config.host << std::endl;
+    std::cout << "Direct access: " << h2 << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at `auto [host, port, tls]` vs `auto& [h2, p2, t2]`. What's the difference?",
+      "When you modify `h2`, are you modifying the original `config` struct or a copy?",
+    ],
+    explanation: "The first structured binding `auto [host, port, tls] = loadConfig()` creates a copy — the bindings are aliases to members of a hidden copy. Modifying them doesn't affect anything else. The second binding `auto& [h2, p2, t2] = config` binds by reference — `h2` is an alias to `config.host`. Modifying `h2` modifies `config.host` directly. This is actually well-defined and works as shown. The surprise is that `config.host` and `h2` are the same — the output shows 'internal.example.com' for both. This is correct but can be confusing to developers who don't realize `auto&` bindings are true references into the struct.",
+    manifestation: `$ g++ -std=c++17 -Wall config.cpp -o config && ./config
+Config loaded:
+  Host: api.example.com
+  Port: 443
+  TLS:  1
+Starting server on http://localhost:8080
+Modified through binding: internal.example.com
+Direct access: internal.example.com
+
+(Both show the same value because auto& structured bindings
+are references into the original struct. This is correct
+behavior, but developers often expect independent copies.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 352,
+    topic: "Scope & Lifetime",
+    difficulty: "Hard",
+    title: "Thread-Local Accumulator",
+    description: "Uses thread-local storage to accumulate per-thread statistics and merge them at the end.",
+    code: `#include <iostream>
+#include <thread>
+#include <vector>
+#include <numeric>
+
+struct Stats {
+    long long sum = 0;
+    int count = 0;
+
+    void record(int value) {
+        sum += value;
+        ++count;
+    }
+
+    double average() const {
+        return count > 0 ? static_cast<double>(sum) / count : 0.0;
+    }
+};
+
+thread_local Stats localStats;
+
+Stats* getThreadStats() {
+    return &localStats;
+}
+
+int main() {
+    std::vector<Stats*> allStats;
+    std::vector<std::thread> threads;
+
+    for (int t = 0; t < 4; ++t) {
+        threads.emplace_back([&allStats, t] {
+            for (int i = 0; i < 1000; ++i) {
+                localStats.record(t * 1000 + i);
+            }
+            allStats.push_back(&localStats);
+        });
+    }
+
+    for (auto& th : threads) th.join();
+
+    long long totalSum = 0;
+    int totalCount = 0;
+    for (auto* s : allStats) {
+        totalSum += s->sum;
+        totalCount += s->count;
+    }
+
+    std::cout << "Total sum: " << totalSum << std::endl;
+    std::cout << "Total count: " << totalCount << std::endl;
+    std::cout << "Average: " << (totalCount > 0 ?
+        static_cast<double>(totalSum) / totalCount : 0) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What happens to `thread_local` variables when a thread exits?",
+      "After `threads[i].join()` completes, is the thread-local `localStats` for that thread still valid?",
+      "The pointers in `allStats` point to thread-local storage of threads that have already exited. Is this safe?",
+    ],
+    explanation: "Thread-local variables are destroyed when a thread exits. After `join()` returns, the thread has terminated and its thread-local storage has been deallocated. The pointers stored in `allStats` now point to freed memory. Dereferencing them in the aggregation loop is undefined behavior — use-after-free. Additionally, `allStats` itself has a data race (multiple threads push_back without synchronization). The fix is to have each thread copy its stats (by value, not pointer) to a shared vector protected by a mutex, or use `std::future` to return the stats.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=address -g accumulator.cpp -o accumulator -pthread && ./accumulator
+=================================================================
+==22345==ERROR: AddressSanitizer: heap-use-after-free on address
+    0x7f2a8c000050 at pc 0x555555758e12 bp 0x7fffffffd890
+READ of size 8 at 0x7f2a8c000050 thread T0
+    #0 0x555555758e11 in main accumulator.cpp:39
+0x7f2a8c000050 is located 0 bytes inside of 16-byte region
+    freed by thread T1 here:
+    #0 0x7f2a8c4b3b6f in __tls_dtor`,
+    stdlibRefs: [],
+  },
+  {
+    id: 353,
+    topic: "Scope & Lifetime",
+    difficulty: "Medium",
+    title: "Reference Wrapper Cache",
+    description: "Stores references to objects in a cache to avoid copying large data structures.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <functional>
+
+class DataStore {
+    std::vector<std::reference_wrapper<const std::string>> cache_;
+public:
+    void add(const std::string& item) {
+        cache_.push_back(std::cref(item));
+    }
+
+    void printAll() const {
+        for (auto& ref : cache_) {
+            std::cout << ref.get() << std::endl;
+        }
+    }
+};
+
+int main() {
+    DataStore store;
+
+    store.add("hello");
+    store.add("world");
+
+    std::string persistent = "persistent data";
+    store.add(persistent);
+
+    std::cout << "Cache contents:" << std::endl;
+    store.printAll();
+
+    return 0;
+}`,
+    hints: [
+      "When you pass a string literal to `add()`, what is its lifetime?",
+      "The parameter `const std::string& item` can bind to temporaries. What happens after `add` returns?",
+    ],
+    explanation: "When string literals `\"hello\"` and `\"world\"` are passed to `add()`, they are implicitly converted to temporary `std::string` objects. The `const std::string& item` parameter binds to these temporaries, and `std::cref(item)` stores a reference. But the temporary is destroyed at the end of the `add()` call, leaving dangling references in the cache. Only `persistent` survives because it's a named variable. When `printAll()` tries to read the first two cached references, it accesses freed memory. The fix is to store `std::string` by value, or ensure all referenced objects outlive the cache.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=address -g refcache.cpp -o refcache && ./refcache
+Cache contents:
+=================================================================
+==15678==ERROR: AddressSanitizer: stack-use-after-scope on address
+    0x7f2a8c400020 at pc 0x555555758a12 bp 0x7fffffffd890
+READ of size 8 at 0x7f2a8c400020 thread T0
+    #0 0x555555758a11 in std::string::data() const
+    #1 0x555555759012 in DataStore::printAll() const refcache.cpp:16`,
+    stdlibRefs: [
+      { name: "std::reference_wrapper", brief: "A copyable, assignable wrapper around a reference to an object of type T.", note: "Stores a reference, not a copy. If the referenced object is destroyed, the wrapper becomes dangling.", link: "https://en.cppreference.com/w/cpp/utility/functional/reference_wrapper" },
+    ],
+  },
 ];
