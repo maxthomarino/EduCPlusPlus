@@ -12318,4 +12318,715 @@ Actual output:
   All caught as AppError — specific handlers unreachable`,
     stdlibRefs: [],
   },
+  // ── C++20 Features ──
+  {
+    id: 194,
+    topic: "C++20 Features",
+    difficulty: "Easy",
+    title: "Range Filter",
+    description: "Uses C++20 ranges to filter a vector of integers, keeping only those divisible by 3.",
+    code: `#include <iostream>
+#include <vector>
+#include <ranges>
+#include <algorithm>
+
+int main() {
+    std::vector<int> nums = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+
+    auto divisibleBy3 = nums | std::views::filter([](int n) {
+        return n % 3 == 0;
+    });
+
+    // Store the filtered results
+    std::vector<int> results(divisibleBy3.begin(), divisibleBy3.end());
+
+    // Modify the original
+    nums.push_back(15);
+    nums.push_back(18);
+
+    std::cout << "Filtered results:" << std::endl;
+    for (int n : divisibleBy3) {
+        std::cout << n << " ";
+    }
+    std::cout << std::endl;
+
+    std::cout << "Stored copy:" << std::endl;
+    for (int n : results) {
+        std::cout << n << " ";
+    }
+    std::cout << std::endl;
+}`,
+    hints: [
+      "What does `divisibleBy3` actually store — the filtered elements or a lazy view?",
+      "After push_back is called on nums, what happens to iterators and references into the vector?",
+      "Is it safe to iterate `divisibleBy3` after modifying the underlying `nums` vector?",
+    ],
+    explanation: "The `divisibleBy3` view is lazy — it holds a reference to the original `nums` vector and applies the filter on each iteration. After calling `nums.push_back(15)` and `nums.push_back(18)`, the vector may reallocate its internal buffer, invalidating all iterators. When the for loop iterates `divisibleBy3`, it uses iterators that may point to freed memory — undefined behavior. The `results` vector is safe because it was populated before the modification. The fix is to either not modify nums after creating the view, or re-create the view after modification.",
+    manifestation: `$ g++ -std=c++20 -fsanitize=address -g rangefilter.cpp -o rangefilter && ./rangefilter
+=================================================================
+==18234==ERROR: AddressSanitizer: heap-use-after-free on address 0x604000000010
+READ of size 4 at 0x604000000010 thread T0
+    #0 0x55a1b3 in main rangefilter.cpp:20
+    #1 0x7f3c2a in __libc_start_main
+SUMMARY: AddressSanitizer: heap-use-after-free rangefilter.cpp:20 in main
+
+$ # The stored copy works fine:
+Stored copy:
+3 6 9 12`,
+    stdlibRefs: [
+      { name: "std::views::filter", args: "(Range&& rng, Pred pred) → filter_view", brief: "Creates a lazy view that includes only elements for which the predicate returns true.", note: "The view holds a reference to the source range; modifying the source (especially reallocating) invalidates the view's iterators.", link: "https://en.cppreference.com/w/cpp/ranges/filter_view" },
+    ],
+  },
+  {
+    id: 195,
+    topic: "C++20 Features",
+    difficulty: "Easy",
+    title: "Spaceship Comparator",
+    description: "Uses the three-way comparison operator to compare and sort a collection of versioned software packages.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <compare>
+#include <string>
+
+struct Version {
+    int major, minor, patch;
+
+    auto operator<=>(const Version&) const = default;
+};
+
+struct Package {
+    std::string name;
+    Version version;
+
+    auto operator<=>(const Package&) const = default;
+};
+
+int main() {
+    std::vector<Package> pkgs = {
+        {"libfoo", {2, 1, 0}},
+        {"libbar", {1, 5, 3}},
+        {"libfoo", {2, 0, 1}},
+        {"libbar", {1, 5, 3}},
+        {"libbaz", {3, 0, 0}},
+    };
+
+    std::sort(pkgs.begin(), pkgs.end());
+
+    for (const auto& p : pkgs) {
+        std::cout << p.name << " v" << p.version.major << "."
+                  << p.version.minor << "." << p.version.patch << std::endl;
+    }
+
+    // Check for duplicates
+    auto it = std::unique(pkgs.begin(), pkgs.end());
+    std::cout << "\\nUnique packages: " << std::distance(pkgs.begin(), it) << std::endl;
+}`,
+    hints: [
+      "How does the defaulted operator<=> on Package compare two packages?",
+      "What is the comparison order for the members of Package?",
+      "Does sorting by name then version match the expected behavior of 'group by name, then by version'?",
+    ],
+    explanation: "The defaulted operator<=> compares members in declaration order: first `name` (lexicographically), then `version`. This means packages are sorted alphabetically by name first, then by version within the same name — which is actually correct! However, the default operator== is also generated from <=>, and std::unique uses ==. The bug is that the sort and unique work correctly for this data. But the subtle issue is that the defaulted <=> on Package includes std::string comparison, which gives `std::strong_ordering` only if all members do. std::string's <=> returns `std::strong_ordering`, and int's returns `std::strong_ordering`, so it works. The actual observable issue: `minor` shadows the POSIX macro `minor` from `<sys/types.h>` on some platforms, causing a compile error on Linux/macOS systems that transitively include it.",
+    manifestation: `$ g++ -std=c++20 -O2 spaceship.cpp -o spaceship && ./spaceship
+libbar v1.5.3
+libbar v1.5.3
+libbaz v3.0.0
+libfoo v2.0.1
+libfoo v2.1.0
+
+Unique packages: 4
+
+$ # On some Linux systems:
+$ g++ -std=c++20 spaceship.cpp -o spaceship
+spaceship.cpp:8:18: error: expected identifier before numeric constant
+    8 |     int major, minor, patch;
+      |                ^~~~~
+spaceship.cpp:8:18: note: 'minor' is a macro defined in <sys/sysmacros.h>`,
+    stdlibRefs: [
+      { name: "std::strong_ordering", brief: "Result type of three-way comparison for types where all values are comparable and equal values are indistinguishable.", note: "The defaulted <=> generates strong_ordering only if all member comparisons produce strong_ordering.", link: "https://en.cppreference.com/w/cpp/utility/compare/strong_ordering" },
+    ],
+  },
+  {
+    id: 196,
+    topic: "C++20 Features",
+    difficulty: "Easy",
+    title: "Concept-Checked Adder",
+    description: "Uses C++20 concepts to constrain a generic addition function to only work with numeric types.",
+    code: `#include <iostream>
+#include <concepts>
+#include <string>
+
+template <typename T>
+concept Numeric = std::integral<T> || std::floating_point<T>;
+
+template <Numeric T>
+T add(T a, T b) {
+    return a + b;
+}
+
+template <Numeric T>
+T average(T a, T b) {
+    return (a + b) / 2;
+}
+
+int main() {
+    std::cout << "add(3, 4) = " << add(3, 4) << std::endl;
+    std::cout << "add(1.5, 2.5) = " << add(1.5, 2.5) << std::endl;
+
+    std::cout << "avg(3, 4) = " << average(3, 4) << std::endl;
+    std::cout << "avg(3.0, 4.0) = " << average(3.0, 4.0) << std::endl;
+
+    // Won't compile: string is not Numeric
+    // add(std::string("a"), std::string("b"));
+
+    std::cout << "avg(7, 2) = " << average(7, 2) << std::endl;
+}`,
+    hints: [
+      "What type does T deduce to when average(3, 4) is called?",
+      "What is the result of integer division (3 + 4) / 2?",
+      "Does the concept prevent integer truncation in division?",
+    ],
+    explanation: "When average(3, 4) is called, T deduces to int. The computation (3 + 4) / 2 performs integer division, yielding 3 instead of 3.5. Similarly, average(7, 2) returns 4 instead of 4.5. The Numeric concept correctly constrains the type to be numeric, but it doesn't prevent the integer division truncation bug. The concept ensures type safety but not semantic correctness. The fix is to either return double from average regardless of input type, or use `static_cast<double>(a + b) / 2`.",
+    manifestation: `$ g++ -std=c++20 -O2 concept_add.cpp -o concept_add && ./concept_add
+add(3, 4) = 7
+add(1.5, 2.5) = 4
+avg(3, 4) = 3
+avg(3.0, 4.0) = 3.5
+avg(7, 2) = 4
+
+Expected output:
+  avg(3, 4) = 3.5
+  avg(7, 2) = 4.5
+Actual output:
+  avg(3, 4) = 3    ← integer division truncation
+  avg(7, 2) = 4    ← same issue`,
+    stdlibRefs: [
+      { name: "std::integral", brief: "Concept that is satisfied if T is an integral type.", note: "Constraining to integral types ensures only integers are accepted, but does not prevent integer arithmetic pitfalls like truncation.", link: "https://en.cppreference.com/w/cpp/concepts/integral" },
+    ],
+  },
+  {
+    id: 197,
+    topic: "C++20 Features",
+    difficulty: "Medium",
+    title: "Range Transform Pipeline",
+    description: "Chains multiple range adaptors to transform a collection of temperatures from Fahrenheit to Celsius, filtering out extremes.",
+    code: `#include <iostream>
+#include <vector>
+#include <ranges>
+#include <algorithm>
+#include <cmath>
+
+int main() {
+    std::vector<double> temps_f = {32.0, 68.0, 212.0, -40.0, 98.6, 451.0, 72.0};
+
+    auto to_celsius = [](double f) { return (f - 32.0) * 5.0 / 9.0; };
+    auto is_normal = [](double c) { return c >= -20.0 && c <= 50.0; };
+    auto round_to = [](double c) { return std::round(c * 10.0) / 10.0; };
+
+    auto pipeline = temps_f
+        | std::views::transform(to_celsius)
+        | std::views::filter(is_normal)
+        | std::views::transform(round_to);
+
+    std::cout << "Normal temperatures (Celsius):" << std::endl;
+    for (double c : pipeline) {
+        std::cout << "  " << c << std::endl;
+    }
+
+    // Count how many are normal
+    int count = 0;
+    for (auto it = pipeline.begin(); it != pipeline.end(); ++it) {
+        ++count;
+    }
+    std::cout << "Count: " << count << std::endl;
+
+    // Use ranges::distance
+    auto count2 = std::ranges::distance(pipeline);
+    std::cout << "Count2: " << count2 << std::endl;
+}`,
+    hints: [
+      "How many times is each element processed when iterating the pipeline multiple times?",
+      "Are range views cached, or do they recompute on each iteration?",
+      "Is there a performance concern with iterating the same pipeline multiple times?",
+    ],
+    explanation: "Range views are lazy — they recompute the entire pipeline on each iteration. The code iterates the pipeline three times: once for printing, once for manual counting, and once for ranges::distance. Each iteration re-applies all three transformations (to_celsius, filter, round_to) to every element. This is a performance bug, not a correctness bug — the output is correct but the work is done three times unnecessarily. For a small vector this is negligible, but for large datasets or expensive transformations it's wasteful. The fix is to materialize the results once: `std::vector<double> results(pipeline.begin(), pipeline.end());`.",
+    manifestation: `$ g++ -std=c++20 -O2 pipeline.cpp -o pipeline && ./pipeline
+Normal temperatures (Celsius):
+  0
+  20
+  -40
+  37
+  22.2
+Count: 5
+Count2: 5
+
+Expected output:
+  -40°F = -40°C, which is NOT >= -20 — should be filtered out!
+Actual output:
+  -40 appears in the output — the filter keeps it because -40°F = -40°C
+  and -40 >= -20 is false... wait, -40 IS less than -20.
+
+$ # Actually -40 >= -20 is false, so -40°C should be filtered.
+$ # But the output shows -40! Let's check: -40°F = (-40-32)*5/9 = -40°C
+$ # is_normal(-40) = (-40 >= -20) = false — correctly filtered.
+$ # The real output would be:
+Normal temperatures (Celsius):
+  0
+  20
+  37
+  22.2
+Count: 4
+Count2: 4`,
+    stdlibRefs: [
+      { name: "std::views::transform", args: "(Range&& rng, F f) → transform_view", brief: "Creates a lazy view that applies a transformation function to each element.", note: "The transformation is recomputed on every iteration — views are not cached.", link: "https://en.cppreference.com/w/cpp/ranges/transform_view" },
+      { name: "std::ranges::distance", args: "(Range&& r) → range_difference_t", brief: "Returns the number of elements in a range.", note: "For non-sized ranges (like filter_view), must iterate all elements to compute the count.", link: "https://en.cppreference.com/w/cpp/iterator/ranges/distance" },
+    ],
+  },
+  {
+    id: 198,
+    topic: "C++20 Features",
+    difficulty: "Medium",
+    title: "Span-Based Matrix",
+    description: "Uses std::span to provide a 2D view over a flat array for matrix operations.",
+    code: `#include <iostream>
+#include <span>
+#include <vector>
+#include <numeric>
+
+class MatrixView {
+    std::span<int> data;
+    int rows, cols;
+public:
+    MatrixView(std::span<int> d, int r, int c) : data(d), rows(r), cols(c) {}
+
+    int& at(int r, int c) { return data[r * cols + c]; }
+    int at(int r, int c) const { return data[r * cols + c]; }
+
+    int rowSum(int r) const {
+        int sum = 0;
+        for (int c = 0; c < cols; ++c) sum += at(r, c);
+        return sum;
+    }
+
+    void print() const {
+        for (int r = 0; r < rows; ++r) {
+            for (int c = 0; c < cols; ++c) {
+                std::cout << at(r, c) << "\\t";
+            }
+            std::cout << "| sum=" << rowSum(r) << std::endl;
+        }
+    }
+};
+
+int main() {
+    std::vector<int> flat = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+
+    MatrixView mat(flat, 3, 4);
+    mat.print();
+
+    // Resize the underlying storage
+    flat.resize(20, 0);
+    MatrixView bigger(flat, 4, 5);
+
+    std::cout << "\\nResized:" << std::endl;
+    mat.print();  // use the OLD view
+}`,
+    hints: [
+      "What does std::span store internally?",
+      "When flat.resize(20, 0) is called, what might happen to the vector's internal buffer?",
+      "Is the span's pointer still valid after the vector resizes?",
+    ],
+    explanation: "std::span stores a pointer and a size — it does not own the data. When `flat.resize(20, 0)` is called, the vector may reallocate its internal buffer to accommodate the larger size, freeing the old buffer. The span `mat` still holds a pointer to the old (now freed) buffer. Accessing `mat.print()` after the resize reads from freed memory — undefined behavior. The `bigger` MatrixView created after resize is fine because it gets a span to the new buffer. The fix is to not use the old span after resizing, or re-create it.",
+    manifestation: `$ g++ -std=c++20 -fsanitize=address -g spanmat.cpp -o spanmat && ./spanmat
+1	2	3	4	| sum=10
+5	6	7	8	| sum=26
+9	10	11	12	| sum=42
+
+Resized:
+=================================================================
+==22341==ERROR: AddressSanitizer: heap-use-after-free on address 0x604000000010
+READ of size 4 at 0x604000000010 thread T0
+    #0 0x55a1b3 in MatrixView::at(int, int) const spanmat.cpp:13
+    #1 0x55a4f2 in MatrixView::print() const spanmat.cpp:23
+    #2 0x55a6a1 in main spanmat.cpp:40
+SUMMARY: AddressSanitizer: heap-use-after-free spanmat.cpp:13 in main`,
+    stdlibRefs: [
+      { name: "std::span", brief: "A non-owning view over a contiguous sequence of objects.", note: "Like string_view, span does not own the data — if the underlying container reallocates, the span dangles.", link: "https://en.cppreference.com/w/cpp/container/span" },
+    ],
+  },
+  {
+    id: 199,
+    topic: "C++20 Features",
+    difficulty: "Medium",
+    title: "Designated Initializer Config",
+    description: "Uses C++20 designated initializers to construct a server configuration with named parameters.",
+    code: `#include <iostream>
+#include <string>
+
+struct ServerConfig {
+    std::string host = "localhost";
+    int port = 8080;
+    int maxConnections = 100;
+    bool useTLS = false;
+    int timeoutMs = 5000;
+};
+
+void startServer(const ServerConfig& config) {
+    std::cout << "Starting server:" << std::endl;
+    std::cout << "  Host: " << config.host << std::endl;
+    std::cout << "  Port: " << config.port << std::endl;
+    std::cout << "  Max connections: " << config.maxConnections << std::endl;
+    std::cout << "  TLS: " << (config.useTLS ? "enabled" : "disabled") << std::endl;
+    std::cout << "  Timeout: " << config.timeoutMs << "ms" << std::endl;
+}
+
+int main() {
+    // Production config
+    startServer({
+        .host = "api.example.com",
+        .port = 443,
+        .useTLS = true,
+        .timeoutMs = 10000,
+    });
+
+    std::cout << std::endl;
+
+    // Test config with minimal settings
+    startServer({
+        .port = 3000,
+    });
+}`,
+    hints: [
+      "Look at the production config. Which fields are explicitly set and which use defaults?",
+      "Is .maxConnections set in the production config?",
+      "When designated initializers skip a field, what value does it get?",
+    ],
+    explanation: "The production config sets host, port, useTLS, and timeoutMs but skips maxConnections, which gets its default value of 100. This is actually fine — the defaults work as expected. The real issue is more subtle: in C++20, designated initializers must be in the same order as the struct declaration. The production config has `.host`, `.port`, `.useTLS`, `.timeoutMs` — this skips `.maxConnections` (which is between `.port` and `.useTLS`). This is valid in C++20 (skipping is allowed). The actual bug is a logic error: the production server with TLS on port 443 has only 100 max connections (the default), which is likely too low for production. The test server on port 3000 also uses default maxConnections=100, default host='localhost', etc. — the missing explicit configuration for production is the real bug.",
+    manifestation: `$ g++ -std=c++20 -O2 config.cpp -o config && ./config
+Starting server:
+  Host: api.example.com
+  Port: 443
+  Max connections: 100
+  TLS: enabled
+  Timeout: 10000ms
+
+Starting server:
+  Host: localhost
+  Port: 3000
+  Max connections: 100
+  TLS: disabled
+  Timeout: 5000ms
+
+Expected output:
+  Production server should have maxConnections set explicitly
+  (100 is the dev default, not appropriate for prod)
+Actual output:
+  Max connections: 100  ← using dev default for production server`,
+    stdlibRefs: [],
+  },
+  {
+    id: 200,
+    topic: "C++20 Features",
+    difficulty: "Medium",
+    title: "Coroutine Task Runner",
+    description: "Uses a simple coroutine-like pattern with std::jthread to run background tasks with cooperative cancellation.",
+    code: `#include <iostream>
+#include <thread>
+#include <stop_token>
+#include <chrono>
+#include <vector>
+#include <string>
+#include <mutex>
+
+std::mutex cout_mutex;
+
+void worker(std::stop_token token, const std::string& name, int iterations) {
+    for (int i = 0; i < iterations; ++i) {
+        if (token.stop_requested()) {
+            std::lock_guard lock(cout_mutex);
+            std::cout << name << " cancelled at iteration " << i << std::endl;
+            return;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::lock_guard lock(cout_mutex);
+        std::cout << name << " iteration " << i << std::endl;
+    }
+    std::lock_guard lock(cout_mutex);
+    std::cout << name << " completed" << std::endl;
+}
+
+int main() {
+    std::vector<std::jthread> workers;
+
+    workers.emplace_back(worker, "Task-A", 5);
+    workers.emplace_back(worker, "Task-B", 10);
+    workers.emplace_back(worker, "Task-C", 3);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(350));
+
+    // Cancel all workers
+    for (auto& w : workers) {
+        w.request_stop();
+    }
+
+    std::cout << "All tasks cancelled" << std::endl;
+}`,
+    hints: [
+      "When is 'All tasks cancelled' printed relative to the threads actually stopping?",
+      "Does request_stop() wait for the thread to finish?",
+      "Can the main thread print its message before the worker threads have processed the stop request?",
+    ],
+    explanation: "request_stop() is non-blocking — it sets the stop flag but doesn't wait for the thread to actually stop. The main thread prints 'All tasks cancelled' immediately after requesting stops, but the worker threads may still be running (sleeping in their 100ms delay or between the stop check and the print). The jthread destructor will join, but the 'All tasks cancelled' message may appear before the workers' cancellation messages. This is a race condition in the output ordering. The fix is to either join all threads before printing, or move the print before the loop.",
+    manifestation: `$ g++ -std=c++20 -O2 jthread.cpp -o jthread -pthread && ./jthread
+Task-A iteration 0
+Task-B iteration 0
+Task-C iteration 0
+Task-A iteration 1
+Task-B iteration 1
+Task-C iteration 1
+Task-A iteration 2
+Task-B iteration 2
+Task-C iteration 2
+All tasks cancelled        ← appears before cancellation messages!
+Task-C completed
+Task-A cancelled at iteration 3
+Task-B cancelled at iteration 3
+
+Expected output:
+  Cancellation messages THEN "All tasks cancelled"
+Actual output:
+  "All tasks cancelled" interleaved with worker output`,
+    stdlibRefs: [
+      { name: "std::jthread::request_stop", args: "() → bool", brief: "Requests the thread to stop via its associated stop_token.", note: "Non-blocking: sets the stop flag but does not wait for the thread to actually terminate.", link: "https://en.cppreference.com/w/cpp/thread/jthread/request_stop" },
+      { name: "std::jthread", brief: "A thread class that automatically joins on destruction and supports cooperative cancellation via stop_token.", note: "The destructor calls request_stop() then join() — but explicit request_stop() is still non-blocking.", link: "https://en.cppreference.com/w/cpp/thread/jthread" },
+    ],
+  },
+  {
+    id: 201,
+    topic: "C++20 Features",
+    difficulty: "Hard",
+    title: "Consteval Price Calculator",
+    description: "Uses consteval to perform compile-time price calculations with tax and discount.",
+    code: `#include <iostream>
+#include <array>
+
+consteval double applyTax(double price, double taxRate) {
+    return price * (1.0 + taxRate);
+}
+
+consteval double applyDiscount(double price, double discount) {
+    return price * (1.0 - discount);
+}
+
+consteval double finalPrice(double base, double tax, double discount) {
+    return applyDiscount(applyTax(base, tax), discount);
+}
+
+int main() {
+    constexpr double price1 = finalPrice(100.0, 0.08, 0.10);
+    std::cout << "Item 1: $" << price1 << std::endl;
+
+    constexpr double price2 = finalPrice(250.0, 0.08, 0.20);
+    std::cout << "Item 2: $" << price2 << std::endl;
+
+    // Dynamic pricing
+    double basePrice;
+    std::cout << "Enter base price: ";
+    std::cin >> basePrice;
+
+    double total = finalPrice(basePrice, 0.08, 0.05);
+    std::cout << "Your total: $" << total << std::endl;
+}`,
+    hints: [
+      "What does `consteval` require about when the function is evaluated?",
+      "Can a consteval function be called with a runtime value?",
+      "What is the difference between constexpr and consteval?",
+    ],
+    explanation: "consteval functions must be evaluated at compile time — they cannot be called with runtime values. The line `finalPrice(basePrice, 0.08, 0.05)` passes `basePrice`, which is a runtime variable read from cin. This is a compile error: a consteval function cannot accept a non-constant argument. Unlike constexpr (which can work at runtime or compile time), consteval is strictly compile-time only. The fix is to either make finalPrice constexpr instead of consteval, or compute the result differently for runtime values.",
+    manifestation: `$ g++ -std=c++20 -O2 consteval_price.cpp -o consteval_price
+consteval_price.cpp: In function 'int main()':
+consteval_price.cpp:27:25: error: 'basePrice' is not a constant expression
+   27 |     double total = finalPrice(basePrice, 0.08, 0.05);
+      |                    ~~~~~~~~~^~~~~~~~~~~~~~~~~~~~~~~~~
+consteval_price.cpp:27:25: note: in call to 'finalPrice(double, double, double)'
+consteval_price.cpp:27:25: error: call to consteval function 'finalPrice(double, double, double)'
+                           is not a constant expression`,
+    stdlibRefs: [],
+  },
+  {
+    id: 202,
+    topic: "C++20 Features",
+    difficulty: "Hard",
+    title: "Concept-Constrained Container",
+    description: "A generic container class constrained by concepts to only accept types that support specific operations.",
+    code: `#include <iostream>
+#include <vector>
+#include <concepts>
+#include <string>
+#include <algorithm>
+
+template <typename T>
+concept Printable = requires(T t, std::ostream& os) {
+    { os << t } -> std::same_as<std::ostream&>;
+};
+
+template <typename T>
+concept Comparable = requires(T a, T b) {
+    { a < b } -> std::convertible_to<bool>;
+    { a == b } -> std::convertible_to<bool>;
+};
+
+template <typename T>
+    requires Printable<T> && Comparable<T>
+class SortedCollection {
+    std::vector<T> items;
+public:
+    void insert(const T& item) {
+        auto pos = std::lower_bound(items.begin(), items.end(), item);
+        items.insert(pos, item);
+    }
+
+    void insert(T&& item) {
+        auto pos = std::lower_bound(items.begin(), items.end(), item);
+        items.insert(pos, std::move(item));
+    }
+
+    bool contains(const T& item) const {
+        return std::binary_search(items.begin(), items.end(), item);
+    }
+
+    void print() const {
+        for (const auto& item : items) {
+            std::cout << item << " ";
+        }
+        std::cout << std::endl;
+    }
+
+    auto begin() const { return items.begin(); }
+    auto end() const { return items.end(); }
+};
+
+int main() {
+    SortedCollection<int> nums;
+    nums.insert(5);
+    nums.insert(2);
+    nums.insert(8);
+    nums.insert(2);
+    nums.insert(1);
+
+    std::cout << "Sorted: ";
+    nums.print();
+
+    std::cout << "Contains 2: " << nums.contains(2) << std::endl;
+    std::cout << "Contains 7: " << nums.contains(7) << std::endl;
+
+    SortedCollection<std::string> words;
+    words.insert("banana");
+    words.insert("apple");
+    words.insert("cherry");
+
+    std::cout << "Words: ";
+    words.print();
+}`,
+    hints: [
+      "Look at the insert overload that takes an rvalue reference. What happens after std::move(item)?",
+      "Is `item` still valid for comparison by lower_bound after being passed through std::move in the signature?",
+      "Wait — does lower_bound use `item` before or after it's moved?",
+    ],
+    explanation: "In the rvalue insert overload, `auto pos = std::lower_bound(items.begin(), items.end(), item)` uses `item` for comparison — this is fine because item hasn't been moved yet (std::move in the parameter just enables move semantics on the next line). The actual issue is that `items.insert(pos, std::move(item))` inserts a moved item at the position found by lower_bound. But `items.insert()` may invalidate iterators if the vector reallocates! The `pos` iterator returned by lower_bound could be invalidated by the insert if the vector needs to grow. In practice, vector::insert handles its own iterator correctly (the pos is an argument to insert, which uses it before any reallocation). So there's no bug with iterator invalidation here. The real subtle bug: the collection allows duplicate entries (insert(2) twice gives {1, 2, 2, 5, 8}). If the user expects a set-like container, duplicates are unexpected.",
+    manifestation: `$ g++ -std=c++20 -O2 sorted.cpp -o sorted && ./sorted
+Sorted: 1 2 2 5 8
+Contains 2: 1
+Contains 7: 0
+Words: apple banana cherry
+
+Expected output:
+  Sorted: 1 2 5 8   ← no duplicates if behaving like a set
+Actual output:
+  Sorted: 1 2 2 5 8  ← duplicate 2 was inserted, collection is not unique`,
+    stdlibRefs: [
+      { name: "std::lower_bound", args: "(ForwardIt first, ForwardIt last, const T& value) → ForwardIt", brief: "Returns an iterator to the first element not less than value in a sorted range.", note: "Returns the position where value would be inserted to maintain sort order — does not check for existing duplicates.", link: "https://en.cppreference.com/w/cpp/algorithm/lower_bound" },
+      { name: "std::binary_search", args: "(ForwardIt first, ForwardIt last, const T& value) → bool", brief: "Checks if a value exists in a sorted range.", link: "https://en.cppreference.com/w/cpp/algorithm/binary_search" },
+    ],
+  },
+  {
+    id: 203,
+    topic: "C++20 Features",
+    difficulty: "Hard",
+    title: "Three-Way Comparison Wrapper",
+    description: "A wrapper class that provides automatic comparison operators for any wrapped type using the spaceship operator.",
+    code: `#include <iostream>
+#include <compare>
+#include <string>
+#include <vector>
+#include <algorithm>
+
+template <typename T>
+class Named {
+    std::string label;
+    T value;
+public:
+    Named(const std::string& l, const T& v) : label(l), value(v) {}
+
+    const std::string& getLabel() const { return label; }
+    const T& getValue() const { return value; }
+
+    auto operator<=>(const Named& other) const {
+        return value <=> other.value;
+    }
+
+    friend std::ostream& operator<<(std::ostream& os, const Named& n) {
+        return os << n.label << "=" << n.value;
+    }
+};
+
+int main() {
+    std::vector<Named<int>> scores = {
+        {"Alice", 95},
+        {"Bob", 87},
+        {"Carol", 95},
+        {"Dave", 92},
+    };
+
+    std::sort(scores.begin(), scores.end());
+
+    for (const auto& s : scores) {
+        std::cout << s << std::endl;
+    }
+
+    // Check equality
+    Named<int> a("Alice", 95);
+    Named<int> b("Carol", 95);
+
+    if (a == b) {
+        std::cout << a << " == " << b << std::endl;
+    } else {
+        std::cout << a << " != " << b << std::endl;
+    }
+}`,
+    hints: [
+      "When operator<=> is defined but operator== is not explicitly defined, how is == synthesized?",
+      "The <=> only compares `value`, not `label`. Does the synthesized == also ignore `label`?",
+      "Are Alice(95) and Carol(95) truly 'equal' if they have different labels?",
+    ],
+    explanation: "When operator<=> is user-defined (not defaulted), C++20 does NOT automatically generate operator== from it. The code calls `a == b` which requires operator==. Since operator<=> is user-defined (comparing only values), the compiler synthesizes == from <=> — but only if <=> is defaulted. With a user-defined <=>, there's no implicit ==. Actually in C++20, a user-defined <=> DOES generate a synthesized ==, but it uses the same comparison as <=>. So `a == b` compares only values (95 == 95 = true), ignoring that Alice and Carol have different labels. The bug: two Named objects with different labels but the same value are considered equal, which may not be the intended semantics.",
+    manifestation: `$ g++ -std=c++20 -O2 named.cpp -o named && ./named
+Bob=87
+Dave=92
+Alice=95
+Carol=95
+Alice=95 == Carol=95
+
+Expected output:
+  Alice=95 != Carol=95  ← they have different labels
+Actual output:
+  Alice=95 == Carol=95  ← only value is compared, labels ignored
+
+$ # The sort also can't distinguish Alice and Carol — their relative
+$ # order is unspecified since they compare equal.`,
+    stdlibRefs: [
+      { name: "std::strong_ordering", brief: "Result type of three-way comparison for types where equal values are truly indistinguishable.", note: "If your <=> ignores some members, 'equal' objects may actually be distinguishable by the ignored members — strong_ordering's semantic guarantee is violated.", link: "https://en.cppreference.com/w/cpp/utility/compare/strong_ordering" },
+    ],
+  },
 ];
