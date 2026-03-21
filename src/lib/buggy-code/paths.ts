@@ -157,4 +157,22 @@ export const learningPaths: LearningPath[] = [
     description: "Dangling captures, temporary extension rules, and thread-local destruction — ten programs about when things stop existing.",
     programIds: [344, 345, 346, 347, 348, 349, 350, 351, 352, 353],
   },
+  {
+    id: "numeric-hazards",
+    title: "Numeric Hazards",
+    description: "Integer overflow, floating-point traps, and silent truncation — ten programs where the numbers lie.",
+    programIds: [354, 355, 356, 357, 358, 359, 360, 361, 362, 363],
+  },
+  {
+    id: "resource-discipline",
+    title: "Resource Discipline",
+    description: "Leaked handles, missed unlocks, and exception-unsafe constructors — ten programs that test your RAII instincts.",
+    programIds: [364, 365, 366, 367, 368, 369, 370, 371, 372, 373],
+  },
+  {
+    id: "inheritance-maze",
+    title: "Inheritance Maze",
+    description: "Virtual destructors, diamond inheritance, and CRTP typos — ten programs that push polymorphism to its limits.",
+    programIds: [374, 375, 376, 377, 378, 379, 380, 381, 382, 383],
+  },
 ];
