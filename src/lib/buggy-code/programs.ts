@@ -19883,4 +19883,659 @@ Registered plugins:
       { name: "std::make_unique", args: "<T>(Args&&... args) → std::unique_ptr<T>", brief: "Creates a unique_ptr that owns a newly constructed object of type T.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique" },
     ],
   },
+
+  // ── Standard Library Pitfalls ──
+
+  {
+    id: 304,
+    topic: "Standard Library Pitfalls",
+    difficulty: "Easy",
+    title: "User Profile Lookup",
+    description: "Looks up user profiles by ID from a map and prints their display name.",
+    code: `#include <iostream>
+#include <map>
+#include <string>
+
+struct Profile {
+    std::string name;
+    int accessLevel;
+};
+
+void printProfile(const std::map<int, Profile>& profiles, int userId) {
+    std::cout << "User " << userId << ": "
+              << profiles[userId].name
+              << " (level " << profiles[userId].accessLevel << ")"
+              << std::endl;
+}
+
+int main() {
+    std::map<int, Profile> profiles;
+    profiles[1] = {"Alice", 3};
+    profiles[2] = {"Bob", 2};
+    profiles[3] = {"Charlie", 1};
+
+    printProfile(profiles, 1);
+    printProfile(profiles, 2);
+    printProfile(profiles, 4);  // unknown user
+
+    return 0;
+}`,
+    hints: [
+      "Look at the parameter type of `printProfile`. Is the map mutable or const?",
+      "What does `operator[]` do on a `std::map` when the key doesn't exist? Can it work on a const map?",
+    ],
+    explanation: "The function takes the map by `const` reference, but `std::map::operator[]` is a non-const operation — it inserts a default-constructed element if the key doesn't exist. This means `profiles[userId]` won't compile when `profiles` is const. The error is subtle because the same code would work fine with a non-const map (silently inserting empty profiles for missing users). The fix is to use `profiles.at(userId)` which works on const maps and throws `std::out_of_range` for missing keys, or use `find()` and check the iterator.",
+    manifestation: `$ g++ -std=c++17 -Wall profile.cpp -o profile
+profile.cpp: In function 'void printProfile(const std::map<int,
+    Profile>&, int)':
+profile.cpp:12:27: error: passing 'const std::map<int, Profile>'
+    as 'this' argument discards qualifiers [-fpermissive]
+   12 |               << profiles[userId].name
+      |                           ^
+/usr/include/c++/11/bits/stl_map.h:492:7: note:
+    'std::map<_Key, _Tp>::mapped_type& std::map<_Key, _Tp>::operator[]'
+    is not marked const`,
+    stdlibRefs: [
+      { name: "std::map::operator[]", args: "(const key_type& k) → mapped_type&", brief: "Returns a reference to the value mapped to the key, inserting a default value if the key doesn't exist.", note: "operator[] is non-const because it may insert. Use at() or find() for const access.", link: "https://en.cppreference.com/w/cpp/container/map/operator_at" },
+      { name: "std::map::at", args: "(const key_type& k) → mapped_type& | (const key_type& k) const → const mapped_type&", brief: "Returns a reference to the mapped value, throwing std::out_of_range if the key is not found.", link: "https://en.cppreference.com/w/cpp/container/map/at" },
+    ],
+  },
+  {
+    id: 305,
+    topic: "Standard Library Pitfalls",
+    difficulty: "Easy",
+    title: "Task Priority Queue",
+    description: "Sorts a list of tasks by priority using a custom comparator to process the most urgent tasks first.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <string>
+
+struct Task {
+    std::string name;
+    int priority;  // higher = more urgent
+};
+
+int main() {
+    std::vector<Task> tasks = {
+        {"Send email", 2},
+        {"Fix crash", 5},
+        {"Update docs", 1},
+        {"Deploy hotfix", 5},
+        {"Code review", 3},
+        {"Write tests", 3},
+    };
+
+    std::sort(tasks.begin(), tasks.end(), [](const Task& a, const Task& b) {
+        return a.priority >= b.priority;
+    });
+
+    std::cout << "Tasks by priority:" << std::endl;
+    for (auto& t : tasks) {
+        std::cout << "  [" << t.priority << "] " << t.name << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "What does the C++ standard require of a comparator passed to `std::sort`?",
+      "Does `>=` satisfy the strict weak ordering requirement? What happens when two elements have equal priority?",
+    ],
+    explanation: "The comparator uses `>=` which is not a strict weak ordering — it violates the irreflexivity requirement (`comp(a, a)` must be `false`, but `a.priority >= a.priority` is `true`). Passing an invalid comparator to `std::sort` is undefined behavior. In practice this can cause infinite loops, out-of-bounds access, or crashes, especially with duplicate priorities (which this data has). The fix is to use `>` for descending order: `return a.priority > b.priority;`.",
+    manifestation: `$ g++ -std=c++17 -O2 tasks.cpp -o tasks && ./tasks
+Segmentation fault (core dumped)
+
+$ g++ -std=c++17 -O0 -D_GLIBCXX_DEBUG tasks.cpp -o tasks && ./tasks
+/usr/include/c++/11/bits/stl_algo.h:1839:
+Error: comparison doesn't meet irreflexivity requirements,
+    assert(!(a < a)).
+Objects involved in the operation:
+    instance "functor" @ 0x7ffd5a2c1e50 {
+      type = main::{lambda(Task const&, Task const&)#1}
+    }
+Aborted (core dumped)`,
+    stdlibRefs: [
+      { name: "std::sort", args: "(RandomIt first, RandomIt last, Compare comp) → void", brief: "Sorts elements in [first, last) using the given comparator.", note: "The comparator must be a strict weak ordering: irreflexive, asymmetric, and transitive. Using >= or <= is undefined behavior.", link: "https://en.cppreference.com/w/cpp/algorithm/sort" },
+    ],
+  },
+  {
+    id: 306,
+    topic: "Standard Library Pitfalls",
+    difficulty: "Easy",
+    title: "Immutable Transfer",
+    description: "Moves a large const dataset into a processing function to avoid copying.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <numeric>
+
+struct Dataset {
+    std::vector<double> values;
+    std::string label;
+
+    Dataset(std::string lbl, size_t n) : label(std::move(lbl)), values(n) {
+        std::iota(values.begin(), values.end(), 1.0);
+    }
+};
+
+double processDataset(Dataset data) {
+    std::cout << "Processing: " << data.label
+              << " (" << data.values.size() << " values)" << std::endl;
+    double sum = 0;
+    for (double v : data.values) sum += v;
+    return sum;
+}
+
+int main() {
+    const Dataset ds("Measurements", 1000000);
+
+    std::cout << "Before move: " << ds.values.size() << " values" << std::endl;
+
+    double result = processDataset(std::move(ds));
+
+    std::cout << "After move: " << ds.values.size() << " values" << std::endl;
+    std::cout << "Sum: " << result << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What is the type of `ds`? What happens when you `std::move` a const object?",
+      "Can `std::move` actually transfer resources from a const object?",
+    ],
+    explanation: "`std::move` on a const object produces a `const Dataset&&` — a const rvalue reference. This cannot bind to a move constructor (which takes `Dataset&&`), so it falls back to the copy constructor. The million-element vector is silently copied instead of moved. After the 'move', `ds.values` still has all its elements, which contradicts the programmer's intent. The fix is to not declare `ds` as const if you intend to move from it.",
+    manifestation: `$ g++ -std=c++17 -O2 transfer.cpp -o transfer && ./transfer
+Before move: 1000000 values
+Processing: Measurements (1000000 values)
+After move: 1000000 values
+Sum: 5.0000005e+11
+
+(Expected "After move: 0 values" — the data was copied, not moved,
+because std::move on a const object silently falls back to copying)`,
+    stdlibRefs: [
+      { name: "std::move", args: "<T>(T&& t) → std::remove_reference_t<T>&&", brief: "Casts its argument to an rvalue reference to enable move semantics.", note: "std::move on a const object produces const T&&, which binds to const T& (copy), not T&& (move). The move silently becomes a copy.", link: "https://en.cppreference.com/w/cpp/utility/move" },
+    ],
+  },
+  {
+    id: 307,
+    topic: "Standard Library Pitfalls",
+    difficulty: "Medium",
+    title: "Config Value Store",
+    description: "Stores configuration values as variants that can hold different types, and retrieves them by key.",
+    code: `#include <iostream>
+#include <map>
+#include <string>
+#include <variant>
+
+using ConfigValue = std::variant<int, double, std::string, bool>;
+
+class ConfigStore {
+    std::map<std::string, ConfigValue> values_;
+public:
+    void set(const std::string& key, ConfigValue val) {
+        values_[key] = std::move(val);
+    }
+
+    template<typename T>
+    T get(const std::string& key) const {
+        auto it = values_.find(key);
+        if (it == values_.end()) {
+            throw std::runtime_error("Key not found: " + key);
+        }
+        return std::get<T>(it->second);
+    }
+
+    void printAll() const {
+        for (auto& [key, val] : values_) {
+            std::visit([&key](auto&& v) {
+                std::cout << key << " = " << v << std::endl;
+            }, val);
+        }
+    }
+};
+
+int main() {
+    ConfigStore config;
+    config.set("port", 8080);
+    config.set("hostname", std::string("localhost"));
+    config.set("verbose", true);
+    config.set("timeout", 30.5);
+
+    try {
+        std::cout << "Port: " << config.get<int>("port") << std::endl;
+        std::cout << "Host: " << config.get<std::string>("hostname") << std::endl;
+        std::cout << "Verbose: " << config.get<int>("verbose") << std::endl;
+    } catch (const std::exception& e) {
+        std::cerr << "Error: " << e.what() << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Look at how 'verbose' is stored vs how it's retrieved. Do the types match?",
+      "What does `std::get<T>` do when the variant doesn't hold type T?",
+    ],
+    explanation: "The value `true` is stored as `bool` in the variant, but `config.get<int>(\"verbose\")` tries to retrieve it as `int`. `std::get<int>` on a variant holding `bool` throws `std::bad_variant_access` because the types don't match — even though `bool` is implicitly convertible to `int`, the variant tracks the exact type. The fix is to use `config.get<bool>(\"verbose\")` or use `std::visit` to handle the conversion.",
+    manifestation: `$ g++ -std=c++17 -Wall config.cpp -o config && ./config
+Port: 8080
+Host: localhost
+Error: std::get: wrong index for variant
+
+Expected output:
+Port: 8080
+Host: localhost
+Verbose: 1`,
+    stdlibRefs: [
+      { name: "std::get (variant)", args: "<T>(const variant<Types...>& v) → const T&", brief: "Returns a reference to the value held by the variant if it currently holds type T.", note: "Throws std::bad_variant_access if the variant doesn't hold exactly type T. No implicit conversions are performed.", link: "https://en.cppreference.com/w/cpp/utility/variant/get" },
+      { name: "std::holds_alternative", args: "<T>(const variant<Types...>& v) → bool", brief: "Checks whether the variant currently holds type T.", link: "https://en.cppreference.com/w/cpp/utility/variant/holds_alternative" },
+    ],
+  },
+  {
+    id: 308,
+    topic: "Standard Library Pitfalls",
+    difficulty: "Medium",
+    title: "Parallel Downloader",
+    description: "Launches multiple simulated downloads concurrently and waits for all to finish before reporting results.",
+    code: `#include <iostream>
+#include <future>
+#include <string>
+#include <vector>
+#include <chrono>
+#include <thread>
+
+std::string download(const std::string& url) {
+    // Simulate network delay
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    return "Content of " + url;
+}
+
+int main() {
+    std::vector<std::string> urls = {
+        "https://example.com/a",
+        "https://example.com/b",
+        "https://example.com/c",
+        "https://example.com/d",
+    };
+
+    std::vector<std::string> results;
+
+    auto start = std::chrono::steady_clock::now();
+
+    for (auto& url : urls) {
+        auto future = std::async(std::launch::async, download, url);
+        results.push_back(future.get());
+    }
+
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start).count();
+
+    for (auto& r : results) {
+        std::cout << r << std::endl;
+    }
+    std::cout << "Elapsed: " << elapsed << "ms" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "When does `future.get()` return? Does the next iteration start before the current download finishes?",
+      "Are the downloads actually running in parallel, or are they serialized?",
+    ],
+    explanation: "Calling `future.get()` immediately after `std::async` blocks until that particular download completes before the loop can launch the next one. The downloads run sequentially, not in parallel, taking ~400ms total instead of ~100ms. The fix is to first launch all async tasks and store the futures in a vector, then call `.get()` on each future in a second loop.",
+    manifestation: `$ g++ -std=c++17 -O2 download.cpp -o download -pthread && ./download
+Content of https://example.com/a
+Content of https://example.com/b
+Content of https://example.com/c
+Content of https://example.com/d
+Elapsed: 412ms
+
+Expected output:
+Content of https://example.com/a
+Content of https://example.com/b
+Content of https://example.com/c
+Content of https://example.com/d
+Elapsed: ~105ms`,
+    stdlibRefs: [
+      { name: "std::async", args: "(std::launch policy, F&& f, Args&&... args) → std::future<result_of_t<F(Args...)>>", brief: "Runs a function asynchronously (potentially in a new thread) and returns a future for its result.", link: "https://en.cppreference.com/w/cpp/thread/async" },
+      { name: "std::future::get", args: "() → T", brief: "Blocks until the result is available, then returns the stored value.", note: "Calling get() immediately after async() serializes execution. Store futures first, then collect results.", link: "https://en.cppreference.com/w/cpp/thread/future/get" },
+    ],
+  },
+  {
+    id: 309,
+    topic: "Standard Library Pitfalls",
+    difficulty: "Medium",
+    title: "Background Timer",
+    description: "Starts a background timer using std::async that prints elapsed seconds, while the main thread does other work.",
+    code: `#include <iostream>
+#include <future>
+#include <chrono>
+#include <thread>
+
+void backgroundTimer(int seconds) {
+    for (int i = 1; i <= seconds; ++i) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::cout << "Timer: " << i << "s" << std::endl;
+    }
+}
+
+int main() {
+    std::cout << "Starting timer..." << std::endl;
+
+    {
+        auto future = std::async(std::launch::async, backgroundTimer, 5);
+        // future goes out of scope here
+    }
+
+    std::cout << "Doing other work..." << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::cout << "Done!" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What happens when a `std::future` returned by `std::async` goes out of scope?",
+      "Does the future's destructor return immediately or does it wait?",
+    ],
+    explanation: "The `std::future` returned by `std::async` with `std::launch::async` has a special property: its destructor blocks until the async task completes. When `future` goes out of scope at the end of the inner block, the destructor waits for `backgroundTimer(5)` to finish — all 5 seconds. So 'Doing other work...' doesn't print until after the timer is done. The timer and the main work are not concurrent. The fix is to keep the future alive (e.g., move it outside the block) and call `.get()` or `.wait()` later, or use `std::thread` with `detach()`.",
+    manifestation: `$ g++ -std=c++17 -O2 timer.cpp -o timer -pthread && ./timer
+Starting timer...
+Timer: 1s
+Timer: 2s
+Timer: 3s
+Timer: 4s
+Timer: 5s
+Doing other work...
+Done!
+
+Expected output:
+Starting timer...
+Doing other work...
+Timer: 1s
+Timer: 2s
+Done!
+Timer: 3s
+...`,
+    stdlibRefs: [
+      { name: "std::async", args: "(std::launch policy, F&& f, Args&&... args) → std::future<result_of_t<F(Args...)>>", brief: "Runs a function asynchronously (potentially in a new thread) and returns a future for its result.", note: "The returned future's destructor blocks until the task completes. Letting it go out of scope immediately serializes the work.", link: "https://en.cppreference.com/w/cpp/thread/async" },
+    ],
+  },
+  {
+    id: 310,
+    topic: "Standard Library Pitfalls",
+    difficulty: "Medium",
+    title: "Token Deduplicator",
+    description: "Removes duplicate tokens from a sorted list using the erase-remove idiom.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+
+int main() {
+    std::vector<std::string> tokens = {
+        "apple", "banana", "apple", "cherry",
+        "banana", "date", "cherry", "apple",
+    };
+
+    // Sort, then remove duplicates
+    std::sort(tokens.begin(), tokens.end());
+
+    std::unique(tokens.begin(), tokens.end());
+
+    std::cout << "Unique tokens (" << tokens.size() << "):" << std::endl;
+    for (auto& t : tokens) {
+        std::cout << "  " << t << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "What does `std::unique` return? Is the return value being used?",
+      "Does `std::unique` actually remove elements from the container?",
+    ],
+    explanation: "`std::unique` doesn't remove elements — it moves unique elements to the front and returns an iterator to the new logical end. The call discards this return value, so the vector still has its original size with unspecified values at the tail. The vector reports 8 elements instead of 4 unique ones. The fix is the erase-remove idiom: `tokens.erase(std::unique(tokens.begin(), tokens.end()), tokens.end());`.",
+    manifestation: `$ g++ -std=c++17 -Wall dedup.cpp -o dedup && ./dedup
+Unique tokens (8):
+  apple
+  banana
+  cherry
+  date
+  apple
+  cherry
+  cherry
+  date
+
+Expected output:
+Unique tokens (4):
+  apple
+  banana
+  cherry
+  date`,
+    stdlibRefs: [
+      { name: "std::unique", args: "(ForwardIt first, ForwardIt last) → ForwardIt", brief: "Eliminates consecutive duplicate elements by moving unique elements to the front, returning an iterator past the new logical end.", note: "Does NOT resize the container. The returned iterator must be passed to erase() to actually remove the tail elements.", link: "https://en.cppreference.com/w/cpp/algorithm/unique" },
+    ],
+  },
+  {
+    id: 311,
+    topic: "Standard Library Pitfalls",
+    difficulty: "Hard",
+    title: "Sensor Dashboard",
+    description: "Reads sensor values that may be absent and displays a dashboard with averages.",
+    code: `#include <iostream>
+#include <optional>
+#include <vector>
+#include <string>
+#include <iomanip>
+
+struct Sensor {
+    std::string name;
+    std::optional<double> reading;
+};
+
+double averageReading(const std::vector<Sensor>& sensors) {
+    double sum = 0;
+    int count = 0;
+    for (auto& s : sensors) {
+        sum += s.reading.value_or(0.0);
+        ++count;
+    }
+    return sum / count;
+}
+
+void printDashboard(const std::vector<Sensor>& sensors) {
+    std::cout << std::fixed << std::setprecision(1);
+    for (auto& s : sensors) {
+        std::cout << s.name << ": ";
+        if (s.reading) {
+            std::cout << *s.reading << " °C" << std::endl;
+        } else {
+            std::cout << "N/A" << std::endl;
+        }
+    }
+    std::cout << "Average: " << averageReading(sensors) << " °C" << std::endl;
+}
+
+int main() {
+    std::vector<Sensor> sensors = {
+        {"Kitchen",   22.5},
+        {"Bedroom",   19.8},
+        {"Garage",    std::nullopt},
+        {"Bathroom",  24.1},
+        {"Basement",  std::nullopt},
+    };
+
+    printDashboard(sensors);
+    return 0;
+}`,
+    hints: [
+      "Look at `averageReading`. How does it handle sensors with no reading?",
+      "Does `value_or(0.0)` make absent sensors contribute zero to the sum? What about the count?",
+    ],
+    explanation: "The `averageReading` function uses `value_or(0.0)` which treats absent readings as 0.0, but still counts them in the denominator. With 3 valid readings (22.5 + 19.8 + 24.1 = 66.4) divided by 5 total sensors, the average is 13.28 instead of the correct 22.13. The `value_or` approach hides the distinction between 'no reading' and 'reading of 0.0'. The fix is to only add to sum and increment count when `s.reading.has_value()` is true.",
+    manifestation: `$ g++ -std=c++17 -Wall sensor.cpp -o sensor && ./sensor
+Kitchen: 22.5 °C
+Bedroom: 19.8 °C
+Garage: N/A
+Bathroom: 24.1 °C
+Basement: N/A
+Average: 13.3 °C
+
+Expected output:
+...
+Average: 22.1 °C`,
+    stdlibRefs: [
+      { name: "std::optional::value_or", args: "(T&& default_value) const& → T", brief: "Returns the contained value if present, otherwise returns the provided default.", note: "Using value_or(0) conflates 'missing' with 'zero'. Absent values should often be excluded from calculations, not defaulted.", link: "https://en.cppreference.com/w/cpp/utility/optional/value_or" },
+    ],
+  },
+  {
+    id: 312,
+    topic: "Standard Library Pitfalls",
+    difficulty: "Hard",
+    title: "Lazy String Builder",
+    description: "Builds a sentence lazily by emplacing string parts into a vector and joining them.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <sstream>
+
+class StringBuilder {
+    std::vector<std::string> parts_;
+public:
+    StringBuilder& add(const std::string& part) {
+        parts_.push_back(part);
+        return *this;
+    }
+
+    const std::string& lastPart() const {
+        return parts_.back();
+    }
+
+    std::string build(const std::string& separator = " ") const {
+        std::ostringstream oss;
+        for (size_t i = 0; i < parts_.size(); ++i) {
+            if (i > 0) oss << separator;
+            oss << parts_[i];
+        }
+        return oss.str();
+    }
+};
+
+int main() {
+    StringBuilder sb;
+    sb.add("The").add("quick").add("brown");
+
+    const std::string& ref = sb.lastPart();  // "brown"
+    std::cout << "Last: " << ref << std::endl;
+
+    // Add more words — vector may reallocate
+    sb.add("fox").add("jumps").add("over");
+    sb.add("the").add("lazy").add("dog");
+
+    std::cout << "Last ref: " << ref << std::endl;
+    std::cout << "Sentence: " << sb.build() << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What does `ref` point to after more elements are added to the vector?",
+      "What happens to references into a `std::vector` when the vector reallocates?",
+    ],
+    explanation: "The reference `ref` points to the third element in the vector's internal buffer. When more strings are added, the vector may reallocate to a larger buffer, invalidating all references, pointers, and iterators to its elements. Accessing `ref` after the reallocation is undefined behavior — it points to freed memory. The fix is to either copy the string (`std::string copy = sb.lastPart()`) or access it only after all modifications are done.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=address -g builder.cpp -o builder && ./builder
+Last: brown
+=================================================================
+==18234==ERROR: AddressSanitizer: heap-use-after-free on address
+    0x60400000eff0 at pc 0x5555557a3e12 bp 0x7fffffffd890
+READ of size 8 at 0x60400000eff0 thread T0
+    #0 0x5555557a3e11 in main builder.cpp:35
+    #1 0x7ffff7229d8f in __libc_start_call_main
+0x60400000eff0 is located 48 bytes inside of 96-byte region
+    [0x60400000efc0,0x60400000f020)
+freed by thread T0 here:
+    #0 0x7ffff74b3b6f in operator delete(void*)
+    #1 0x5555557a5a23 in std::vector<std::string>::_M_realloc_insert`,
+    stdlibRefs: [
+      { name: "std::vector::push_back", args: "(const T& value) → void | (T&& value) → void", brief: "Appends an element to the end of the vector.", note: "If the new size exceeds capacity, reallocation occurs and all iterators, references, and pointers to elements are invalidated.", link: "https://en.cppreference.com/w/cpp/container/vector/push_back" },
+    ],
+  },
+  {
+    id: 313,
+    topic: "Standard Library Pitfalls",
+    difficulty: "Hard",
+    title: "Concurrent Counter Map",
+    description: "Uses emplace to safely insert into a shared map and counts occurrences of each word in parallel.",
+    code: `#include <iostream>
+#include <map>
+#include <string>
+#include <vector>
+#include <thread>
+#include <mutex>
+
+class WordCounter {
+    std::map<std::string, int> counts_;
+    std::mutex mtx_;
+public:
+    void count(const std::string& word) {
+        std::lock_guard<std::mutex> lock(mtx_);
+        auto [it, inserted] = counts_.emplace(word, 1);
+        if (!inserted) {
+            it->second++;
+        }
+    }
+
+    void merge(const WordCounter& other) {
+        for (auto& [word, cnt] : other.counts_) {
+            std::lock_guard<std::mutex> lock(mtx_);
+            counts_[word] += cnt;
+        }
+    }
+
+    void print() const {
+        for (auto& [word, cnt] : counts_) {
+            std::cout << word << ": " << cnt << std::endl;
+        }
+    }
+};
+
+int main() {
+    WordCounter global;
+    std::vector<std::string> corpus = {
+        "the", "quick", "brown", "fox", "the",
+        "lazy", "dog", "the", "fox", "quick",
+    };
+
+    std::vector<std::thread> threads;
+    for (auto& word : corpus) {
+        threads.emplace_back([&global, &word] {
+            global.count(word);
+        });
+    }
+
+    for (auto& t : threads) t.join();
+
+    global.print();
+    return 0;
+}`,
+    hints: [
+      "Look at the lambda capture. What does `&word` refer to during thread execution?",
+      "When does the loop variable `word` change? Is the thread guaranteed to read it before the next iteration?",
+    ],
+    explanation: "The lambda captures `word` by reference (`&word`), but `word` is the loop variable that changes each iteration. By the time a thread executes, the loop may have advanced, so `word` could refer to a different string — or worse, if the loop has finished, the reference may dangle. This is a classic data race on the captured reference. The fix is to capture by value: `[&global, word]` or `[&global, w = word]`.",
+    manifestation: `$ g++ -std=c++17 -O2 -fsanitize=thread counter.cpp -o counter -pthread && ./counter
+==================
+WARNING: ThreadSanitizer: data race (pid=21345)
+  Read of size 8 at 0x7ffd4a2c1e80 by thread T3:
+    #0 std::string::data() const
+    #1 WordCounter::count(std::string const&) counter.cpp:14
+  Previous write of size 8 at 0x7ffd4a2c1e80 by main thread:
+    #0 std::string::operator=(std::string const&)
+    #1 main counter.cpp:43
+==================
+brown: 1
+dog: 1
+fox: 1
+lazy: 1
+quick: 3
+the: 4`,
+    stdlibRefs: [
+      { name: "std::map::emplace", args: "(Args&&... args) → std::pair<iterator, bool>", brief: "Constructs an element in-place if the key doesn't exist, returning an iterator and whether insertion occurred.", link: "https://en.cppreference.com/w/cpp/container/map/emplace" },
+    ],
+  },
 ];
