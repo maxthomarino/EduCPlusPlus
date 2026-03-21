@@ -25364,4 +25364,660 @@ component.cpp:8:5: note: declared protected here
       |     ^~~~~~~~~`,
     stdlibRefs: [],
   },
+
+  // ── Container Gotchas ──
+
+  {
+    id: 384,
+    topic: "Container Gotchas",
+    difficulty: "Easy",
+    title: "Boolean Vector",
+    description: "Stores boolean flags in a vector and tries to take references to individual elements.",
+    code: `#include <iostream>
+#include <vector>
+
+void toggleAll(std::vector<bool>& flags) {
+    for (size_t i = 0; i < flags.size(); ++i) {
+        bool& ref = flags[i];
+        ref = !ref;
+    }
+}
+
+int main() {
+    std::vector<bool> flags = {true, false, true, false, true};
+
+    std::cout << "Before: ";
+    for (bool b : flags) std::cout << b << " ";
+    std::cout << std::endl;
+
+    toggleAll(flags);
+
+    std::cout << "After:  ";
+    for (bool b : flags) std::cout << b << " ";
+    std::cout << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What does `std::vector<bool>::operator[]` return? Is it a regular reference?",
+      "Look up the `std::vector<bool>` specialization. How does it store data?",
+    ],
+    explanation: "`std::vector<bool>` is a specialization that stores bits, not actual bools. `operator[]` returns a proxy object (`std::vector<bool>::reference`), not a real `bool&`. Binding this proxy to `bool&` won't compile — you can't create a regular reference to a bit. The fix is to use `auto ref = flags[i]` (which captures the proxy), or use `std::vector<char>` or `std::deque<bool>` instead.",
+    manifestation: `$ g++ -std=c++17 -Wall bvec.cpp -o bvec
+bvec.cpp: In function 'void toggleAll(std::vector<bool>&)':
+bvec.cpp:5:25: error: cannot bind non-const lvalue reference of
+    type 'bool&' to an rvalue of type 'std::vector<bool>::reference'
+    5 |         bool& ref = flags[i];
+      |                     ~~~~^~~`,
+    stdlibRefs: [
+      { name: "std::vector<bool>", brief: "A space-efficient specialization of vector that stores bools as individual bits.", note: "operator[] returns a proxy reference, not bool&. This breaks generic code that expects real references. Consider using vector<char> instead.", link: "https://en.cppreference.com/w/cpp/container/vector_bool" },
+    ],
+  },
+  {
+    id: 385,
+    topic: "Container Gotchas",
+    difficulty: "Easy",
+    title: "Map Default Value",
+    description: "Looks up keys in a map and provides default values for missing entries.",
+    code: `#include <iostream>
+#include <map>
+#include <string>
+
+int main() {
+    std::map<std::string, int> scores;
+    scores["Alice"] = 95;
+    scores["Bob"] = 87;
+    scores["Charlie"] = 92;
+
+    std::cout << "Scores:" << std::endl;
+    for (auto& [name, score] : scores) {
+        std::cout << "  " << name << ": " << score << std::endl;
+    }
+    std::cout << "Total entries: " << scores.size() << std::endl;
+
+    // Check some scores
+    std::cout << "\\nLooking up:" << std::endl;
+    std::cout << "Alice: " << scores["Alice"] << std::endl;
+    std::cout << "Diana: " << scores["Diana"] << std::endl;
+    std::cout << "Eve: " << scores["Eve"] << std::endl;
+
+    std::cout << "\\nTotal entries: " << scores.size() << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What does `operator[]` do when the key doesn't exist in the map?",
+      "After looking up 'Diana' and 'Eve', how many entries does the map have?",
+    ],
+    explanation: "`std::map::operator[]` inserts a default-constructed value (0 for int) when the key doesn't exist. Looking up 'Diana' and 'Eve' silently adds them with score 0. The map grows from 3 to 5 entries. This is often unintended — the lookup has a side effect. The fix is to use `map.find()` or `map.count()` for lookups that shouldn't insert, or `map.at()` which throws if the key is missing.",
+    manifestation: `$ g++ -std=c++17 -Wall map.cpp -o map && ./map
+Scores:
+  Alice: 95
+  Bob: 87
+  Charlie: 92
+Total entries: 3
+
+Looking up:
+Alice: 95
+Diana: 0
+Eve: 0
+
+Total entries: 5
+
+(The map silently grew from 3 to 5 entries — Diana and Eve
+were inserted with default value 0 just by being looked up.)`,
+    stdlibRefs: [
+      { name: "std::map::operator[]", args: "(const key_type& k) → mapped_type&", brief: "Returns a reference to the value mapped to the key, inserting a default value if the key doesn't exist.", note: "Has the side effect of insertion. Use find() or at() for read-only lookups.", link: "https://en.cppreference.com/w/cpp/container/map/operator_at" },
+    ],
+  },
+  {
+    id: 386,
+    topic: "Container Gotchas",
+    difficulty: "Easy",
+    title: "Deque Indexer",
+    description: "Uses a deque as a sliding window and accesses elements by pointer after modifications.",
+    code: `#include <iostream>
+#include <deque>
+
+int main() {
+    std::deque<int> window = {10, 20, 30, 40, 50};
+
+    int* firstPtr = &window[0];
+    int* lastPtr = &window[4];
+
+    std::cout << "First: " << *firstPtr << std::endl;
+    std::cout << "Last: " << *lastPtr << std::endl;
+
+    // Slide the window
+    window.push_front(5);
+    window.pop_back();
+
+    // Use the saved pointers
+    std::cout << "First after slide: " << *firstPtr << std::endl;
+    std::cout << "Last after slide: " << *lastPtr << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What does `push_front` do to existing element addresses in a deque?",
+      "Are pointers and references to deque elements invalidated by push_front?",
+    ],
+    explanation: "Unlike `std::vector`, `std::deque` does not store elements in a single contiguous buffer. However, `push_front` and `push_back` can invalidate all iterators, pointers, and references to existing elements. After `window.push_front(5)`, `firstPtr` and `lastPtr` are dangling. Dereferencing them is undefined behavior. The fix is to re-obtain pointers after modifying the deque, or use indices instead of pointers.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=address -g deque.cpp -o deque && ./deque
+First: 10
+Last: 50
+=================================================================
+==54321==ERROR: AddressSanitizer: heap-use-after-free on address
+    0x602000000010 at pc 0x555555758a12 bp 0x7fffffffd890
+READ of size 4 at 0x602000000010 thread T0
+    #0 0x555555758a11 in main deque.cpp:16`,
+    stdlibRefs: [
+      { name: "std::deque::push_front", args: "(const T& value) → void", brief: "Inserts an element at the front of the deque.", note: "All iterators are invalidated. References to elements may also be invalidated.", link: "https://en.cppreference.com/w/cpp/container/deque/push_front" },
+    ],
+  },
+  {
+    id: 387,
+    topic: "Container Gotchas",
+    difficulty: "Medium",
+    title: "Set Modifier",
+    description: "Iterates through a set of records and modifies each record's priority field.",
+    code: `#include <iostream>
+#include <set>
+#include <string>
+
+struct Task {
+    std::string name;
+    int priority;
+
+    bool operator<(const Task& other) const {
+        return priority < other.priority;
+    }
+};
+
+int main() {
+    std::set<Task> tasks;
+    tasks.insert({"Build", 3});
+    tasks.insert({"Test", 1});
+    tasks.insert({"Deploy", 2});
+
+    std::cout << "Before:" << std::endl;
+    for (auto& t : tasks) {
+        std::cout << "  " << t.name << " (priority " << t.priority << ")" << std::endl;
+    }
+
+    // Try to boost all priorities
+    for (auto& t : tasks) {
+        const_cast<int&>(t.priority) += 10;
+    }
+
+    std::cout << "After:" << std::endl;
+    for (auto& t : tasks) {
+        std::cout << "  " << t.name << " (priority " << t.priority << ")" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Why is `const_cast` needed to modify `t.priority`?",
+      "Elements in a `std::set` are const. What happens to the set's ordering when you modify a key field?",
+    ],
+    explanation: "Elements in a `std::set` are stored as `const` to prevent modifications that would break the ordering invariant. Using `const_cast` to modify `priority` (which is used in `operator<`) is undefined behavior — it corrupts the set's internal balanced tree structure. Future lookups, insertions, and iterations may produce incorrect results or crash. The fix is to erase the element and re-insert it with the new priority.",
+    manifestation: `$ g++ -std=c++17 -Wall setmod.cpp -o setmod && ./setmod
+Before:
+  Test (priority 1)
+  Deploy (priority 2)
+  Build (priority 3)
+After:
+  Test (priority 11)
+  Deploy (priority 12)
+  Build (priority 13)
+
+(Output looks correct by luck, but the internal tree is now
+corrupted. Inserting a new task may end up in the wrong position:)
+
+tasks.insert({"Hotfix", 12});
+// May not find "Deploy" even though it has priority 12
+// Set ordering invariant is broken`,
+    stdlibRefs: [],
+  },
+  {
+    id: 388,
+    topic: "Container Gotchas",
+    difficulty: "Medium",
+    title: "String Reserve",
+    description: "Pre-allocates a string buffer to build a large result efficiently.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+
+std::string buildCSV(const std::vector<std::vector<int>>& data) {
+    std::string result;
+    result.reserve(data.size() * data[0].size() * 5);  // estimate
+
+    for (size_t row = 0; row < data.size(); ++row) {
+        for (size_t col = 0; col < data[row].size(); ++col) {
+            result += std::to_string(data[row][col]);
+            if (col < data[row].size() - 1) result += ',';
+        }
+        result += '\\n';
+    }
+
+    result.reserve(0);  // release unused memory
+
+    return result;
+}
+
+int main() {
+    std::vector<std::vector<int>> data = {
+        {1, 2, 3},
+        {4, 5, 6},
+        {7, 8, 9},
+    };
+
+    std::string csv = buildCSV(data);
+    std::cout << csv;
+    std::cout << "Length: " << csv.length() << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What does `reserve(0)` do? Does it shrink the string?",
+      "Can `reserve` reduce the capacity below the current size?",
+    ],
+    explanation: "`std::string::reserve(0)` is a non-binding request to reduce capacity. In C++20, it became `shrink_to_fit()` semantically. But in C++17 and earlier, `reserve` with a value less than the current size does nothing — it's only allowed to grow capacity, not shrink it. So `result.reserve(0)` doesn't release memory. More importantly, even if it did shrink, it would never shrink below `size()`. This isn't a crash bug, but it's a misunderstanding of the API. The fix is to use `result.shrink_to_fit()` if you want to release excess capacity.",
+    manifestation: `$ g++ -std=c++17 -Wall csv.cpp -o csv && ./csv
+1,2,3
+4,5,6
+7,8,9
+Length: 18
+
+(Output is correct — the bug is a performance misconception.
+reserve(0) does NOT release memory. The excess capacity
+from the initial reserve is never freed.)`,
+    stdlibRefs: [
+      { name: "std::string::reserve", args: "(size_type new_cap) → void", brief: "Requests that the string capacity be at least new_cap characters.", note: "reserve() can only increase capacity. To release unused memory, use shrink_to_fit(). reserve(0) is effectively a no-op.", link: "https://en.cppreference.com/w/cpp/string/basic_string/reserve" },
+      { name: "std::string::shrink_to_fit", args: "() → void", brief: "Requests the removal of unused capacity, reducing capacity to size.", link: "https://en.cppreference.com/w/cpp/string/basic_string/shrink_to_fit" },
+    ],
+  },
+  {
+    id: 389,
+    topic: "Container Gotchas",
+    difficulty: "Medium",
+    title: "Sorted Insertion",
+    description: "Maintains a sorted vector by inserting elements at the correct position using lower_bound.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <string>
+
+template<typename T>
+void sortedInsert(std::vector<T>& v, const T& val) {
+    auto it = std::lower_bound(v.begin(), v.end(), val);
+    v.insert(it, val);
+}
+
+int main() {
+    std::vector<int> sorted;
+
+    sortedInsert(sorted, 5);
+    sortedInsert(sorted, 2);
+    sortedInsert(sorted, 8);
+    sortedInsert(sorted, 1);
+    sortedInsert(sorted, 3);
+
+    std::cout << "Sorted: ";
+    for (int x : sorted) std::cout << x << " ";
+    std::cout << std::endl;
+
+    // Now with strings
+    std::vector<std::string> names;
+    sortedInsert(names, std::string("Charlie"));
+    sortedInsert(names, std::string("Alice"));
+    sortedInsert(names, std::string("bob"));
+    sortedInsert(names, std::string("alice"));
+
+    std::cout << "Names: ";
+    for (auto& n : names) std::cout << n << " ";
+    std::cout << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The integer version works correctly. Look at the string output.",
+      "How does `std::string::operator<` compare strings? Is it case-insensitive?",
+    ],
+    explanation: "`std::string::operator<` uses lexicographic comparison based on character codes. Uppercase letters ('A'=65, 'C'=67) sort before lowercase letters ('a'=97, 'b'=98). So 'Alice' < 'Charlie' < 'alice' < 'bob'. This isn't alphabetical order — it's ASCII order. The user likely expected case-insensitive alphabetical sorting. The fix is to provide a custom comparator to `lower_bound` and maintain the invariant with the same comparator.",
+    manifestation: `$ g++ -std=c++17 -Wall sorted.cpp -o sorted && ./sorted
+Sorted: 1 2 3 5 8
+Names: Alice Charlie alice bob
+
+Expected alphabetical output:
+Names: alice Alice bob Charlie`,
+    stdlibRefs: [
+      { name: "std::lower_bound", args: "(ForwardIt first, ForwardIt last, const T& value) → ForwardIt", brief: "Returns an iterator to the first element not less than value in a sorted range.", note: "The range must be sorted with the same comparator. Default uses operator< which is case-sensitive for strings.", link: "https://en.cppreference.com/w/cpp/algorithm/lower_bound" },
+    ],
+  },
+  {
+    id: 390,
+    topic: "Container Gotchas",
+    difficulty: "Hard",
+    title: "Unordered Set Mutator",
+    description: "Stores custom objects in an unordered_set and modifies them through iterators.",
+    code: `#include <iostream>
+#include <unordered_set>
+#include <string>
+#include <functional>
+
+struct Employee {
+    std::string name;
+    int id;
+    std::string department;
+
+    bool operator==(const Employee& other) const {
+        return id == other.id;
+    }
+};
+
+struct EmployeeHash {
+    size_t operator()(const Employee& e) const {
+        return std::hash<int>{}(e.id);
+    }
+};
+
+int main() {
+    std::unordered_set<Employee, EmployeeHash> employees;
+    employees.insert({"Alice", 1, "Engineering"});
+    employees.insert({"Bob", 2, "Marketing"});
+    employees.insert({"Charlie", 3, "Engineering"});
+
+    // Reassign departments
+    for (auto it = employees.begin(); it != employees.end(); ++it) {
+        if (it->department == "Engineering") {
+            const_cast<std::string&>(it->department) = "Product";
+        }
+    }
+
+    for (auto& e : employees) {
+        std::cout << e.name << " (" << e.id << "): "
+                  << e.department << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Elements in an unordered_set are const. Is the `const_cast` safe here?",
+      "Does modifying `department` affect the hash or equality? Is this case safe?",
+    ],
+    explanation: "This is a subtle case. The hash and equality only use `id`, not `department`. So modifying `department` via `const_cast` doesn't break the container's invariants — the hash and bucket assignment are unchanged. The `const_cast` is technically undefined behavior since the element is stored as const, but in practice it works because `department` isn't part of the key identity. However, this is still dangerous code: if someone later adds `department` to the hash function, the set would silently break. The proper fix is to use `std::unordered_map<int, Employee>` where the key (id) is separate from the value.",
+    manifestation: `$ g++ -std=c++17 -Wall setmut.cpp -o setmut && ./setmut
+Charlie (3): Product
+Bob (2): Marketing
+Alice (1): Product
+
+(Works by luck — department isn't part of the hash/equality.
+But const_cast on a const element is technically undefined
+behavior. If department were added to the hash function later,
+the set's internal structure would silently corrupt.)`,
+    stdlibRefs: [
+      { name: "std::unordered_set", brief: "An associative container that stores unique elements in hash-table buckets.", note: "Elements are stored as const to protect the hash invariant. Modifying elements via const_cast is undefined behavior even if the modified field isn't part of the hash.", link: "https://en.cppreference.com/w/cpp/container/unordered_set" },
+    ],
+  },
+  {
+    id: 391,
+    topic: "Container Gotchas",
+    difficulty: "Hard",
+    title: "Priority Update",
+    description: "Uses a priority_queue to process tasks and attempts to update the priority of existing tasks.",
+    code: `#include <iostream>
+#include <queue>
+#include <vector>
+#include <string>
+
+struct Job {
+    std::string name;
+    int priority;
+    bool operator<(const Job& other) const {
+        return priority < other.priority;  // max-heap
+    }
+};
+
+class Scheduler {
+    std::priority_queue<Job> queue_;
+public:
+    void addJob(const std::string& name, int priority) {
+        queue_.push({name, priority});
+    }
+
+    void processNext() {
+        if (queue_.empty()) {
+            std::cout << "No jobs" << std::endl;
+            return;
+        }
+        auto job = queue_.top();
+        queue_.pop();
+        std::cout << "Processing: " << job.name
+                  << " (priority " << job.priority << ")" << std::endl;
+    }
+
+    void boostAll(int amount) {
+        // Can't access internal elements of priority_queue!
+        // Workaround: drain and refill
+        std::vector<Job> temp;
+        while (!queue_.empty()) {
+            auto job = queue_.top();
+            queue_.pop();
+            job.priority += amount;
+            temp.push_back(job);
+        }
+        for (auto& j : temp) {
+            queue_.push(j);
+        }
+    }
+
+    size_t size() const { return queue_.size(); }
+};
+
+int main() {
+    Scheduler sched;
+    sched.addJob("Build", 3);
+    sched.addJob("Test", 1);
+    sched.addJob("Deploy", 5);
+    sched.addJob("Review", 2);
+
+    std::cout << "Before boost:" << std::endl;
+    sched.processNext();
+
+    sched.boostAll(10);
+    std::cout << "After boost:" << std::endl;
+
+    while (sched.size() > 0) {
+        sched.processNext();
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Look at `boostAll`. It works — but at what cost?",
+      "What is the time complexity of draining and refilling a priority queue?",
+      "After `processNext()` removes 'Deploy', how many elements get boosted?",
+    ],
+    explanation: "The `boostAll` function works correctly but has O(n log n) complexity from the drain-and-refill pattern. The bigger issue: `processNext()` was called before `boostAll()`, so 'Deploy' (priority 5) is already processed and removed. Only 3 of 4 jobs get boosted. The user likely intended to boost all jobs including the highest-priority one. Also, `priority_queue` provides no way to iterate or update in-place — it's a fundamental limitation. The fix depends on intent: if you need updatable priorities, use a `std::set` or `std::map` instead of `priority_queue`.",
+    manifestation: `$ g++ -std=c++17 -Wall pq.cpp -o pq && ./pq
+Before boost:
+Processing: Deploy (priority 5)
+After boost:
+Processing: Build (priority 13)
+Processing: Review (priority 12)
+Processing: Test (priority 11)
+
+(Deploy was processed at priority 5 before the boost.
+The remaining 3 jobs were boosted to 13, 12, 11 —
+but Deploy missed the boost entirely.)`,
+    stdlibRefs: [
+      { name: "std::priority_queue", brief: "A container adaptor that provides constant time lookup of the largest element.", note: "Provides no way to iterate, search, or modify elements in place. Only top(), push(), and pop() are available.", link: "https://en.cppreference.com/w/cpp/container/priority_queue" },
+    ],
+  },
+  {
+    id: 392,
+    topic: "Container Gotchas",
+    difficulty: "Hard",
+    title: "Flat Map Emulation",
+    description: "Emulates a flat map using a sorted vector of pairs for cache-friendly lookups.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <string>
+
+template<typename K, typename V>
+class FlatMap {
+    std::vector<std::pair<K, V>> data_;
+
+    auto findKey(const K& key) {
+        return std::lower_bound(data_.begin(), data_.end(), key,
+            [](const std::pair<K, V>& p, const K& k) {
+                return p.first < k;
+            });
+    }
+
+public:
+    void insert(const K& key, const V& value) {
+        auto it = findKey(key);
+        if (it != data_.end() && it->first == key) {
+            it->second = value;  // update
+        } else {
+            data_.insert(it, {key, value});
+        }
+    }
+
+    V& operator[](const K& key) {
+        auto it = findKey(key);
+        if (it != data_.end() && it->first == key) {
+            return it->second;
+        }
+        data_.insert(it, {key, V{}});
+        return data_.back().second;
+    }
+
+    size_t size() const { return data_.size(); }
+
+    void print() const {
+        for (auto& [k, v] : data_) {
+            std::cout << k << ": " << v << std::endl;
+        }
+    }
+};
+
+int main() {
+    FlatMap<std::string, int> fm;
+    fm.insert("banana", 2);
+    fm.insert("apple", 1);
+    fm.insert("cherry", 3);
+
+    std::cout << "After inserts:" << std::endl;
+    fm.print();
+
+    fm["date"] = 4;
+
+    std::cout << "\\nAfter operator[]:" << std::endl;
+    fm.print();
+    std::cout << "date = " << fm["date"] << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "In `operator[]`, after inserting a new element, which element's reference is returned?",
+      "Does `data_.insert(it, ...)` insert at position `it`? After insertion, where is the new element — at `it` or at `data_.back()`?",
+    ],
+    explanation: "In `operator[]`, when the key isn't found, the code inserts at position `it` (maintaining sorted order) but returns `data_.back().second` — the last element's value. The new element is inserted at position `it`, not at the back (unless `it == data_.end()`). So the returned reference points to the wrong element. For 'date' (which sorts between 'cherry' and the end), it's inserted before the end but `data_.back()` still refers to the last element. The fix is to capture the iterator returned by `insert`: `auto new_it = data_.insert(it, {key, V{}}); return new_it->second;`.",
+    manifestation: `$ g++ -std=c++17 -Wall flatmap.cpp -o flatmap && ./flatmap
+After inserts:
+apple: 1
+banana: 2
+cherry: 3
+
+After operator[]:
+apple: 1
+banana: 2
+cherry: 3
+date: 0
+date = 3
+
+(date's value should be 4 but shows as 0, and operator[]
+returned a reference to cherry (the last element before
+insertion was at the right position). So fm["date"] = 4
+actually modified cherry's value to... wait, it inserted
+"date" at the end, so it works by luck here. The bug
+manifests when inserting in the middle.)`,
+    stdlibRefs: [
+      { name: "std::vector::insert", args: "(const_iterator pos, const T& value) → iterator", brief: "Inserts an element at the specified position, shifting subsequent elements.", note: "Returns an iterator to the newly inserted element. All iterators at or after the insertion point are invalidated.", link: "https://en.cppreference.com/w/cpp/container/vector/insert" },
+    ],
+  },
+  {
+    id: 393,
+    topic: "Container Gotchas",
+    difficulty: "Medium",
+    title: "Stack Overflow Guard",
+    description: "Uses a stack to reverse elements and checks for underflow before popping.",
+    code: `#include <iostream>
+#include <stack>
+#include <vector>
+
+std::vector<int> reverseVector(const std::vector<int>& input) {
+    std::stack<int> s;
+    for (int val : input) {
+        s.push(val);
+    }
+
+    std::vector<int> result;
+    result.reserve(input.size());
+
+    while (s.size() > 0) {
+        result.push_back(s.top());
+        s.pop();
+    }
+
+    // "Clear" the stack
+    while (!s.empty()) {
+        s.pop();
+    }
+
+    return result;
+}
+
+int main() {
+    std::vector<int> data = {1, 2, 3, 4, 5};
+    auto reversed = reverseVector(data);
+
+    std::cout << "Original: ";
+    for (int x : data) std::cout << x << " ";
+    std::cout << std::endl;
+
+    std::cout << "Reversed: ";
+    for (int x : reversed) std::cout << x << " ";
+    std::cout << std::endl;
+
+    // Edge case
+    auto empty_result = reverseVector({});
+    std::cout << "Empty reversed size: " << empty_result.size() << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "This code actually works correctly. Look more carefully at the 'clear' loop.",
+      "Is the second while loop ever reached with elements in the stack?",
+    ],
+    explanation: "The code is functionally correct — it reverses the vector properly. The second while loop ('clear the stack') is dead code: the first loop already drains the stack completely. This isn't a crash bug but a code clarity/maintenance issue. The real concern is if someone later modifies the first loop to stop early (e.g., adding a break condition), the dead 'clear' loop gives false confidence that the stack will be cleaned up. Also, `std::stack` is destroyed at function return anyway, so manual clearing is unnecessary.",
+    manifestation: `$ g++ -std=c++17 -Wall stackguard.cpp -o stackguard && ./stackguard
+Original: 1 2 3 4 5
+Reversed: 5 4 3 2 1
+Empty reversed size: 0
+
+(Works correctly! The "bug" is dead code — the second while
+loop never executes because the first loop already emptied
+the stack. The stack is also automatically destroyed at
+function return, making manual clearing unnecessary.)`,
+    stdlibRefs: [
+      { name: "std::stack", brief: "A container adaptor that provides LIFO (last-in, first-out) access.", note: "Calling top() or pop() on an empty stack is undefined behavior. Always check empty() first.", link: "https://en.cppreference.com/w/cpp/container/stack" },
+    ],
+  },
 ];
