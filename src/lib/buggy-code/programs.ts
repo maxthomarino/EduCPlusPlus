@@ -15801,4 +15801,635 @@ Actual output:
   making the string appear shorter than it is`,
     stdlibRefs: [],
   },
+
+  // ── Pointers & References ──
+  {
+    id: 244,
+    topic: "Pointers & References",
+    difficulty: "Easy",
+    title: "Swap Function",
+    description: "Implements a generic swap function that exchanges the values of two variables.",
+    code: `#include <iostream>
+
+void swap(int a, int b) {
+    int temp = a;
+    a = b;
+    b = temp;
+}
+
+int main() {
+    int x = 10, y = 20;
+    std::cout << "Before: x=" << x << ", y=" << y << std::endl;
+    swap(x, y);
+    std::cout << "After: x=" << x << ", y=" << y << std::endl;
+
+    int arr[] = {5, 3, 8, 1, 4};
+    // Sort by swapping adjacent elements
+    for (int i = 0; i < 4; ++i) {
+        for (int j = 0; j < 4 - i; ++j) {
+            if (arr[j] > arr[j + 1]) {
+                swap(arr[j], arr[j + 1]);
+            }
+        }
+    }
+
+    std::cout << "Sorted: ";
+    for (int v : arr) std::cout << v << " ";
+    std::cout << std::endl;
+}`,
+    hints: [
+      "How are `a` and `b` passed to the `swap` function? By value or by reference?",
+      "When you modify `a` and `b` inside the function, does the caller see those changes?",
+      "What happens if you change the parameters to `int& a, int& b`?",
+    ],
+    explanation: "The `swap` function takes its parameters by value, meaning `a` and `b` are copies of the caller's variables. Swapping the copies has no effect on the original variables. After calling `swap(x, y)`, `x` is still 10 and `y` is still 20. The bubble sort also fails completely since no elements are actually swapped. The fix is to pass by reference: `void swap(int& a, int& b)`.",
+    manifestation: `$ g++ -std=c++17 -O2 swap.cpp -o swap && ./swap
+Before: x=10, y=20
+After: x=10, y=20
+Sorted: 5 3 8 1 4
+
+Expected output:
+  After: x=20, y=10
+  Sorted: 1 3 4 5 8
+Actual output:
+  After: x=10, y=20   ← swap had no effect (pass by value)
+  Sorted: 5 3 8 1 4   ← array unchanged`,
+    stdlibRefs: [],
+  },
+  {
+    id: 245,
+    topic: "Pointers & References",
+    difficulty: "Easy",
+    title: "Optional Lookup",
+    description: "Looks up a value in an array and returns a pointer to the element if found, or nullptr if not present.",
+    code: `#include <iostream>
+#include <vector>
+
+int* findValue(std::vector<int> vec, int target) {
+    for (size_t i = 0; i < vec.size(); ++i) {
+        if (vec[i] == target) {
+            return &vec[i];
+        }
+    }
+    return nullptr;
+}
+
+int main() {
+    std::vector<int> numbers = {10, 20, 30, 40, 50};
+
+    int* result = findValue(numbers, 30);
+    if (result) {
+        std::cout << "Found: " << *result << std::endl;
+        *result = 99;
+    }
+
+    std::cout << "Original[2] = " << numbers[2] << std::endl;
+}`,
+    hints: [
+      "How is the vector passed to `findValue`? By value or by reference?",
+      "If the vector is passed by value, whose memory does the returned pointer point into?",
+      "What happens to the copy of the vector when `findValue` returns?",
+    ],
+    explanation: "The `findValue` function takes the vector by value, creating a temporary copy. The returned pointer points into this copy's internal storage, which is destroyed when the function returns. The caller receives a dangling pointer to freed memory. Dereferencing it (`*result`) is undefined behavior. Even if it appears to work, the modification `*result = 99` won't affect the original vector. The fix is to pass the vector by reference: `int* findValue(std::vector<int>& vec, int target)`.",
+    manifestation: `$ g++ -fsanitize=address -g lookup.cpp -o lookup && ./lookup
+=================================================================
+==19234==ERROR: AddressSanitizer: heap-use-after-free on address 0x603000000018
+READ of size 4 at 0x603000000018 thread T0
+    #0 0x401b23 in main lookup.cpp:14
+    #1 0x7f4a1b in __libc_start_main
+0x603000000018 is located 8 bytes inside of 20-byte region
+freed by thread T0 here:
+    #0 0x7f4e21 in operator delete(void*)
+    #1 0x401a82 in findValue(std::vector<int>, int) lookup.cpp:9
+SUMMARY: AddressSanitizer: heap-use-after-free lookup.cpp:14 in main`,
+    stdlibRefs: [],
+  },
+  {
+    id: 246,
+    topic: "Pointers & References",
+    difficulty: "Easy",
+    title: "Null Guard",
+    description: "Safely prints details of an object, with null pointer protection to avoid crashes.",
+    code: `#include <iostream>
+#include <string>
+
+struct User {
+    std::string name;
+    int age;
+};
+
+void printUser(const User* user) {
+    std::cout << "Name: " << user->name << std::endl;
+    std::cout << "Age: " << user->age << std::endl;
+    if (user == nullptr) {
+        std::cout << "(no user)" << std::endl;
+        return;
+    }
+}
+
+int main() {
+    User alice{"Alice", 30};
+    printUser(&alice);
+
+    User* nobody = nullptr;
+    printUser(nobody);
+}`,
+    hints: [
+      "Look at the order of operations in `printUser`. What happens first — the null check or the dereference?",
+      "The function accesses `user->name` and `user->age` *before* checking if `user` is nullptr.",
+      "Should the null check be at the beginning or the end of the function?",
+    ],
+    explanation: "The null pointer check (`if (user == nullptr)`) comes *after* the code already dereferences `user` to access `user->name` and `user->age`. When `nobody` (nullptr) is passed, the function immediately dereferences a null pointer on the first line, causing undefined behavior (typically a crash) before the null check ever executes. The fix is to move the null check to the beginning of the function, before any dereference.",
+    manifestation: `$ g++ -std=c++17 -O2 nullguard.cpp -o nullguard && ./nullguard
+Name: Alice
+Age: 30
+Segmentation fault (core dumped)
+
+$ g++ -fsanitize=address -g nullguard.cpp -o nullguard && ./nullguard
+Name: Alice
+Age: 30
+ASAN:DEADLYSIGNAL
+==24512==ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000
+    #0 0x401a45 in printUser(User const*) nullguard.cpp:10
+    #1 0x401c82 in main nullguard.cpp:20
+SUMMARY: AddressSanitizer: SEGV nullguard.cpp:10 in printUser`,
+    stdlibRefs: [],
+  },
+  {
+    id: 247,
+    topic: "Pointers & References",
+    difficulty: "Medium",
+    title: "Reference Binding",
+    description: "Stores references to the maximum values from multiple arrays for later processing.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+
+const int& findMax(const std::vector<int>& v) {
+    return *std::max_element(v.begin(), v.end());
+}
+
+int main() {
+    std::vector<int> a = {3, 7, 2, 9, 4};
+    std::vector<int> b = {5, 1, 8, 6};
+
+    const int& maxA = findMax(a);
+    const int& maxB = findMax(b);
+
+    std::cout << "Max A: " << maxA << std::endl;
+    std::cout << "Max B: " << maxB << std::endl;
+
+    // Now modify a
+    a.push_back(100);
+
+    std::cout << "Max A after push: " << maxA << std::endl;
+    std::cout << "Max B after push: " << maxB << std::endl;
+
+    // Process with temporary vectors
+    const int& maxTemp = findMax({10, 20, 30});
+    std::cout << "Max temp: " << maxTemp << std::endl;
+}`,
+    hints: [
+      "When `a.push_back(100)` is called, what might happen to the vector's internal storage?",
+      "If the vector reallocates, what happens to `maxA` which references an element inside the old storage?",
+      "What about `findMax({10, 20, 30})` — what is the lifetime of the temporary vector?",
+    ],
+    explanation: "There are two bugs. First, `a.push_back(100)` may trigger a reallocation of the vector's internal storage, invalidating `maxA` which is a reference to an element inside `a`. Reading `maxA` after the push_back is undefined behavior. Second, `findMax({10, 20, 30})` creates a temporary `std::vector<int>`, and `findMax` returns a reference to an element inside it. The temporary is destroyed at the end of the full expression, leaving `maxTemp` as a dangling reference. The fix is to return by value from `findMax` (returning `int` instead of `const int&`), or store the results by value.",
+    manifestation: `$ g++ -fsanitize=address -g refbind.cpp -o refbind && ./refbind
+Max A: 9
+Max B: 8
+=================================================================
+==31205==ERROR: AddressSanitizer: heap-use-after-free on address 0x60300000001c
+READ of size 4 at 0x60300000001c thread T0
+    #0 0x401c23 in main refbind.cpp:20
+    #1 0x7f3a1b in __libc_start_main
+0x60300000001c is located 12 bytes inside of 20-byte region
+freed by thread T0 here:
+    #0 0x7f3e21 in operator delete(void*)
+    #1 0x401b98 in std::vector<int>::_M_realloc_insert
+SUMMARY: AddressSanitizer: heap-use-after-free refbind.cpp:20 in main`,
+    stdlibRefs: [
+      { name: "std::max_element", args: "(ForwardIt first, ForwardIt last) → ForwardIt", brief: "Returns an iterator to the largest element in the range.", note: "The returned iterator is invalidated if the container reallocates.", link: "https://en.cppreference.com/w/cpp/algorithm/max_element" },
+    ],
+  },
+  {
+    id: 248,
+    topic: "Pointers & References",
+    difficulty: "Medium",
+    title: "Smart Pointer Cast",
+    description: "Implements a class hierarchy with downcasting using smart pointers and dynamic_cast.",
+    code: `#include <iostream>
+#include <memory>
+#include <vector>
+
+class Animal {
+public:
+    virtual std::string speak() const = 0;
+    virtual ~Animal() = default;
+};
+
+class Dog : public Animal {
+public:
+    std::string speak() const override { return "Woof!"; }
+    void fetch() { std::cout << "Fetching ball!" << std::endl; }
+};
+
+class Cat : public Animal {
+public:
+    std::string speak() const override { return "Meow!"; }
+    void purr() { std::cout << "Purrrr..." << std::endl; }
+};
+
+int main() {
+    std::vector<std::shared_ptr<Animal>> animals;
+    animals.push_back(std::make_shared<Dog>());
+    animals.push_back(std::make_shared<Cat>());
+    animals.push_back(std::make_shared<Dog>());
+
+    for (auto& animal : animals) {
+        std::cout << animal->speak() << std::endl;
+
+        Dog* dog = dynamic_cast<Dog*>(animal.get());
+        if (dog) {
+            dog->fetch();
+        }
+
+        std::shared_ptr<Cat> cat = std::shared_ptr<Cat>(dynamic_cast<Cat*>(animal.get()));
+        if (cat) {
+            cat->purr();
+        }
+    }
+}`,
+    hints: [
+      "Look at how the `Cat` pointer is wrapped in a `shared_ptr`. What owns the `Cat` object?",
+      "When you construct a `shared_ptr<Cat>` from a raw pointer, who is responsible for deleting the object?",
+      "Are there now two independent `shared_ptr` instances that think they each own the same object?",
+    ],
+    explanation: "The line `std::shared_ptr<Cat>(dynamic_cast<Cat*>(animal.get()))` creates a new `shared_ptr` that takes ownership of the raw pointer — but the object is already owned by the `shared_ptr<Animal>` in the vector. Now two independent `shared_ptr` groups each think they own the same object. When either one reaches zero refcount, it deletes the object, and the other becomes a dangling pointer. This causes a double-free. The fix is to use `std::dynamic_pointer_cast<Cat>(animal)` which properly shares ownership with the original `shared_ptr`.",
+    manifestation: `$ g++ -fsanitize=address -g cast.cpp -o cast && ./cast
+Woof!
+Fetching ball!
+Meow!
+Purrrr...
+Woof!
+Fetching ball!
+=================================================================
+==28734==ERROR: AddressSanitizer: attempting double-free on 0x602000000030
+    #0 0x7f4e21 in operator delete(void*, unsigned long)
+    #1 0x402145 in std::_Sp_counted_ptr<Cat*>::_M_dispose()
+    #2 0x401e82 in std::shared_ptr<Cat>::~shared_ptr()
+    #3 0x401c34 in main cast.cpp:33
+0x602000000030 is located 0 bytes inside of 16-byte region
+freed by thread T0 here:
+    #0 0x7f4e21 in operator delete(void*, unsigned long)
+    #1 0x4023a1 in std::shared_ptr<Animal>::~shared_ptr()
+SUMMARY: AddressSanitizer: double-free cast.cpp:33`,
+    stdlibRefs: [
+      { name: "std::dynamic_pointer_cast", args: "<T>(const shared_ptr<U>& r) → shared_ptr<T>", brief: "Performs dynamic_cast on the managed pointer, sharing ownership with the source shared_ptr.", note: "Always use this instead of constructing a new shared_ptr from get() — avoids double deletion.", link: "https://en.cppreference.com/w/cpp/memory/shared_ptr/pointer_cast" },
+    ],
+  },
+  {
+    id: 249,
+    topic: "Pointers & References",
+    difficulty: "Medium",
+    title: "Callback Registry",
+    description: "Maintains a registry of named callback functions that can be invoked by name.",
+    code: `#include <iostream>
+#include <string>
+#include <unordered_map>
+#include <functional>
+
+class CallbackRegistry {
+    std::unordered_map<std::string, std::function<void()>> callbacks;
+
+public:
+    void registerCallback(const std::string& name, std::function<void()> cb) {
+        callbacks[name] = cb;
+    }
+
+    void invoke(const std::string& name) {
+        auto it = callbacks.find(name);
+        if (it != callbacks.end()) {
+            it->second();
+        }
+    }
+};
+
+int main() {
+    CallbackRegistry reg;
+
+    for (int i = 0; i < 5; ++i) {
+        reg.registerCallback("task_" + std::to_string(i), [&i]() {
+            std::cout << "Executing task " << i << std::endl;
+        });
+    }
+
+    reg.invoke("task_0");
+    reg.invoke("task_2");
+    reg.invoke("task_4");
+}`,
+    hints: [
+      "The lambda captures `i` by reference. What is the lifetime of `i`?",
+      "After the for loop ends, does the variable `i` still exist?",
+      "Even if `i` were still in scope, what value does it hold after the loop finishes?",
+    ],
+    explanation: "The lambda captures the loop variable `i` by reference (`[&i]`). After the for loop completes, `i` is 5 (the value that caused the loop to terminate). Even though the loop body variable `i` may still be in scope until the end of `main`, all five callbacks reference the same `i`, and they all see its final value of 5. So every callback prints `Executing task 5` regardless of which one is invoked. The fix is to capture `i` by value: `[i]()` or `[=]()`.",
+    manifestation: `$ g++ -std=c++17 -O2 callbacks.cpp -o callbacks && ./callbacks
+Executing task 5
+Executing task 5
+Executing task 5
+
+Expected output:
+  Executing task 0
+  Executing task 2
+  Executing task 4
+Actual output:
+  All callbacks print "task 5" — they all capture the same
+  reference to i, which is 5 after the loop ends`,
+    stdlibRefs: [
+      { name: "std::function", args: "<R(Args...)>", brief: "A general-purpose polymorphic function wrapper that can store any callable target.", link: "https://en.cppreference.com/w/cpp/utility/functional/function" },
+    ],
+  },
+  {
+    id: 250,
+    topic: "Pointers & References",
+    difficulty: "Hard",
+    title: "Self-Referencing Struct",
+    description: "Implements a configuration object that stores a reference to its own computed display name for efficiency.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+
+struct Config {
+    std::string prefix;
+    std::string suffix;
+    const std::string& displayName;
+
+    Config(std::string p, std::string s)
+        : prefix(std::move(p)),
+          suffix(std::move(s)),
+          displayName(prefix + " - " + suffix) {}
+
+    void print() const {
+        std::cout << "Config: " << displayName << std::endl;
+    }
+};
+
+int main() {
+    Config c1("App", "Debug");
+    c1.print();
+
+    Config c2("Server", "Release");
+    c2.print();
+
+    std::vector<Config> configs;
+    configs.push_back(Config("Web", "Test"));
+    configs.back().print();
+
+    Config c3 = c1;
+    c3.print();
+}`,
+    hints: [
+      "In the constructor, `displayName` is bound to what expression? What is the lifetime of that expression's result?",
+      "The expression `prefix + \" - \" + suffix` creates a temporary `std::string`. How long does it live?",
+      "Can a reference member be initialized from a temporary? What does the standard say about its lifetime?",
+    ],
+    explanation: "The member `displayName` is a `const std::string&` reference that is initialized in the constructor's member initializer list with the temporary `prefix + \" - \" + suffix`. This temporary is destroyed at the end of the constructor call, leaving `displayName` as a dangling reference. Binding a reference member to a temporary does NOT extend the temporary's lifetime (unlike binding a local reference to a temporary). Every call to `c1.print()` reads through a dangling reference — undefined behavior. The fix is to make `displayName` a plain `std::string` member (by value), not a reference.",
+    manifestation: `$ g++ -fsanitize=address -g config.cpp -o config && ./config
+=================================================================
+==15782==ERROR: AddressSanitizer: stack-use-after-scope on address 0x7ffd2a100040
+READ of size 8 at 0x7ffd2a100040 thread T0
+    #0 0x401b23 in Config::print() const config.cpp:16
+    #1 0x401e82 in main config.cpp:21
+Address 0x7ffd2a100040 is located in stack of thread T0
+SUMMARY: AddressSanitizer: stack-use-after-scope config.cpp:16
+
+(the temporary string from prefix + " - " + suffix was destroyed
+ after the constructor completed, leaving displayName dangling)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 251,
+    topic: "Pointers & References",
+    difficulty: "Hard",
+    title: "Function Pointer Table",
+    description: "Dispatches operations through a function pointer table, supporting extensible math operations.",
+    code: `#include <iostream>
+#include <string>
+#include <cmath>
+
+using MathFunc = double(*)(double, double);
+
+double add(double a, double b) { return a + b; }
+double sub(double a, double b) { return a - b; }
+double mul(double a, double b) { return a * b; }
+double divide(double a, double b) { return a / b; }
+double power(double a, double b) { return std::pow(a, b); }
+
+struct Operation {
+    const char* name;
+    MathFunc func;
+};
+
+Operation ops[] = {
+    {"add", add},
+    {"sub", sub},
+    {"mul", mul},
+    {"div", divide},
+    {"pow", power},
+};
+
+MathFunc findOp(const char* name) {
+    for (auto& op : ops) {
+        if (op.name == name) {
+            return op.func;
+        }
+    }
+    return nullptr;
+}
+
+int main() {
+    double a = 10, b = 3;
+
+    const char* opName = "add";
+    MathFunc f = findOp(opName);
+    if (f) std::cout << opName << ": " << f(a, b) << std::endl;
+
+    std::string userInput = "mul";
+    f = findOp(userInput.c_str());
+    if (f) {
+        std::cout << userInput << ": " << f(a, b) << std::endl;
+    } else {
+        std::cout << userInput << ": not found" << std::endl;
+    }
+
+    f = findOp("div");
+    if (f) std::cout << "div: " << f(a, b) << std::endl;
+}`,
+    hints: [
+      "How does `findOp` compare the operation name? Is it comparing string contents or pointer addresses?",
+      "The `==` operator on `const char*` compares addresses, not string contents. When would two `const char*` pointers compare equal?",
+      "String literals with the same content *may* share the same address (compiler-dependent), but `std::string::c_str()` always returns a different address.",
+    ],
+    explanation: "The `findOp` function compares C strings using `==` (`op.name == name`), which compares pointer addresses, not string contents. This works for string literals that the compiler happens to pool (like `\"add\"`), where both sides point to the same static storage. But it fails for strings from other sources like `userInput.c_str()`, which returns a pointer to the string's internal buffer — a different address from any string literal. The comparison `\"mul\" == userInput.c_str()` is almost certainly `false`. The fix is to use `std::strcmp(op.name, name) == 0`.",
+    manifestation: `$ g++ -std=c++17 -O2 dispatch.cpp -o dispatch && ./dispatch
+add: 13
+mul: not found
+div: 3.33333
+
+Expected output:
+  mul: 30  ← should find the "mul" operation
+Actual output:
+  mul: not found  ← pointer comparison fails because
+  c_str() returns a different address than the literal "mul"
+  (note: "add" works because the compiler pools the identical literals)`,
+    stdlibRefs: [
+      { name: "std::strcmp", args: "(const char* lhs, const char* rhs) → int", brief: "Compares two null-terminated strings lexicographically, returning 0 if equal.", link: "https://en.cppreference.com/w/cpp/string/byte/strcmp" },
+    ],
+  },
+  {
+    id: 252,
+    topic: "Pointers & References",
+    difficulty: "Hard",
+    title: "Polymorphic Cloner",
+    description: "Implements deep copying of a polymorphic object hierarchy using a virtual clone method.",
+    code: `#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
+class Shape {
+public:
+    virtual ~Shape() = default;
+    virtual std::unique_ptr<Shape> clone() const = 0;
+    virtual void draw() const = 0;
+};
+
+class Circle : public Shape {
+    double radius;
+    std::string label;
+public:
+    Circle(double r, std::string l) : radius(r), label(std::move(l)) {}
+    std::unique_ptr<Shape> clone() const override {
+        return std::make_unique<Circle>(*this);
+    }
+    void draw() const override {
+        std::cout << "Circle(" << label << ", r=" << radius << ")" << std::endl;
+    }
+};
+
+class Group : public Shape {
+    std::string name;
+    std::vector<Shape*> children;
+public:
+    Group(std::string n) : name(std::move(n)) {}
+
+    void add(Shape* s) { children.push_back(s); }
+
+    std::unique_ptr<Shape> clone() const override {
+        auto copy = std::make_unique<Group>(*this);
+        return copy;
+    }
+
+    void draw() const override {
+        std::cout << "Group(" << name << "):" << std::endl;
+        for (auto* c : children) {
+            std::cout << "  ";
+            c->draw();
+        }
+    }
+
+    ~Group() {
+        for (auto* c : children) delete c;
+    }
+};
+
+int main() {
+    Group original("scene");
+    original.add(new Circle(5.0, "sun"));
+    original.add(new Circle(2.0, "moon"));
+
+    auto copy = original.clone();
+
+    original.draw();
+    copy->draw();
+}`,
+    hints: [
+      "The `Group::clone()` method creates a copy of the Group. How are the `children` pointers copied?",
+      "After cloning, do `original` and `copy` share the same `Circle` objects through raw pointers?",
+      "What happens when both `original` and `copy` are destroyed, and both try to `delete` the same children?",
+    ],
+    explanation: "The `Group::clone()` uses the compiler-generated copy constructor (`Group(*this)`), which performs a shallow copy of the `children` vector — copying the raw pointers. Both the original and the clone now own the same `Circle` objects. When both `Group` destructors run, they each `delete` the same `Circle` pointers, causing double-free. The fix is to implement a deep copy in `Group::clone()` that clones each child recursively: `for (auto* c : children) copy->add(c->clone().release());`.",
+    manifestation: `$ g++ -fsanitize=address -g cloner.cpp -o cloner && ./cloner
+Group(scene):
+  Circle(sun, r=5)
+  Circle(moon, r=2)
+Group(scene):
+  Circle(sun, r=5)
+  Circle(moon, r=2)
+=================================================================
+==22451==ERROR: AddressSanitizer: attempting double-free on 0x602000000010
+    #0 0x7f4e21 in operator delete(void*, unsigned long)
+    #1 0x401c82 in Group::~Group() cloner.cpp:47
+    #2 0x401e45 in main cloner.cpp:55
+0x602000000010 is located 0 bytes inside of 48-byte region
+freed by thread T0 here:
+    #0 0x7f4e21 in operator delete(void*, unsigned long)
+    #1 0x401c82 in Group::~Group() cloner.cpp:47
+    #2 0x401d98 in main cloner.cpp:55
+SUMMARY: AddressSanitizer: double-free cloner.cpp:47 in Group::~Group`,
+    stdlibRefs: [
+      { name: "std::make_unique", args: "<T>(Args&&... args) → unique_ptr<T>", brief: "Creates a unique_ptr that owns a new object constructed with the given arguments.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique" },
+    ],
+  },
+  {
+    id: 253,
+    topic: "Pointers & References",
+    difficulty: "Medium",
+    title: "Array Decay Trap",
+    description: "Computes the size of an array and uses it for bounds checking in a utility function.",
+    code: `#include <iostream>
+#include <cstring>
+
+void processArray(int arr[], int threshold) {
+    size_t len = sizeof(arr) / sizeof(arr[0]);
+    std::cout << "Array length: " << len << std::endl;
+
+    int count = 0;
+    for (size_t i = 0; i < len; ++i) {
+        if (arr[i] > threshold) {
+            ++count;
+        }
+    }
+    std::cout << "Elements above " << threshold << ": " << count << std::endl;
+}
+
+int main() {
+    int data[] = {15, 8, 23, 42, 4, 16, 31, 7, 19, 28};
+    size_t mainLen = sizeof(data) / sizeof(data[0]);
+    std::cout << "Main array length: " << mainLen << std::endl;
+
+    processArray(data, 20);
+}`,
+    hints: [
+      "What type does `int arr[]` actually become when used as a function parameter?",
+      "In the function, `sizeof(arr)` gives the size of what — the array or a pointer?",
+      "Why does `sizeof(data)` in `main` give a different result than `sizeof(arr)` in `processArray`?",
+    ],
+    explanation: "When an array is passed to a function declared with `int arr[]`, the parameter decays to a pointer (`int*`). So `sizeof(arr)` inside the function returns the size of a pointer (typically 4 or 8 bytes), not the size of the array. On a 64-bit system, `sizeof(arr) / sizeof(arr[0])` is `8 / 4 = 2`, so the function only processes the first 2 elements of the 10-element array. In `main`, `sizeof(data)` correctly returns 40 (10 * 4 bytes) because `data` is a true array, not a decayed pointer. The fix is to pass the array length as a separate parameter, or use `std::span` or `std::array`.",
+    manifestation: `$ g++ -std=c++17 -Wall -O2 decay.cpp -o decay && ./decay
+decay.cpp:5:26: warning: sizeof on array function parameter will
+  return size of 'int *' instead of 'int[]'
+Main array length: 10
+Array length: 2
+Elements above 20: 0
+
+Expected output:
+  Array length: 10
+  Elements above 20: 5  (23, 42, 31, 19, 28 are all > 20)
+Actual output:
+  Array length: 2      ← sizeof(pointer) / sizeof(int)
+  Elements above 20: 0 ← only checked first 2 elements (15, 8)`,
+    stdlibRefs: [],
+  },
 ];
