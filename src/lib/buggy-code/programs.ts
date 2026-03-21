@@ -24535,4 +24535,833 @@ caused undefined behavior. Two sensors were not properly destroyed.)`,
       { name: "std::unique_ptr<T[]>", brief: "A specialization of unique_ptr for arrays that calls delete[] instead of delete.", note: "unique_ptr<T> uses delete; unique_ptr<T[]> uses delete[]. Mismatching allocation and deallocation is undefined behavior.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr" },
     ],
   },
+
+  // ── Inheritance & Polymorphism ──
+
+  {
+    id: 374,
+    topic: "Inheritance & Polymorphism",
+    difficulty: "Easy",
+    title: "Shape Collection",
+    description: "Stores different shapes in a vector using base pointers and deletes them when done.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <cmath>
+
+class Shape {
+public:
+    virtual double area() const = 0;
+    virtual std::string name() const = 0;
+};
+
+class Circle : public Shape {
+    double radius_;
+public:
+    Circle(double r) : radius_(r) {
+        std::cout << "Circle created" << std::endl;
+    }
+    ~Circle() {
+        std::cout << "Circle destroyed" << std::endl;
+    }
+    double area() const override { return M_PI * radius_ * radius_; }
+    std::string name() const override { return "Circle"; }
+};
+
+class Rectangle : public Shape {
+    double w_, h_;
+public:
+    Rectangle(double w, double h) : w_(w), h_(h) {
+        std::cout << "Rectangle created" << std::endl;
+    }
+    ~Rectangle() {
+        std::cout << "Rectangle destroyed" << std::endl;
+    }
+    double area() const override { return w_ * h_; }
+    std::string name() const override { return "Rectangle"; }
+};
+
+int main() {
+    std::vector<Shape*> shapes;
+    shapes.push_back(new Circle(5));
+    shapes.push_back(new Rectangle(3, 4));
+    shapes.push_back(new Circle(2));
+
+    for (auto* s : shapes) {
+        std::cout << s->name() << ": " << s->area() << std::endl;
+    }
+
+    for (auto* s : shapes) {
+        delete s;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Look at the base class `Shape`. Does it have a virtual destructor?",
+      "When you `delete` a derived object through a base pointer, which destructor is called?",
+    ],
+    explanation: "The `Shape` base class has no virtual destructor. Deleting a derived object through a `Shape*` is undefined behavior — the derived destructor (Circle, Rectangle) may not be called, leaking any resources the derived class owns. In this case, the strings in `name()` overrides might not be cleaned up properly. The fix is to add `virtual ~Shape() = default;` (or `virtual ~Shape() {}`) to the base class. As a rule, any class with virtual functions should have a virtual destructor.",
+    manifestation: `$ g++ -std=c++17 -Wall shapes.cpp -o shapes && ./shapes
+Circle created
+Rectangle created
+Circle created
+Circle: 78.5398
+Rectangle: 12
+Circle: 12.5664
+
+(No "destroyed" messages — derived destructors were not called.
+The delete through base pointer invoked Shape's implicit
+non-virtual destructor, skipping the derived cleanup.)
+
+$ g++ -std=c++17 -Wall -Wnon-virtual-dtor shapes.cpp -o shapes
+shapes.cpp:5:7: warning: 'class Shape' has virtual functions
+    and accessible non-virtual destructor [-Wnon-virtual-dtor]`,
+    stdlibRefs: [],
+  },
+  {
+    id: 375,
+    topic: "Inheritance & Polymorphism",
+    difficulty: "Easy",
+    title: "Diamond Display",
+    description: "Models an amphibious vehicle that inherits from both land and water vehicle bases.",
+    code: `#include <iostream>
+#include <string>
+
+class Vehicle {
+protected:
+    std::string name_;
+    int speed_;
+public:
+    Vehicle(const std::string& name, int speed)
+        : name_(name), speed_(speed) {
+        std::cout << "Vehicle(" << name_ << ") created" << std::endl;
+    }
+    void identify() const {
+        std::cout << name_ << " at " << speed_ << " mph" << std::endl;
+    }
+};
+
+class LandVehicle : public Vehicle {
+public:
+    LandVehicle(const std::string& name, int speed)
+        : Vehicle(name, speed) {}
+    void drive() { std::cout << name_ << " driving" << std::endl; }
+};
+
+class WaterVehicle : public Vehicle {
+public:
+    WaterVehicle(const std::string& name, int speed)
+        : Vehicle(name, speed) {}
+    void sail() { std::cout << name_ << " sailing" << std::endl; }
+};
+
+class Amphibious : public LandVehicle, public WaterVehicle {
+public:
+    Amphibious(const std::string& name, int landSpeed, int waterSpeed)
+        : LandVehicle(name, landSpeed),
+          WaterVehicle(name, waterSpeed) {}
+
+    void showModes() {
+        drive();
+        sail();
+        identify();
+    }
+};
+
+int main() {
+    Amphibious duck("Duck Boat", 45, 8);
+    duck.showModes();
+    return 0;
+}`,
+    hints: [
+      "Amphibious inherits from both LandVehicle and WaterVehicle. How many copies of Vehicle does it contain?",
+      "When `identify()` is called, which Vehicle sub-object does it refer to?",
+    ],
+    explanation: "Without virtual inheritance, Amphibious has two separate Vehicle sub-objects — one from LandVehicle and one from WaterVehicle. The call `identify()` is ambiguous because the compiler doesn't know which Vehicle's `identify` to call. This won't compile. Additionally, the Vehicle constructor runs twice (once per sub-object), creating two separate `name_` and `speed_` members. The fix is to use virtual inheritance: `class LandVehicle : public virtual Vehicle` and `class WaterVehicle : public virtual Vehicle`.",
+    manifestation: `$ g++ -std=c++17 -Wall diamond.cpp -o diamond
+diamond.cpp: In member function 'void Amphibious::showModes()':
+diamond.cpp:38:9: error: request for member 'identify' is ambiguous
+   38 |         identify();
+      |         ^~~~~~~~
+diamond.cpp:13:10: note: candidates are: 'void Vehicle::identify() const'
+diamond.cpp:13:10: note:                 'void Vehicle::identify() const'
+
+(Two copies of Vehicle exist in Amphibious — the call is
+ambiguous because the compiler can't choose which one.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 376,
+    topic: "Inheritance & Polymorphism",
+    difficulty: "Easy",
+    title: "Report Generator",
+    description: "Generates different report types by overriding a format method in derived classes.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+#include <memory>
+
+class Report {
+protected:
+    std::string title_;
+    std::vector<std::string> data_;
+public:
+    Report(const std::string& title) : title_(title) {}
+    virtual ~Report() = default;
+
+    void addData(const std::string& item) {
+        data_.push_back(item);
+    }
+
+    virtual void format(std::ostream& os) {
+        os << "=== " << title_ << " ===" << std::endl;
+        for (auto& d : data_) {
+            os << "  " << d << std::endl;
+        }
+    }
+
+    void generate() {
+        format(std::cout);
+    }
+};
+
+class HTMLReport : public Report {
+public:
+    HTMLReport(const std::string& title) : Report(title) {}
+
+    void format(std::ostream& os) const {
+        os << "<html><body>" << std::endl;
+        os << "<h1>" << title_ << "</h1>" << std::endl;
+        os << "<ul>" << std::endl;
+        for (auto& d : data_) {
+            os << "  <li>" << d << "</li>" << std::endl;
+        }
+        os << "</ul>" << std::endl;
+        os << "</body></html>" << std::endl;
+    }
+};
+
+int main() {
+    std::unique_ptr<Report> report = std::make_unique<HTMLReport>("Sales Q4");
+    report->addData("Revenue: $1.2M");
+    report->addData("Growth: 15%");
+    report->generate();
+
+    return 0;
+}`,
+    hints: [
+      "Compare the signature of `format` in Report and HTMLReport. Are they identical?",
+      "Does `HTMLReport::format` have `const` that the base doesn't?",
+    ],
+    explanation: "The base `Report::format` is `void format(std::ostream& os)` (non-const), but `HTMLReport::format` is `void format(std::ostream& os) const`. The `const` qualifier makes these different signatures — `HTMLReport::format` does not override `Report::format`, it hides it. When `generate()` calls `format(std::cout)`, virtual dispatch finds no override in `HTMLReport`, so `Report::format` is called, producing plain-text output instead of HTML. Adding `override` to HTMLReport's format would have caught this at compile time. The fix is to remove `const` from HTMLReport's format, or add `const` to both.",
+    manifestation: `$ g++ -std=c++17 -Wall report.cpp -o report && ./report
+=== Sales Q4 ===
+  Revenue: $1.2M
+  Growth: 15%
+
+Expected output:
+<html><body>
+<h1>Sales Q4</h1>
+<ul>
+  <li>Revenue: $1.2M</li>
+  <li>Growth: 15%</li>
+</ul>
+</body></html>`,
+    stdlibRefs: [],
+  },
+  {
+    id: 377,
+    topic: "Inheritance & Polymorphism",
+    difficulty: "Medium",
+    title: "Strategy Pattern",
+    description: "Implements different sorting strategies using the strategy pattern and virtual dispatch.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <string>
+#include <memory>
+
+class SortStrategy {
+public:
+    virtual void sort(std::vector<int>& data) = 0;
+    virtual std::string name() const = 0;
+    virtual ~SortStrategy() = default;
+};
+
+class AscendingSort : public SortStrategy {
+public:
+    void sort(std::vector<int>& data) override {
+        std::sort(data.begin(), data.end());
+    }
+    std::string name() const override { return "Ascending"; }
+};
+
+class DescendingSort : public SortStrategy {
+public:
+    void sort(std::vector<int>& data) override {
+        std::sort(data.begin(), data.end(), std::greater<int>());
+    }
+    std::string name() const override { return "Descending"; }
+};
+
+class Sorter {
+    SortStrategy* strategy_;
+public:
+    Sorter() : strategy_(nullptr) {}
+
+    void setStrategy(SortStrategy* s) { strategy_ = s; }
+
+    void sortAndPrint(std::vector<int> data) {
+        if (!strategy_) {
+            std::cerr << "No strategy set!" << std::endl;
+            return;
+        }
+        std::cout << strategy_->name() << ": ";
+        strategy_->sort(data);
+        for (int x : data) std::cout << x << " ";
+        std::cout << std::endl;
+    }
+};
+
+int main() {
+    Sorter sorter;
+    std::vector<int> data = {5, 3, 8, 1, 9, 2, 7};
+
+    {
+        AscendingSort asc;
+        sorter.setStrategy(&asc);
+        sorter.sortAndPrint(data);
+    }  // asc destroyed here
+
+    sorter.sortAndPrint(data);  // dangling pointer!
+
+    {
+        DescendingSort desc;
+        sorter.setStrategy(&desc);
+        sorter.sortAndPrint(data);
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Look at the lifetime of `asc`. When does it go out of scope?",
+      "After the first block ends, what does `strategy_` point to?",
+    ],
+    explanation: "The `AscendingSort asc` is created inside a block scope and destroyed at the closing brace. The `Sorter` stores a raw pointer to it, which becomes dangling after the block ends. The second `sortAndPrint` call uses this dangling pointer — calling virtual functions on a destroyed object is undefined behavior. The fix is to use `std::unique_ptr<SortStrategy>` in the Sorter to own the strategy, or ensure the strategy outlives the Sorter.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=address -g strategy.cpp -o strategy && ./strategy
+Ascending: 1 2 3 5 7 8 9
+=================================================================
+==51234==ERROR: AddressSanitizer: stack-use-after-scope on address
+    0x7ffd3a2c1e50 at pc 0x555555758e12 bp 0x7fffffffd890
+READ of size 8 at 0x7ffd3a2c1e50 thread T0
+    #0 0x555555758e11 in SortStrategy::name() const
+    #1 0x555555759123 in Sorter::sortAndPrint() strategy.cpp:40`,
+    stdlibRefs: [],
+  },
+  {
+    id: 378,
+    topic: "Inheritance & Polymorphism",
+    difficulty: "Medium",
+    title: "Event Handler Chain",
+    description: "Implements a chain of responsibility where events are passed through a series of handlers.",
+    code: `#include <iostream>
+#include <string>
+#include <memory>
+
+class Event {
+public:
+    std::string type;
+    std::string data;
+    bool handled = false;
+};
+
+class Handler {
+    std::unique_ptr<Handler> next_;
+public:
+    void setNext(std::unique_ptr<Handler> next) {
+        next_ = std::move(next);
+    }
+
+    void handle(Event& e) {
+        if (!e.handled) {
+            doHandle(e);
+        }
+        if (next_ && !e.handled) {
+            next_->handle(e);
+        }
+    }
+
+    virtual void doHandle(Event& e) = 0;
+    virtual ~Handler() = default;
+};
+
+class AuthHandler : public Handler {
+    void doHandle(Event& e) override {
+        if (e.type == "auth") {
+            std::cout << "Auth handler: " << e.data << std::endl;
+            e.handled = true;
+        }
+    }
+};
+
+class LogHandler : public Handler {
+    void doHandle(Event& e) override {
+        std::cout << "Log: [" << e.type << "] " << e.data << std::endl;
+    }
+};
+
+class ErrorHandler : public Handler {
+    void doHandle(Event& e) override {
+        if (e.type == "error") {
+            std::cout << "Error handler: " << e.data << std::endl;
+            e.handled = true;
+        }
+    }
+};
+
+int main() {
+    auto log = std::make_unique<LogHandler>();
+    auto auth = std::make_unique<AuthHandler>();
+    auto error = std::make_unique<ErrorHandler>();
+
+    log->setNext(std::move(auth));
+    auth->setNext(std::move(error));  // auth was moved!
+
+    Event e1{"auth", "login attempt", false};
+    log->handle(e1);
+
+    return 0;
+}`,
+    hints: [
+      "Look at the order of `setNext` calls. After `std::move(auth)`, what does `auth` hold?",
+      "Can you call methods on a moved-from unique_ptr?",
+    ],
+    explanation: "After `log->setNext(std::move(auth))`, the `auth` unique_ptr is null (ownership transferred). The next line `auth->setNext(std::move(error))` dereferences a null unique_ptr — undefined behavior (typically a crash). The fix is to build the chain in reverse order or save the raw pointer before moving: set error's next first, then auth's next, then log's next.",
+    manifestation: `$ g++ -std=c++17 -Wall chain.cpp -o chain && ./chain
+Segmentation fault (core dumped)
+
+$ g++ -std=c++17 -fsanitize=null chain.cpp -o chain && ./chain
+chain.cpp:17: runtime error: member call on null pointer of
+    type 'Handler'`,
+    stdlibRefs: [],
+  },
+  {
+    id: 379,
+    topic: "Inheritance & Polymorphism",
+    difficulty: "Medium",
+    title: "CRTP Counter",
+    description: "Uses the Curiously Recurring Template Pattern to count instances of each derived class.",
+    code: `#include <iostream>
+#include <string>
+
+template<typename Derived>
+class Counter {
+    static int count_;
+protected:
+    Counter() { ++count_; }
+    Counter(const Counter&) { ++count_; }
+    ~Counter() { --count_; }
+public:
+    static int getCount() { return count_; }
+};
+
+template<typename Derived>
+int Counter<Derived>::count_ = 0;
+
+class Dog : public Counter<Dog> {
+    std::string name_;
+public:
+    Dog(const std::string& name) : name_(name) {}
+};
+
+class Cat : public Counter<Dog> {  // Typo: should be Counter<Cat>
+    std::string name_;
+public:
+    Cat(const std::string& name) : name_(name) {}
+};
+
+int main() {
+    Dog d1("Rex"), d2("Buddy");
+    Cat c1("Whiskers"), c2("Luna"), c3("Milo");
+
+    std::cout << "Dogs: " << Dog::getCount() << std::endl;
+    std::cout << "Cats: " << Cat::getCount() << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at the template argument Cat passes to Counter. Is it `Counter<Cat>` or something else?",
+      "If Cat inherits from `Counter<Dog>`, which static counter does it share?",
+    ],
+    explanation: "Cat inherits from `Counter<Dog>` instead of `Counter<Cat>`. This means both Dog and Cat share the same static counter `Counter<Dog>::count_`. After creating 2 dogs and 3 cats, the shared counter is 5 (not 2 dogs + 3 cats separately). `Dog::getCount()` returns 5, and `Cat::getCount()` also returns 5 — both resolve to the same `Counter<Dog>::count_`. The fix is to change Cat's base to `Counter<Cat>`. This typo is especially insidious because the code compiles and runs without any errors.",
+    manifestation: `$ g++ -std=c++17 -Wall crtp.cpp -o crtp && ./crtp
+Dogs: 5
+Cats: 5
+
+Expected output:
+Dogs: 2
+Cats: 3`,
+    stdlibRefs: [],
+  },
+  {
+    id: 380,
+    topic: "Inheritance & Polymorphism",
+    difficulty: "Hard",
+    title: "Type Eraser",
+    description: "Implements a type-erased wrapper that can store any type supporting print(), using virtual dispatch.",
+    code: `#include <iostream>
+#include <memory>
+#include <string>
+#include <vector>
+
+class Printable {
+    struct Concept {
+        virtual void print(std::ostream& os) const = 0;
+        virtual ~Concept() = default;
+    };
+
+    template<typename T>
+    struct Model : Concept {
+        T obj_;
+        Model(T obj) : obj_(std::move(obj)) {}
+        void print(std::ostream& os) const override {
+            obj_.print(os);
+        }
+    };
+
+    std::unique_ptr<Concept> impl_;
+
+public:
+    template<typename T>
+    Printable(T obj) : impl_(std::make_unique<Model<T>>(std::move(obj))) {}
+
+    Printable(const Printable& other) : impl_(other.impl_.get() ? nullptr : nullptr) {
+        // Can't deep copy without knowing the type!
+    }
+
+    void print(std::ostream& os) const {
+        if (impl_) impl_->print(os);
+    }
+};
+
+struct Widget {
+    int id;
+    void print(std::ostream& os) const {
+        os << "Widget(" << id << ")";
+    }
+};
+
+struct Gadget {
+    std::string name;
+    void print(std::ostream& os) const {
+        os << "Gadget(" << name << ")";
+    }
+};
+
+int main() {
+    Printable a(Widget{42});
+    Printable b(Gadget{"gizmo"});
+
+    a.print(std::cout);
+    std::cout << std::endl;
+    b.print(std::cout);
+    std::cout << std::endl;
+
+    // Copy
+    Printable c = a;
+    c.print(std::cout);
+    std::cout << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at the copy constructor. What does it actually do?",
+      "After copying `a` into `c`, what is `c.impl_`?",
+    ],
+    explanation: "The copy constructor sets `impl_` to `nullptr` regardless — the comment admits it can't deep copy without knowing the type. After `Printable c = a`, `c.impl_` is null, so `c.print()` produces no output. The type erasure is incomplete: it supports construction but not copying. To fix this, add a `virtual std::unique_ptr<Concept> clone() const = 0;` to the Concept interface, implement it in Model as `return std::make_unique<Model<T>>(obj_);`, and use it in the copy constructor.",
+    manifestation: `$ g++ -std=c++17 -Wall eraser.cpp -o eraser && ./eraser
+Widget(42)
+Gadget(gizmo)
+
+(no output for c.print() — the copy is empty)
+
+Expected output:
+Widget(42)
+Gadget(gizmo)
+Widget(42)`,
+    stdlibRefs: [
+      { name: "std::make_unique", args: "<T>(Args&&... args) → std::unique_ptr<T>", brief: "Creates a unique_ptr that owns a newly constructed object of type T.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique" },
+    ],
+  },
+  {
+    id: 381,
+    topic: "Inheritance & Polymorphism",
+    difficulty: "Hard",
+    title: "Visitor Dispatch",
+    description: "Implements the visitor pattern to apply different operations to a hierarchy of expression nodes.",
+    code: `#include <iostream>
+#include <memory>
+#include <string>
+
+class Visitor;
+
+class Expr {
+public:
+    virtual void accept(Visitor& v) const = 0;
+    virtual ~Expr() = default;
+};
+
+class NumberExpr : public Expr {
+public:
+    double value;
+    NumberExpr(double v) : value(v) {}
+    void accept(Visitor& v) const override;
+};
+
+class AddExpr : public Expr {
+public:
+    std::unique_ptr<Expr> left, right;
+    AddExpr(std::unique_ptr<Expr> l, std::unique_ptr<Expr> r)
+        : left(std::move(l)), right(std::move(r)) {}
+    void accept(Visitor& v) const override;
+};
+
+class Visitor {
+public:
+    virtual void visit(const NumberExpr& e) = 0;
+    virtual void visit(const AddExpr& e) = 0;
+    virtual ~Visitor() = default;
+};
+
+void NumberExpr::accept(Visitor& v) const { v.visit(*this); }
+void AddExpr::accept(Visitor& v) const { v.visit(*this); }
+
+class Evaluator : public Visitor {
+    double result_ = 0;
+public:
+    void visit(const NumberExpr& e) override {
+        result_ = e.value;
+    }
+    void visit(const AddExpr& e) override {
+        e.left->accept(*this);
+        double leftVal = result_;
+        e.right->accept(*this);
+        result_ = leftVal + result_;
+    }
+    double result() const { return result_; }
+};
+
+class Printer : public Visitor {
+    std::string output_;
+public:
+    void visit(const NumberExpr& e) override {
+        output_ = std::to_string(e.value);
+    }
+    void visit(const AddExpr& e) override {
+        e.left->accept(*this);
+        std::string leftStr = output_;
+        e.right->accept(*this);
+        output_ = "(" + leftStr + " + " + output_ + ")";
+    }
+    std::string output() const { return output_; }
+};
+
+int main() {
+    // (3 + (4 + 5))
+    auto expr = std::make_unique<AddExpr>(
+        std::make_unique<NumberExpr>(3),
+        std::make_unique<AddExpr>(
+            std::make_unique<NumberExpr>(4),
+            std::make_unique<NumberExpr>(5)
+        )
+    );
+
+    Evaluator eval;
+    expr->accept(eval);
+    std::cout << "Result: " << eval.result() << std::endl;
+
+    Printer printer;
+    expr->accept(printer);
+    std::cout << "Expression: " << printer.output() << std::endl;
+
+    // Now try with a MulExpr (not supported)
+    // auto mul = std::make_unique<MulExpr>(...);
+    // mul->accept(eval);  // Would need to add visit(MulExpr) to Visitor
+
+    std::cout << "Done" << std::endl;
+    return 0;
+}`,
+    hints: [
+      "This program actually works correctly. The bug is an architectural one — look at what happens when you try to add a new expression type.",
+      "Adding MulExpr requires modifying the Visitor base class. What does this mean for all existing visitors?",
+    ],
+    explanation: "The visitor pattern has a well-known flaw: adding a new node type (e.g., MulExpr) requires adding a new `visit(const MulExpr&)` method to the Visitor base class, which forces every existing visitor (Evaluator, Printer, and any others) to be updated. This violates the Open/Closed Principle. The current code works correctly for what it has, but the architecture is fragile. This isn't a runtime bug — it's a design trap that becomes painful as the expression hierarchy grows. The program runs correctly as-is.",
+    manifestation: `$ g++ -std=c++17 -Wall visitor.cpp -o visitor && ./visitor
+Result: 12
+Expression: (3.000000 + (4.000000 + 5.000000))
+Done
+
+(The program works correctly! The "bug" is architectural:
+adding MulExpr would require modifying the abstract Visitor
+base class, breaking all existing visitors. This is the
+expression problem — a fundamental limitation of the
+visitor pattern in C++.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 382,
+    topic: "Inheritance & Polymorphism",
+    difficulty: "Hard",
+    title: "Interface Adapter",
+    description: "Adapts a legacy API to a modern interface using multiple inheritance.",
+    code: `#include <iostream>
+#include <string>
+#include <memory>
+
+class ModernAPI {
+public:
+    virtual std::string fetch(const std::string& url) = 0;
+    virtual void post(const std::string& url, const std::string& body) = 0;
+    virtual ~ModernAPI() = default;
+};
+
+class LegacyClient {
+public:
+    std::string httpGet(const char* host, int port, const char* path) {
+        std::cout << "GET " << host << ":" << port << path << std::endl;
+        return "legacy response";
+    }
+    void httpPost(const char* host, int port, const char* path,
+                  const char* data, int len) {
+        std::cout << "POST " << host << ":" << port << path
+                  << " [" << len << " bytes]" << std::endl;
+    }
+};
+
+class Adapter : public ModernAPI, private LegacyClient {
+    std::string host_;
+    int port_;
+public:
+    Adapter(const std::string& host, int port)
+        : host_(host), port_(port) {}
+
+    std::string fetch(const std::string& url) override {
+        return httpGet(host_.c_str(), port_, url.c_str());
+    }
+
+    void post(const std::string& url, const std::string& body) override {
+        httpPost(host_.c_str(), port_, url.c_str(),
+                 body.c_str(), body.size());
+    }
+};
+
+void useAPI(ModernAPI& api) {
+    auto result = api.fetch("/data");
+    std::cout << "Got: " << result << std::endl;
+    api.post("/submit", "payload");
+}
+
+int main() {
+    Adapter adapter("api.example.com", 443);
+    useAPI(adapter);
+
+    // Try to access legacy API directly
+    LegacyClient* legacy = &adapter;  // won't work — private inheritance
+    legacy->httpGet("test.com", 80, "/");
+
+    return 0;
+}`,
+    hints: [
+      "How does Adapter inherit from LegacyClient — public, protected, or private?",
+      "Can you convert a Adapter* to a LegacyClient* when the inheritance is private?",
+    ],
+    explanation: "The Adapter uses private inheritance from LegacyClient, which means the conversion `LegacyClient* legacy = &adapter` is only accessible within Adapter's own methods or friends. In `main()`, this conversion is inaccessible — the compiler rejects it. The `useAPI(adapter)` call works fine because the public inheritance from ModernAPI is visible. The fix depends on intent: if external code needs LegacyClient access, use public inheritance; if not, remove the offending line.",
+    manifestation: `$ g++ -std=c++17 -Wall adapter.cpp -o adapter
+adapter.cpp: In function 'int main()':
+adapter.cpp:47:30: error: 'LegacyClient' is an inaccessible
+    base of 'Adapter'
+   47 |     LegacyClient* legacy = &adapter;
+      |                              ^~~~~~~
+adapter.cpp:47:5: error: 'LegacyClient' is not an accessible
+    base of 'Adapter'`,
+    stdlibRefs: [],
+  },
+  {
+    id: 383,
+    topic: "Inheritance & Polymorphism",
+    difficulty: "Medium",
+    title: "Protected Constructor",
+    description: "Uses a protected constructor in a base class to prevent direct instantiation while allowing derived classes.",
+    code: `#include <iostream>
+#include <string>
+#include <memory>
+#include <vector>
+
+class Component {
+    std::string name_;
+protected:
+    Component(const std::string& name) : name_(name) {}
+public:
+    virtual ~Component() = default;
+    virtual void render() const {
+        std::cout << "<" << name_ << "/>" << std::endl;
+    }
+    const std::string& name() const { return name_; }
+};
+
+class Button : public Component {
+    std::string label_;
+public:
+    Button(const std::string& label)
+        : Component("button"), label_(label) {}
+    void render() const override {
+        std::cout << "<button>" << label_ << "</button>" << std::endl;
+    }
+};
+
+class TextBox : public Component {
+    std::string placeholder_;
+public:
+    TextBox(const std::string& placeholder)
+        : Component("input"), placeholder_(placeholder) {}
+    void render() const override {
+        std::cout << "<input placeholder='" << placeholder_
+                  << "'/>" << std::endl;
+    }
+};
+
+int main() {
+    std::vector<std::unique_ptr<Component>> components;
+    components.push_back(std::make_unique<Button>("Submit"));
+    components.push_back(std::make_unique<TextBox>("Enter name"));
+    components.push_back(std::make_unique<Button>("Cancel"));
+
+    for (auto& c : components) {
+        c->render();
+    }
+
+    // This should fail — Component has a protected constructor
+    auto base = std::make_unique<Component>("div");
+    base->render();
+
+    return 0;
+}`,
+    hints: [
+      "Can `std::make_unique<Component>(\"div\")` access a protected constructor?",
+      "Is `make_unique` a friend of Component? Does it call the constructor from within the class?",
+    ],
+    explanation: "`std::make_unique<Component>(\"div\")` tries to construct a Component, but the constructor is protected. `make_unique` is not a member or friend of Component, so it can't access the protected constructor. This fails to compile. The fix is to either not try to instantiate the base class directly (which was the design intent), or make the constructor public and make Component abstract by adding a pure virtual function.",
+    manifestation: `$ g++ -std=c++17 -Wall component.cpp -o component
+component.cpp: In function 'int main()':
+In file included from /usr/include/c++/11/memory:76:
+/usr/include/c++/11/bits/unique_ptr.h:962:30: error: 'Component::
+    Component(const string&)' is protected within this context
+  962 |     return unique_ptr<_Tp>(new _Tp(std::forward<_Args>(__args)...));
+      |                              ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+component.cpp:8:5: note: declared protected here
+    8 |     Component(const std::string& name) : name_(name) {}
+      |     ^~~~~~~~~`,
+    stdlibRefs: [],
+  },
 ];
