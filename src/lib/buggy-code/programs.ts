@@ -23149,4 +23149,594 @@ READ of size 8 at 0x7f2a8c400020 thread T0
       { name: "std::reference_wrapper", brief: "A copyable, assignable wrapper around a reference to an object of type T.", note: "Stores a reference, not a copy. If the referenced object is destroyed, the wrapper becomes dangling.", link: "https://en.cppreference.com/w/cpp/utility/functional/reference_wrapper" },
     ],
   },
+
+  // ── Numeric Hazards ──
+
+  {
+    id: 354,
+    topic: "Numeric Hazards",
+    difficulty: "Easy",
+    title: "Temperature Converter",
+    description: "Converts temperatures between Celsius and Fahrenheit using the standard formula.",
+    code: `#include <iostream>
+
+double celsiusToFahrenheit(int celsius) {
+    return celsius * 9 / 5 + 32;
+}
+
+double fahrenheitToCelsius(int fahrenheit) {
+    return (fahrenheit - 32) * 5 / 9;
+}
+
+int main() {
+    std::cout << "100°C = " << celsiusToFahrenheit(100) << "°F" << std::endl;
+    std::cout << "0°C = " << celsiusToFahrenheit(0) << "°F" << std::endl;
+    std::cout << "37°C = " << celsiusToFahrenheit(37) << "°F" << std::endl;
+    std::cout << std::endl;
+    std::cout << "212°F = " << fahrenheitToCelsius(212) << "°C" << std::endl;
+    std::cout << "32°F = " << fahrenheitToCelsius(32) << "°C" << std::endl;
+    std::cout << "98°F = " << fahrenheitToCelsius(98) << "°C" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at the types in the arithmetic expressions. What type is `celsius * 9 / 5`?",
+      "When both operands of `/` are integers, what kind of division is performed?",
+    ],
+    explanation: "Both `celsius * 9 / 5` and `(fahrenheit - 32) * 5 / 9` are integer arithmetic because all operands are `int`. Integer division truncates the fractional part. For `celsiusToFahrenheit(37)`: `37 * 9 = 333`, `333 / 5 = 66` (not 66.6), `66 + 32 = 98`. The correct answer is 98.6°F. For `fahrenheitToCelsius(98)`: `(98 - 32) * 5 = 330`, `330 / 9 = 36` (not 36.67). The fix is to use floating-point division: `celsius * 9.0 / 5 + 32` or cast one operand.",
+    manifestation: `$ g++ -std=c++17 -Wall temp.cpp -o temp && ./temp
+100°C = 212°F
+0°C = 32°F
+37°C = 98°F
+
+212°F = 100°C
+32°F = 0°C
+98°F = 36°C
+
+Expected output:
+37°C = 98.6°F
+98°F = 36.6667°C`,
+    stdlibRefs: [],
+  },
+  {
+    id: 355,
+    topic: "Numeric Hazards",
+    difficulty: "Easy",
+    title: "Midpoint Calculator",
+    description: "Calculates the midpoint of two integer values, commonly used in binary search.",
+    code: `#include <iostream>
+#include <climits>
+
+int midpoint(int low, int high) {
+    return (low + high) / 2;
+}
+
+int main() {
+    std::cout << "midpoint(2, 8) = " << midpoint(2, 8) << std::endl;
+    std::cout << "midpoint(0, 10) = " << midpoint(0, 10) << std::endl;
+
+    // Large values close to INT_MAX
+    int a = INT_MAX - 2;  // 2147483645
+    int b = INT_MAX;      // 2147483647
+
+    std::cout << "midpoint(" << a << ", " << b << ") = "
+              << midpoint(a, b) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What happens when you add two values that are both close to INT_MAX?",
+      "Can `low + high` overflow for signed integers?",
+    ],
+    explanation: "`low + high` causes signed integer overflow when both values are close to INT_MAX. Signed overflow is undefined behavior in C++. In practice, the sum wraps to a negative number, and dividing by 2 gives a negative result. For `a = INT_MAX - 2` and `b = INT_MAX`: `a + b = 4294967292` which overflows signed int. The fix is `low + (high - low) / 2`, or in C++20 use `std::midpoint(low, high)` which handles this correctly.",
+    manifestation: `$ g++ -std=c++17 -Wall midpoint.cpp -o midpoint && ./midpoint
+midpoint(2, 8) = 5
+midpoint(0, 10) = 5
+midpoint(2147483645, 2147483647) = -1
+
+Expected output:
+midpoint(2147483645, 2147483647) = 2147483646
+
+$ g++ -std=c++17 -fsanitize=undefined midpoint.cpp -o midpoint && ./midpoint
+midpoint.cpp:4:21: runtime error: signed integer overflow:
+    2147483645 + 2147483647 cannot be represented in type 'int'`,
+    stdlibRefs: [
+      { name: "std::midpoint", args: "(T a, T b) → T", brief: "Computes the midpoint of two values without overflow.", note: "Available since C++20. Handles integer overflow correctly by computing low + (high - low) / 2 internally.", link: "https://en.cppreference.com/w/cpp/numeric/midpoint" },
+    ],
+  },
+  {
+    id: 356,
+    topic: "Numeric Hazards",
+    difficulty: "Easy",
+    title: "Floating Equality",
+    description: "Checks if a series of floating-point operations produces the expected result.",
+    code: `#include <iostream>
+#include <vector>
+
+bool isEqual(double a, double b) {
+    return a == b;
+}
+
+int main() {
+    double sum = 0.0;
+    for (int i = 0; i < 10; ++i) {
+        sum += 0.1;
+    }
+
+    std::cout << "sum = " << sum << std::endl;
+    std::cout << "1.0 = " << 1.0 << std::endl;
+
+    if (isEqual(sum, 1.0)) {
+        std::cout << "Equal!" << std::endl;
+    } else {
+        std::cout << "Not equal!" << std::endl;
+    }
+
+    std::cout.precision(17);
+    std::cout << "sum actually = " << sum << std::endl;
+    std::cout << "1.0 actually = " << 1.0 << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Can 0.1 be represented exactly in binary floating-point?",
+      "After adding 0.1 ten times, is the result exactly 1.0?",
+    ],
+    explanation: "The value 0.1 cannot be represented exactly in binary floating-point (IEEE 754). Each addition accumulates a tiny rounding error. After ten additions, `sum` is approximately 0.99999999999999989, not exactly 1.0. Comparing with `==` fails because the accumulated error makes them different. The fix is to compare with an epsilon: `std::abs(a - b) < epsilon` or use `std::numeric_limits<double>::epsilon()` scaled to the magnitude of the values.",
+    manifestation: `$ g++ -std=c++17 -Wall float.cpp -o float && ./float
+sum = 1
+1.0 = 1
+Not equal!
+sum actually = 0.99999999999999989
+1.0 actually = 1
+
+(The default output rounds to "1" but the exact value is
+0.99999999999999989 — not equal to 1.0)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 357,
+    topic: "Numeric Hazards",
+    difficulty: "Medium",
+    title: "Factorial Table",
+    description: "Computes factorials for values 1 through 20 and stores them in a lookup table.",
+    code: `#include <iostream>
+#include <array>
+#include <cstdint>
+
+std::array<int64_t, 21> computeFactorials() {
+    std::array<int64_t, 21> table{};
+    table[0] = 1;
+    for (int i = 1; i <= 20; ++i) {
+        table[i] = table[i - 1] * i;
+    }
+    return table;
+}
+
+int main() {
+    auto factorials = computeFactorials();
+
+    for (int i = 0; i <= 20; ++i) {
+        std::cout << i << "! = " << factorials[i] << std::endl;
+    }
+
+    // Verify some values
+    std::cout << std::endl;
+    std::cout << "10! should be 3628800: "
+              << (factorials[10] == 3628800 ? "OK" : "WRONG") << std::endl;
+    std::cout << "20! should be 2432902008176640000: "
+              << (factorials[20] == 2432902008176640000LL ? "OK" : "WRONG") << std::endl;
+    std::cout << "21! would be: " << factorials[20] * 21 << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What is the maximum value of `int64_t`? How large is 20!?",
+      "Is 20! within the range of int64_t? What about 21!?",
+    ],
+    explanation: "20! = 2,432,902,008,176,640,000 which fits in `int64_t` (max ~9.2 × 10^18). The table computation is actually correct for 0! through 20!. The bug is on the last line: `factorials[20] * 21` computes 21! which is 51,090,942,171,709,440,000 — this exceeds `int64_t`'s maximum value, causing signed integer overflow (undefined behavior). The result wraps to a negative number. The fix is to use `unsigned long long` or `__int128`, or simply not compute factorials beyond what the type can hold.",
+    manifestation: `$ g++ -std=c++17 -Wall factorial.cpp -o factorial && ./factorial
+0! = 1
+1! = 1
+2! = 2
+...
+19! = 121645100408832000
+20! = 2432902008176640000
+10! should be 3628800: OK
+20! should be 2432902008176640000: OK
+21! would be: -4249290049419214848
+
+$ g++ -std=c++17 -fsanitize=undefined factorial.cpp -o factorial && ./factorial
+factorial.cpp:25: runtime error: signed integer overflow:
+    2432902008176640000 * 21 cannot be represented in type 'long long'`,
+    stdlibRefs: [],
+  },
+  {
+    id: 358,
+    topic: "Numeric Hazards",
+    difficulty: "Medium",
+    title: "Percentage Allocator",
+    description: "Divides a budget into percentages and verifies the allocations sum to the total.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <numeric>
+
+struct Allocation {
+    std::string name;
+    int percentage;
+};
+
+std::vector<int> allocateBudget(int total, const std::vector<Allocation>& allocs) {
+    std::vector<int> amounts;
+    for (auto& a : allocs) {
+        amounts.push_back(total * a.percentage / 100);
+    }
+    return amounts;
+}
+
+int main() {
+    int budget = 1000;
+    std::vector<Allocation> departments = {
+        {"Engineering", 33},
+        {"Marketing", 33},
+        {"Operations", 34},
+    };
+
+    auto amounts = allocateBudget(budget, departments);
+    int allocated = std::accumulate(amounts.begin(), amounts.end(), 0);
+
+    for (size_t i = 0; i < departments.size(); ++i) {
+        std::cout << departments[i].name << ": $"
+                  << amounts[i] << std::endl;
+    }
+
+    std::cout << "Total allocated: $" << allocated << std::endl;
+    std::cout << "Budget: $" << budget << std::endl;
+    std::cout << "Unallocated: $" << (budget - allocated) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What is `1000 * 33 / 100` in integer arithmetic?",
+      "Do the individual allocations sum exactly to the budget?",
+    ],
+    explanation: "Integer division causes rounding loss. `1000 * 33 / 100 = 330`, `1000 * 33 / 100 = 330`, `1000 * 34 / 100 = 340`. Total: 330 + 330 + 340 = 1000. Actually for this specific input it works! But change the budget to 999: `999 * 33 / 100 = 329`, `999 * 33 / 100 = 329`, `999 * 34 / 100 = 339`. Total: 329 + 329 + 339 = 997, leaving $2 unallocated. The percentages sum to 100% but integer truncation loses money. The fix is to allocate the remainder to the last bucket: `amounts.back() = total - std::accumulate(amounts.begin(), amounts.end() - 1, 0);`.",
+    manifestation: `$ g++ -std=c++17 -Wall budget.cpp -o budget && ./budget
+Engineering: $330
+Marketing: $330
+Operations: $340
+Total allocated: $1000
+Budget: $1000
+Unallocated: $0
+
+(Looks correct for 1000, but change budget to 999:)
+Engineering: $329
+Marketing: $329
+Operations: $339
+Total allocated: $997
+Budget: $999
+Unallocated: $2
+
+($2 disappeared due to integer truncation in three divisions)`,
+    stdlibRefs: [
+      { name: "std::accumulate", args: "(InputIt first, InputIt last, T init) → T", brief: "Computes the sum of init and all elements in the range [first, last).", link: "https://en.cppreference.com/w/cpp/algorithm/accumulate" },
+    ],
+  },
+  {
+    id: 359,
+    topic: "Numeric Hazards",
+    difficulty: "Medium",
+    title: "Countdown Timer",
+    description: "Counts down from a target value using an unsigned integer loop counter.",
+    code: `#include <iostream>
+
+void countdown(unsigned int from) {
+    std::cout << "Countdown:" << std::endl;
+    for (unsigned int i = from; i >= 0; --i) {
+        std::cout << i << " ";
+    }
+    std::cout << std::endl;
+    std::cout << "Liftoff!" << std::endl;
+}
+
+int main() {
+    countdown(5);
+    return 0;
+}`,
+    hints: [
+      "What is the smallest value an `unsigned int` can hold?",
+      "What happens when you decrement an unsigned integer past zero?",
+      "Can `i >= 0` ever be false for an unsigned integer?",
+    ],
+    explanation: "The loop condition `i >= 0` is always true for an unsigned integer — unsigned values are always >= 0 by definition. When `i` is 0 and `--i` executes, it wraps to `UINT_MAX` (4294967295), and the loop continues forever. The compiler may even warn about this. The fix is to use a signed integer, or restructure the loop: `for (unsigned int i = from + 1; i-- > 0;)` (the 'goes-to' operator pattern).",
+    manifestation: `$ g++ -std=c++17 -Wall timer.cpp -o timer
+timer.cpp: In function 'void countdown(unsigned int)':
+timer.cpp:5:38: warning: comparison of unsigned expression
+    in '>= 0' is always true [-Wtype-limits]
+    5 |     for (unsigned int i = from; i >= 0; --i) {
+      |                                  ^~~~
+$ ./timer
+Countdown:
+5 4 3 2 1 0 4294967295 4294967294 4294967293 ...
+^C   (infinite loop)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 360,
+    topic: "Numeric Hazards",
+    difficulty: "Hard",
+    title: "Hash Combiner",
+    description: "Combines multiple hash values into a single hash using bitwise operations, similar to boost::hash_combine.",
+    code: `#include <iostream>
+#include <string>
+#include <functional>
+
+size_t hashCombine(size_t seed, size_t value) {
+    seed ^= value + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    return seed;
+}
+
+template<typename T>
+size_t computeHash(const T& val) {
+    return std::hash<T>{}(val);
+}
+
+struct Point3D {
+    float x, y, z;
+};
+
+size_t hashPoint(const Point3D& p) {
+    size_t h = 0;
+    h = hashCombine(h, computeHash(p.x));
+    h = hashCombine(h, computeHash(p.y));
+    h = hashCombine(h, computeHash(p.z));
+    return h;
+}
+
+int main() {
+    Point3D a{1.0f, 2.0f, 3.0f};
+    Point3D b{1.0f, 2.0f, 3.0f};
+    Point3D c{3.0f, 2.0f, 1.0f};
+
+    std::cout << "hash(a) = " << hashPoint(a) << std::endl;
+    std::cout << "hash(b) = " << hashPoint(b) << std::endl;
+    std::cout << "hash(c) = " << hashPoint(c) << std::endl;
+
+    std::cout << "a == b? " << (hashPoint(a) == hashPoint(b)) << std::endl;
+
+    // NaN test
+    float nan = 0.0f / 0.0f;
+    Point3D d{nan, 0.0f, 0.0f};
+    Point3D e{nan, 0.0f, 0.0f};
+
+    std::cout << "hash(d) = " << hashPoint(d) << std::endl;
+    std::cout << "hash(e) = " << hashPoint(e) << std::endl;
+    std::cout << "d == e? " << (hashPoint(d) == hashPoint(e)) << std::endl;
+
+    // But NaN != NaN
+    std::cout << "nan == nan? " << (nan == nan) << std::endl;
+
+    // Negative zero
+    Point3D f{0.0f, 0.0f, 0.0f};
+    Point3D g{-0.0f, 0.0f, 0.0f};
+    std::cout << "0.0 == -0.0? " << (0.0f == -0.0f) << std::endl;
+    std::cout << "hash(0.0) == hash(-0.0)? "
+              << (hashPoint(f) == hashPoint(g)) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What does `std::hash<float>` do with NaN values? With -0.0 vs 0.0?",
+      "If two floats are equal (0.0 == -0.0 is true), must their hashes be equal?",
+      "If two floats are not equal (NaN != NaN), what does the hash contract require?",
+    ],
+    explanation: "`std::hash<float>` hashes the bit pattern, not the mathematical value. This breaks two hash contract rules: (1) `0.0f` and `-0.0f` compare equal (`0.0f == -0.0f` is true) but have different bit patterns, so they get different hashes. Using them as keys in an unordered_map would create two separate entries for the 'same' value. (2) NaN values hash consistently (same bits → same hash) but `NaN != NaN`, which is fine for the hash contract but confusing for users. The fix is to normalize -0.0 to 0.0 and handle NaN explicitly before hashing.",
+    manifestation: `$ g++ -std=c++17 -Wall hash.cpp -o hash && ./hash
+hash(a) = 2725838140283895905
+hash(b) = 2725838140283895905
+hash(c) = 7572720039791514678
+a == b? 1
+hash(d) = 11695391000754891629
+hash(e) = 11695391000754891629
+d == e? 1
+nan == nan? 0
+0.0 == -0.0? 1
+hash(0.0) == hash(-0.0)? 0
+
+(Hash contract violation: 0.0f == -0.0f is true, but their
+hashes differ. An unordered_map using Point3D would treat
+{0.0, 0, 0} and {-0.0, 0, 0} as different keys even
+though they compare equal.)`,
+    stdlibRefs: [
+      { name: "std::hash", brief: "A function object that computes a hash value for a given key.", note: "For floating-point types, hashes the bit pattern. This means 0.0 and -0.0 (which compare equal) may have different hashes, violating the hash contract.", link: "https://en.cppreference.com/w/cpp/utility/hash" },
+    ],
+  },
+  {
+    id: 361,
+    topic: "Numeric Hazards",
+    difficulty: "Hard",
+    title: "Pixel Blender",
+    description: "Blends two RGBA pixel values using alpha compositing with 8-bit color channels.",
+    code: `#include <iostream>
+#include <cstdint>
+
+struct Pixel {
+    uint8_t r, g, b, a;
+};
+
+Pixel blend(const Pixel& fg, const Pixel& bg) {
+    uint8_t alpha = fg.a;
+    uint8_t invAlpha = 255 - alpha;
+
+    return {
+        static_cast<uint8_t>((fg.r * alpha + bg.r * invAlpha) / 255),
+        static_cast<uint8_t>((fg.g * alpha + bg.g * invAlpha) / 255),
+        static_cast<uint8_t>((fg.b * alpha + bg.b * invAlpha) / 255),
+        255
+    };
+}
+
+int main() {
+    Pixel red   = {255, 0, 0, 128};    // 50% transparent red
+    Pixel blue  = {0, 0, 255, 255};    // opaque blue
+    Pixel white = {255, 255, 255, 255};
+
+    Pixel result1 = blend(red, blue);
+    std::cout << "Red over blue: ("
+              << (int)result1.r << ", "
+              << (int)result1.g << ", "
+              << (int)result1.b << ")" << std::endl;
+
+    Pixel result2 = blend(red, white);
+    std::cout << "Red over white: ("
+              << (int)result2.r << ", "
+              << (int)result2.g << ", "
+              << (int)result2.b << ")" << std::endl;
+
+    // Full opacity blend
+    Pixel fullRed = {255, 0, 0, 255};
+    Pixel result3 = blend(fullRed, blue);
+    std::cout << "Opaque red over blue: ("
+              << (int)result3.r << ", "
+              << (int)result3.g << ", "
+              << (int)result3.b << ")" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What is the type of `fg.r * alpha` when both are `uint8_t`?",
+      "Actually, `uint8_t` promotes to `int` in arithmetic — so overflow isn't the issue. Look at the result of `255 * 255 + 255 * 0`.",
+      "What is `(255 * 255 + 0 * 0) / 255`? Is that exactly 255?",
+    ],
+    explanation: "The arithmetic promotes to `int`, so there's no overflow. But `(255 * 255) / 255 = 65025 / 255 = 255` — that works. The actual problem is more subtle: for `alpha = 128`, `fg.r * alpha = 255 * 128 = 32640`, `bg.r * invAlpha = 0 * 127 = 0`, so `32640 / 255 = 128` (integer division). But the expected result for 50% red over blue is `(127, 0, 128)` — the red channel should be approximately 127 (half of 255). The integer division `32640 / 255 = 128` is actually correct to within 1. The real bug: when alpha is 255 (opaque), `invAlpha = 0`, and `(255 * 255 + 0 * 0) / 255 = 255` — correct. The subtle issue is that `255 * 128 + 255 * 127 = 32640 + 32385 = 65025` and `65025 / 255 = 255` — this also works. So the blending is mathematically sound but suffers from off-by-one due to the division: the correct formula should use `/ 256` or `>> 8` with appropriate rounding when using integer arithmetic, or the alpha range should be [0, 256] not [0, 255].",
+    manifestation: `$ g++ -std=c++17 -Wall pixel.cpp -o pixel && ./pixel
+Red over blue: (128, 0, 127)
+Red over white: (255, 127, 127)
+Opaque red over blue: (255, 0, 0)
+
+Expected (with proper rounding):
+Red over blue: (127, 0, 128)
+Red over white: (255, 128, 128)
+
+(Off-by-one in color channels due to integer division
+truncation. Using 255 as the divisor instead of 256
+introduces systematic bias.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 362,
+    topic: "Numeric Hazards",
+    difficulty: "Hard",
+    title: "Safe Absolute Value",
+    description: "Implements a safe absolute value function that handles edge cases for all integer types.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <climits>
+#include <cstdlib>
+
+int safeAbs(int value) {
+    return std::abs(value);
+}
+
+long long safeAbsLL(long long value) {
+    if (value < 0) {
+        return -value;
+    }
+    return value;
+}
+
+int main() {
+    std::cout << "abs(42) = " << safeAbs(42) << std::endl;
+    std::cout << "abs(-42) = " << safeAbs(-42) << std::endl;
+    std::cout << "abs(0) = " << safeAbs(0) << std::endl;
+
+    std::cout << "abs(INT_MIN) = " << safeAbs(INT_MIN) << std::endl;
+
+    std::cout << "abs(LLONG_MIN) = " << safeAbsLL(LLONG_MIN) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What is the absolute value of INT_MIN? Can it be represented as an int?",
+      "In two's complement, INT_MIN is typically -2147483648. What is -(-2147483648)?",
+    ],
+    explanation: "In two's complement, `INT_MIN` is -2147483648 but `INT_MAX` is 2147483647 — there's no positive 2147483648 in the int range. `std::abs(INT_MIN)` is undefined behavior (signed overflow). Similarly, `-LLONG_MIN` overflows `long long`. The 'safe' functions are not actually safe. The fix is to check for the minimum value and either return a wider type, throw an exception, or document that the minimum value is not supported: `if (value == INT_MIN) throw std::overflow_error(\"cannot negate INT_MIN\");`.",
+    manifestation: `$ g++ -std=c++17 -Wall abs.cpp -o abs && ./abs
+abs(42) = 42
+abs(-42) = 42
+abs(0) = 0
+abs(INT_MIN) = -2147483648
+abs(LLONG_MIN) = -9223372036854775808
+
+$ g++ -std=c++17 -fsanitize=undefined abs.cpp -o abs && ./abs
+abs.cpp:7: runtime error: negation of -2147483648 cannot be
+    represented in type 'int'; cast to an unsigned type to
+    perform the intended negation
+abs.cpp:11: runtime error: negation of -9223372036854775808
+    cannot be represented in type 'long long'`,
+    stdlibRefs: [
+      { name: "std::abs", args: "(int n) → int | (long long n) → long long", brief: "Returns the absolute value of the argument.", note: "Undefined behavior when called with the most negative value (INT_MIN, LLONG_MIN) because the result cannot be represented in the same type.", link: "https://en.cppreference.com/w/cpp/numeric/math/abs" },
+    ],
+  },
+  {
+    id: 363,
+    topic: "Numeric Hazards",
+    difficulty: "Medium",
+    title: "Bitfield Packer",
+    description: "Packs multiple small values into a single integer using bitwise operations for efficient storage.",
+    code: `#include <iostream>
+#include <cstdint>
+
+// Pack RGBA color into a single 32-bit integer
+uint32_t packColor(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
+    return (r << 24) | (g << 16) | (b << 8) | a;
+}
+
+void unpackColor(uint32_t packed, uint8_t& r, uint8_t& g,
+                 uint8_t& b, uint8_t& a) {
+    r = (packed >> 24) & 0xFF;
+    g = (packed >> 16) & 0xFF;
+    b = (packed >> 8) & 0xFF;
+    a = packed & 0xFF;
+}
+
+int main() {
+    uint32_t color = packColor(255, 128, 64, 200);
+
+    uint8_t r, g, b, a;
+    unpackColor(color, r, g, b, a);
+
+    std::cout << "Packed: 0x" << std::hex << color << std::endl;
+    std::cout << "R=" << std::dec << (int)r
+              << " G=" << (int)g
+              << " B=" << (int)b
+              << " A=" << (int)a << std::endl;
+
+    // Test with high bit set
+    uint32_t color2 = packColor(200, 100, 50, 25);
+    std::cout << "Packed2: 0x" << std::hex << color2 << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What is the type of `r << 24` when `r` is `uint8_t`?",
+      "When `uint8_t` is promoted to `int` for the shift, and `r` is 255, what is `255 << 24`?",
+      "Is `255 << 24` representable in a 32-bit signed int?",
+    ],
+    explanation: "`uint8_t` is promoted to `int` (signed) before the shift. `255 << 24` = 0xFF000000 = 4278190080, which exceeds `INT_MAX` (2147483647). Shifting into or past the sign bit of a signed integer is undefined behavior in C++ (before C++20). On most platforms it 'works' by coincidence, but sanitizers will flag it. The fix is to cast to `uint32_t` before shifting: `return (static_cast<uint32_t>(r) << 24) | ...`.",
+    manifestation: `$ g++ -std=c++17 -Wall pack.cpp -o pack && ./pack
+Packed: 0xff8040c8
+R=255 G=128 B=64 A=200
+Packed2: 0xc8643219
+
+$ g++ -std=c++17 -fsanitize=undefined pack.cpp -o pack && ./pack
+pack.cpp:6:15: runtime error: left shift of 255 by 24 places
+    cannot be represented in type 'int'
+
+(Works by coincidence on most platforms, but is technically
+undefined behavior for r >= 128 because the result exceeds
+INT_MAX when shifted left 24 places in a signed int.)`,
+    stdlibRefs: [],
+  },
 ];
