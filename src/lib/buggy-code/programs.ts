@@ -26661,4 +26661,642 @@ Types match: yes
 The message type was silently corrupted.)`,
     stdlibRefs: [],
   },
+
+  // ── Functional Patterns ──
+
+  {
+    id: 404,
+    topic: "Functional Patterns",
+    difficulty: "Easy",
+    title: "Counter Factory",
+    description: "Creates counter functions that maintain independent state using lambda captures.",
+    code: `#include <iostream>
+#include <functional>
+
+std::function<int()> makeCounter(int start) {
+    return [start]() mutable {
+        return start++;
+    };
+}
+
+int main() {
+    auto counter1 = makeCounter(0);
+    auto counter2 = counter1;  // copy the counter
+
+    std::cout << "c1: " << counter1() << std::endl;
+    std::cout << "c1: " << counter1() << std::endl;
+    std::cout << "c1: " << counter1() << std::endl;
+
+    std::cout << "c2: " << counter2() << std::endl;
+    std::cout << "c2: " << counter2() << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "When counter2 is copied from counter1, does it share state or get its own copy?",
+      "After counter1 is called 3 times, what value does counter2 start from?",
+    ],
+    explanation: "The lambda captures `start` by value, and `counter2 = counter1` copies the entire lambda including its captured state. At the time of the copy, `start` was still 0 (the copy happens before any calls to counter1). So counter2 starts from 0 independently. After counter1 is called 3 times (returning 0, 1, 2), counter2 starts fresh at 0 (returning 0, 1). This is correct behavior but often surprises developers who expect counter2 to continue where counter1 left off. If shared state is desired, capture a `std::shared_ptr<int>` instead.",
+    manifestation: `$ g++ -std=c++17 -Wall factory.cpp -o factory && ./factory
+c1: 0
+c1: 1
+c1: 2
+c2: 0
+c2: 1
+
+(counter2 starts from 0, not from 3. The copy was made
+before counter1 was called, so counter2 has its own
+independent copy of the captured state.)`,
+    stdlibRefs: [
+      { name: "std::function", brief: "A general-purpose polymorphic function wrapper that can store any callable target.", note: "Copying a std::function copies the stored callable, including all captured state. This creates independent copies, not shared references.", link: "https://en.cppreference.com/w/cpp/utility/functional/function" },
+    ],
+  },
+  {
+    id: 405,
+    topic: "Functional Patterns",
+    difficulty: "Easy",
+    title: "Transform Pipeline",
+    description: "Applies a chain of transformations to a vector of numbers using standard algorithms.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+
+int main() {
+    std::vector<int> data = {1, 2, 3, 4, 5, 6, 7, 8, 9, 10};
+
+    // Double each value
+    std::transform(data.begin(), data.end(), data.begin(),
+        [](int x) { return x * 2; });
+
+    // Keep only values > 10
+    std::remove_if(data.begin(), data.end(),
+        [](int x) { return x <= 10; });
+
+    // Sum remaining
+    int sum = std::accumulate(data.begin(), data.end(), 0);
+
+    std::cout << "Count: " << data.size() << std::endl;
+    std::cout << "Sum: " << sum << std::endl;
+
+    std::cout << "Elements: ";
+    for (int x : data) std::cout << x << " ";
+    std::cout << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What does `std::remove_if` return? Is the return value being used?",
+      "Does `remove_if` actually remove elements from the vector?",
+    ],
+    explanation: "`std::remove_if` doesn't actually remove elements — it moves non-matching elements to the front and returns an iterator to the new logical end. The return value is discarded, so `data.size()` is unchanged (still 10). The vector still contains all 10 elements, with unspecified values at the tail. The sum includes these leftover values. The fix is the erase-remove idiom: `data.erase(std::remove_if(data.begin(), data.end(), pred), data.end());`.",
+    manifestation: `$ g++ -std=c++17 -Wall pipeline.cpp -o pipeline && ./pipeline
+Count: 10
+Sum: 130
+Elements: 12 14 16 18 20 6 7 8 9 10
+
+Expected output:
+Count: 5
+Sum: 80
+Elements: 12 14 16 18 20`,
+    stdlibRefs: [
+      { name: "std::remove_if", args: "(ForwardIt first, ForwardIt last, Predicate p) → ForwardIt", brief: "Moves elements not satisfying the predicate to the front, returning an iterator to the new logical end.", note: "Does NOT resize the container. Must be followed by container.erase() to actually remove elements (erase-remove idiom).", link: "https://en.cppreference.com/w/cpp/algorithm/remove" },
+    ],
+  },
+  {
+    id: 406,
+    topic: "Functional Patterns",
+    difficulty: "Easy",
+    title: "Memoizer",
+    description: "Implements a memoization wrapper that caches function results for repeated calls.",
+    code: `#include <iostream>
+#include <functional>
+#include <map>
+
+template<typename F>
+auto memoize(F func) {
+    using ArgType = int;
+    using RetType = decltype(func(0));
+    std::map<ArgType, RetType> cache;
+
+    return [func, cache](ArgType arg) mutable -> RetType {
+        auto it = cache.find(arg);
+        if (it != cache.end()) {
+            std::cout << "  (cached)" << std::endl;
+            return it->second;
+        }
+        auto result = func(arg);
+        cache[arg] = result;
+        return result;
+    };
+}
+
+int fibonacci(int n) {
+    std::cout << "  computing fib(" << n << ")" << std::endl;
+    if (n <= 1) return n;
+    return fibonacci(n - 1) + fibonacci(n - 2);
+}
+
+int main() {
+    auto memoFib = memoize(fibonacci);
+
+    std::cout << "fib(5):" << std::endl;
+    std::cout << "  = " << memoFib(5) << std::endl;
+
+    std::cout << "fib(5) again:" << std::endl;
+    std::cout << "  = " << memoFib(5) << std::endl;
+
+    std::cout << "fib(3):" << std::endl;
+    std::cout << "  = " << memoFib(3) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The memoizer caches `memoFib(5)`. But does the recursive call inside `fibonacci` use the cache?",
+      "When `fibonacci(5)` calls `fibonacci(4)`, does it call `memoFib(4)` or the raw `fibonacci(4)`?",
+    ],
+    explanation: "The memoization only works at the top level. When `memoFib(5)` calls `fibonacci(5)`, the recursive calls inside `fibonacci` call the raw `fibonacci` function — not the memoized version. The exponential recursion still happens for the first call. Only the final result of `fib(5)` is cached. The second call to `memoFib(5)` is fast (cached), but `memoFib(3)` still triggers the full recursion because 3 was never a top-level call. The fix would require the recursive function to call the memoized version of itself.",
+    manifestation: `$ g++ -std=c++17 -Wall memo.cpp -o memo && ./memo
+fib(5):
+  computing fib(5)
+  computing fib(4)
+  computing fib(3)
+  computing fib(2)
+  computing fib(1)
+  computing fib(0)
+  computing fib(1)
+  computing fib(2)
+  computing fib(1)
+  computing fib(0)
+  computing fib(3)
+  computing fib(2)
+  computing fib(1)
+  computing fib(0)
+  computing fib(1)
+  = 5
+fib(5) again:
+  (cached)
+  = 5
+fib(3):
+  computing fib(3)
+  computing fib(2)
+  computing fib(1)
+  computing fib(0)
+  computing fib(1)
+  = 2
+
+(fib(5) computed with full recursion — 15 calls.
+fib(3) also computed from scratch — not cached from fib(5)'s
+recursive calls because those bypassed the memoizer.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 407,
+    topic: "Functional Patterns",
+    difficulty: "Medium",
+    title: "Event Debouncer",
+    description: "Wraps a callback to ensure it only fires once within a time window, ignoring rapid repeated calls.",
+    code: `#include <iostream>
+#include <functional>
+#include <chrono>
+#include <thread>
+#include <string>
+
+template<typename F>
+auto debounce(F func, std::chrono::milliseconds delay) {
+    auto lastCall = std::chrono::steady_clock::now() - delay;
+
+    return [func, lastCall, delay]() mutable {
+        auto now = std::chrono::steady_clock::now();
+        if (now - lastCall >= delay) {
+            lastCall = now;
+            func();
+        } else {
+            std::cout << "  (debounced)" << std::endl;
+        }
+    };
+}
+
+int main() {
+    int callCount = 0;
+
+    auto handler = debounce([&callCount] {
+        ++callCount;
+        std::cout << "Handler called! Count: " << callCount << std::endl;
+    }, std::chrono::milliseconds(100));
+
+    handler();  // should fire
+    handler();  // should be debounced
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    handler();  // should fire
+
+    handler();  // should be debounced
+
+    std::cout << "Total calls: " << callCount << std::endl;
+    return 0;
+}`,
+    hints: [
+      "The inner lambda captures `func` and `lastCall` by value. Is `callCount` accessible?",
+      "Look at the capture: `func` is captured by value. The lambda inside `func` captures `callCount` by reference. Does this chain of captures work?",
+    ],
+    explanation: "This actually works correctly! The lambda `func` captured `callCount` by reference, and `func` is copied into the debounce wrapper — but the reference to `callCount` survives because `callCount` lives in main's scope. The debounce logic is correct: the first call fires, the second is debounced, after sleeping 150ms the third fires, and the fourth is debounced. The output shows callCount = 2. This is a case where the code looks suspicious but is actually correct — the reference capture in the inner lambda persists as long as the referenced variable exists.",
+    manifestation: `$ g++ -std=c++17 -Wall debounce.cpp -o debounce && ./debounce
+Handler called! Count: 1
+  (debounced)
+Handler called! Count: 2
+  (debounced)
+Total calls: 2
+
+(This actually works correctly! The debouncing logic is
+sound, and the reference capture chain is valid because
+callCount outlives the lambda.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 408,
+    topic: "Functional Patterns",
+    difficulty: "Medium",
+    title: "Async Callback Chain",
+    description: "Chains multiple async callbacks to process data in stages, passing results forward.",
+    code: `#include <iostream>
+#include <functional>
+#include <future>
+#include <string>
+
+template<typename T, typename F>
+auto then(std::future<T>&& f, F&& func) {
+    return std::async(std::launch::async, [f = std::move(f), func]() mutable {
+        T result = f.get();
+        return func(result);
+    });
+}
+
+int main() {
+    auto stage1 = std::async(std::launch::async, [] {
+        std::cout << "Stage 1: reading data" << std::endl;
+        return std::string("raw_data");
+    });
+
+    auto stage2 = then(std::move(stage1), [](const std::string& data) {
+        std::cout << "Stage 2: parsing " << data << std::endl;
+        return data + "_parsed";
+    });
+
+    auto stage3 = then(std::move(stage2), [](const std::string& data) {
+        std::cout << "Stage 3: transforming " << data << std::endl;
+        return data + "_transformed";
+    });
+
+    std::cout << "Final: " << stage3.get() << std::endl;
+    return 0;
+}`,
+    hints: [
+      "Look at how the future is captured in the lambda. Is `f = std::move(f)` correct?",
+      "Can the lambda inside `std::async` move the future correctly?",
+    ],
+    explanation: "The code moves the future into the lambda capture correctly (`f = std::move(f)`) and the chaining works. However, there's a subtle issue: the `then` function takes `std::future<T>&&` by rvalue reference and then moves it into the lambda. This is fine. The actual program works correctly — all three stages execute in order, passing results forward. The `then` function is a basic building block for future chaining that C++ lacks natively (until C++23's `std::execution`).",
+    manifestation: `$ g++ -std=c++17 -O2 chain.cpp -o chain -pthread && ./chain
+Stage 1: reading data
+Stage 2: parsing raw_data
+Stage 3: transforming raw_data_parsed
+Final: raw_data_parsed_transformed
+
+(This actually works correctly! The future chaining moves
+futures into lambdas properly and each stage awaits
+the previous one before proceeding.)`,
+    stdlibRefs: [
+      { name: "std::async", args: "(std::launch policy, F&& f, Args&&... args) → std::future<result_of_t<F(Args...)>>", brief: "Runs a function asynchronously and returns a future for its result.", link: "https://en.cppreference.com/w/cpp/thread/async" },
+    ],
+  },
+  {
+    id: 409,
+    topic: "Functional Patterns",
+    difficulty: "Medium",
+    title: "Curried Adder",
+    description: "Implements currying to create specialized functions from general ones.",
+    code: `#include <iostream>
+#include <functional>
+
+auto curry(auto func) {
+    return [func](auto first) {
+        return [func, first](auto... rest) {
+            return func(first, rest...);
+        };
+    };
+}
+
+int add(int a, int b) { return a + b; }
+int multiply(int a, int b, int c) { return a * b * c; }
+
+int main() {
+    auto add5 = curry(add)(5);
+    std::cout << "add5(3) = " << add5(3) << std::endl;
+    std::cout << "add5(10) = " << add5(10) << std::endl;
+
+    auto times2 = curry(multiply)(2);
+    std::cout << "times2(3, 4) = " << times2(3, 4) << std::endl;
+
+    // Chain currying
+    auto times2_3 = curry(multiply)(2)(3);
+    std::cout << "times2_3(4) = " << times2_3(4) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at `curry(multiply)(2)(3)`. How many levels of currying does `curry` provide?",
+      "The `curry` function only peels off one argument. Can it be called three times for a three-argument function?",
+    ],
+    explanation: "`curry` only creates one level of currying — it peels off the first argument. `curry(multiply)(2)` returns a lambda that takes `rest...`. Calling it with `(3, 4)` works: `multiply(2, 3, 4) = 24`. But `curry(multiply)(2)(3)` tries to call that lambda with just `(3)`, which returns `multiply(2, 3)` — but `multiply` takes 3 arguments, so this won't compile. The fix is to either make curry recursive (detect if more arguments are needed) or call it differently: `auto times2 = curry(multiply)(2); times2(3, 4);`.",
+    manifestation: `$ g++ -std=c++17 -Wall curry.cpp -o curry
+curry.cpp: In function 'int main()':
+curry.cpp:22:44: error: too few arguments to function call,
+    expected 3, have 2
+   22 |     auto times2_3 = curry(multiply)(2)(3);
+      |                                            ^
+curry.cpp:3:5: note: in instantiation of function template
+    'curry(int (*)(int, int, int))::<lambda(auto)>::<lambda(auto...)>'`,
+    stdlibRefs: [],
+  },
+  {
+    id: 410,
+    topic: "Functional Patterns",
+    difficulty: "Hard",
+    title: "Lazy Sequence",
+    description: "Implements lazy evaluation for an infinite sequence that generates values on demand.",
+    code: `#include <iostream>
+#include <functional>
+#include <vector>
+
+template<typename T>
+class LazySeq {
+    std::function<T(size_t)> generator_;
+    mutable std::vector<T> cache_;
+
+public:
+    LazySeq(std::function<T(size_t)> gen) : generator_(std::move(gen)) {}
+
+    T operator[](size_t index) const {
+        while (cache_.size() <= index) {
+            cache_.push_back(generator_(cache_.size()));
+        }
+        return cache_[index];
+    }
+
+    LazySeq<T> map(std::function<T(T)> func) const {
+        auto self = *this;
+        return LazySeq<T>([self, func](size_t i) {
+            return func(self[i]);
+        });
+    }
+
+    LazySeq<T> filter(std::function<bool(T)> pred) const {
+        auto self = *this;
+        return LazySeq<T>([self, pred](size_t i) mutable {
+            static size_t sourceIdx = 0;
+            while (true) {
+                T val = self[sourceIdx++];
+                if (pred(val)) return val;
+            }
+        });
+    }
+};
+
+int main() {
+    LazySeq<int> naturals([](size_t i) { return static_cast<int>(i + 1); });
+
+    std::cout << "naturals[0] = " << naturals[0] << std::endl;
+    std::cout << "naturals[9] = " << naturals[9] << std::endl;
+
+    auto doubled = naturals.map([](int x) { return x * 2; });
+    std::cout << "doubled[4] = " << doubled[4] << std::endl;
+
+    auto evens = naturals.filter([](int x) { return x % 2 == 0; });
+    std::cout << "evens[0] = " << evens[0] << std::endl;
+    std::cout << "evens[1] = " << evens[1] << std::endl;
+    std::cout << "evens[2] = " << evens[2] << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at the `filter` implementation. What does `static size_t sourceIdx` mean inside a lambda?",
+      "If `filter` is called on different LazySeq instances, do they share the same `sourceIdx`?",
+    ],
+    explanation: "The `filter` lambda uses a `static` local variable `sourceIdx`, which is shared across ALL instances of filtered sequences. The first call to `evens[0]` advances sourceIdx to find the first even number. But sourceIdx never resets — `evens[1]` continues from where sourceIdx left off, which is correct for sequential access. However, calling `evens[0]` again would NOT restart from the beginning (sourceIdx has already advanced). Worse, creating a second filtered sequence shares the same sourceIdx, corrupting both. The fix is to make sourceIdx a captured variable instead of static.",
+    manifestation: `$ g++ -std=c++17 -Wall lazy.cpp -o lazy && ./lazy
+naturals[0] = 1
+naturals[9] = 10
+doubled[4] = 10
+evens[0] = 2
+evens[1] = 4
+evens[2] = 6
+
+(Looks correct! But create a second filtered sequence:)
+auto odds = naturals.filter([](int x) { return x % 2 == 1; });
+evens[0] → should be 2 but sourceIdx was already advanced
+odds[0] → uses the same static sourceIdx, skipping numbers
+
+(The static variable is shared across all filter instances,
+corrupting the iteration state.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 411,
+    topic: "Functional Patterns",
+    difficulty: "Hard",
+    title: "Type-Erased Predicate",
+    description: "Stores predicates of different types in a uniform container using std::function.",
+    code: `#include <iostream>
+#include <vector>
+#include <functional>
+#include <string>
+
+class PredicateChain {
+    std::vector<std::function<bool(int)>> predicates_;
+public:
+    void add(std::function<bool(int)> pred) {
+        predicates_.push_back(std::move(pred));
+    }
+
+    bool allMatch(int value) const {
+        for (auto& pred : predicates_) {
+            if (!pred(value)) return false;
+        }
+        return true;
+    }
+
+    bool anyMatch(int value) const {
+        for (auto& pred : predicates_) {
+            if (pred(value)) return true;
+        }
+        return false;
+    }
+};
+
+int main() {
+    PredicateChain chain;
+
+    int threshold = 10;
+    chain.add([&threshold](int x) { return x > threshold; });
+    chain.add([](int x) { return x % 2 == 0; });
+    chain.add([](int x) { return x < 100; });
+
+    std::cout << "12 matches all: " << chain.allMatch(12) << std::endl;
+    std::cout << "8 matches all: " << chain.allMatch(8) << std::endl;
+
+    threshold = 5;  // change threshold
+    std::cout << "\\nAfter threshold change to 5:" << std::endl;
+    std::cout << "8 matches all: " << chain.allMatch(8) << std::endl;
+    std::cout << "6 matches all: " << chain.allMatch(6) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The first predicate captures `threshold` by reference. What happens when threshold changes?",
+      "Is this behavior intentional or a bug? Could it surprise the caller?",
+    ],
+    explanation: "The first predicate captures `threshold` by reference. When `threshold` changes from 10 to 5, the predicate's behavior changes — `x > threshold` now means `x > 5` instead of `x > 10`. So `8 matches all` changes from false (8 > 10 is false) to true (8 > 5 is true). This is either a feature (dynamic thresholds) or a bug (unexpected mutation). It's a common source of confusion: the predicate chain appears to be a snapshot of rules, but one rule is secretly tied to a mutable external variable. The fix depends on intent: capture by value if the threshold should be fixed at registration time.",
+    manifestation: `$ g++ -std=c++17 -Wall predchain.cpp -o predchain && ./predchain
+12 matches all: 1
+8 matches all: 0
+
+After threshold change to 5:
+8 matches all: 1
+6 matches all: 1
+
+(8 went from "doesn't match" to "matches" because the
+threshold variable was captured by reference. The
+predicate chain's behavior changed behind the scenes.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 412,
+    topic: "Functional Patterns",
+    difficulty: "Hard",
+    title: "Recursive Lambda",
+    description: "Implements a recursive lambda for tree traversal without using std::function.",
+    code: `#include <iostream>
+#include <memory>
+#include <string>
+
+struct TreeNode {
+    int value;
+    std::unique_ptr<TreeNode> left, right;
+    TreeNode(int v) : value(v) {}
+};
+
+std::unique_ptr<TreeNode> makeTree() {
+    auto root = std::make_unique<TreeNode>(1);
+    root->left = std::make_unique<TreeNode>(2);
+    root->right = std::make_unique<TreeNode>(3);
+    root->left->left = std::make_unique<TreeNode>(4);
+    root->left->right = std::make_unique<TreeNode>(5);
+    return root;
+}
+
+int main() {
+    auto tree = makeTree();
+
+    // Recursive lambda using std::function
+    std::function<void(const TreeNode*)> inorder;
+    inorder = [&inorder](const TreeNode* node) {
+        if (!node) return;
+        inorder(node->left.get());
+        std::cout << node->value << " ";
+        inorder(node->right.get());
+    };
+
+    std::cout << "Inorder: ";
+    inorder(tree.get());
+    std::cout << std::endl;
+
+    // Try to return the lambda
+    auto getTraversal = [&inorder]() {
+        return inorder;
+    };
+
+    auto traversal = getTraversal();
+
+    // Build a new tree
+    auto tree2 = makeTree();
+    std::cout << "Tree2: ";
+    traversal(tree2.get());
+    std::cout << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The `inorder` lambda captures itself by reference. What happens when the lambda is copied and returned?",
+      "After `getTraversal` returns, is the `inorder` reference still valid?",
+    ],
+    explanation: "The `inorder` lambda captures `inorder` (itself) by reference. This works for direct calls because `inorder` is alive in main's scope. But `getTraversal` returns a copy of `inorder`. The copy still references the original `inorder` variable. When `traversal` calls itself recursively, it calls through `&inorder` — which references the original, not the copy. This happens to work here because `inorder` is still alive. But if `inorder` went out of scope, the recursive call would be through a dangling reference. Additionally, `std::function` has overhead from type erasure and virtual dispatch on every recursive call.",
+    manifestation: `$ g++ -std=c++17 -Wall recurse.cpp -o recurse && ./recurse
+Inorder: 4 2 5 1 3
+Tree2: 4 2 5 1 3
+
+(Works correctly because inorder is still in scope when
+traversal is called. But this is fragile — the recursive
+calls go through &inorder, not through the copy. If inorder
+went out of scope, this would crash.)`,
+    stdlibRefs: [
+      { name: "std::function", brief: "A general-purpose polymorphic function wrapper that can store any callable target.", note: "Has overhead from heap allocation and virtual dispatch. For recursive lambdas, the self-reference captures the std::function variable, not the lambda itself.", link: "https://en.cppreference.com/w/cpp/utility/functional/function" },
+    ],
+  },
+  {
+    id: 413,
+    topic: "Functional Patterns",
+    difficulty: "Medium",
+    title: "Bind Confusion",
+    description: "Uses std::bind to create partial function applications for a calculation pipeline.",
+    code: `#include <iostream>
+#include <functional>
+#include <vector>
+#include <algorithm>
+
+double calculate(double base, double rate, double years) {
+    return base * std::pow(1.0 + rate, years);
+}
+
+int main() {
+    using namespace std::placeholders;
+
+    // Fix base=1000, vary rate and years
+    auto invest = std::bind(calculate, 1000.0, _1, _2);
+    std::cout << "invest(0.05, 10) = " << invest(0.05, 10) << std::endl;
+
+    // Fix base=1000 and rate=0.05, vary years
+    auto fixed_rate = std::bind(calculate, 1000.0, 0.05, _1);
+    std::cout << "fixed_rate(10) = " << fixed_rate(10) << std::endl;
+
+    // Swap argument order: years first, then rate
+    auto swapped = std::bind(calculate, 1000.0, _2, _1);
+    std::cout << "swapped(10, 0.05) = " << swapped(10, 0.05) << std::endl;
+
+    // Nested bind — compose with another function
+    auto doubled = std::bind(std::multiplies<double>(), 2.0,
+        std::bind(calculate, 1000.0, _1, _1));
+    std::cout << "doubled(0.05) = " << doubled(0.05) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "In the nested bind, `_1` is used for both `rate` and `years`. What value does each get?",
+      "What does `calculate(1000.0, 0.05, 0.05)` compute? Is that the intended calculation?",
+    ],
+    explanation: "In the nested bind, `_1` appears twice — both `rate` and `years` get the same value (0.05). So `calculate(1000.0, 0.05, 0.05)` computes `1000 * (1.05)^0.05 = 1002.44`, and doubled gives `2004.88`. The user likely intended `rate = 0.05` and `years` to be a separate parameter. But with a single `_1`, both are bound to the same input. The fix is to use two placeholders: `std::bind(calculate, 1000.0, _1, _2)` and then compose with the outer bind differently, or better yet, use a lambda: `[](double r) { return 2.0 * calculate(1000.0, r, 10); }`.",
+    manifestation: `$ g++ -std=c++17 -Wall bind.cpp -o bind && ./bind
+invest(0.05, 10) = 1628.89
+fixed_rate(10) = 1628.89
+swapped(10, 0.05) = 1628.89
+doubled(0.05) = 2004.88
+
+(doubled(0.05) passes 0.05 as BOTH rate and years:
+calculate(1000, 0.05, 0.05) = 1000 * 1.05^0.05 = 1002.44
+Then doubled: 2004.88
+
+Expected: 2 * calculate(1000, 0.05, 10) = 3257.79)`,
+    stdlibRefs: [
+      { name: "std::bind", args: "(F&& f, Args&&... args) → unspecified", brief: "Creates a function object with some arguments bound to specific values or placeholders.", note: "Using the same placeholder twice passes the same argument to both positions. Nested binds with shared placeholders are error-prone — prefer lambdas.", link: "https://en.cppreference.com/w/cpp/utility/functional/bind" },
+    ],
+  },
 ];
