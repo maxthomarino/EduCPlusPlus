@@ -20538,4 +20538,672 @@ the: 4`,
       { name: "std::map::emplace", args: "(Args&&... args) → std::pair<iterator, bool>", brief: "Constructs an element in-place if the key doesn't exist, returning an iterator and whether insertion occurred.", link: "https://en.cppreference.com/w/cpp/container/map/emplace" },
     ],
   },
+
+  // ── Object Model ──
+
+  {
+    id: 314,
+    topic: "Object Model",
+    difficulty: "Easy",
+    title: "Chained Assignment",
+    description: "Implements a simple counter class with an assignment operator and uses chained assignment.",
+    code: `#include <iostream>
+
+class Counter {
+    int count_;
+public:
+    Counter(int c = 0) : count_(c) {}
+
+    void operator=(const Counter& other) {
+        count_ = other.count_;
+    }
+
+    int value() const { return count_; }
+    void increment() { ++count_; }
+};
+
+int main() {
+    Counter a(10), b(20), c(30);
+
+    std::cout << "Before: a=" << a.value()
+              << " b=" << b.value()
+              << " c=" << c.value() << std::endl;
+
+    a = b = c;
+
+    std::cout << "After:  a=" << a.value()
+              << " b=" << b.value()
+              << " c=" << c.value() << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at the return type of `operator=`. What does it return?",
+      "What does chained assignment `a = b = c` require from the return value of `operator=`?",
+    ],
+    explanation: "The assignment operator returns `void` instead of `Counter&`. Chained assignment `a = b = c` evaluates right-to-left: first `b = c` (which returns `void`), then `a = (void)` — which won't compile because there's no conversion from `void` to `Counter`. The fix is to return `*this` by reference: `Counter& operator=(const Counter& other) { count_ = other.count_; return *this; }`.",
+    manifestation: `$ g++ -std=c++17 -Wall counter.cpp -o counter
+counter.cpp: In function 'int main()':
+counter.cpp:20:11: error: no match for 'operator=' (operand types
+    are 'Counter' and 'void')
+   20 |     a = b = c;
+      |           ^
+counter.cpp:8:10: note: candidate: 'void Counter::operator=(
+    const Counter&)'
+      8 |     void operator=(const Counter& other) {
+      |          ^~~~~~~~
+counter.cpp:8:10: note:   no known conversion for argument 1
+    from 'void' to 'const Counter&'`,
+    stdlibRefs: [],
+  },
+  {
+    id: 315,
+    topic: "Object Model",
+    difficulty: "Easy",
+    title: "Animal Sounds",
+    description: "Defines a base Animal class with a speak method and derived Dog and Cat classes.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+#include <memory>
+
+class Animal {
+public:
+    virtual std::string speak() const { return "..."; }
+    virtual ~Animal() = default;
+};
+
+class Dog : public Animal {
+    std::string name_;
+public:
+    Dog(const std::string& name) : name_(name) {}
+    std::string speak(bool excited) const {
+        return excited ? "WOOF WOOF!" : "woof";
+    }
+    const std::string& name() const { return name_; }
+};
+
+class Cat : public Animal {
+    std::string name_;
+public:
+    Cat(const std::string& name) : name_(name) {}
+    std::string speak() const override { return "meow"; }
+    const std::string& name() const { return name_; }
+};
+
+int main() {
+    std::vector<std::unique_ptr<Animal>> animals;
+    animals.push_back(std::make_unique<Dog>("Rex"));
+    animals.push_back(std::make_unique<Cat>("Whiskers"));
+    animals.push_back(std::make_unique<Dog>("Buddy"));
+
+    for (auto& a : animals) {
+        std::cout << a->speak() << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Compare Dog's `speak` method signature with Animal's `speak` signature. Are they the same?",
+      "Does Dog's `speak(bool)` override Animal's `speak()`, or does it hide it?",
+    ],
+    explanation: "Dog's `speak(bool excited)` has a different parameter list from Animal's `speak()`. This means Dog doesn't override the base virtual function — it hides it. When called through an `Animal*`, virtual dispatch finds no override in Dog, so `Animal::speak()` is called, returning \"...\". All dogs say \"...\" instead of \"woof\". Adding `override` to Dog's speak would have caught this at compile time. The fix is to add a `speak() const override` to Dog, or change the base interface to match.",
+    manifestation: `$ g++ -std=c++17 -Wall animals.cpp -o animals && ./animals
+...
+meow
+...
+
+Expected output:
+woof
+meow
+woof`,
+    stdlibRefs: [],
+  },
+  {
+    id: 316,
+    topic: "Object Model",
+    difficulty: "Easy",
+    title: "Cached Computation",
+    description: "Caches an expensive computation result inside a const method using a mutable member.",
+    code: `#include <iostream>
+#include <cmath>
+
+class Statistics {
+    double data_[1000];
+    int size_;
+    double cachedMean_;
+    bool meanCached_;
+public:
+    Statistics(int n) : size_(n), cachedMean_(0), meanCached_(false) {
+        for (int i = 0; i < n && i < 1000; ++i)
+            data_[i] = std::sin(i * 0.1) * 100;
+    }
+
+    double mean() const {
+        if (!meanCached_) {
+            double sum = 0;
+            for (int i = 0; i < size_; ++i)
+                sum += data_[i];
+            cachedMean_ = sum / size_;
+            meanCached_ = true;
+        }
+        return cachedMean_;
+    }
+};
+
+int main() {
+    const Statistics stats(500);
+    std::cout << "Mean: " << stats.mean() << std::endl;
+    std::cout << "Mean again: " << stats.mean() << std::endl;
+    return 0;
+}`,
+    hints: [
+      "The `mean()` method is const, but it modifies `cachedMean_` and `meanCached_`. Is this allowed?",
+      "What keyword would you need on those members to allow modification in a const method?",
+    ],
+    explanation: "The method `mean()` is declared `const`, meaning it cannot modify any data members. But it tries to assign to `cachedMean_` and `meanCached_`, which are not declared `mutable`. This causes a compilation error. The fix is to declare `cachedMean_` and `meanCached_` as `mutable`, which allows modification even in const methods — this is the intended use case for `mutable` (caching/memoization).",
+    manifestation: `$ g++ -std=c++17 -Wall stats.cpp -o stats
+stats.cpp: In member function 'double Statistics::mean() const':
+stats.cpp:20:26: error: assignment of member 'Statistics::cachedMean_'
+    in read-only object
+   20 |             cachedMean_ = sum / size_;
+      |             ~~~~~~~~~~~~^~~~~~~~~~~~
+stats.cpp:21:25: error: assignment of member 'Statistics::meanCached_'
+    in read-only object
+   21 |             meanCached_ = true;
+      |             ~~~~~~~~~~~~^~~~~`,
+    stdlibRefs: [],
+  },
+  {
+    id: 317,
+    topic: "Object Model",
+    difficulty: "Medium",
+    title: "Resource Swapper",
+    description: "Implements copy-and-swap idiom for a resource-owning class to provide exception-safe assignment.",
+    code: `#include <iostream>
+#include <algorithm>
+#include <cstring>
+
+class Buffer {
+    char* data_;
+    size_t size_;
+public:
+    Buffer(size_t sz = 0) : data_(sz ? new char[sz]() : nullptr), size_(sz) {}
+
+    Buffer(const Buffer& other) : data_(new char[other.size_]), size_(other.size_) {
+        std::memcpy(data_, other.data_, size_);
+    }
+
+    ~Buffer() { delete[] data_; }
+
+    friend void swap(Buffer& a, Buffer& b) noexcept {
+        using std::swap;
+        swap(a.data_, b.data_);
+        // forgot to swap size_
+    }
+
+    Buffer& operator=(Buffer other) {  // pass by value (copy)
+        swap(*this, other);
+        return *this;
+    }
+
+    size_t size() const { return size_; }
+    char* data() { return data_; }
+    const char* data() const { return data_; }
+};
+
+int main() {
+    Buffer a(10);
+    std::memset(a.data(), 'A', a.size());
+
+    Buffer b(5);
+    std::memset(b.data(), 'B', b.size());
+
+    std::cout << "Before: a.size=" << a.size()
+              << " b.size=" << b.size() << std::endl;
+
+    a = b;
+
+    std::cout << "After:  a.size=" << a.size() << std::endl;
+    std::cout << "Content: ";
+    for (size_t i = 0; i < a.size(); ++i) std::cout << a.data()[i];
+    std::cout << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at the `swap` friend function. Does it swap all members?",
+      "After the swap, what is `a.size_` and what buffer does `a.data_` point to?",
+    ],
+    explanation: "The `swap` function forgets to swap `size_`. After `a = b`, `a.data_` points to b's old 5-byte buffer (containing 'B's), but `a.size_` still holds 10 (the old value). Now `a` thinks it has 10 bytes but the buffer is only 5, so accessing `a.data()[5]` through `a.data()[9]` is a heap buffer overflow. Meanwhile, the temporary `other` destructor will `delete[]` the 10-byte buffer with `size_` = 5. The fix is to add `swap(a.size_, b.size_);` in the swap function.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=address -g swap.cpp -o swap && ./swap
+Before: a.size=10 b.size=5
+After:  a.size=10
+Content: BBBBB=================================================================
+==25671==ERROR: AddressSanitizer: heap-buffer-overflow on address
+    0x602000000035 at pc 0x555555758a12 bp 0x7fffffffd8a0
+READ of size 1 at 0x602000000035 thread T0
+    #0 0x555555758a11 in main swap.cpp:43
+0x602000000035 is located 0 bytes after 5-byte region
+    [0x602000000030,0x602000000035)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 318,
+    topic: "Object Model",
+    difficulty: "Medium",
+    title: "Immutable Config",
+    description: "Provides a read-only configuration interface that internally caches parsed values.",
+    code: `#include <iostream>
+#include <string>
+#include <map>
+
+class Config {
+    std::map<std::string, std::string> data_;
+public:
+    Config() {
+        data_["name"] = "MyApp";
+        data_["version"] = "1.0";
+        data_["debug"] = "false";
+    }
+
+    const std::string& get(const std::string& key) const {
+        return data_.at(key);
+    }
+
+    void update(const std::string& key, const std::string& val) {
+        data_[key] = val;
+    }
+};
+
+void processConfig(const Config& cfg) {
+    std::string name = cfg.get("name");
+
+    // Developer wants to temporarily enable debug mode for testing
+    const_cast<Config&>(cfg).update("debug", "true");
+
+    std::cout << "App: " << name << std::endl;
+    std::cout << "Debug: " << cfg.get("debug") << std::endl;
+}
+
+int main() {
+    const Config appConfig;
+    processConfig(appConfig);
+
+    // Later code expects config unchanged
+    std::cout << "Debug still: " << appConfig.get("debug") << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What does `const_cast` do to the const Config reference? Is this safe?",
+      "If the original object is declared `const`, what does the standard say about modifying it through a const_cast?",
+    ],
+    explanation: "The `const_cast` removes const from a reference to `appConfig`, which was originally declared `const`. Modifying a truly const object through a const_cast is undefined behavior per the C++ standard. Even when it appears to work, the compiler may have optimized reads from `appConfig` assuming it never changes — so `appConfig.get(\"debug\")` in main might still return \"false\" due to the compiler caching the value. The fix is to not declare `appConfig` as const if it needs modification, or use a separate mutable copy for testing.",
+    manifestation: `$ g++ -std=c++17 -O0 config.cpp -o config && ./config
+App: MyApp
+Debug: true
+Debug still: true
+
+$ g++ -std=c++17 -O2 config.cpp -o config && ./config
+App: MyApp
+Debug: true
+Debug still: false
+
+(Different results at different optimization levels — undefined
+behavior. The compiler assumes const objects don't change and
+may cache the original value.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 319,
+    topic: "Object Model",
+    difficulty: "Medium",
+    title: "Cloneable Shapes",
+    description: "Implements a clone method on a shape hierarchy using covariant return types.",
+    code: `#include <iostream>
+#include <string>
+#include <memory>
+#include <vector>
+
+class Shape {
+public:
+    virtual Shape* clone() const = 0;
+    virtual std::string describe() const = 0;
+    virtual ~Shape() = default;
+};
+
+class Circle : public Shape {
+    double radius_;
+public:
+    Circle(double r) : radius_(r) {}
+    Shape* clone() const override { return new Circle(*this); }
+    std::string describe() const override {
+        return "Circle(r=" + std::to_string(radius_) + ")";
+    }
+    double radius() const { return radius_; }
+};
+
+class Square : public Shape {
+    double side_;
+public:
+    Square(double s) : side_(s) {}
+    Shape* clone() const override { return new Square(*this); }
+    std::string describe() const override {
+        return "Square(s=" + std::to_string(side_) + ")";
+    }
+    double side() const { return side_; }
+};
+
+int main() {
+    Circle c(5.0);
+    Circle* copy = c.clone();  // direct clone of a Circle
+
+    std::cout << "Original: " << c.describe() << std::endl;
+    std::cout << "Clone: " << copy->describe() << std::endl;
+    std::cout << "Clone radius: " << copy->radius() << std::endl;
+
+    delete copy;
+    return 0;
+}`,
+    hints: [
+      "Look at the return type of `Circle::clone()`. What type does it return?",
+      "Can you call `radius()` on the pointer returned by `clone()` without a cast?",
+    ],
+    explanation: "Circle's `clone()` returns `Shape*` instead of `Circle*`. C++ supports covariant return types — a derived class override can return a more-derived pointer. But since `clone()` returns `Shape*`, `c.clone()` returns a `Shape*` which cannot be assigned to `Circle*` without a cast. The line `Circle* copy = c.clone()` won't compile. The fix is to declare Circle's clone as `Circle* clone() const override { ... }` — this is valid covariant return typing.",
+    manifestation: `$ g++ -std=c++17 -Wall shapes.cpp -o shapes
+shapes.cpp: In function 'int main()':
+shapes.cpp:37:28: error: invalid conversion from 'Shape*' to
+    'Circle*' [-fpermissive]
+   37 |     Circle* copy = c.clone();
+      |                    ~~~~~~~~^
+      |                            |
+      |                            Shape*`,
+    stdlibRefs: [],
+  },
+  {
+    id: 320,
+    topic: "Object Model",
+    difficulty: "Hard",
+    title: "Moveable Resource",
+    description: "Implements a resource-managing class with a user-defined destructor and relies on move semantics.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+
+class Connection {
+    std::string host_;
+    int fd_;
+    bool connected_;
+public:
+    Connection(const std::string& host, int fd)
+        : host_(host), fd_(fd), connected_(true) {
+        std::cout << "Connected to " << host_ << " (fd=" << fd_ << ")" << std::endl;
+    }
+
+    ~Connection() {
+        if (connected_) {
+            std::cout << "Disconnecting from " << host_
+                      << " (fd=" << fd_ << ")" << std::endl;
+            connected_ = false;
+        }
+    }
+
+    std::string host() const { return host_; }
+    bool isConnected() const { return connected_; }
+};
+
+int main() {
+    std::vector<Connection> pool;
+
+    pool.push_back(Connection("db.example.com", 3));
+    pool.push_back(Connection("cache.example.com", 4));
+    pool.push_back(Connection("api.example.com", 5));
+
+    std::cout << "\\nPool has " << pool.size() << " connections:" << std::endl;
+    for (auto& c : pool) {
+        std::cout << "  " << c.host() << " connected=" << c.isConnected() << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "This class has a user-defined destructor. What does the Rule of Five say about that?",
+      "When the vector reallocates and needs to relocate elements, which operation does it use — move or copy?",
+      "Does the compiler generate a move constructor when a destructor is user-defined?",
+    ],
+    explanation: "The class has a user-defined destructor, which suppresses the implicit move constructor and move assignment operator. When the vector grows and reallocates, it copies (not moves) existing elements into the new buffer, then destroys the old copies. Each copy-and-destroy cycle prints a spurious 'Disconnecting' message for a connection that's still alive in the pool. With three push_backs, the vector reallocates multiple times, causing phantom disconnect messages. The fix is to either define move operations, or use `pool.reserve(3)` to prevent reallocation.",
+    manifestation: `$ g++ -std=c++17 -Wall conn.cpp -o conn && ./conn
+Connected to db.example.com (fd=3)
+Disconnecting from  (fd=0)
+Connected to cache.example.com (fd=4)
+Disconnecting from db.example.com (fd=3)
+Disconnecting from  (fd=0)
+Connected to api.example.com (fd=5)
+Disconnecting from db.example.com (fd=3)
+Disconnecting from cache.example.com (fd=4)
+Disconnecting from  (fd=0)
+
+Pool has 3 connections:
+  db.example.com connected=1
+  cache.example.com connected=1
+  api.example.com connected=1
+
+(Multiple spurious "Disconnecting" messages from temporaries and
+copies during vector reallocation)`,
+    stdlibRefs: [
+      { name: "std::vector::push_back", args: "(const T& value) → void | (T&& value) → void", brief: "Appends an element to the end of the vector.", note: "If the element type has no move constructor (suppressed by user-defined destructor), push_back copies instead of moving during reallocation.", link: "https://en.cppreference.com/w/cpp/container/vector/push_back" },
+    ],
+  },
+  {
+    id: 321,
+    topic: "Object Model",
+    difficulty: "Hard",
+    title: "Polymorphic Messenger",
+    description: "Passes message objects by value through a processing pipeline and prints each message's type.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+
+class Message {
+protected:
+    std::string content_;
+public:
+    Message(const std::string& content) : content_(content) {}
+    virtual std::string type() const { return "Message"; }
+    virtual std::string format() const {
+        return "[" + type() + "] " + content_;
+    }
+    virtual ~Message() = default;
+};
+
+class Alert : public Message {
+    int severity_;
+public:
+    Alert(const std::string& content, int sev)
+        : Message(content), severity_(sev) {}
+    std::string type() const override { return "Alert"; }
+    std::string format() const override {
+        return "[" + type() + " sev=" + std::to_string(severity_) + "] " + content_;
+    }
+};
+
+class Notification : public Message {
+    std::string channel_;
+public:
+    Notification(const std::string& content, const std::string& ch)
+        : Message(content), channel_(ch) {}
+    std::string type() const override { return "Notification"; }
+    std::string format() const override {
+        return "[" + type() + " #" + channel_ + "] " + content_;
+    }
+};
+
+void processMessage(Message msg) {
+    std::cout << msg.format() << std::endl;
+}
+
+int main() {
+    Alert a("Server down!", 5);
+    Notification n("New user signed up", "general");
+
+    processMessage(a);
+    processMessage(n);
+
+    return 0;
+}`,
+    hints: [
+      "How is `msg` passed to `processMessage`? Is it passed by value or by reference?",
+      "What happens to derived-class data when a derived object is copied into a base-class value?",
+    ],
+    explanation: "The function `processMessage(Message msg)` takes a `Message` by value. When an `Alert` or `Notification` is passed, it gets sliced — only the `Message` portion is copied, discarding the derived class's data members (`severity_`, `channel_`) and vtable pointer. Inside `processMessage`, `msg.format()` calls `Message::format()`, not the derived overrides. Both messages print as plain `[Message]` without their extra fields. The fix is to pass by reference: `void processMessage(const Message& msg)`.",
+    manifestation: `$ g++ -std=c++17 -Wall messenger.cpp -o messenger && ./messenger
+[Message] Server down!
+[Message] New user signed up
+
+Expected output:
+[Alert sev=5] Server down!
+[Notification #general] New user signed up`,
+    stdlibRefs: [],
+  },
+  {
+    id: 322,
+    topic: "Object Model",
+    difficulty: "Hard",
+    title: "Self-Referencing Node",
+    description: "Implements a linked list node that tracks its own position and adjusts pointers on copy.",
+    code: `#include <iostream>
+#include <string>
+
+class Node {
+    std::string label_;
+    Node* next_;
+    Node* self_;  // points to this node itself (used for validation)
+public:
+    Node(const std::string& label, Node* next = nullptr)
+        : label_(label), next_(next), self_(this) {}
+
+    Node(const Node& other)
+        : label_(other.label_), next_(other.next_), self_(this) {}
+
+    Node& operator=(const Node& other) {
+        label_ = other.label_;
+        next_ = other.next_;
+        // self_ deliberately not updated — should always be 'this'
+        return *this;
+    }
+
+    bool isValid() const { return self_ == this; }
+
+    void print() const {
+        const Node* cur = this;
+        while (cur) {
+            std::cout << cur->label_;
+            if (!cur->isValid()) std::cout << " [INVALID]";
+            if (cur->next_) std::cout << " -> ";
+            cur = cur->next_;
+        }
+        std::cout << std::endl;
+    }
+};
+
+int main() {
+    Node c("C");
+    Node b("B", &c);
+    Node a("A", &b);
+
+    std::cout << "Original: ";
+    a.print();
+
+    // Copy the whole chain
+    Node a2 = a;
+    std::cout << "Copy: ";
+    a2.print();
+
+    return 0;
+}`,
+    hints: [
+      "When `a2` is copied from `a`, what does `a2.next_` point to?",
+      "Does the copy create new nodes for B and C, or does it share them with the original?",
+    ],
+    explanation: "The copy constructor copies `next_` directly from the source, so `a2.next_` still points to the original `b` (on the stack), not to a copy of `b`. The 'copy' isn't really a deep copy of the chain — `a2` is a new node labeled 'A' but its tail is the original chain. Modifying or destroying the original nodes `b` or `c` would leave `a2` with dangling pointers. When `b` goes out of scope before `a2`, `a2.next_` becomes a dangling pointer. This is a shallow copy bug in a self-referential data structure.",
+    manifestation: `$ g++ -std=c++17 -Wall node.cpp -o node && ./node
+Original: A -> B -> C
+Copy: A -> B -> C
+
+(Output looks correct, but a2's B and C are the SAME objects as
+the original — not copies. Proof:)
+
+$ g++ -std=c++17 -Wall node2.cpp -o node2 && ./node2
+Original: A -> B -> C
+Copy: A -> B -> C
+After modifying original B:
+Original: A -> X -> C
+Copy:     A -> X -> C    ← copy was corrupted too`,
+    stdlibRefs: [],
+  },
+  {
+    id: 323,
+    topic: "Object Model",
+    difficulty: "Medium",
+    title: "Numeric Wrapper",
+    description: "Wraps a numeric value with implicit conversion to allow transparent use in arithmetic expressions.",
+    code: `#include <iostream>
+
+class Numeric {
+    double value_;
+public:
+    Numeric(double v) : value_(v) {}
+
+    Numeric operator+(const Numeric& rhs) const {
+        return Numeric(value_ + rhs.value_);
+    }
+
+    Numeric operator*(const Numeric& rhs) const {
+        return Numeric(value_ * rhs.value_);
+    }
+
+    bool operator<(const Numeric& rhs) const {
+        return value_ < rhs.value_;
+    }
+
+    void print() const { std::cout << value_; }
+};
+
+int main() {
+    Numeric a(3.0), b(4.0);
+
+    Numeric sum = a + b;
+    Numeric product = a * 2.0;
+
+    std::cout << "Sum: "; sum.print(); std::cout << std::endl;
+    std::cout << "Product: "; product.print(); std::cout << std::endl;
+
+    if (a < 5.0) {
+        std::cout << "a < 5" << std::endl;
+    }
+
+    if (2.0 < a) {
+        std::cout << "2 < a" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Look at `2.0 < a`. Which `operator<` would this call? Can `double` be on the left side?",
+      "The constructor `Numeric(double)` is not explicit. What implicit conversions does this enable?",
+      "Does `2.0 < a` find the member `operator<` with a `double` on the left-hand side?",
+    ],
+    explanation: "The expression `a * 2.0` works because the non-explicit constructor allows implicit conversion of `2.0` to `Numeric`. `a < 5.0` also works for the same reason. But `2.0 < a` does NOT work — the member `operator<` requires a `Numeric` on the left, and the compiler can't implicitly convert the left-hand operand of a member operator. This fails to compile. The fix is to define `operator<` as a free function (non-member), which allows implicit conversion on both sides: `friend bool operator<(const Numeric& lhs, const Numeric& rhs)`.",
+    manifestation: `$ g++ -std=c++17 -Wall numeric.cpp -o numeric
+numeric.cpp: In function 'int main()':
+numeric.cpp:33:13: error: no match for 'operator<' (operand types
+    are 'double' and 'Numeric')
+   33 |     if (2.0 < a) {
+      |         ~~~ ^ ~
+      |         |     |
+      |         |     Numeric
+      |         double`,
+    stdlibRefs: [],
+  },
 ];
