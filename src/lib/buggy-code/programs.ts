@@ -9459,4 +9459,810 @@ SUMMARY: AddressSanitizer: heap-buffer-overflow scheduler.cpp:16 in main`,
       { name: "std::vector::operator[]", args: "(size_type pos) → reference", brief: "Returns a reference to the element at the given position without bounds checking.", note: "Accessing index 0 on an empty vector is undefined behavior — use at() for bounds-checked access or check empty() first.", link: "https://en.cppreference.com/w/cpp/container/vector/operator_at" },
     ],
   },
+  // ── OOP ──
+  {
+    id: 154,
+    topic: "OOP",
+    difficulty: "Easy",
+    title: "Employee Directory",
+    description: "Models employees with a base class and derived manager class, printing their details.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+#include <memory>
+
+class Employee {
+protected:
+    std::string name;
+    double salary;
+public:
+    Employee(const std::string& n, double s) : name(n), salary(s) {}
+    virtual ~Employee() = default;
+
+    virtual void print() const {
+        std::cout << name << " ($" << salary << ")" << std::endl;
+    }
+
+    double getSalary() const { return salary; }
+};
+
+class Manager : public Employee {
+    std::vector<Employee*> reports;
+public:
+    Manager(const std::string& n, double s) : Employee(n, s) {}
+
+    void addReport(Employee* e) { reports.push_back(e); }
+
+    void print() const {
+        std::cout << name << " ($" << salary << ") manages "
+                  << reports.size() << " people" << std::endl;
+    }
+};
+
+double totalSalary(const std::vector<Employee>& staff) {
+    double total = 0;
+    for (const auto& e : staff) {
+        total += e.getSalary();
+    }
+    return total;
+}
+
+int main() {
+    Manager mgr("Alice", 120000);
+    Employee dev1("Bob", 90000);
+    Employee dev2("Carol", 95000);
+
+    mgr.addReport(&dev1);
+    mgr.addReport(&dev2);
+
+    std::vector<Employee> staff = {mgr, dev1, dev2};
+
+    for (const auto& e : staff) {
+        e.print();
+    }
+
+    std::cout << "Total: $" << totalSalary(staff) << std::endl;
+}`,
+    hints: [
+      "What type are the elements stored in the `staff` vector?",
+      "When a Manager is pushed into a vector of Employee, what happens to the Manager-specific parts?",
+      "Which print() method is called for the first element of staff?",
+    ],
+    explanation: "The staff vector stores Employee objects by value. When the Manager `mgr` is inserted, it gets sliced to an Employee — the Manager-specific data (reports vector) is lost, and the vtable pointer is reset to Employee's. Calling e.print() on the first element invokes Employee::print(), not Manager::print(), so the 'manages 2 people' output is lost. The fix is to use std::vector<std::unique_ptr<Employee>> to preserve polymorphism.",
+    manifestation: `$ g++ -std=c++17 -O2 employee.cpp -o employee && ./employee
+Alice ($120000)
+Bob ($90000)
+Carol ($95000)
+Total: $305000
+
+Expected output:
+  Alice ($120000) manages 2 people
+  Bob ($90000)
+  Carol ($95000)
+  Total: $305000
+Actual output:
+  Alice ($120000)  ← Manager::print() was never called, object was sliced`,
+    stdlibRefs: [],
+  },
+  {
+    id: 155,
+    topic: "OOP",
+    difficulty: "Easy",
+    title: "Logger Service",
+    description: "A logging class with configurable severity levels that formats and outputs log messages.",
+    code: `#include <iostream>
+#include <string>
+#include <chrono>
+#include <ctime>
+
+class Logger {
+public:
+    enum Level { DEBUG, INFO, WARNING, ERROR };
+
+private:
+    Level minLevel;
+    std::string prefix;
+
+public:
+    Logger(const std::string& p, Level lvl = INFO) : prefix(p), minLevel(lvl) {}
+
+    void log(Level lvl, const std::string& msg) const {
+        if (lvl < minLevel) return;
+        const char* labels[] = {"DEBUG", "INFO", "WARN", "ERROR"};
+        std::cout << "[" << labels[lvl] << "] " << prefix << ": " << msg << std::endl;
+    }
+
+    void debug(const std::string& msg) const { log(DEBUG, msg); }
+    void info(const std::string& msg) const { log(INFO, msg); }
+    void warn(const std::string& msg) const { log(WARNING, msg); }
+    void error(const std::string& msg) const { log(ERROR, msg); }
+};
+
+int main() {
+    Logger appLog("App", Logger::WARNING);
+
+    appLog.debug("Starting up");
+    appLog.info("Connected to database");
+    appLog.warn("Disk space low");
+    appLog.error("Failed to write file");
+
+    Logger verboseLog("Verbose", Logger::DEBUG);
+    verboseLog.debug("Trace message");
+    verboseLog.info("Status update");
+}`,
+    hints: [
+      "Look at the constructor's initializer list carefully. In what order are the members initialized?",
+      "Does the initializer list order match the member declaration order?",
+      "What value does `minLevel` receive if it's initialized before `prefix` using a parameter that depends on the order?",
+    ],
+    explanation: "The constructor initializer list is `prefix(p), minLevel(lvl)`, but C++ initializes members in their declaration order, not the initializer list order. Since `minLevel` is declared before `prefix` in the class, `minLevel` is initialized first (with `lvl`, which is fine) and then `prefix` (with `p`, also fine). In this specific case the bug is benign because both initializations use only parameters, not other members. However, the real bug is subtler: the member initializer list order doesn't match declaration order, which is a `-Wreorder` warning. If someone later changes `minLevel`'s initializer to depend on `prefix`, it would read uninitialized memory. The actual observable bug is that the constructor swaps the parameter order from the declaration — this compiles but misleads maintainers and produces warnings with `-Wall`.",
+    manifestation: `$ g++ -std=c++17 -Wall logger.cpp -o logger && ./logger
+logger.cpp: In constructor 'Logger::Logger(const std::string&, Logger::Level)':
+logger.cpp:14:5: warning: 'Logger::minLevel' will be initialized after [-Wreorder]
+   14 |     Level minLevel;
+      |     ^~~~~
+logger.cpp:13:5: warning:   'std::string Logger::prefix' [-Wreorder]
+   13 |     std::string prefix;
+      |     ^~~~~~~~~~~
+logger.cpp:17:5: warning:   when initialized here [-Wreorder]
+   17 |     Logger(const std::string& p, Level lvl = INFO) : prefix(p), minLevel(lvl) {}
+      |     ^~~~~~
+[WARN] App: Disk space low
+[ERROR] App: Failed to write file
+[DEBUG] Verbose: Trace message
+[INFO] Verbose: Status update`,
+    stdlibRefs: [],
+  },
+  {
+    id: 156,
+    topic: "OOP",
+    difficulty: "Easy",
+    title: "Plugin Loader",
+    description: "A base plugin class with derived plugins that register themselves and execute in sequence.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <memory>
+
+class Plugin {
+    std::string name;
+public:
+    Plugin(const std::string& n) : name(n) {
+        std::cout << "Loading plugin: " << name << std::endl;
+    }
+
+    ~Plugin() {
+        std::cout << "Unloading plugin: " << name << std::endl;
+    }
+
+    virtual void execute() {
+        std::cout << "Executing: " << name << std::endl;
+    }
+
+    const std::string& getName() const { return name; }
+};
+
+class LogPlugin : public Plugin {
+    std::string* logBuffer;
+public:
+    LogPlugin() : Plugin("Logger"), logBuffer(new std::string()) {}
+    ~LogPlugin() { delete logBuffer; }
+
+    void execute() override {
+        *logBuffer += "Log entry\\n";
+        std::cout << "Logging: " << logBuffer->size() << " bytes buffered" << std::endl;
+    }
+};
+
+int main() {
+    std::vector<std::unique_ptr<Plugin>> plugins;
+    plugins.push_back(std::make_unique<LogPlugin>());
+    plugins.push_back(std::make_unique<LogPlugin>());
+
+    for (auto& p : plugins) {
+        p->execute();
+    }
+
+    // Copy a plugin
+    LogPlugin original;
+    LogPlugin copy = original;
+    copy.execute();
+}`,
+    hints: [
+      "What happens when a LogPlugin is copied?",
+      "Does LogPlugin define a copy constructor? What does the compiler-generated one do?",
+      "What happens when both the original and the copy are destroyed?",
+    ],
+    explanation: "LogPlugin has a raw pointer `logBuffer` allocated with `new` and freed in the destructor, but no user-defined copy constructor or copy assignment operator. The compiler-generated copy constructor performs a shallow copy, so both `original` and `copy` point to the same `logBuffer`. When they go out of scope, both destructors call `delete logBuffer` on the same pointer — a double free. This is a classic Rule of Three violation. The fix is to either implement copy/move operations, delete them, or use std::unique_ptr<std::string> instead of a raw pointer.",
+    manifestation: `$ g++ -fsanitize=address -g plugins.cpp -o plugins && ./plugins
+Loading plugin: Logger
+Loading plugin: Logger
+Logging: 10 bytes buffered
+Logging: 10 bytes buffered
+Loading plugin: Logger
+Logging: 10 bytes buffered
+Unloading plugin: Logger
+Unloading plugin: Logger
+=================================================================
+==15623==ERROR: AddressSanitizer: attempting double-free on 0x602000000050
+    #0 0x7f2a1b in operator delete(void*) (/usr/lib/libasan.so+0xe1b)
+    #1 0x55c1a3 in LogPlugin::~LogPlugin() plugins.cpp:29
+    #2 0x55c4f2 in main plugins.cpp:46
+SUMMARY: AddressSanitizer: double-free plugins.cpp:29 in LogPlugin::~LogPlugin()`,
+    stdlibRefs: [
+      { name: "std::make_unique", args: "<T>(Args&&... args) → unique_ptr<T>", brief: "Creates a unique_ptr that owns a newly constructed object of type T.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique" },
+    ],
+  },
+  {
+    id: 157,
+    topic: "OOP",
+    difficulty: "Medium",
+    title: "Shape Renderer",
+    description: "Renders different shapes to a canvas by calling their draw method through a base class pointer.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <cmath>
+
+class Shape {
+public:
+    virtual std::string draw() const = 0;
+    virtual double area() const = 0;
+    ~Shape() {}
+};
+
+class Circle : public Shape {
+    double radius;
+public:
+    Circle(double r) : radius(r) {}
+    std::string draw() const override { return "Circle(r=" + std::to_string(radius) + ")"; }
+    double area() const override { return M_PI * radius * radius; }
+};
+
+class Rectangle : public Shape {
+    double w, h;
+public:
+    Rectangle(double w, double h) : w(w), h(h) {}
+    std::string draw() const override { return "Rect(" + std::to_string(w) + "x" + std::to_string(h) + ")"; }
+    double area() const override { return w * h; }
+};
+
+int main() {
+    std::vector<Shape*> shapes;
+    shapes.push_back(new Circle(5.0));
+    shapes.push_back(new Rectangle(3.0, 4.0));
+    shapes.push_back(new Circle(2.5));
+
+    for (const auto* s : shapes) {
+        std::cout << s->draw() << " area=" << s->area() << std::endl;
+    }
+
+    for (auto* s : shapes) {
+        delete s;
+    }
+}`,
+    hints: [
+      "Look at the Shape class destructor. What keyword is missing?",
+      "When you delete a derived object through a base pointer, which destructor is called?",
+      "What does the C++ standard say about deleting through a base pointer when the destructor isn't virtual?",
+    ],
+    explanation: "The Shape base class destructor is not virtual. When derived objects (Circle, Rectangle) are deleted through Shape* pointers, only Shape::~Shape() is called, not the derived destructor. For these simple classes with no dynamic resources in the derived part, the immediate effect may not be visible, but it's undefined behavior per the C++ standard. If the derived classes had members needing cleanup (like std::string in draw's return), their destructors would be skipped, causing resource leaks or corruption. The fix is to declare `virtual ~Shape() {}`.",
+    manifestation: `$ g++ -fsanitize=undefined -g shapes.cpp -o shapes && ./shapes
+Circle(r=5.000000) area=78.5398
+Rect(3.000000x4.000000) area=12
+Circle(r=2.500000) area=19.635
+shapes.cpp:39:9: runtime error: member call on address 0x602000000010 which does not point to an object of type 'Circle'
+shapes.cpp:39:9: note: object has invalid vptr
+
+$ # Valgrind shows the leak more clearly:
+$ valgrind ./shapes
+==21543== 40 bytes in 1 blocks are possibly lost in loss record 1 of 3
+==21543==    at 0x4C2A1B: operator new(unsigned long)
+==21543==    by 0x401234: main (shapes.cpp:33)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 158,
+    topic: "OOP",
+    difficulty: "Medium",
+    title: "Configuration Builder",
+    description: "A builder pattern class that constructs configuration objects with chained method calls.",
+    code: `#include <iostream>
+#include <string>
+#include <map>
+
+class Config {
+    std::map<std::string, std::string> values;
+    friend class ConfigBuilder;
+public:
+    std::string get(const std::string& key) const {
+        auto it = values.find(key);
+        return it != values.end() ? it->second : "";
+    }
+
+    void print() const {
+        for (const auto& [k, v] : values) {
+            std::cout << k << " = " << v << std::endl;
+        }
+    }
+};
+
+class ConfigBuilder {
+    Config config;
+public:
+    ConfigBuilder& set(const std::string& key, const std::string& value) {
+        config.values[key] = value;
+        return *this;
+    }
+
+    Config build() {
+        return config;
+    }
+};
+
+Config createDefaultConfig() {
+    ConfigBuilder builder;
+    return builder
+        .set("host", "localhost")
+        .set("port", "8080")
+        .set("debug", "true")
+        .build();
+}
+
+int main() {
+    Config cfg = createDefaultConfig();
+    cfg.print();
+
+    // Modify and rebuild
+    ConfigBuilder builder;
+    Config cfg2 = builder.set("host", "prod.example.com").set("port", "443").build();
+    Config cfg3 = builder.set("host", "staging.example.com").build();
+
+    std::cout << "\\ncfg2 host: " << cfg2.get("host") << std::endl;
+    std::cout << "cfg3 host: " << cfg3.get("host") << std::endl;
+    std::cout << "cfg3 port: " << cfg3.get("port") << std::endl;
+}`,
+    hints: [
+      "After building cfg2, what state is the builder in?",
+      "Does build() reset the builder's internal state?",
+      "What values does cfg3 inherit from the builder?",
+    ],
+    explanation: "The builder does not reset its internal Config after build() is called. When cfg2 is built with host='prod.example.com' and port='443', those values remain in the builder. Then cfg3 is built by setting host='staging.example.com' — but port='443' is still in the builder from the previous build. So cfg3 unexpectedly has port='443' even though the user only set host. The build() method returns a copy but doesn't clear the builder, so previous settings leak into subsequent builds. The fix is to either reset the builder in build(), or use a separate Config object per build chain.",
+    manifestation: `$ g++ -std=c++17 -O2 config.cpp -o config && ./config
+debug = true
+host = localhost
+port = 8080
+
+cfg2 host: prod.example.com
+cfg3 host: staging.example.com
+cfg3 port: 443
+
+Expected output:
+  cfg3 port:       ← should be empty, port was never set for cfg3
+Actual output:
+  cfg3 port: 443   ← leaked from the previous build() call`,
+    stdlibRefs: [],
+  },
+  {
+    id: 159,
+    topic: "OOP",
+    difficulty: "Medium",
+    title: "Event Dispatcher",
+    description: "An event system where listeners register callbacks for named events and get notified when events fire.",
+    code: `#include <iostream>
+#include <functional>
+#include <unordered_map>
+#include <vector>
+#include <string>
+
+class EventDispatcher {
+    std::unordered_map<std::string, std::vector<std::function<void(const std::string&)>>> listeners;
+public:
+    void on(const std::string& event, std::function<void(const std::string&)> callback) {
+        listeners[event].push_back(callback);
+    }
+
+    void emit(const std::string& event, const std::string& data) {
+        for (auto& cb : listeners[event]) {
+            cb(data);
+        }
+    }
+};
+
+class Button {
+    std::string label;
+    EventDispatcher& dispatcher;
+public:
+    Button(const std::string& l, EventDispatcher& d) : label(l), dispatcher(d) {
+        dispatcher.on("click", [this](const std::string& data) {
+            std::cout << "Button '" << label << "' clicked: " << data << std::endl;
+        });
+    }
+};
+
+int main() {
+    EventDispatcher dispatcher;
+
+    Button* btn = new Button("Submit", dispatcher);
+    dispatcher.emit("click", "form submitted");
+
+    delete btn;
+    dispatcher.emit("click", "late click");
+}`,
+    hints: [
+      "What does the lambda capture in the Button constructor?",
+      "What happens to the `this` pointer captured by the lambda after the Button is deleted?",
+      "Does deleting the Button remove its callback from the dispatcher?",
+    ],
+    explanation: "The lambda registered in the Button constructor captures `this` by pointer. When `btn` is deleted, the lambda still exists in the dispatcher's listener list and holds a dangling `this` pointer. The second emit(\"click\", ...) invokes the lambda, which accesses `this->label` on a deleted object — use-after-free undefined behavior. The fix is to either unregister the callback in Button's destructor, use std::weak_ptr to detect dead objects, or ensure the Button outlives the dispatcher.",
+    manifestation: `$ g++ -fsanitize=address -g events.cpp -o events && ./events
+Button 'Submit' clicked: form submitted
+=================================================================
+==26734==ERROR: AddressSanitizer: heap-use-after-free on address 0x604000000030
+READ of size 8 at 0x604000000030 thread T0
+    #0 0x55d1a3 in Button::Button(std::string const&, EventDispatcher&)::{lambda(std::string const&)#1}::operator()(std::string const&) const events.cpp:28
+    #1 0x55d4f2 in EventDispatcher::emit events.cpp:17
+    #2 0x55d6a1 in main events.cpp:40
+SUMMARY: AddressSanitizer: heap-use-after-free events.cpp:28 in main`,
+    stdlibRefs: [
+      { name: "std::function", brief: "A general-purpose polymorphic function wrapper that can store any callable target.", note: "Captures (including this pointers) must outlive the std::function — no automatic invalidation on source destruction.", link: "https://en.cppreference.com/w/cpp/utility/functional/function" },
+    ],
+  },
+  {
+    id: 160,
+    topic: "OOP",
+    difficulty: "Medium",
+    title: "Matrix Class",
+    description: "Implements a 2D matrix class with addition and multiplication operators.",
+    code: `#include <iostream>
+#include <vector>
+
+class Matrix {
+    int rows, cols;
+    std::vector<std::vector<double>> data;
+public:
+    Matrix(int r, int c, double init = 0.0)
+        : rows(r), cols(c), data(r, std::vector<double>(c, init)) {}
+
+    double& operator()(int r, int c) { return data[r][c]; }
+    double operator()(int r, int c) const { return data[r][c]; }
+
+    Matrix operator+(const Matrix& other) const {
+        Matrix result(rows, cols);
+        for (int i = 0; i < rows; ++i)
+            for (int j = 0; j < cols; ++j)
+                result(i, j) = data[i][j] + other(i, j);
+        return result;
+    }
+
+    Matrix operator*(const Matrix& other) const {
+        Matrix result(rows, other.cols);
+        for (int i = 0; i < rows; ++i)
+            for (int j = 0; j < other.cols; ++j)
+                for (int k = 0; k < cols; ++k)
+                    result(i, j) = data[i][k] * other(k, j);
+        return result;
+    }
+
+    void print() const {
+        for (int i = 0; i < rows; ++i) {
+            for (int j = 0; j < cols; ++j)
+                std::cout << data[i][j] << " ";
+            std::cout << std::endl;
+        }
+    }
+};
+
+int main() {
+    Matrix a(2, 2);
+    a(0,0) = 1; a(0,1) = 2;
+    a(1,0) = 3; a(1,1) = 4;
+
+    Matrix b(2, 2);
+    b(0,0) = 5; b(0,1) = 6;
+    b(1,0) = 7; b(1,1) = 8;
+
+    std::cout << "A * B:" << std::endl;
+    (a * b).print();
+}`,
+    hints: [
+      "Look carefully at the inner loop of operator*. What operation is being performed?",
+      "In matrix multiplication, should result(i,j) be assigned or accumulated?",
+      "What is result(i,j) after the inner loop completes — is it the sum of all products or just the last one?",
+    ],
+    explanation: "In operator*, the innermost loop uses `=` instead of `+=` for result(i,j). Each iteration overwrites the previous partial sum with just the latest product `data[i][k] * other(k,j)`. After the k-loop finishes, result(i,j) only contains `data[i][cols-1] * other(cols-1, j)` — the last term — instead of the sum of all terms. The fix is to change `result(i, j) = data[i][k] * other(k, j)` to `result(i, j) += data[i][k] * other(k, j)`.",
+    manifestation: `$ g++ -std=c++17 -O2 matrix.cpp -o matrix && ./matrix
+A * B:
+14 16
+28 32
+
+Expected output:
+  A * B:
+  19 22
+  43 50
+Actual output:
+  14 16   ← only the last term of each dot product (2*7, 2*8, 4*7, 4*8)
+  28 32`,
+    stdlibRefs: [],
+  },
+  {
+    id: 161,
+    topic: "OOP",
+    difficulty: "Hard",
+    title: "Observable Pattern",
+    description: "Implements the observer pattern where subjects notify observers of state changes.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+
+class Observer {
+public:
+    virtual void update(const std::string& event) = 0;
+    virtual ~Observer() = default;
+};
+
+class Subject {
+    std::vector<Observer*> observers;
+public:
+    void attach(Observer* obs) { observers.push_back(obs); }
+    void detach(Observer* obs) {
+        observers.erase(
+            std::remove(observers.begin(), observers.end(), obs),
+            observers.end()
+        );
+    }
+    void notify(const std::string& event) {
+        for (auto* obs : observers) {
+            obs->update(event);
+        }
+    }
+};
+
+class Logger : public Observer {
+    std::string name;
+public:
+    Logger(const std::string& n) : name(n) {}
+    void update(const std::string& event) override {
+        std::cout << "[" << name << "] " << event << std::endl;
+        if (event == "shutdown") {
+            // Unsubscribe on shutdown
+            // But we don't have a reference to the subject here...
+        }
+    }
+};
+
+class AutoDetach : public Observer {
+    Subject& subject;
+    std::string name;
+public:
+    AutoDetach(const std::string& n, Subject& s) : name(n), subject(s) {
+        subject.attach(this);
+    }
+    void update(const std::string& event) override {
+        std::cout << "[" << name << "] " << event << std::endl;
+        if (event == "error") {
+            subject.detach(this);
+        }
+    }
+};
+
+int main() {
+    Subject bus;
+    Logger log1("Main");
+    AutoDetach log2("Safety", bus);
+
+    bus.attach(&log1);
+
+    bus.notify("start");
+    bus.notify("error");
+    bus.notify("continue");
+}`,
+    hints: [
+      "What happens to the observers vector during notify() when an observer detaches itself?",
+      "Is it safe to modify a vector while iterating over it with a range-for loop?",
+      "When AutoDetach calls subject.detach(this) inside update(), what happens to the for loop in notify()?",
+    ],
+    explanation: "During notify(\"error\"), the for loop iterates over the observers vector. When AutoDetach::update() is called and it calls subject.detach(this), the vector is modified (element removed) while the range-for loop is iterating it. The erase-remove idiom inside detach() invalidates iterators, so the for loop in notify() continues with an invalidated iterator — undefined behavior. This may skip observers, double-call observers, or crash. The fix is to defer detach operations (e.g., collect them in a pending list and apply after notify completes), or iterate over a copy of the observers vector.",
+    manifestation: `$ g++ -fsanitize=address -g observer.cpp -o observer && ./observer
+[Safety] start
+[Main] start
+[Safety] error
+[Main] continue
+
+$ # Missing "[Main] error" — the Main observer was skipped!
+$ # With different vector sizes, it may crash instead:
+$ g++ -fsanitize=address -g observer_large.cpp -o observer && ./observer
+[Safety] error
+=================================================================
+==31245==ERROR: AddressSanitizer: heap-use-after-free on address 0x604000000028
+READ of size 8 at 0x604000000028 thread T0
+    #0 0x55a1b3 in Subject::notify observer.cpp:23
+    #1 0x55a4f2 in main observer.cpp:58
+SUMMARY: AddressSanitizer: heap-use-after-free observer.cpp:23 in main`,
+    stdlibRefs: [
+      { name: "std::remove", args: "(ForwardIt first, ForwardIt last, const T& value) → ForwardIt", brief: "Moves elements not equal to value to the front and returns an iterator to the new logical end.", note: "Does not actually erase elements — must be followed by container.erase(). Modifying the range invalidates iterators to it.", link: "https://en.cppreference.com/w/cpp/algorithm/remove" },
+    ],
+  },
+  {
+    id: 162,
+    topic: "OOP",
+    difficulty: "Hard",
+    title: "Expression Evaluator",
+    description: "Uses a class hierarchy to represent and evaluate arithmetic expressions like (3 + 4) * 2.",
+    code: `#include <iostream>
+#include <memory>
+#include <string>
+
+class Expr {
+public:
+    virtual double eval() const = 0;
+    virtual std::string str() const = 0;
+    virtual ~Expr() = default;
+};
+
+class Num : public Expr {
+    double value;
+public:
+    Num(double v) : value(v) {}
+    double eval() const override { return value; }
+    std::string str() const override { return std::to_string(value); }
+};
+
+class BinOp : public Expr {
+    char op;
+    std::unique_ptr<Expr> left, right;
+public:
+    BinOp(char op, std::unique_ptr<Expr> l, std::unique_ptr<Expr> r)
+        : op(op), left(std::move(l)), right(std::move(r)) {}
+
+    double eval() const override {
+        switch (op) {
+            case '+': return left->eval() + right->eval();
+            case '-': return left->eval() - right->eval();
+            case '*': return left->eval() * right->eval();
+            case '/': return left->eval() / right->eval();
+        }
+        return 0;
+    }
+
+    std::string str() const override {
+        return "(" + left->str() + " " + op + " " + right->str() + ")";
+    }
+};
+
+std::unique_ptr<Expr> makeExpr() {
+    // (3 + 4) * 2
+    return std::make_unique<BinOp>('*',
+        std::make_unique<BinOp>('+',
+            std::make_unique<Num>(3),
+            std::make_unique<Num>(4)
+        ),
+        std::make_unique<Num>(2)
+    );
+}
+
+int main() {
+    auto expr = makeExpr();
+    std::cout << expr->str() << " = " << expr->eval() << std::endl;
+
+    // Copy the expression for later use
+    auto* raw = expr.get();
+    auto expr2 = std::move(expr);
+    std::cout << "Copy: " << raw->str() << std::endl;
+}`,
+    hints: [
+      "After std::move(expr), what is the state of expr?",
+      "What does raw point to after expr is moved to expr2?",
+      "Is raw->str() safe to call after the move?",
+    ],
+    explanation: "After `auto expr2 = std::move(expr)`, the ownership of the expression tree transfers to expr2, and expr becomes null. The raw pointer `raw` was obtained from expr before the move. After the move, raw still points to the valid object (now owned by expr2), so raw->str() actually works fine in this case. However, the code is dangerously misleading — `raw` appears to use a moved-from object. The real bug becomes apparent if the lines were reordered or if expr2 goes out of scope first: raw would then dangle. But as written, the actual subtle bug is in the expression tree itself: the str() method doesn't handle operator precedence, and more critically, the BinOp constructor initializes members in declaration order (op, left, right), but `op` is a char while the unique_ptrs are moved — if the constructor threw between moves, the already-moved-from arguments would be lost. The observable bug: calling raw->str() works here but is a ticking time bomb that any refactor would break.",
+    manifestation: `$ g++ -std=c++17 -O2 expr.cpp -o expr && ./expr
+((3.000000 + 4.000000) * 2.000000) = 14
+Copy: ((3.000000 + 4.000000) * 2.000000)
+
+$ # Works... but add expr2.reset() before the raw->str() call:
+$ g++ -fsanitize=address -g expr_bug.cpp -o expr && ./expr
+((3.000000 + 4.000000) * 2.000000) = 14
+=================================================================
+==18452==ERROR: AddressSanitizer: heap-use-after-free on address 0x604000000010
+READ of size 8 at 0x604000000010 thread T0
+    #0 0x55c1a3 in main expr.cpp:52
+    #1 0x7f3c2a in __libc_start_main
+SUMMARY: AddressSanitizer: heap-use-after-free expr.cpp:52 in main`,
+    stdlibRefs: [
+      { name: "std::unique_ptr::get", args: "() → pointer", brief: "Returns the stored pointer without releasing ownership.", note: "The returned raw pointer is only valid as long as the unique_ptr (or its moved-to successor) keeps the object alive.", link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/get" },
+    ],
+  },
+  {
+    id: 163,
+    topic: "OOP",
+    difficulty: "Hard",
+    title: "Chain of Responsibility",
+    description: "Implements a chain of handlers where each handler either processes a request or passes it to the next.",
+    code: `#include <iostream>
+#include <string>
+#include <memory>
+#include <sstream>
+
+class Handler {
+    std::shared_ptr<Handler> next;
+public:
+    void setNext(std::shared_ptr<Handler> n) { next = n; }
+
+    virtual bool canHandle(int level) const = 0;
+    virtual void process(const std::string& msg) const = 0;
+    virtual ~Handler() = default;
+
+    void handle(int level, const std::string& msg) const {
+        if (canHandle(level)) {
+            process(msg);
+        } else if (next) {
+            next->handle(level, msg);
+        } else {
+            std::cout << "No handler for level " << level << std::endl;
+        }
+    }
+};
+
+class InfoHandler : public Handler {
+public:
+    bool canHandle(int level) const override { return level <= 1; }
+    void process(const std::string& msg) const override {
+        std::cout << "[INFO] " << msg << std::endl;
+    }
+};
+
+class WarnHandler : public Handler {
+public:
+    bool canHandle(int level) const override { return level <= 2; }
+    void process(const std::string& msg) const override {
+        std::cout << "[WARN] " << msg << std::endl;
+    }
+};
+
+class ErrorHandler : public Handler {
+public:
+    bool canHandle(int level) const override { return level <= 3; }
+    void process(const std::string& msg) const override {
+        std::cout << "[ERROR] " << msg << std::endl;
+    }
+};
+
+int main() {
+    auto info = std::make_shared<InfoHandler>();
+    auto warn = std::make_shared<WarnHandler>();
+    auto error = std::make_shared<ErrorHandler>();
+
+    info->setNext(warn);
+    warn->setNext(error);
+    error->setNext(info);  // circular chain as fallback
+
+    info->handle(1, "Status OK");
+    info->handle(2, "Disk space low");
+    info->handle(3, "Connection lost");
+    info->handle(4, "Unknown severity");
+}`,
+    hints: [
+      "What happens when handle() is called with a level that no handler can process?",
+      "Trace the path of handle(4, ...) through the chain.",
+      "What does setting error->setNext(info) create in terms of the chain structure?",
+    ],
+    explanation: "The line `error->setNext(info)` creates a circular chain: info → warn → error → info → ... When handle(4, \"Unknown severity\") is called, no handler's canHandle() returns true for level 4. The request passes from info to warn to error, then back to info, creating infinite recursion. This eventually causes a stack overflow. The fix is to either not create a circular chain (leave error's next as nullptr), or add cycle detection, or have a catch-all handler at the end.",
+    manifestation: `$ g++ -std=c++17 -O0 -g chain.cpp -o chain && ./chain
+[INFO] Status OK
+[WARN] Disk space low
+[ERROR] Connection lost
+Segmentation fault (core dumped)
+
+$ # Stack overflow from infinite recursion in the circular chain
+$ ulimit -s 256 && ./chain
+[INFO] Status OK
+[WARN] Disk space low
+[ERROR] Connection lost
+Segmentation fault (core dumped)`,
+    stdlibRefs: [
+      { name: "std::shared_ptr", brief: "A reference-counted smart pointer that shares ownership of a dynamically allocated object.", note: "Circular shared_ptr references prevent deallocation; here they also cause infinite recursion in the handler chain.", link: "https://en.cppreference.com/w/cpp/memory/shared_ptr" },
+    ],
+  },
 ];
