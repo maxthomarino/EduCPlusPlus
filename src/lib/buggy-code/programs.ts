@@ -10265,4 +10265,645 @@ Segmentation fault (core dumped)`,
       { name: "std::shared_ptr", brief: "A reference-counted smart pointer that shares ownership of a dynamically allocated object.", note: "Circular shared_ptr references prevent deallocation; here they also cause infinite recursion in the handler chain.", link: "https://en.cppreference.com/w/cpp/memory/shared_ptr" },
     ],
   },
+  // ── Lambdas ──
+  {
+    id: 164,
+    topic: "Lambdas",
+    difficulty: "Easy",
+    title: "Multiplier Factory",
+    description: "Creates a set of multiplier functions that each multiply their input by a different factor.",
+    code: `#include <iostream>
+#include <vector>
+#include <functional>
+
+int main() {
+    std::vector<std::function<int(int)>> multipliers;
+
+    for (int i = 1; i <= 5; ++i) {
+        multipliers.push_back([&i](int x) { return x * i; });
+    }
+
+    for (int m = 0; m < 5; ++m) {
+        std::cout << "multiplier[" << m << "](10) = "
+                  << multipliers[m](10) << std::endl;
+    }
+}`,
+    hints: [
+      "What does the lambda capture, and how?",
+      "What is the value of `i` when the lambdas are actually called?",
+      "What is the lifetime of the loop variable `i` relative to the lambda invocations?",
+    ],
+    explanation: "The lambda captures `i` by reference (`&i`). All five lambdas share the same reference to the loop variable `i`. By the time the lambdas are invoked in the second loop, the first loop has finished and `i` has the value 6 (one past the loop bound). Furthermore, `i` is a local variable of the for-loop scope, so accessing it after the loop ends may be undefined behavior depending on compiler implementation. Even if accessible, all multipliers return `x * 6` instead of `x * 1`, `x * 2`, etc. The fix is to capture `i` by value: `[i](int x) { return x * i; }`.",
+    manifestation: `$ g++ -std=c++17 -O2 multiplier.cpp -o multiplier && ./multiplier
+multiplier[0](10) = 60
+multiplier[1](10) = 60
+multiplier[2](10) = 60
+multiplier[3](10) = 60
+multiplier[4](10) = 60
+
+Expected output:
+  multiplier[0](10) = 10
+  multiplier[1](10) = 20
+  multiplier[2](10) = 30
+  multiplier[3](10) = 40
+  multiplier[4](10) = 50
+Actual output:
+  All return 60 — every lambda reads the same (post-loop) value of i`,
+    stdlibRefs: [
+      { name: "std::function", brief: "A general-purpose polymorphic function wrapper that can store any callable target.", note: "Captures inside the stored callable must remain valid when the function is invoked.", link: "https://en.cppreference.com/w/cpp/utility/functional/function" },
+    ],
+  },
+  {
+    id: 165,
+    topic: "Lambdas",
+    difficulty: "Easy",
+    title: "Running Total",
+    description: "Uses a lambda to compute a running total of elements in a vector.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int main() {
+    std::vector<int> values = {10, 20, 30, 40, 50};
+    int total = 0;
+
+    auto accumulate = [total](int val) mutable {
+        total += val;
+        return total;
+    };
+
+    std::cout << "Running totals:" << std::endl;
+    for (int v : values) {
+        std::cout << "  +" << v << " = " << accumulate(v) << std::endl;
+    }
+
+    std::cout << "Final total: " << total << std::endl;
+}`,
+    hints: [
+      "The lambda captures `total` — but how?",
+      "When a lambda captures by value, does modifying the captured variable affect the original?",
+      "What does `mutable` allow the lambda to do, and what doesn't it allow?",
+    ],
+    explanation: "The lambda captures `total` by value (copy), not by reference. The `mutable` keyword allows modifying the captured copy inside the lambda, and the running totals print correctly. But the final `total` in main() remains 0 because the lambda's modifications only affect its internal copy. The user expects `total` to be 150 at the end, but it stays at 0. The fix is to capture by reference: `[&total](int val)`.",
+    manifestation: `$ g++ -std=c++17 -O2 running.cpp -o running && ./running
+Running totals:
+  +10 = 10
+  +20 = 30
+  +30 = 60
+  +40 = 100
+  +50 = 150
+Final total: 0
+
+Expected output:
+  Final total: 150
+Actual output:
+  Final total: 0  ← original variable was never modified`,
+    stdlibRefs: [],
+  },
+  {
+    id: 166,
+    topic: "Lambdas",
+    difficulty: "Easy",
+    title: "Custom Sort Comparator",
+    description: "Sorts a list of students by grade (descending), then by name (ascending) for ties.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <string>
+
+struct Student {
+    std::string name;
+    int grade;
+};
+
+int main() {
+    std::vector<Student> students = {
+        {"Alice", 90}, {"Bob", 85}, {"Carol", 90},
+        {"Dave", 78}, {"Eve", 85}, {"Frank", 92}
+    };
+
+    std::sort(students.begin(), students.end(),
+        [](const Student& a, const Student& b) {
+            if (a.grade >= b.grade) return true;
+            if (a.grade < b.grade) return false;
+            return a.name < b.name;
+        });
+
+    for (const auto& s : students) {
+        std::cout << s.name << ": " << s.grade << std::endl;
+    }
+}`,
+    hints: [
+      "What does a valid strict weak ordering comparator require?",
+      "What does the comparator return when a.grade == b.grade?",
+      "If comp(a, b) returns true, what must comp(b, a) return for the sort to be correct?",
+    ],
+    explanation: "The comparator violates strict weak ordering. When `a.grade == b.grade`, the first condition `a.grade >= b.grade` is true, so it returns true. But then for the same pair in reverse order, `b.grade >= a.grade` is also true, so comp(a,b) and comp(b,a) both return true. Strict weak ordering requires that if comp(a,b) is true, comp(b,a) must be false (irreflexivity). This is undefined behavior when passed to std::sort — it can cause infinite loops, crashes, or out-of-bounds access. The fix is to use `>` instead of `>=`: `if (a.grade > b.grade) return true; if (a.grade < b.grade) return false;`.",
+    manifestation: `$ g++ -std=c++17 -O2 sortstudents.cpp -o sortstudents && ./sortstudents
+Frank: 92
+Carol: 90
+Alice: 90
+Bob: 85
+Eve: 85
+Dave: 78
+
+$ # May look correct... but with -D_GLIBCXX_DEBUG:
+$ g++ -std=c++17 -D_GLIBCXX_DEBUG sortstudents.cpp -o sortstudents && ./sortstudents
+/usr/include/c++/12/bits/stl_algo.h:1886: Error: comparison doesn't meet irreflexivity requirements,
+  assert(!(a < a)).
+Aborted (core dumped)`,
+    stdlibRefs: [
+      { name: "std::sort", args: "(RandomIt first, RandomIt last, Compare comp) → void", brief: "Sorts elements in the range [first, last) using the given comparison function.", note: "The comparator must satisfy strict weak ordering: comp(a, a) must be false, and if comp(a, b) is true then comp(b, a) must be false.", link: "https://en.cppreference.com/w/cpp/algorithm/sort" },
+    ],
+  },
+  {
+    id: 167,
+    topic: "Lambdas",
+    difficulty: "Medium",
+    title: "Callback Timer",
+    description: "Registers callback functions to execute after a simulated delay, with each callback accessing its associated data.",
+    code: `#include <iostream>
+#include <vector>
+#include <functional>
+#include <string>
+
+class Timer {
+    std::vector<std::function<void()>> callbacks;
+public:
+    void after(std::function<void()> cb) {
+        callbacks.push_back(cb);
+    }
+
+    void tick() {
+        for (auto& cb : callbacks) {
+            cb();
+        }
+        callbacks.clear();
+    }
+};
+
+std::function<void()> createGreeting(Timer& timer, const std::string& name) {
+    std::string message = "Hello, " + name + "!";
+    timer.after([&message]() {
+        std::cout << message << std::endl;
+    });
+    return [&message]() {
+        std::cout << "Reminder: " << message << std::endl;
+    };
+}
+
+int main() {
+    Timer timer;
+
+    auto reminder1 = createGreeting(timer, "Alice");
+    auto reminder2 = createGreeting(timer, "Bob");
+
+    std::cout << "--- Tick ---" << std::endl;
+    timer.tick();
+
+    std::cout << "--- Reminders ---" << std::endl;
+    reminder1();
+    reminder2();
+}`,
+    hints: [
+      "Where is the `message` variable allocated?",
+      "What happens to `message` when createGreeting() returns?",
+      "The lambda captures `message` by reference — is the referenced object still alive when the lambda executes?",
+    ],
+    explanation: "The `message` string is a local variable in createGreeting(). The lambda captures it by reference (`&message`). When createGreeting() returns, `message` is destroyed, leaving all the lambdas (both the one registered with the timer and the returned reminder) with dangling references. When timer.tick() or reminder1()/reminder2() invoke these lambdas, they access destroyed stack memory — undefined behavior. The fix is to capture `message` by value: `[message]()` or `[msg = std::move(message)]()`.",
+    manifestation: `$ g++ -fsanitize=address -g timer.cpp -o timer && ./timer
+--- Tick ---
+=================================================================
+==29341==ERROR: AddressSanitizer: stack-use-after-return on address 0x7f2a28c00060
+READ of size 8 at 0x7f2a28c00060 thread T0
+    #0 0x55c1a3 in createGreeting(Timer&, std::string const&)::{lambda()#1}::operator()() timer.cpp:23
+    #1 0x55c4f2 in Timer::tick() timer.cpp:13
+    #2 0x55c6a1 in main timer.cpp:35
+SUMMARY: AddressSanitizer: stack-use-after-return timer.cpp:23 in main`,
+    stdlibRefs: [],
+  },
+  {
+    id: 168,
+    topic: "Lambdas",
+    difficulty: "Medium",
+    title: "Predicate Chain",
+    description: "Combines multiple predicates into a single filter that only passes elements satisfying all conditions.",
+    code: `#include <iostream>
+#include <vector>
+#include <functional>
+#include <algorithm>
+
+template <typename T>
+class PredicateChain {
+    std::vector<std::function<bool(const T&)>> predicates;
+public:
+    PredicateChain& add(std::function<bool(const T&)> pred) {
+        predicates.push_back(pred);
+        return *this;
+    }
+
+    bool test(const T& val) const {
+        for (const auto& pred : predicates) {
+            if (!pred(val)) return false;
+        }
+        return true;
+    }
+
+    std::function<bool(const T&)> combine() const {
+        return [this](const T& val) {
+            return test(val);
+        };
+    }
+};
+
+int main() {
+    auto chain = PredicateChain<int>()
+        .add([](const int& x) { return x > 0; })
+        .add([](const int& x) { return x % 2 == 0; })
+        .add([](const int& x) { return x < 100; });
+
+    auto filter = chain.combine();
+
+    std::vector<int> nums = {-5, 2, 7, 42, 100, 88, 0, 16};
+
+    std::cout << "Passing values:" << std::endl;
+    for (int n : nums) {
+        if (filter(n)) {
+            std::cout << "  " << n << std::endl;
+        }
+    }
+}`,
+    hints: [
+      "What does the lambda inside combine() capture?",
+      "What is the lifetime of the PredicateChain object constructed in the chained expression?",
+      "Is the `this` pointer still valid when `filter` is called?",
+    ],
+    explanation: "The combine() method returns a lambda that captures `this`. But `chain` in main() is constructed as a temporary expression: `PredicateChain<int>().add(...).add(...).add(...)`. The `add()` method returns `*this` by reference, so the chain works — but `chain` is a copy of the temporary (assuming copy elision). The `this` captured by combine() points to `chain`, which is valid. However, if `chain` is moved or goes out of scope before `filter` is called, the captured `this` dangles. In this specific code, `chain` and `filter` are in the same scope, so it works. But the design is fragile: returning `filter` from a function would immediately dangle. The real bug appears when the code is even slightly refactored — e.g., `auto filter = PredicateChain<int>().add(...).combine();` creates a filter with a `this` pointing to a destroyed temporary.",
+    manifestation: `$ g++ -std=c++17 -O2 predchain.cpp -o predchain && ./predchain
+Passing values:
+  2
+  42
+  88
+  16
+
+$ # Works! But refactor to a one-liner:
+$ # auto filter = PredicateChain<int>().add(...).add(...).combine();
+$ g++ -fsanitize=address -g predchain_oneliner.cpp -o predchain && ./predchain
+=================================================================
+==17892==ERROR: AddressSanitizer: stack-use-after-scope on address 0x7ffd4a200080
+READ of size 8 at 0x7ffd4a200080 thread T0
+    #0 0x55a1b3 in PredicateChain<int>::test predchain.cpp:17
+    #1 0x55a4f2 in main predchain.cpp:38
+SUMMARY: AddressSanitizer: stack-use-after-scope predchain.cpp:17 in main`,
+    stdlibRefs: [],
+  },
+  {
+    id: 169,
+    topic: "Lambdas",
+    difficulty: "Medium",
+    title: "Event Filter Pipeline",
+    description: "Processes a stream of events through a pipeline of lambda transformations, printing those that pass all stages.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <functional>
+#include <algorithm>
+
+struct Event {
+    std::string type;
+    int severity;
+    std::string message;
+};
+
+int main() {
+    std::vector<Event> events = {
+        {"error", 5, "Disk full"},
+        {"info", 1, "User logged in"},
+        {"warning", 3, "High memory"},
+        {"error", 4, "Connection timeout"},
+        {"info", 1, "Heartbeat"},
+        {"error", 5, "Database down"},
+    };
+
+    int threshold = 3;
+
+    auto highSeverity = [threshold](const Event& e) {
+        return e.severity >= threshold;
+    };
+
+    auto errorsOnly = [](const Event& e) {
+        return e.type == "error";
+    };
+
+    // Remove non-matching events
+    auto it = std::remove_if(events.begin(), events.end(),
+        [&](const Event& e) { return !highSeverity(e) || !errorsOnly(e); });
+
+    events.erase(it, events.end());
+
+    threshold = 1;  // Lower threshold for next filter pass
+
+    std::cout << "Critical errors:" << std::endl;
+    for (const auto& e : events) {
+        if (highSeverity(e)) {
+            std::cout << "  [" << e.severity << "] " << e.message << std::endl;
+        }
+    }
+}`,
+    hints: [
+      "How does the `highSeverity` lambda capture `threshold`?",
+      "After changing `threshold = 1`, does the highSeverity lambda see the new value?",
+      "What is the difference between capturing by value and by reference for the second filter pass?",
+    ],
+    explanation: "The `highSeverity` lambda captures `threshold` by value (copy). When `threshold` is changed to 1 after the initial filter, the lambda still uses its captured value of 3. The second filter pass in the for-loop uses `highSeverity(e)` which still checks `e.severity >= 3`, so it filters identically to before. The programmer expected lowering the threshold to show more results, but the captured copy doesn't see the update. The fix depends on intent: if the threshold should be dynamic, capture by reference `[&threshold]`; if the initial capture was intentional, don't change the outer variable expecting the lambda to reflect it.",
+    manifestation: `$ g++ -std=c++17 -O2 pipeline.cpp -o pipeline && ./pipeline
+Critical errors:
+  [5] Disk full
+  [4] Connection timeout
+  [5] Database down
+
+Expected output (after lowering threshold to 1):
+  Critical errors:
+  [5] Disk full
+  [4] Connection timeout
+  [5] Database down
+  ← all three still shown, same as before — threshold change had no effect
+  ← severity 4 event should have been included even with threshold=3,
+     but lowering to 1 was supposed to include more events if any were left`,
+    stdlibRefs: [
+      { name: "std::remove_if", args: "(ForwardIt first, ForwardIt last, UnaryPredicate p) → ForwardIt", brief: "Moves elements for which the predicate returns false to the front; returns iterator to the new logical end.", note: "Does not actually remove elements — must be followed by erase().", link: "https://en.cppreference.com/w/cpp/algorithm/remove" },
+    ],
+  },
+  {
+    id: 170,
+    topic: "Lambdas",
+    difficulty: "Medium",
+    title: "Retry Wrapper",
+    description: "A generic retry function that attempts an operation up to N times, with a configurable delay between attempts.",
+    code: `#include <iostream>
+#include <functional>
+#include <string>
+#include <stdexcept>
+
+template <typename F>
+auto retry(F&& func, int maxAttempts) {
+    int attempts = 0;
+    while (true) {
+        try {
+            return func();
+        } catch (const std::exception& e) {
+            ++attempts;
+            if (attempts > maxAttempts) throw;
+            std::cout << "Attempt " << attempts << " failed: "
+                      << e.what() << ". Retrying..." << std::endl;
+        }
+    }
+}
+
+int main() {
+    int callCount = 0;
+
+    auto unreliableOp = [callCount]() mutable -> std::string {
+        ++callCount;
+        if (callCount < 3) {
+            throw std::runtime_error("service unavailable");
+        }
+        return "success on attempt " + std::to_string(callCount);
+    };
+
+    try {
+        auto result = retry(unreliableOp, 5);
+        std::cout << "Result: " << result << std::endl;
+    } catch (const std::exception& e) {
+        std::cout << "All attempts failed: " << e.what() << std::endl;
+    }
+
+    std::cout << "Total calls made: " << callCount << std::endl;
+}`,
+    hints: [
+      "How is `callCount` captured by the lambda?",
+      "Does the `mutable` keyword make the captured variable shared with the outer scope?",
+      "After retry() finishes, what is the value of `callCount` in main()?",
+    ],
+    explanation: "The lambda captures `callCount` by value (copy). Even though `mutable` allows modifying the captured copy, the original `callCount` in main() is never changed — it remains 0. The lambda's internal copy tracks attempts correctly (so the retry logic works and succeeds on the 3rd attempt), but the final print of `callCount` shows 0. The user expects to see how many total calls were made. The fix is to capture by reference: `[&callCount]()` (and remove `mutable` since it's no longer needed).",
+    manifestation: `$ g++ -std=c++17 -O2 retry.cpp -o retry && ./retry
+Attempt 1 failed: service unavailable. Retrying...
+Attempt 2 failed: service unavailable. Retrying...
+Result: success on attempt 3
+Total calls made: 0
+
+Expected output:
+  Total calls made: 3
+Actual output:
+  Total calls made: 0  ← capture by value, original never modified`,
+    stdlibRefs: [],
+  },
+  {
+    id: 171,
+    topic: "Lambdas",
+    difficulty: "Hard",
+    title: "Lazy Sequence Generator",
+    description: "Creates a lazy sequence generator using lambdas that produces Fibonacci numbers on demand.",
+    code: `#include <iostream>
+#include <functional>
+#include <vector>
+
+std::function<int()> makeFibonacci() {
+    int a = 0, b = 1;
+    return [a, b]() mutable -> int {
+        int result = a;
+        int next = a + b;
+        a = b;
+        b = next;
+        return result;
+    };
+}
+
+std::vector<std::function<int()>> createGenerators(int count) {
+    std::vector<std::function<int()>> gens;
+    for (int i = 0; i < count; ++i) {
+        gens.push_back(makeFibonacci());
+    }
+    return gens;
+}
+
+int main() {
+    auto fib = makeFibonacci();
+
+    std::cout << "Fibonacci sequence:" << std::endl;
+    for (int i = 0; i < 10; ++i) {
+        std::cout << fib() << " ";
+    }
+    std::cout << std::endl;
+
+    // Two independent generators
+    auto gen1 = makeFibonacci();
+    auto gen2 = gen1;  // copy the generator
+
+    // Advance gen1
+    for (int i = 0; i < 5; ++i) gen1();
+
+    std::cout << "gen1 (after 5 advances): " << gen1() << std::endl;
+    std::cout << "gen2 (no advances): " << gen2() << std::endl;
+}`,
+    hints: [
+      "When gen2 is assigned from gen1, what state does it get?",
+      "Are gen1 and gen2 independent after the copy?",
+      "After advancing gen1 five times, where does gen2 start producing from?",
+    ],
+    explanation: "The code `auto gen2 = gen1;` copies the std::function, which copies the lambda including its captured state (`a` and `b`). At that point gen1 and gen2 are independent copies with identical state (a=0, b=1). After advancing gen1 five times, gen1 is at the 6th Fibonacci number (5), while gen2 is still at the beginning (0). This is actually correct behavior! The program works as expected. But the subtle bug is in the Fibonacci logic itself: `int next = a + b` uses int, which will overflow for large Fibonacci numbers. The 47th Fibonacci number exceeds INT_MAX (2,147,483,647), causing signed integer overflow — undefined behavior. With enough calls, the generator produces negative garbage.",
+    manifestation: `$ g++ -std=c++17 -O2 lazyfib.cpp -o lazyfib && ./lazyfib
+Fibonacci sequence:
+0 1 1 2 3 5 8 13 21 34
+gen1 (after 5 advances): 5
+gen2 (no advances): 0
+
+$ # Looks fine! But generate more terms:
+$ g++ -std=c++17 -O2 lazyfib_long.cpp -o lazyfib && ./lazyfib
+...
+fib(46) = 1836311903
+fib(47) = -1323752223
+
+Expected output:
+  fib(47) = 2971215073
+Actual output:
+  fib(47) = -1323752223  ← signed int overflow, undefined behavior`,
+    stdlibRefs: [
+      { name: "std::function", brief: "A general-purpose polymorphic function wrapper that can store any callable target.", note: "Copying a std::function copies the stored callable, including all captured state — the copies are independent.", link: "https://en.cppreference.com/w/cpp/utility/functional/function" },
+    ],
+  },
+  {
+    id: 172,
+    topic: "Lambdas",
+    difficulty: "Hard",
+    title: "Async Task Scheduler",
+    description: "Schedules a batch of tasks as lambdas, captures their shared state, and executes them in sequence.",
+    code: `#include <iostream>
+#include <vector>
+#include <functional>
+#include <memory>
+#include <string>
+
+class TaskScheduler {
+    std::vector<std::function<void()>> tasks;
+public:
+    void schedule(std::function<void()> task) {
+        tasks.push_back(std::move(task));
+    }
+
+    void runAll() {
+        for (auto& task : tasks) {
+            task();
+        }
+        tasks.clear();
+    }
+};
+
+void addProcessingTasks(TaskScheduler& scheduler, const std::vector<std::string>& items) {
+    auto results = std::make_shared<std::vector<std::string>>();
+
+    for (size_t i = 0; i < items.size(); ++i) {
+        scheduler.schedule([&items, i, results]() {
+            std::string processed = "[" + items[i] + "]";
+            results->push_back(processed);
+            std::cout << "Processed: " << processed << std::endl;
+        });
+    }
+
+    scheduler.schedule([results]() {
+        std::cout << "Total processed: " << results->size() << std::endl;
+    });
+}
+
+int main() {
+    TaskScheduler scheduler;
+
+    {
+        std::vector<std::string> data = {"alpha", "beta", "gamma"};
+        addProcessingTasks(scheduler, data);
+    }
+
+    scheduler.runAll();
+}`,
+    hints: [
+      "Look at what each lambda captures. Which captures are by reference vs. by value?",
+      "What is the lifetime of the `data` vector relative to when runAll() is called?",
+      "The `items` parameter is a const reference — what does capturing `&items` actually capture?",
+    ],
+    explanation: "The processing lambdas capture `items` by reference (`&items`). But `items` is a const reference parameter to `addProcessingTasks`, which itself references the `data` vector in main(). After the block in main() ends, `data` is destroyed. When `scheduler.runAll()` is called, the lambdas access `items` which refers to the destroyed `data` vector — use-after-free. The `results` shared_ptr is correctly captured by value so it survives, but the `items` reference does not. The fix is to capture items by value: copy the vector into the lambda, or use a shared_ptr to the items.",
+    manifestation: `$ g++ -fsanitize=address -g scheduler.cpp -o scheduler && ./scheduler
+=================================================================
+==22741==ERROR: AddressSanitizer: heap-use-after-free on address 0x604000000050
+READ of size 8 at 0x604000000050 thread T0
+    #0 0x55d1a3 in addProcessingTasks(TaskScheduler&, std::vector<std::string> const&)::{lambda()#1}::operator()() scheduler.cpp:28
+    #1 0x55d4f2 in TaskScheduler::runAll() scheduler.cpp:15
+    #2 0x55d6a1 in main scheduler.cpp:42
+SUMMARY: AddressSanitizer: heap-use-after-free scheduler.cpp:28 in main`,
+    stdlibRefs: [
+      { name: "std::make_shared", args: "<T>(Args&&... args) → shared_ptr<T>", brief: "Creates a shared_ptr that manages a new object constructed with the given arguments.", note: "Shared ownership keeps the object alive as long as any shared_ptr copy exists — useful for extending lifetime across lambdas.", link: "https://en.cppreference.com/w/cpp/memory/shared_ptr/make_shared" },
+    ],
+  },
+  {
+    id: 173,
+    topic: "Lambdas",
+    difficulty: "Hard",
+    title: "Memoized Recursive Function",
+    description: "Implements a memoized recursive function to compute the number of unique paths in a grid.",
+    code: `#include <iostream>
+#include <functional>
+#include <unordered_map>
+#include <string>
+
+int main() {
+    std::unordered_map<std::string, long long> cache;
+
+    std::function<long long(int, int)> uniquePaths =
+        [&cache, &uniquePaths](int rows, int cols) -> long long {
+        if (rows == 1 || cols == 1) return 1;
+
+        std::string key = std::to_string(rows) + "," + std::to_string(cols);
+        if (cache.count(key)) return cache[key];
+
+        long long result = uniquePaths(rows - 1, cols) + uniquePaths(rows, cols - 1);
+        cache[key] = result;
+        return result;
+    };
+
+    std::cout << "uniquePaths(3, 3) = " << uniquePaths(3, 3) << std::endl;
+    std::cout << "uniquePaths(3, 7) = " << uniquePaths(3, 7) << std::endl;
+    std::cout << "uniquePaths(10, 10) = " << uniquePaths(10, 10) << std::endl;
+
+    // Create a copy for later use
+    auto pathFinder = uniquePaths;
+    cache.clear();
+
+    std::cout << "After cache clear:" << std::endl;
+    std::cout << "uniquePaths(3, 3) = " << pathFinder(3, 3) << std::endl;
+}`,
+    hints: [
+      "When `pathFinder` is copied from `uniquePaths`, what does its internal `&uniquePaths` reference point to?",
+      "When `pathFinder` calls itself recursively, does it call `pathFinder` or `uniquePaths`?",
+      "If `uniquePaths` is reassigned or moved after the copy, what happens to the recursive calls inside `pathFinder`?",
+    ],
+    explanation: "The lambda captures `&uniquePaths` by reference for recursion. When `pathFinder` is assigned as a copy, it holds its own copy of the lambda's closure — but the captured `&uniquePaths` still references the original `uniquePaths` variable, not `pathFinder`. So when `pathFinder` makes recursive calls, it calls through `uniquePaths`, not through itself. In this code, `uniquePaths` still exists and is valid, so it works — but the recursion goes through `uniquePaths`, which shares the same `cache` reference. After `cache.clear()`, the recursion recomputes everything (as expected). The real subtle issue: if `uniquePaths` were moved or destroyed before `pathFinder` is used, the `&uniquePaths` reference would dangle, causing undefined behavior on the first recursive call.",
+    manifestation: `$ g++ -std=c++17 -O2 memo.cpp -o memo && ./memo
+uniquePaths(3, 3) = 6
+uniquePaths(3, 7) = 28
+uniquePaths(10, 10) = 48620
+After cache clear:
+uniquePaths(3, 3) = 6
+
+$ # Works... but try moving uniquePaths:
+$ g++ -fsanitize=address -g memo_move.cpp -o memo && ./memo
+uniquePaths(3, 3) = 6
+=================================================================
+==25891==ERROR: AddressSanitizer: stack-use-after-scope on address 0x7ffd4a200080
+READ of size 8 at 0x7ffd4a200080 thread T0
+    #0 0x55a1b3 in main::{lambda(int, int)#1}::operator()(int, int) memo.cpp:10
+    #1 0x55a4f2 in main memo.cpp:28
+SUMMARY: AddressSanitizer: stack-use-after-scope memo.cpp:10 in main`,
+    stdlibRefs: [
+      { name: "std::function", brief: "A general-purpose polymorphic function wrapper that can store any callable target.", note: "Recursive lambdas captured by reference to a std::function variable create a dependency on that specific variable's lifetime.", link: "https://en.cppreference.com/w/cpp/utility/functional/function" },
+    ],
+  },
 ];
