@@ -21912,4 +21912,583 @@ Aborted (core dumped)`,
       { name: "std::promise::set_exception", args: "(std::exception_ptr p) → void", brief: "Stores the exception pointer as the shared state and makes the future ready.", link: "https://en.cppreference.com/w/cpp/thread/promise/set_exception" },
     ],
   },
+
+  // ── Template Metaprogramming ──
+
+  {
+    id: 334,
+    topic: "Template Metaprogramming",
+    difficulty: "Easy",
+    title: "Generic Max",
+    description: "Implements a generic max function template that returns the larger of two values.",
+    code: `#include <iostream>
+#include <string>
+
+template<typename T>
+T max(T a, T b) {
+    return (a > b) ? a : b;
+}
+
+int main() {
+    std::cout << max(3, 7) << std::endl;
+    std::cout << max(3.14, 2.71) << std::endl;
+    std::cout << max("hello", "world") << std::endl;
+    return 0;
+}`,
+    hints: [
+      "What type does the compiler deduce when `max` is called with string literals?",
+      "When comparing two `const char*` pointers with `>`, what is being compared?",
+    ],
+    explanation: "When called with string literals, `T` is deduced as `const char*`. The `>` operator compares pointer addresses, not string content. The result depends on where the compiler places the string literals in memory, which is implementation-defined. Additionally, naming the function `max` conflicts with `std::max` from `<algorithm>` (which may be transitively included), causing ambiguity errors. The fix is to use `std::string` arguments or specialize for `const char*` with `std::strcmp`.",
+    manifestation: `$ g++ -std=c++17 -Wall generic_max.cpp -o generic_max
+generic_max.cpp: In function 'int main()':
+generic_max.cpp:9:18: error: call of overloaded 'max(int, int)'
+    is ambiguous
+    9 |     std::cout << max(3, 7) << std::endl;
+      |                  ^~~
+generic_max.cpp:4:3: note: candidate: 'T max(T, T) [with T = int]'
+/usr/include/c++/11/bits/stl_algobase.h:254:5: note: candidate:
+    'const _Tp& std::max(const _Tp&, const _Tp&)'`,
+    stdlibRefs: [],
+  },
+  {
+    id: 335,
+    topic: "Template Metaprogramming",
+    difficulty: "Easy",
+    title: "Container Printer",
+    description: "A template function that prints any container's elements separated by commas.",
+    code: `#include <iostream>
+#include <vector>
+#include <list>
+#include <string>
+
+template<typename Container>
+void printContainer(const Container& c) {
+    bool first = true;
+    for (const auto& elem : c) {
+        if (!first) std::cout << ", ";
+        std::cout << elem;
+        first = false;
+    }
+    std::cout << std::endl;
+}
+
+int main() {
+    std::vector<int> v = {1, 2, 3, 4, 5};
+    std::list<std::string> l = {"hello", "world"};
+
+    printContainer(v);
+    printContainer(l);
+    printContainer("hello");
+
+    return 0;
+}`,
+    hints: [
+      "What is the type of `\"hello\"` in C++? How does the range-based for loop iterate over it?",
+      "Does iterating over a `const char[6]` print what you expect?",
+    ],
+    explanation: "The string literal `\"hello\"` is of type `const char[6]` (including the null terminator). The range-based for loop iterates over all 6 characters including the null character `\\0`. The output prints each character separated by commas: `h, e, l, l, o, ` (with a trailing comma-space-nothing for the null byte). This is technically valid but probably not the intent — the user likely wanted to print the string, not its individual characters plus the null terminator. The fix is to pass `std::string(\"hello\")` or add an overload for `const char*`.",
+    manifestation: `$ g++ -std=c++17 -Wall printer.cpp -o printer && ./printer
+1, 2, 3, 4, 5
+hello, world
+h, e, l, l, o,
+
+Expected output:
+1, 2, 3, 4, 5
+hello, world
+hello`,
+    stdlibRefs: [],
+  },
+  {
+    id: 336,
+    topic: "Template Metaprogramming",
+    difficulty: "Easy",
+    title: "Perfect Logger",
+    description: "Uses perfect forwarding to log function calls with their arguments before forwarding to the actual function.",
+    code: `#include <iostream>
+#include <string>
+#include <utility>
+
+void process(std::string s) {
+    std::cout << "Processing: " << s << std::endl;
+}
+
+void process(int n) {
+    std::cout << "Processing: " << n << std::endl;
+}
+
+template<typename F, typename... Args>
+void logAndCall(F&& func, Args&&... args) {
+    std::cout << "Calling function with " << sizeof...(args) << " args" << std::endl;
+
+    // Log the arguments
+    ((std::cout << "  arg: " << std::forward<Args>(args) << std::endl), ...);
+
+    // Forward to the function
+    std::forward<F>(func)(std::forward<Args>(args)...);
+}
+
+int main() {
+    std::string msg = "hello";
+    logAndCall(process, std::move(msg));
+    std::cout << "msg after call: '" << msg << "'" << std::endl;
+    return 0;
+}`,
+    hints: [
+      "How many times is `std::forward<Args>(args)` called for each argument?",
+      "What happens to a moved-from string after it has been forwarded twice?",
+    ],
+    explanation: "`std::forward<Args>(args)` is called twice for each argument — once in the logging fold expression and once in the actual function call. When `msg` is passed as an rvalue via `std::move`, the first `std::forward` moves it into the `operator<<` call for logging, leaving the argument in a moved-from state. The second `std::forward` then passes a moved-from (empty) string to `process()`. The fix is to not forward in the logging step — just print the argument directly without forwarding: `((std::cout << \"  arg: \" << args << std::endl), ...);`.",
+    manifestation: `$ g++ -std=c++17 -O2 logger.cpp -o logger && ./logger
+Calling function with 1 args
+  arg: hello
+Processing:
+msg after call: ''
+
+Expected output:
+Calling function with 1 args
+  arg: hello
+Processing: hello
+msg after call: ''`,
+    stdlibRefs: [
+      { name: "std::forward", args: "<T>(remove_reference_t<T>& t) → T&&", brief: "Forwards an lvalue as either an lvalue or rvalue, depending on the original value category.", note: "Forwarding the same argument twice means the second use sees a moved-from object. Only forward each argument once.", link: "https://en.cppreference.com/w/cpp/utility/forward" },
+    ],
+  },
+  {
+    id: 337,
+    topic: "Template Metaprogramming",
+    difficulty: "Medium",
+    title: "Type-Safe Builder",
+    description: "A builder pattern that uses template deduction to automatically determine the stored type.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+
+template<typename T>
+class Builder {
+    std::vector<T> items_;
+public:
+    Builder& add(const T& item) {
+        items_.push_back(item);
+        return *this;
+    }
+
+    void print() const {
+        for (auto& item : items_) {
+            std::cout << item << " ";
+        }
+        std::cout << std::endl;
+    }
+};
+
+int main() {
+    Builder b;
+    b.add(1).add(2).add(3);
+    b.print();
+    return 0;
+}`,
+    hints: [
+      "Look at the declaration `Builder b;`. Is the template parameter specified?",
+      "Can the compiler deduce class template parameters from a default constructor?",
+    ],
+    explanation: "`Builder` is a class template that requires a type parameter, but `Builder b;` provides none. Unlike function templates, class template argument deduction (CTAD) requires a deduction guide or a constructor that uses the template parameter. The default constructor doesn't use `T`, so there's nothing to deduce from. The code won't compile. The fix is to specify the type: `Builder<int> b;` or provide a deduction guide and use a constructor like `Builder(std::initializer_list<T>)`.",
+    manifestation: `$ g++ -std=c++17 -Wall builder.cpp -o builder
+builder.cpp: In function 'int main()':
+builder.cpp:22:13: error: class template argument deduction failed:
+   22 |     Builder b;
+      |             ^
+builder.cpp:22:13: error: no matching function for call to 'Builder()'
+builder.cpp:5:7: note: candidate: 'template<class T> Builder()-> Builder<T>'
+builder.cpp:5:7: note:   template argument deduction/substitution failed:
+builder.cpp:22:13: note:   couldn't deduce template parameter 'T'`,
+    stdlibRefs: [],
+  },
+  {
+    id: 338,
+    topic: "Template Metaprogramming",
+    difficulty: "Medium",
+    title: "Serializable Value",
+    description: "Uses SFINAE to enable a serialize function only for types that have a toString() member.",
+    code: `#include <iostream>
+#include <string>
+#include <type_traits>
+
+template<typename T>
+auto serialize(const T& obj)
+    -> std::enable_if_t<std::is_same_v<decltype(obj.toString()), std::string>, std::string>
+{
+    return obj.toString();
+}
+
+template<typename T>
+auto serialize(const T& obj)
+    -> std::enable_if_t<std::is_arithmetic_v<T>, std::string>
+{
+    return std::to_string(obj);
+}
+
+struct Point {
+    double x, y;
+    std::string toString() const {
+        return "(" + std::to_string(x) + ", " + std::to_string(y) + ")";
+    }
+};
+
+struct Color {
+    int r, g, b;
+    const char* toString() const {
+        static char buf[32];
+        snprintf(buf, sizeof(buf), "#%02x%02x%02x", r, g, b);
+        return buf;
+    }
+};
+
+int main() {
+    Point p{3.14, 2.72};
+    Color c{255, 128, 0};
+
+    std::cout << serialize(p) << std::endl;
+    std::cout << serialize(42) << std::endl;
+    std::cout << serialize(c) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at what type `Color::toString()` returns. Is it `std::string`?",
+      "The SFINAE check requires `toString()` to return exactly `std::string`. What happens for `const char*`?",
+    ],
+    explanation: "`Color::toString()` returns `const char*`, not `std::string`. The SFINAE condition `std::is_same_v<decltype(obj.toString()), std::string>` fails for `Color` because `const char*` is not `std::string`. Neither SFINAE overload matches for `Color` (it's not arithmetic either), so `serialize(c)` produces a compile error about no matching function. The fix is to use a more permissive check like `std::is_convertible_v<decltype(obj.toString()), std::string>`, or use `decltype(std::string(obj.toString()))` in a decltype-based SFINAE expression.",
+    manifestation: `$ g++ -std=c++17 -Wall serial.cpp -o serial
+serial.cpp: In function 'int main()':
+serial.cpp:39:24: error: no matching function for call to
+    'serialize(Color&)'
+   39 |     std::cout << serialize(c) << std::endl;
+      |                  ~~~~~~~~~^~~
+serial.cpp:6:6: note: candidate: 'std::enable_if_t<...> serialize(const T&)'
+    template argument deduction/substitution failed:
+    'std::is_same_v<const char*, std::string>' is 'false'
+serial.cpp:13:6: note: candidate: 'std::enable_if_t<...> serialize(const T&)'
+    constraint not satisfied: 'std::is_arithmetic_v<Color>' is 'false'`,
+    stdlibRefs: [
+      { name: "std::enable_if_t", args: "<bool B, class T = void>", brief: "If B is true, provides a member typedef type equal to T; otherwise there is no member typedef (SFINAE).", note: "SFINAE conditions must be carefully written — checking for exact type match (is_same) is often too strict; is_convertible may be more appropriate.", link: "https://en.cppreference.com/w/cpp/types/enable_if" },
+    ],
+  },
+  {
+    id: 339,
+    topic: "Template Metaprogramming",
+    difficulty: "Medium",
+    title: "Auto Return Deduction",
+    description: "Uses decltype(auto) to write a transparent wrapper that preserves the return type of wrapped functions.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+
+std::vector<int> globalData = {10, 20, 30, 40, 50};
+
+decltype(auto) getElement(size_t index) {
+    return globalData[index];
+}
+
+decltype(auto) computeSum() {
+    int sum = 0;
+    for (int v : globalData) sum += v;
+    return sum;
+}
+
+int main() {
+    auto& elem = getElement(2);
+    std::cout << "Element: " << elem << std::endl;
+
+    elem = 99;  // modify through reference
+    std::cout << "Modified globalData[2]: " << globalData[2] << std::endl;
+
+    auto total = computeSum();
+    std::cout << "Sum: " << total << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What does `decltype(auto)` deduce for `computeSum()`? Look at the return expression.",
+      "What is the difference between `return sum;` and returning a reference to a local?",
+      "Is `sum` a local variable? What is its lifetime?",
+    ],
+    explanation: "`decltype(auto)` deduces the return type from the return expression. For `getElement`, `globalData[index]` returns `int&`, so the function returns `int&` — correct. For `computeSum`, `sum` is a local variable, so `decltype(sum)` is `int`, and the function returns `int` by value — also correct in this case. However, if the programmer had written `return (sum);` (with parentheses), `decltype((sum))` would be `int&`, creating a dangling reference to a local. The actual bug is more subtle: `getElement` returns a reference to `globalData`, allowing mutation of a global through what looks like a simple getter. The real trap is that `decltype(auto)` makes the reference-ness invisible at the call site.",
+    manifestation: `$ g++ -std=c++17 -Wall auto_return.cpp -o auto_return && ./auto_return
+Element: 30
+Modified globalData[2]: 99
+Sum: 150
+
+(The program works as shown — but if computeSum had returned (sum)
+with parentheses instead of sum, it would return a dangling
+reference to a local:)
+
+decltype(auto) computeSum() {
+    int sum = 0;
+    for (int v : globalData) sum += v;
+    return (sum);  // decltype((sum)) = int& — dangling!
+}
+
+$ g++ -std=c++17 -Wall -O2 auto_return2.cpp -o auto_return2 && ./auto_return2
+Sum: 0    ← garbage from dangling reference`,
+    stdlibRefs: [],
+  },
+  {
+    id: 340,
+    topic: "Template Metaprogramming",
+    difficulty: "Hard",
+    title: "Variadic Tuple Printer",
+    description: "Recursively prints each element of a tuple using template parameter packs.",
+    code: `#include <iostream>
+#include <tuple>
+#include <string>
+
+template<typename Tuple, size_t N>
+struct TuplePrinter {
+    static void print(const Tuple& t) {
+        TuplePrinter<Tuple, N - 1>::print(t);
+        std::cout << ", " << std::get<N - 1>(t);
+    }
+};
+
+template<typename Tuple>
+struct TuplePrinter<Tuple, 1> {
+    static void print(const Tuple& t) {
+        std::cout << std::get<0>(t);
+    }
+};
+
+template<typename... Args>
+void printTuple(const std::tuple<Args...>& t) {
+    std::cout << "(";
+    TuplePrinter<decltype(t), sizeof...(Args)>::print(t);
+    std::cout << ")" << std::endl;
+}
+
+int main() {
+    auto t1 = std::make_tuple(1, "hello", 3.14);
+    auto t2 = std::make_tuple(42);
+    auto t3 = std::tuple<>();
+
+    printTuple(t1);
+    printTuple(t2);
+    printTuple(t3);
+
+    return 0;
+}`,
+    hints: [
+      "What happens when `printTuple` is called with an empty tuple?",
+      "What is `sizeof...(Args)` when `Args` is an empty pack? Is there a specialization for `TuplePrinter<Tuple, 0>`?",
+    ],
+    explanation: "When `printTuple` is called with an empty tuple `t3`, `sizeof...(Args)` is 0, so it tries to instantiate `TuplePrinter<Tuple, 0>`. The recursion goes `N=0`, which tries `TuplePrinter<Tuple, -1>` (but N is `size_t`, so it wraps to a huge number), causing infinite template instantiation. There's no specialization for `N=0`. The base case only handles `N=1`. The fix is to add a specialization for `TuplePrinter<Tuple, 0>` that does nothing, or to guard the call in `printTuple` with `if constexpr (sizeof...(Args) > 0)`.",
+    manifestation: `$ g++ -std=c++17 -Wall tuple.cpp -o tuple
+tuple.cpp: In instantiation of 'struct TuplePrinter<
+    const std::tuple<>&, 0>':
+tuple.cpp:8:9:   recursively required from 'struct TuplePrinter<
+    const std::tuple<>&, 18446744073709551614>'
+tuple.cpp:8:9:   required from 'struct TuplePrinter<
+    const std::tuple<>&, 18446744073709551615>'
+...
+tuple.cpp:8:9: fatal error: template instantiation depth exceeds
+    maximum of 900 (use '-ftemplate-depth=' to increase the maximum)
+    8 |         TuplePrinter<Tuple, N - 1>::print(t);
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~`,
+    stdlibRefs: [
+      { name: "std::get (tuple)", args: "<size_t I>(const tuple<Types...>& t) → const tuple_element_t<I, tuple<Types...>>&", brief: "Extracts the Ith element from the tuple.", link: "https://en.cppreference.com/w/cpp/utility/tuple/get" },
+    ],
+  },
+  {
+    id: 341,
+    topic: "Template Metaprogramming",
+    difficulty: "Hard",
+    title: "Conversion Checker",
+    description: "A type trait that checks if a type is explicitly convertible to another using a conversion operator.",
+    code: `#include <iostream>
+#include <type_traits>
+#include <string>
+
+template<typename From, typename To, typename = void>
+struct is_explicitly_convertible : std::false_type {};
+
+template<typename From, typename To>
+struct is_explicitly_convertible<From, To,
+    std::void_t<decltype(static_cast<To>(std::declval<From>()))>>
+    : std::true_type {};
+
+struct Meters {
+    double value;
+    explicit operator double() const { return value; }
+    operator int() const { return static_cast<int>(value); }
+};
+
+struct Feet {
+    double value;
+};
+
+int main() {
+    std::cout << std::boolalpha;
+    std::cout << "Meters -> double: "
+              << is_explicitly_convertible<Meters, double>::value << std::endl;
+    std::cout << "Meters -> int: "
+              << is_explicitly_convertible<Meters, int>::value << std::endl;
+    std::cout << "Meters -> string: "
+              << is_explicitly_convertible<Meters, std::string>::value << std::endl;
+    std::cout << "Feet -> double: "
+              << is_explicitly_convertible<Feet, double>::value << std::endl;
+    std::cout << "int -> double: "
+              << is_explicitly_convertible<int, double>::value << std::endl;
+    return 0;
+}`,
+    hints: [
+      "The trait name says 'explicitly' convertible. But does `static_cast` distinguish between explicit and implicit conversions?",
+      "Can `static_cast<int>(meters)` succeed even if the conversion is implicit? What about `static_cast<double>(intval)`?",
+    ],
+    explanation: "The trait claims to test for *explicit* convertibility, but `static_cast` succeeds for both explicit and implicit conversions. So `is_explicitly_convertible<Meters, int>::value` is `true` even though `operator int()` is implicit (not explicit). And `is_explicitly_convertible<int, double>::value` is `true` because `static_cast<double>(int)` works, even though there's no explicit conversion operator. The trait name is misleading — it actually tests whether *any* conversion (explicit or implicit) exists via `static_cast`. There's no simple way in C++ to test if a conversion is explicit-only without also matching implicit conversions.",
+    manifestation: `$ g++ -std=c++17 -Wall convert.cpp -o convert && ./convert
+Meters -> double: true
+Meters -> int: true
+Meters -> string: false
+Feet -> double: false
+int -> double: true
+
+(The trait returns true for both explicit AND implicit conversions,
+not just explicit ones as the name implies.
+"Meters -> int" is true even though operator int() is implicit.
+"int -> double" is true even though it's a built-in conversion.)`,
+    stdlibRefs: [
+      { name: "std::void_t", args: "<typename...>", brief: "Maps any sequence of types to void; used in SFINAE to detect well-formed expressions.", link: "https://en.cppreference.com/w/cpp/types/void_t" },
+      { name: "std::declval", args: "<T>() → add_rvalue_reference_t<T>", brief: "Returns an rvalue reference to T without requiring a constructor; only valid in unevaluated contexts.", link: "https://en.cppreference.com/w/cpp/utility/declval" },
+    ],
+  },
+  {
+    id: 342,
+    topic: "Template Metaprogramming",
+    difficulty: "Hard",
+    title: "Tagged Dispatch",
+    description: "Uses tag dispatching to select between different implementations based on iterator category.",
+    code: `#include <iostream>
+#include <vector>
+#include <list>
+#include <iterator>
+#include <string>
+
+template<typename Iterator>
+void advanceImpl(Iterator& it, int n, std::random_access_iterator_tag) {
+    std::cout << "Random access advance" << std::endl;
+    it += n;
+}
+
+template<typename Iterator>
+void advanceImpl(Iterator& it, int n, std::input_iterator_tag) {
+    std::cout << "Input iterator advance" << std::endl;
+    for (int i = 0; i < n; ++i) ++it;
+}
+
+template<typename Iterator>
+void myAdvance(Iterator& it, int n) {
+    advanceImpl(it, n,
+        typename std::iterator_traits<Iterator>::iterator_category());
+}
+
+int main() {
+    std::vector<int> v = {10, 20, 30, 40, 50};
+    auto vit = v.begin();
+    myAdvance(vit, 3);
+    std::cout << "Vector: " << *vit << std::endl;
+
+    std::list<int> l = {10, 20, 30, 40, 50};
+    auto lit = l.begin();
+    myAdvance(lit, 3);
+    std::cout << "List: " << *lit << std::endl;
+
+    // Negative advance on list
+    auto lit2 = l.end();
+    myAdvance(lit2, -2);
+    std::cout << "List reverse: " << *lit2 << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What category does `std::list::iterator` belong to? Is it random access or bidirectional?",
+      "When `n` is negative and the input iterator overload is selected, what happens?",
+      "Does the `input_iterator_tag` overload handle negative distances correctly?",
+    ],
+    explanation: "`std::list::iterator` is a `bidirectional_iterator`, which inherits from `forward_iterator_tag` which inherits from `input_iterator_tag`. The tag dispatch selects the `input_iterator_tag` overload (since `bidirectional_iterator_tag` is-a `input_iterator_tag`). When `n` is -2, the loop `for (int i = 0; i < n; ++i)` never executes (0 < -2 is false), so the iterator doesn't move at all. Dereferencing `l.end()` is undefined behavior. There's no `bidirectional_iterator_tag` overload that would use `--it` for negative n. The fix is to add an overload for `std::bidirectional_iterator_tag` that handles negative distances with `--it`.",
+    manifestation: `$ g++ -std=c++17 -Wall dispatch.cpp -o dispatch && ./dispatch
+Random access advance
+Vector: 40
+Input iterator advance
+List: 40
+Input iterator advance
+Segmentation fault (core dumped)
+
+(The negative advance on list selected the input_iterator overload
+which can't go backwards — the loop doesn't execute, and
+dereferencing end() is undefined behavior)`,
+    stdlibRefs: [
+      { name: "std::iterator_traits", brief: "Provides uniform interface to the properties of iterator types, including iterator_category.", note: "bidirectional_iterator_tag inherits from forward_iterator_tag, which inherits from input_iterator_tag. Tag dispatch selects the most derived matching overload.", link: "https://en.cppreference.com/w/cpp/iterator/iterator_traits" },
+    ],
+  },
+  {
+    id: 343,
+    topic: "Template Metaprogramming",
+    difficulty: "Medium",
+    title: "Aggregate Initializer",
+    description: "Uses brace initialization with template argument deduction to construct objects from initializer lists.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+
+template<typename T>
+class Stack {
+    std::vector<T> data_;
+public:
+    Stack(std::initializer_list<T> init) : data_(init) {}
+
+    void push(const T& val) { data_.push_back(val); }
+
+    T pop() {
+        T top = data_.back();
+        data_.pop_back();
+        return top;
+    }
+
+    size_t size() const { return data_.size(); }
+};
+
+int main() {
+    Stack s1 = {1, 2, 3, 4, 5};
+    std::cout << "s1 size: " << s1.size() << std::endl;
+    std::cout << "s1 top: " << s1.pop() << std::endl;
+
+    Stack s2 = {1.0, 2.5, 3.7};
+    std::cout << "s2 size: " << s2.size() << std::endl;
+
+    Stack s3 = {"hello", "world"};
+    std::cout << "s3 size: " << s3.size() << std::endl;
+    std::cout << "s3 top: " << s3.pop() << std::endl;
+
+    Stack s4 = {"hello", std::string("world")};
+    std::cout << "s4 size: " << s4.size() << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What type does CTAD deduce for `s3` when initialized with string literals?",
+      "Are `\"hello\"` and `std::string(\"world\")` the same type?",
+      "What happens when an initializer list has mixed types?",
+    ],
+    explanation: "For `s3`, CTAD deduces `T` as `const char*` because string literals decay to `const char*`. This compiles fine but `s3` stores pointers, not strings. For `s4`, `\"hello\"` is `const char*` and `std::string(\"world\")` is `std::string` — these are different types, so template argument deduction fails because all elements of `initializer_list<T>` must have the same type. The fix is to use `Stack<std::string> s4 = {\"hello\", \"world\"};` or use `std::string` literals consistently.",
+    manifestation: `$ g++ -std=c++17 -Wall stack.cpp -o stack
+stack.cpp: In function 'int main()':
+stack.cpp:31:46: error: no matching function for call to
+    'Stack(const char [6], std::string)'
+   31 |     Stack s4 = {"hello", std::string("world")};
+      |                                              ^
+stack.cpp:8:5: note: candidate: 'Stack(std::initializer_list<T>)'
+    couldn't deduce template argument 'T'
+    (deduced conflicting types 'const char*' and 'std::string')`,
+    stdlibRefs: [
+      { name: "std::initializer_list", brief: "A lightweight proxy object that provides access to a const array of objects of type T.", note: "All elements must be the same type T. Mixed types (e.g. const char* and std::string) cause deduction failure.", link: "https://en.cppreference.com/w/cpp/utility/initializer_list" },
+    ],
+  },
 ];
