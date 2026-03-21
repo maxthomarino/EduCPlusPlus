@@ -8768,4 +8768,695 @@ Direct leak of 56 byte(s) in 1 object(s) allocated from:
 SUMMARY: AddressSanitizer: 112 byte(s) leaked in 2 allocation(s).`,
     stdlibRefs: [],
   },
+  // ── STL Containers ──
+  {
+    id: 144,
+    topic: "STL Containers",
+    difficulty: "Easy",
+    title: "Word Frequency Counter",
+    description: "Counts how many times each word appears in a list and prints the results in alphabetical order.",
+    code: `#include <iostream>
+#include <map>
+#include <string>
+#include <vector>
+
+int main() {
+    std::vector<std::string> words = {
+        "apple", "banana", "apple", "cherry",
+        "banana", "apple", "date", "cherry"
+    };
+
+    std::map<std::string, int> freq;
+    for (const auto& w : words) {
+        freq[w]++;
+    }
+
+    // Print words that appear more than once
+    for (auto it = freq.begin(); it != freq.end(); ++it) {
+        if (it->second <= 1) {
+            freq.erase(it);
+        }
+    }
+
+    for (const auto& [word, count] : freq) {
+        std::cout << word << ": " << count << std::endl;
+    }
+}`,
+    hints: [
+      "What happens to the iterator after calling erase on a std::map?",
+      "Does the for loop correctly advance the iterator after an erase?",
+      "How does std::map::erase differ from std::vector::erase in terms of iterator invalidation?",
+    ],
+    explanation: "After calling freq.erase(it), the iterator `it` is invalidated. The loop then does ++it on the invalidated iterator, which is undefined behavior. Unlike vector::erase, map::erase does not return the next iterator (until C++11, it returns void; in C++11+ it returns the next iterator). The fix is to use `it = freq.erase(it)` and put the ++it in an else branch, or use the post-increment idiom: `freq.erase(it++)`.",
+    manifestation: `$ g++ -fsanitize=address -g wordfreq.cpp -o wordfreq && ./wordfreq
+apple: 3
+cherry: 2
+
+$ # Looks like it worked? Try with different data:
+$ g++ -fsanitize=address -g wordfreq2.cpp -o wordfreq2 && ./wordfreq2
+=================================================================
+==19823==ERROR: AddressSanitizer: heap-use-after-free on address 0x604000000070
+READ of size 8 at 0x604000000070 thread T0
+    #0 0x55a1b3 in main wordfreq2.cpp:18
+    #1 0x7f3c2a in __libc_start_main
+SUMMARY: AddressSanitizer: heap-use-after-free wordfreq2.cpp:18 in main`,
+    stdlibRefs: [
+      { name: "std::map::erase", args: "(iterator pos) → iterator (C++11) | (const key_type& key) → size_type", brief: "Removes the element at the given position or with the given key.", note: "The erased iterator is invalidated; use the returned iterator (C++11+) or post-increment before erasing.", link: "https://en.cppreference.com/w/cpp/container/map/erase" },
+    ],
+  },
+  {
+    id: 145,
+    topic: "STL Containers",
+    difficulty: "Easy",
+    title: "Priority Task Queue",
+    description: "Manages a queue of tasks sorted by priority, where higher priority tasks are processed first.",
+    code: `#include <iostream>
+#include <queue>
+#include <string>
+#include <vector>
+
+struct Task {
+    std::string name;
+    int priority;
+};
+
+bool operator<(const Task& a, const Task& b) {
+    return a.priority < b.priority;
+}
+
+int main() {
+    std::priority_queue<Task> pq;
+
+    pq.push({"Write report", 3});
+    pq.push({"Fix critical bug", 10});
+    pq.push({"Code review", 5});
+    pq.push({"Update docs", 1});
+    pq.push({"Deploy hotfix", 8});
+
+    std::cout << "Processing tasks:" << std::endl;
+    while (!pq.empty()) {
+        Task& t = const_cast<Task&>(pq.top());
+        std::cout << "  [" << t.priority << "] " << t.name << std::endl;
+        t.priority = 0;  // mark as processed
+        pq.pop();
+    }
+}`,
+    hints: [
+      "What does pq.top() return — a reference or a copy?",
+      "Why is const_cast needed to get a non-const reference to top()?",
+      "What guarantee does a priority_queue rely on about its elements' values?",
+    ],
+    explanation: "The code uses const_cast to remove the const from pq.top() and modifies the priority of the top element while it's still in the heap. This corrupts the heap invariant: the priority_queue assumes element values don't change while stored. After modifying t.priority to 0, the subsequent pop() may not correctly restore the heap, and future top() calls may return elements in the wrong order. The const on top() exists precisely to prevent this. The fix is to copy the value, pop, then modify: `Task t = pq.top(); pq.pop();`.",
+    manifestation: `$ g++ -std=c++17 -O2 taskq.cpp -o taskq && ./taskq
+Processing tasks:
+  [10] Fix critical bug
+  [8] Deploy hotfix
+  [0] Code review
+  [0] Update docs
+  [0] Write report
+
+Expected output:
+  [10] Fix critical bug
+  [8] Deploy hotfix
+  [5] Code review
+  [3] Write report
+  [1] Update docs
+Actual output:
+  priorities corrupted after first pop — elements come out in wrong order`,
+    stdlibRefs: [
+      { name: "std::priority_queue::top", args: "() → const_reference", brief: "Returns a const reference to the top (highest-priority) element.", note: "Returns const reference specifically to prevent modification that would corrupt the heap ordering.", link: "https://en.cppreference.com/w/cpp/container/priority_queue/top" },
+    ],
+  },
+  {
+    id: 146,
+    topic: "STL Containers",
+    difficulty: "Easy",
+    title: "Running Average Calculator",
+    description: "Maintains a sliding window of the last N values and computes their running average.",
+    code: `#include <iostream>
+#include <deque>
+
+class RunningAverage {
+    std::deque<double> window;
+    size_t max_size;
+    double sum = 0.0;
+public:
+    RunningAverage(size_t n) : max_size(n) {}
+
+    void add(double val) {
+        window.push_back(val);
+        sum += val;
+        if (window.size() > max_size) {
+            sum -= window.front();
+            window.pop_front();
+        }
+    }
+
+    double average() const {
+        return sum / window.size();
+    }
+};
+
+int main() {
+    RunningAverage avg(3);
+
+    for (int i = 1; i <= 10; ++i) {
+        avg.add(i * 1.0);
+        std::cout << "After adding " << i << ": avg = " << avg.average() << std::endl;
+    }
+
+    // Edge case: what if we query before adding anything?
+    RunningAverage empty_avg(5);
+    std::cout << "Empty average: " << empty_avg.average() << std::endl;
+}`,
+    hints: [
+      "What happens when average() is called on a freshly constructed RunningAverage?",
+      "What is window.size() before any values have been added?",
+      "What is the result of dividing 0.0 by 0?",
+    ],
+    explanation: "When average() is called before any values are added, window.size() is 0, so the function computes 0.0 / 0, which in IEEE 754 floating-point produces NaN (not-a-number), not a crash. While this doesn't cause a segfault, it's a logic bug — the function silently returns NaN instead of signaling an error. If the result is used in further calculations, NaN propagates silently through the entire computation. The fix is to check for empty window and either throw an exception or return std::optional<double>.",
+    manifestation: `$ g++ -std=c++17 -O2 runavg.cpp -o runavg && ./runavg
+After adding 1: avg = 1
+After adding 2: avg = 1.5
+After adding 3: avg = 2
+After adding 4: avg = 3
+After adding 5: avg = 4
+After adding 6: avg = 5
+After adding 7: avg = 6
+After adding 8: avg = 7
+After adding 9: avg = 8
+After adding 10: avg = 9
+Empty average: -nan
+
+Expected output:
+  Empty average: 0  (or an error)
+Actual output:
+  Empty average: -nan  (NaN propagates silently if used in further math)`,
+    stdlibRefs: [
+      { name: "std::deque::size", args: "() → size_type", brief: "Returns the number of elements in the deque.", note: "Returns 0 for an empty deque; dividing by the result without checking leads to division by zero.", link: "https://en.cppreference.com/w/cpp/container/deque/size" },
+    ],
+  },
+  {
+    id: 147,
+    topic: "STL Containers",
+    difficulty: "Medium",
+    title: "LRU Cache",
+    description: "Implements a least-recently-used cache with O(1) get and put operations using a hash map and a linked list.",
+    code: `#include <iostream>
+#include <unordered_map>
+#include <list>
+#include <string>
+
+class LRUCache {
+    int capacity;
+    std::list<std::pair<std::string, int>> items;
+    std::unordered_map<std::string, std::list<std::pair<std::string, int>>::iterator> lookup;
+
+public:
+    LRUCache(int cap) : capacity(cap) {}
+
+    int get(const std::string& key) {
+        auto it = lookup.find(key);
+        if (it == lookup.end()) return -1;
+        // Move to front (most recently used)
+        items.splice(items.begin(), items, it->second);
+        return it->second->second;
+    }
+
+    void put(const std::string& key, int value) {
+        auto it = lookup.find(key);
+        if (it != lookup.end()) {
+            it->second->second = value;
+            items.splice(items.begin(), items, it->second);
+            return;
+        }
+        if (items.size() >= capacity) {
+            // Evict least recently used (back of list)
+            lookup.erase(items.back().first);
+            items.pop_back();
+        }
+        items.push_front({key, value});
+        lookup[key] = items.begin();
+    }
+};
+
+int main() {
+    LRUCache cache(2);
+    cache.put("a", 1);
+    cache.put("b", 2);
+    std::cout << "a: " << cache.get("a") << std::endl;
+    cache.put("c", 3);  // should evict "b"
+    std::cout << "b: " << cache.get("b") << std::endl;
+    std::cout << "c: " << cache.get("c") << std::endl;
+
+    // Negative capacity
+    LRUCache bad(0);
+    bad.put("x", 1);
+    std::cout << "x: " << bad.get("x") << std::endl;
+}`,
+    hints: [
+      "What happens when the capacity is zero?",
+      "Does the eviction check `items.size() >= capacity` behave correctly when capacity is 0?",
+      "What is the type of `capacity` and what is the type of `items.size()`?",
+    ],
+    explanation: "When capacity is 0 (or negative, since it's stored as int), the comparison `items.size() >= capacity` compares an unsigned size_t with a signed int. When capacity is 0, the comparison works but the cache immediately evicts every item it inserts — put() adds an item, then the next put() evicts it. More dangerously, if capacity were negative (e.g. -1), the signed-to-unsigned conversion would make it a huge number like 4294967295, and the cache would never evict, growing without bound. The fix is to use size_t for capacity and validate it in the constructor.",
+    manifestation: `$ g++ -std=c++17 -O2 lru.cpp -o lru && ./lru
+a: 1
+b: -1
+c: 3
+x: -1
+
+Expected output:
+  x: 1  (just inserted it)
+Actual output:
+  x: -1  (evicted immediately because capacity is 0)
+
+$ # With capacity = -1:
+$ ./lru_negative
+[runs forever, consuming memory — capacity converted to ~4 billion]`,
+    stdlibRefs: [
+      { name: "std::list::splice", args: "(const_iterator pos, list& other, const_iterator it) → void", brief: "Transfers the element pointed to by it from other into *this before pos.", note: "No iterators are invalidated; the transferred element's iterator remains valid but now points into the destination list.", link: "https://en.cppreference.com/w/cpp/container/list/splice" },
+    ],
+  },
+  {
+    id: 148,
+    topic: "STL Containers",
+    difficulty: "Medium",
+    title: "Contact Book Merger",
+    description: "Merges two sorted contact lists into a single sorted list, removing duplicates.",
+    code: `#include <iostream>
+#include <set>
+#include <string>
+#include <vector>
+#include <algorithm>
+
+struct Contact {
+    std::string name;
+    std::string phone;
+
+    bool operator<(const Contact& other) const {
+        return name < other.name;
+    }
+};
+
+int main() {
+    std::set<Contact> merged;
+
+    std::vector<Contact> list1 = {
+        {"Alice", "555-0001"},
+        {"Bob",   "555-0002"},
+        {"Carol", "555-0003"},
+    };
+
+    std::vector<Contact> list2 = {
+        {"Alice", "555-9999"},  // Alice with different phone
+        {"Dave",  "555-0004"},
+        {"Eve",   "555-0005"},
+    };
+
+    for (const auto& c : list1) merged.insert(c);
+    for (const auto& c : list2) merged.insert(c);
+
+    std::cout << "Merged contacts:" << std::endl;
+    for (const auto& c : merged) {
+        std::cout << "  " << c.name << ": " << c.phone << std::endl;
+    }
+}`,
+    hints: [
+      "How does std::set determine if two Contact objects are duplicates?",
+      "What comparison does the operator< use?",
+      "If two contacts have the same name but different phone numbers, which one ends up in the set?",
+    ],
+    explanation: "The operator< only compares by name, so std::set considers two contacts with the same name as equal — the phone number is ignored entirely. When Alice appears in both lists with different phone numbers (555-0001 and 555-9999), the second insert is silently discarded. The set keeps Alice with 555-0001, and the user never knows that 555-9999 was lost. The fix depends on intent: if names should be unique, update the existing entry's phone; if both should be kept, add phone to the comparison or use a multiset.",
+    manifestation: `$ g++ -std=c++17 -O2 contacts.cpp -o contacts && ./contacts
+Merged contacts:
+  Alice: 555-0001
+  Bob: 555-0002
+  Carol: 555-0003
+  Dave: 555-0004
+  Eve: 555-0005
+
+Expected output:
+  Alice: 555-0001 (or 555-9999, or both)
+Actual output:
+  Alice: 555-0001  ← 555-9999 was silently dropped, no warning`,
+    stdlibRefs: [
+      { name: "std::set::insert", args: "(const value_type& value) → pair<iterator, bool>", brief: "Inserts an element if an equivalent element does not already exist.", note: "Equivalence is determined by the comparator (operator<), not operator==. Fields not used in the comparator are invisible to the set.", link: "https://en.cppreference.com/w/cpp/container/set/insert" },
+    ],
+  },
+  {
+    id: 149,
+    topic: "STL Containers",
+    difficulty: "Medium",
+    title: "String Tokenizer",
+    description: "Splits a string by a delimiter and stores the tokens in a vector for later access.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <string_view>
+#include <sstream>
+
+std::vector<std::string_view> split(const std::string& input, char delim) {
+    std::vector<std::string_view> tokens;
+    std::istringstream stream(input);
+    std::string token;
+
+    while (std::getline(stream, token, delim)) {
+        tokens.push_back(token);
+    }
+
+    return tokens;
+}
+
+int main() {
+    std::string csv = "Alice,Bob,Carol,Dave";
+    auto names = split(csv, ',');
+
+    std::cout << "Tokens:" << std::endl;
+    for (const auto& name : names) {
+        std::cout << "  [" << name << "]" << std::endl;
+    }
+
+    std::cout << "First: " << names[0] << std::endl;
+    std::cout << "Last: " << names.back() << std::endl;
+}`,
+    hints: [
+      "What does a std::string_view point to?",
+      "What is the lifetime of the `token` variable inside the while loop?",
+      "When the function returns, what memory do the string_views in the vector refer to?",
+    ],
+    explanation: "The string_views in the returned vector all point into the local `token` variable, which is a std::string on the stack. Each iteration of the while loop reuses and overwrites `token`, so all string_views momentarily point to valid data but always to the same buffer. When split() returns, `token` is destroyed, and all string_views become dangling — they point to freed stack memory. Accessing any element in the returned vector is undefined behavior. The fix is to store std::string instead of std::string_view in the vector.",
+    manifestation: `$ g++ -fsanitize=address -g tokenizer.cpp -o tokenizer && ./tokenizer
+=================================================================
+==24891==ERROR: AddressSanitizer: stack-use-after-return on address 0x7f0a28c00060
+READ of size 4 at 0x7f0a28c00060 thread T0
+    #0 0x55c1a3 in main tokenizer.cpp:21
+    #1 0x7f3c2a in __libc_start_main
+Address 0x7f0a28c00060 is located in stack of thread T0 at offset 96
+SUMMARY: AddressSanitizer: stack-use-after-return tokenizer.cpp:21 in main`,
+    stdlibRefs: [
+      { name: "std::string_view", brief: "A non-owning reference to a contiguous sequence of characters.", note: "Does not extend the lifetime of the data it refers to; if the underlying string is destroyed, the view dangles.", link: "https://en.cppreference.com/w/cpp/string/basic_string_view" },
+      { name: "std::getline", args: "(istream& input, string& str, char delim) → istream&", brief: "Reads characters from input into str until the delimiter is found or EOF.", note: "Overwrites the contents of str on each call.", link: "https://en.cppreference.com/w/cpp/string/basic_string/getline" },
+    ],
+  },
+  {
+    id: 150,
+    topic: "STL Containers",
+    difficulty: "Medium",
+    title: "Histogram Builder",
+    description: "Builds a histogram of character frequencies from text input and prints a bar chart.",
+    code: `#include <iostream>
+#include <unordered_map>
+#include <string>
+#include <vector>
+#include <algorithm>
+
+int main() {
+    std::string text = "hello world, hello C++!";
+
+    std::unordered_map<char, int> freq;
+    for (char c : text) {
+        if (std::isalpha(c)) {
+            freq[std::tolower(c)]++;
+        }
+    }
+
+    // Sort by frequency (descending)
+    std::vector<std::pair<char, int>> sorted(freq.begin(), freq.end());
+    std::sort(sorted.begin(), sorted.end(),
+        [](const auto& a, const auto& b) {
+            return a.second > b.second;
+        });
+
+    // Print histogram
+    for (const auto& [ch, count] : sorted) {
+        std::cout << ch << " | ";
+        for (int i = 0; i < count; ++i) std::cout << '#';
+        std::cout << " (" << count << ")" << std::endl;
+    }
+}`,
+    hints: [
+      "What type does std::tolower return?",
+      "What happens when you store the return value of std::tolower in a char on a platform where char is signed?",
+      "Could the cast from int to char cause any issues for certain character values?",
+    ],
+    explanation: "std::tolower takes and returns int, not char. On platforms where char is signed, storing the return value of std::tolower() back into a char is fine for ASCII letters. However, calling std::isalpha(c) with a signed char that has a negative value (e.g., characters with codes > 127) is undefined behavior — std::isalpha requires a non-negative int or EOF. If the text contains any extended ASCII or UTF-8 bytes, the program has UB. The fix is to cast: `std::isalpha(static_cast<unsigned char>(c))`.",
+    manifestation: `$ g++ -std=c++17 -O2 histogram.cpp -o histogram && ./histogram
+l | ##### (5)
+o | ### (3)
+h | ## (2)
+e | ## (2)
+c | # (1)
+d | # (1)
+r | # (1)
+w | # (1)
+
+$ # Works for ASCII... try with extended characters:
+$ echo "café naïve" | ./histogram_stdin
+Segmentation fault (core dumped)
+
+$ # std::isalpha(negative_char) is undefined behavior`,
+    stdlibRefs: [
+      { name: "std::isalpha", args: "(int ch) → int", brief: "Checks if the given character is an alphabetic letter.", note: "The argument must be representable as unsigned char or equal to EOF; passing a negative signed char is undefined behavior.", link: "https://en.cppreference.com/w/cpp/string/byte/isalpha" },
+      { name: "std::tolower", args: "(int ch) → int", brief: "Converts the given character to lowercase if possible.", note: "Takes and returns int, not char. The argument must be representable as unsigned char or equal to EOF.", link: "https://en.cppreference.com/w/cpp/string/byte/tolower" },
+    ],
+  },
+  {
+    id: 151,
+    topic: "STL Containers",
+    difficulty: "Hard",
+    title: "Thread-Safe Queue",
+    description: "Implements a thread-safe producer-consumer queue using a std::queue with mutex protection.",
+    code: `#include <iostream>
+#include <queue>
+#include <thread>
+#include <mutex>
+#include <string>
+#include <vector>
+
+template <typename T>
+class SafeQueue {
+    std::queue<T> q;
+    std::mutex mtx;
+public:
+    void push(const T& val) {
+        std::lock_guard<std::mutex> lock(mtx);
+        q.push(val);
+    }
+
+    bool empty() {
+        std::lock_guard<std::mutex> lock(mtx);
+        return q.empty();
+    }
+
+    T pop() {
+        std::lock_guard<std::mutex> lock(mtx);
+        T val = q.front();
+        q.pop();
+        return val;
+    }
+};
+
+int main() {
+    SafeQueue<int> sq;
+    std::vector<int> results;
+    std::mutex results_mtx;
+
+    // Producer
+    std::thread producer([&sq]() {
+        for (int i = 0; i < 1000; ++i) {
+            sq.push(i);
+        }
+    });
+
+    // Consumer
+    std::thread consumer([&sq, &results, &results_mtx]() {
+        while (results.size() < 1000) {
+            if (!sq.empty()) {
+                int val = sq.pop();
+                std::lock_guard<std::mutex> lock(results_mtx);
+                results.push_back(val);
+            }
+        }
+    });
+
+    producer.join();
+    consumer.join();
+    std::cout << "Processed: " << results.size() << " items" << std::endl;
+}`,
+    hints: [
+      "Is the check-then-act pattern (empty() followed by pop()) safe with concurrent access?",
+      "What happens if the producer hasn't pushed anything yet when the consumer calls empty(), then pop()?",
+      "Can another thread modify the queue between the empty() check and the pop() call?",
+    ],
+    explanation: "The consumer checks `sq.empty()` and then calls `sq.pop()` as two separate operations. Between these calls, another thread could drain the queue, making pop() call front() on an empty queue — undefined behavior. This is a classic TOCTOU (time-of-check-time-of-use) race condition. Even though each individual method is mutex-protected, the combined check-then-act is not atomic. The fix is to provide a single `try_pop(T& out)` method that checks and pops under a single lock, returning false if the queue is empty.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=thread -g safeq.cpp -o safeq -pthread && ./safeq
+terminate called after throwing an instance of 'std::bad_alloc'
+Aborted (core dumped)
+
+$ # Or on another run:
+$ ./safeq
+Segmentation fault (core dumped)
+
+$ # front() called on empty queue — undefined behavior from TOCTOU race`,
+    stdlibRefs: [
+      { name: "std::queue::front", args: "() → reference", brief: "Returns a reference to the front element of the queue.", note: "Calling front() on an empty queue is undefined behavior — no bounds check is performed.", link: "https://en.cppreference.com/w/cpp/container/queue/front" },
+      { name: "std::lock_guard", args: "<Mutex>(Mutex& m)", brief: "RAII wrapper that locks a mutex on construction and unlocks on destruction.", note: "Protects only the scope of a single function call; two separately guarded calls are not atomic together.", link: "https://en.cppreference.com/w/cpp/thread/lock_guard" },
+    ],
+  },
+  {
+    id: 152,
+    topic: "STL Containers",
+    difficulty: "Hard",
+    title: "Graph Adjacency List",
+    description: "Represents a directed graph as an adjacency list and performs depth-first traversal to find all reachable nodes.",
+    code: `#include <iostream>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
+#include <string>
+
+class Graph {
+    std::unordered_map<std::string, std::vector<std::string>> adj;
+public:
+    void addEdge(const std::string& from, const std::string& to) {
+        adj[from].push_back(to);
+        adj[to];  // ensure 'to' node exists
+    }
+
+    std::vector<std::string> reachable(const std::string& start) {
+        std::unordered_set<std::string> visited;
+        std::vector<std::string> result;
+        dfs(start, visited, result);
+        return result;
+    }
+
+private:
+    void dfs(const std::string& node, std::unordered_set<std::string>& visited,
+             std::vector<std::string>& result) {
+        if (visited.count(node)) return;
+        visited.insert(node);
+        result.push_back(node);
+        for (const auto& neighbor : adj[node]) {
+            dfs(neighbor, visited, result);
+        }
+    }
+};
+
+int main() {
+    Graph g;
+    g.addEdge("A", "B");
+    g.addEdge("A", "C");
+    g.addEdge("B", "D");
+    g.addEdge("C", "D");
+    g.addEdge("D", "E");
+
+    auto nodes = g.reachable("A");
+    std::cout << "Reachable from A:";
+    for (const auto& n : nodes) std::cout << " " << n;
+    std::cout << std::endl;
+
+    // Try a node not in the graph
+    auto none = g.reachable("Z");
+    std::cout << "Reachable from Z:";
+    for (const auto& n : none) std::cout << " " << n;
+    std::cout << std::endl;
+}`,
+    hints: [
+      "What does adj[node] do when 'node' doesn't exist in the map?",
+      "Can the map be modified while iterating over another entry's neighbors in the recursive DFS?",
+      "Does inserting into an unordered_map invalidate existing references or iterators?",
+    ],
+    explanation: "In the dfs() function, `adj[node]` is used to access the neighbor list. When called with a node not in the map (like \"Z\"), operator[] inserts a new default-constructed entry. More critically, during the DFS, if a neighbor node doesn't have its own entry in adj, `adj[neighbor]` in the recursive call inserts a new element into the unordered_map. Inserting into an unordered_map can trigger a rehash, which invalidates all iterators — including the range-for iterator in the calling stack frame that's iterating over `adj[node]`. This is undefined behavior. The fix is to use adj.find() or adj.at() instead of operator[] in dfs(), or to use const-qualified access.",
+    manifestation: `$ g++ -std=c++17 -O2 graph.cpp -o graph && ./graph
+Reachable from A: A B D E C
+Reachable from Z: Z
+
+$ # Seems fine for small graphs. Add more edges:
+$ g++ -fsanitize=address -g graph_large.cpp -o graph && ./graph
+Reachable from A: A B D
+=================================================================
+==28341==ERROR: AddressSanitizer: heap-use-after-free on address 0x604000000190
+READ of size 32 at 0x604000000190 thread T0
+    #0 0x55d1a3 in Graph::dfs graph.cpp:27
+    #1 0x55d2b1 in Graph::dfs graph.cpp:28
+    #2 0x55d4f2 in main graph.cpp:36
+SUMMARY: AddressSanitizer: heap-use-after-free graph.cpp:27 in main`,
+    stdlibRefs: [
+      { name: "std::unordered_map::operator[]", args: "(const key_type& key) → mapped_type&", brief: "Returns a reference to the value mapped to key, inserting a default-constructed value if the key doesn't exist.", note: "Insertion may trigger a rehash, which invalidates all iterators to the map.", link: "https://en.cppreference.com/w/cpp/container/unordered_map/operator_at" },
+    ],
+  },
+  {
+    id: 153,
+    topic: "STL Containers",
+    difficulty: "Hard",
+    title: "Interval Scheduler",
+    description: "Given a list of time intervals, finds and removes all overlapping intervals, keeping only non-overlapping ones.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+
+struct Interval {
+    int start, end;
+};
+
+std::vector<Interval> removeOverlaps(std::vector<Interval> intervals) {
+    std::sort(intervals.begin(), intervals.end(),
+        [](const Interval& a, const Interval& b) {
+            return a.start < b.start;
+        });
+
+    std::vector<Interval> result;
+    result.push_back(intervals[0]);
+
+    for (size_t i = 1; i < intervals.size(); ++i) {
+        auto& last = result.back();
+        if (intervals[i].start >= last.end) {
+            result.push_back(intervals[i]);
+        } else {
+            // Overlapping: keep the one that ends earlier
+            last.end = std::min(last.end, intervals[i].end);
+        }
+    }
+
+    return result;
+}
+
+int main() {
+    std::vector<Interval> schedule = {
+        {1, 3}, {2, 5}, {6, 8}, {7, 9}, {10, 12}
+    };
+
+    auto clean = removeOverlaps(schedule);
+    std::cout << "Non-overlapping intervals:" << std::endl;
+    for (const auto& iv : clean) {
+        std::cout << "  [" << iv.start << ", " << iv.end << ")" << std::endl;
+    }
+
+    // What about an empty schedule?
+    std::vector<Interval> empty_sched;
+    auto result = removeOverlaps(empty_sched);
+}`,
+    hints: [
+      "What happens on the line `result.push_back(intervals[0])` when the input vector is empty?",
+      "Is the function ever called with an empty vector?",
+      "Does the function validate its input before accessing the first element?",
+    ],
+    explanation: "The function unconditionally accesses intervals[0] on line 16 without checking if the vector is empty. When called with an empty vector at the bottom of main(), this is an out-of-bounds access — undefined behavior. The sorted intervals vector is empty, so intervals[0] reads garbage from unallocated memory, and the Interval copied into result contains whatever was there. The fix is to add an early return: `if (intervals.empty()) return {};`.",
+    manifestation: `$ g++ -fsanitize=address -g scheduler.cpp -o scheduler && ./scheduler
+Non-overlapping intervals:
+  [1, 3)
+  [6, 8)
+  [10, 12)
+=================================================================
+==17652==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x602000000010
+READ of size 4 at 0x602000000010 thread T0
+    #0 0x55a1b3 in removeOverlaps(std::vector<Interval>) scheduler.cpp:16
+    #1 0x55a4f2 in main scheduler.cpp:38
+    #2 0x7f3c2a in __libc_start_main
+SUMMARY: AddressSanitizer: heap-buffer-overflow scheduler.cpp:16 in main`,
+    stdlibRefs: [
+      { name: "std::vector::operator[]", args: "(size_type pos) → reference", brief: "Returns a reference to the element at the given position without bounds checking.", note: "Accessing index 0 on an empty vector is undefined behavior — use at() for bounds-checked access or check empty() first.", link: "https://en.cppreference.com/w/cpp/container/vector/operator_at" },
+    ],
+  },
 ];
