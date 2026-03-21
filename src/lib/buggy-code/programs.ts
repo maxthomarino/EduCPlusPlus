@@ -18592,4 +18592,730 @@ Actual output:
   Bright: 24,24,24        ← 280 % 256 = 24 (dark instead of bright!)`,
     stdlibRefs: [],
   },
+
+  // ── Multithreading (batch 2) ──
+  {
+    id: 284,
+    topic: "Multithreading",
+    difficulty: "Easy",
+    title: "Thread Logger",
+    description: "Spawns multiple threads that each log messages to the console with their thread ID.",
+    code: `#include <iostream>
+#include <thread>
+#include <vector>
+#include <string>
+
+void logMessage(int id, const std::string& msg) {
+    std::cout << "[Thread " << id << "] " << msg << std::endl;
+}
+
+int main() {
+    std::vector<std::thread> threads;
+
+    for (int i = 0; i < 5; ++i) {
+        threads.emplace_back(logMessage, i, "Hello from thread");
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    std::cout << "All threads completed" << std::endl;
+}`,
+    hints: [
+      "Multiple threads are writing to `std::cout` simultaneously. Is `std::cout` thread-safe?",
+      "While individual `<<` operations are atomic with respect to the stream, what about chained `<<` calls?",
+      "Can the output from different threads interleave mid-line?",
+    ],
+    explanation: "Each call to `logMessage` chains multiple `<<` operations: `std::cout << \"[Thread \" << id << \"] \" << msg << std::endl`. While the C++ standard guarantees that individual `<<` calls won't corrupt the stream, it does NOT guarantee that a series of chained calls executes atomically. Two threads can interleave their `<<` calls, producing garbled output like `[Thread [Thread 01] ] Hello from threadHello from thread`. The fix is to either use a mutex to protect the entire print operation, build the string first and output it in a single `<<` call, or use `std::osyncstream` (C++20).",
+    manifestation: `$ g++ -std=c++17 -O2 logger.cpp -o logger -pthread && ./logger
+[Thread [Thread 1] Hello from thread0] Hello from thread
+[Thread 3] Hello from thread
+[Thread 2] [Thread Hello from thread4] Hello from thread
+
+All threads completed
+
+Expected output:
+  [Thread 0] Hello from thread
+  [Thread 1] Hello from thread
+  ... (each on its own line)
+Actual output:
+  Lines interleave because chained << is not atomic`,
+    stdlibRefs: [],
+  },
+  {
+    id: 285,
+    topic: "Multithreading",
+    difficulty: "Easy",
+    title: "Parallel Counter",
+    description: "Increments a shared counter from multiple threads to count total work completed.",
+    code: `#include <iostream>
+#include <thread>
+#include <vector>
+
+int counter = 0;
+
+void incrementMany(int times) {
+    for (int i = 0; i < times; ++i) {
+        ++counter;
+    }
+}
+
+int main() {
+    const int numThreads = 4;
+    const int perThread = 100000;
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < numThreads; ++i) {
+        threads.emplace_back(incrementMany, perThread);
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    std::cout << "Expected: " << numThreads * perThread << std::endl;
+    std::cout << "Actual: " << counter << std::endl;
+}`,
+    hints: [
+      "Is `++counter` an atomic operation?",
+      "What does `++counter` actually do at the hardware level?",
+      "When two threads read-modify-write the same variable simultaneously, what can happen?",
+    ],
+    explanation: "The `++counter` operation is not atomic — it involves reading the current value, incrementing it, and writing it back. When multiple threads execute this simultaneously, they can read the same value, both increment it to the same result, and both write back — effectively losing one increment. This is a classic data race, which is undefined behavior in C++. With 4 threads each doing 100000 increments, the result is typically less than 400000. The fix is to use `std::atomic<int> counter` or protect the increment with a `std::mutex`.",
+    manifestation: `$ g++ -std=c++17 -O2 counter.cpp -o counter -pthread && ./counter
+Expected: 400000
+Actual: 263847
+
+$ ./counter
+Expected: 400000
+Actual: 287123
+
+(result varies between runs due to data race — lost updates)
+
+$ g++ -fsanitize=thread counter.cpp -o counter -pthread && ./counter
+WARNING: ThreadSanitizer: data race (pid=18234)
+  Write of size 4 at 0x404060 by thread T2:
+    #0 incrementMany(int) counter.cpp:8
+  Previous write of size 4 at 0x404060 by thread T1:
+    #0 incrementMany(int) counter.cpp:8`,
+    stdlibRefs: [
+      { name: "std::atomic", brief: "Provides atomic operations on a value, ensuring thread-safe read-modify-write without explicit locking.", link: "https://en.cppreference.com/w/cpp/atomic/atomic" },
+    ],
+  },
+  {
+    id: 286,
+    topic: "Multithreading",
+    difficulty: "Medium",
+    title: "Double-Checked Lock",
+    description: "Implements lazy initialization of a singleton using the double-checked locking pattern.",
+    code: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <vector>
+
+class ExpensiveResource {
+    int value;
+public:
+    ExpensiveResource() : value(42) {
+        std::cout << "Resource created" << std::endl;
+    }
+    int get() const { return value; }
+};
+
+ExpensiveResource* resource = nullptr;
+std::mutex mtx;
+
+ExpensiveResource* getResource() {
+    if (resource == nullptr) {
+        std::lock_guard<std::mutex> lock(mtx);
+        if (resource == nullptr) {
+            resource = new ExpensiveResource();
+        }
+    }
+    return resource;
+}
+
+int main() {
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 10; ++i) {
+        threads.emplace_back([] {
+            auto* r = getResource();
+            std::cout << "Got: " << r->get() << std::endl;
+        });
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    delete resource;
+}`,
+    hints: [
+      "The first null check `if (resource == nullptr)` is outside the lock. What memory ordering guarantees does it have?",
+      "When one thread writes to `resource` inside the lock, can another thread see that write immediately in the first check?",
+      "Without proper memory ordering, can a thread see a non-null pointer before the pointed-to object is fully constructed?",
+    ],
+    explanation: "The double-checked locking pattern is broken without proper memory ordering. The first `if (resource == nullptr)` check is outside the lock and reads a shared pointer without synchronization — this is a data race. A thread can see a non-null `resource` pointer before the `ExpensiveResource` constructor has completed (the write to the pointer can be reordered before the writes inside the constructor). That thread would then use a partially-constructed object. The fix in C++11+ is to use `std::atomic<ExpensiveResource*>` with appropriate memory ordering, or simply use a function-local static: `static ExpensiveResource res; return &res;` which is guaranteed thread-safe.",
+    manifestation: `$ g++ -std=c++17 -O2 dclp.cpp -o dclp -pthread && ./dclp
+Resource created
+Got: 42
+Got: 42
+... (may appear to work)
+
+$ g++ -fsanitize=thread dclp.cpp -o dclp -pthread && ./dclp
+==================
+WARNING: ThreadSanitizer: data race (pid=22451)
+  Read of size 8 at 0x404060 by thread T3:
+    #0 getResource() dclp.cpp:19
+  Previous write of size 8 at 0x404060 by thread T1:
+    #0 getResource() dclp.cpp:22
+
+The first null-check reads 'resource' without synchronization.
+Thread may see non-null pointer before constructor completes.`,
+    stdlibRefs: [
+      { name: "std::mutex", brief: "Provides mutual exclusion synchronization primitive for protecting shared data.", link: "https://en.cppreference.com/w/cpp/thread/mutex" },
+    ],
+  },
+  {
+    id: 287,
+    topic: "Multithreading",
+    difficulty: "Medium",
+    title: "Deadlock Dinner",
+    description: "Two bank accounts transfer money between each other, each protected by its own mutex.",
+    code: `#include <iostream>
+#include <thread>
+#include <mutex>
+
+class Account {
+    double balance;
+    std::mutex mtx;
+    std::string name;
+
+public:
+    Account(std::string n, double b) : name(std::move(n)), balance(b) {}
+
+    void transfer(Account& to, double amount) {
+        std::lock_guard<std::mutex> lockFrom(this->mtx);
+        std::lock_guard<std::mutex> lockTo(to.mtx);
+
+        if (balance >= amount) {
+            balance -= amount;
+            to.balance += amount;
+            std::cout << name << " -> " << to.name << ": $" << amount << std::endl;
+        }
+    }
+
+    double getBalance() {
+        std::lock_guard<std::mutex> lock(mtx);
+        return balance;
+    }
+
+    const std::string& getName() const { return name; }
+};
+
+int main() {
+    Account alice("Alice", 1000);
+    Account bob("Bob", 1000);
+
+    std::thread t1([&] {
+        for (int i = 0; i < 100; ++i) {
+            alice.transfer(bob, 10);
+        }
+    });
+
+    std::thread t2([&] {
+        for (int i = 0; i < 100; ++i) {
+            bob.transfer(alice, 10);
+        }
+    });
+
+    t1.join();
+    t2.join();
+
+    std::cout << "Alice: $" << alice.getBalance() << std::endl;
+    std::cout << "Bob: $" << bob.getBalance() << std::endl;
+}`,
+    hints: [
+      "Thread 1 calls `alice.transfer(bob)` — it locks `alice.mtx` first, then `bob.mtx`.",
+      "Thread 2 calls `bob.transfer(alice)` — it locks `bob.mtx` first, then `alice.mtx`.",
+      "What happens when T1 holds alice.mtx and waits for bob.mtx, while T2 holds bob.mtx and waits for alice.mtx?",
+    ],
+    explanation: "This is a classic deadlock. Thread 1 locks `alice.mtx` then tries to lock `bob.mtx`. Thread 2 locks `bob.mtx` then tries to lock `alice.mtx`. If both threads acquire their first lock before either acquires their second, they deadlock — each waiting for a lock the other holds. The program hangs forever. The fix is to always lock mutexes in a consistent order (e.g., by address), or use `std::scoped_lock(this->mtx, to.mtx)` which uses a deadlock-avoidance algorithm.",
+    manifestation: `$ g++ -std=c++17 -O2 bank.cpp -o bank -pthread && ./bank
+Alice -> Bob: $10
+Bob -> Alice: $10
+Alice -> Bob: $10
+(program hangs — deadlock)
+
+^C  (must kill with Ctrl+C)
+
+Thread 1 holds alice.mtx, waiting for bob.mtx
+Thread 2 holds bob.mtx, waiting for alice.mtx
+→ circular wait = deadlock
+
+Fix: use std::scoped_lock(this->mtx, to.mtx) which avoids
+deadlock by locking both mutexes atomically.`,
+    stdlibRefs: [
+      { name: "std::scoped_lock", args: "<MutexTypes...>(MutexTypes&... m)", brief: "RAII lock that acquires multiple mutexes simultaneously using a deadlock-avoidance algorithm.", link: "https://en.cppreference.com/w/cpp/thread/scoped_lock" },
+    ],
+  },
+  {
+    id: 288,
+    topic: "Multithreading",
+    difficulty: "Medium",
+    title: "Future Collector",
+    description: "Launches parallel tasks with std::async and collects results using futures.",
+    code: `#include <iostream>
+#include <future>
+#include <vector>
+#include <numeric>
+#include <cmath>
+
+double heavyComputation(int n) {
+    double result = 0;
+    for (int i = 1; i <= n; ++i) {
+        result += std::sqrt(i) * std::log(i + 1);
+    }
+    return result;
+}
+
+int main() {
+    std::vector<std::future<double>> futures;
+
+    for (int i = 0; i < 8; ++i) {
+        futures.push_back(std::async(heavyComputation, (i + 1) * 100000));
+    }
+
+    double total = 0;
+    for (auto& f : futures) {
+        total += f.get();
+    }
+
+    std::cout << "Total: " << total << std::endl;
+
+    // Second round — reuse futures
+    for (int i = 0; i < 4; ++i) {
+        futures[i] = std::async(heavyComputation, (i + 1) * 50000);
+    }
+
+    double total2 = 0;
+    for (int i = 0; i < 4; ++i) {
+        total2 += futures[i].get();
+    }
+    std::cout << "Total2: " << total2 << std::endl;
+}`,
+    hints: [
+      "After calling `f.get()` on a future, what state is the future in?",
+      "Look at `std::async` — what launch policy is used? The default may be `std::launch::deferred`.",
+      "If `std::async` uses deferred launch, when does the computation actually run?",
+    ],
+    explanation: "The code has a subtle potential issue: `std::async` without an explicit launch policy uses `std::launch::async | std::launch::deferred`, allowing the implementation to choose deferred execution. With deferred launch, the computation only runs when `.get()` is called, making the 'parallel' tasks actually sequential. This is a performance bug, not a correctness bug. The code produces correct results either way, but may not achieve any parallelism. The fix is to explicitly specify `std::async(std::launch::async, heavyComputation, ...)` to guarantee parallel execution. The reuse of futures in the second round is correct — assigning a new future to `futures[i]` properly replaces the old (consumed) future.",
+    manifestation: `$ g++ -std=c++17 -O2 futures.cpp -o futures -pthread && time ./futures
+Total: 1.23456e+12
+Total2: 3.45678e+11
+
+real    0m2.145s  ← may be sequential if deferred!
+
+With std::launch::async:
+real    0m0.389s  ← actually parallel
+
+The default launch policy allows the implementation to
+run tasks lazily (deferred) instead of in parallel.
+Some implementations always use async, others may defer.`,
+    stdlibRefs: [
+      { name: "std::async", args: "(launch policy, Function&& f, Args&&... args) → future<result_of_t<F(Args...)>>", brief: "Runs a function asynchronously (potentially in a new thread) and returns a future for the result.", note: "Without an explicit launch policy, the implementation may use deferred execution (runs lazily on get()).", link: "https://en.cppreference.com/w/cpp/thread/async" },
+    ],
+  },
+  {
+    id: 289,
+    topic: "Multithreading",
+    difficulty: "Medium",
+    title: "Spin Lock",
+    description: "Implements a simple spinlock using atomic operations for low-latency synchronization.",
+    code: `#include <iostream>
+#include <thread>
+#include <atomic>
+#include <vector>
+
+class SpinLock {
+    std::atomic<bool> locked{false};
+
+public:
+    void lock() {
+        while (locked.exchange(true)) {
+            // spin
+        }
+    }
+
+    void unlock() {
+        locked = false;
+    }
+};
+
+SpinLock spinlock;
+int sharedData = 0;
+
+void worker(int iterations) {
+    for (int i = 0; i < iterations; ++i) {
+        spinlock.lock();
+        ++sharedData;
+        spinlock.unlock();
+    }
+}
+
+int main() {
+    const int numThreads = 4;
+    const int perThread = 100000;
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < numThreads; ++i) {
+        threads.emplace_back(worker, perThread);
+    }
+
+    for (auto& t : threads) {
+        t.join();
+    }
+
+    std::cout << "Expected: " << numThreads * perThread << std::endl;
+    std::cout << "Actual: " << sharedData << std::endl;
+}`,
+    hints: [
+      "The spinlock uses `exchange(true)` to acquire and `locked = false` to release. Are the memory orderings correct?",
+      "What memory ordering does `locked = false` use? Is `memory_order_seq_cst` (the default) appropriate for unlock?",
+      "The default memory ordering is `seq_cst` which is correct but potentially slower than needed. But is there a correctness issue?",
+    ],
+    explanation: "The spinlock is technically correct — `exchange(true)` with default `memory_order_seq_cst` provides acquire semantics, and `locked = false` (also seq_cst) provides release semantics. The data is properly synchronized. However, the spinlock wastes CPU cycles spinning without yielding. On a system with fewer hardware threads than software threads, this can cause severe performance degradation or even livelock (a spinning thread prevents the lock-holding thread from being scheduled). The fix for the spin loop is to add `std::this_thread::yield()` or use exponential backoff. But the code is functionally correct.",
+    manifestation: `$ g++ -std=c++17 -O2 spinlock.cpp -o spinlock -pthread && ./spinlock
+Expected: 400000
+Actual: 400000
+
+Output is correct. The spinlock works, but:
+- Burns CPU while spinning (100% core usage while waiting)
+- On oversubscribed systems (more threads than cores),
+  spinning threads can starve the lock holder
+- No fairness guarantee — threads can be starved indefinitely
+
+With many threads and few cores:
+$ time ./spinlock
+real    0m4.2s   ← much slower than mutex-based version (0.1s)
+(spinning threads prevent lock holder from being scheduled)`,
+    stdlibRefs: [
+      { name: "std::atomic::exchange", args: "(T desired, memory_order order = seq_cst) → T", brief: "Atomically replaces the value and returns the old value.", link: "https://en.cppreference.com/w/cpp/atomic/atomic/exchange" },
+    ],
+  },
+  {
+    id: 290,
+    topic: "Multithreading",
+    difficulty: "Hard",
+    title: "Lock-Free Stack",
+    description: "Implements a lock-free stack using compare-and-swap operations for high-performance concurrent access.",
+    code: `#include <iostream>
+#include <atomic>
+#include <thread>
+#include <vector>
+
+template <typename T>
+class LockFreeStack {
+    struct Node {
+        T data;
+        Node* next;
+        Node(const T& d) : data(d), next(nullptr) {}
+    };
+
+    std::atomic<Node*> head{nullptr};
+
+public:
+    void push(const T& value) {
+        Node* newNode = new Node(value);
+        newNode->next = head.load();
+        while (!head.compare_exchange_weak(newNode->next, newNode)) {
+            // CAS failed, newNode->next is updated to current head
+        }
+    }
+
+    bool pop(T& result) {
+        Node* oldHead = head.load();
+        while (oldHead && !head.compare_exchange_weak(oldHead, oldHead->next)) {
+            // retry
+        }
+        if (!oldHead) return false;
+        result = oldHead->data;
+        delete oldHead;
+        return true;
+    }
+};
+
+int main() {
+    LockFreeStack<int> stack;
+
+    std::vector<std::thread> pushers;
+    for (int i = 0; i < 4; ++i) {
+        pushers.emplace_back([&stack, i] {
+            for (int j = 0; j < 1000; ++j) {
+                stack.push(i * 1000 + j);
+            }
+        });
+    }
+
+    for (auto& t : pushers) t.join();
+
+    int count = 0;
+    int val;
+    while (stack.pop(val)) {
+        ++count;
+    }
+
+    std::cout << "Popped: " << count << std::endl;
+}`,
+    hints: [
+      "The pop operation reads `oldHead->next` inside the CAS. Is `oldHead` guaranteed to still be valid at that point?",
+      "Between loading `oldHead` and executing the CAS, another thread could pop `oldHead` and delete it.",
+      "This is the ABA problem variant: reading through a potentially-freed pointer is use-after-free.",
+    ],
+    explanation: "The `pop` method has a use-after-free bug. Between `oldHead = head.load()` and the `compare_exchange_weak(oldHead, oldHead->next)`, another thread could pop the same node and delete it. When the CAS reads `oldHead->next`, it dereferences a freed pointer — undefined behavior. Even if the CAS fails and retries, the initial read of `oldHead->next` has already happened through a dangling pointer. Additionally, there's the ABA problem: if between load and CAS, another thread pops A, pushes B, then pushes a new node at A's old address, the CAS succeeds with a corrupted next pointer. The fix requires hazard pointers, epoch-based reclamation, or using `shared_ptr` with atomic operations.",
+    manifestation: `$ g++ -std=c++17 -O2 -fsanitize=address lockfree.cpp -o lockfree -pthread && ./lockfree
+=================================================================
+==29105==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000018
+READ of size 8 at 0x602000000018 thread T2
+    #0 0x401c82 in LockFreeStack<int>::pop(int&) lockfree.cpp:26
+    #1 0x402345 in main::$_1::operator()()
+0x602000000018 is located 8 bytes inside of 16-byte region
+freed by thread T3 here:
+    #0 0x7f4e21 in operator delete(void*)
+    #1 0x401d98 in LockFreeStack<int>::pop(int&) lockfree.cpp:29
+SUMMARY: AddressSanitizer: heap-use-after-free lockfree.cpp:26`,
+    stdlibRefs: [
+      { name: "std::atomic::compare_exchange_weak", args: "(T& expected, T desired) → bool", brief: "Atomically compares the value with expected; if equal, replaces with desired and returns true; otherwise loads current into expected and returns false.", note: "May fail spuriously — use in a loop. Does not prevent ABA problem.", link: "https://en.cppreference.com/w/cpp/atomic/atomic/compare_exchange" },
+    ],
+  },
+  {
+    id: 291,
+    topic: "Multithreading",
+    difficulty: "Hard",
+    title: "Thread Pool Executor",
+    description: "Implements a thread pool that accepts and executes tasks from a shared work queue.",
+    code: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <functional>
+#include <vector>
+#include <atomic>
+
+class ThreadPool {
+    std::vector<std::thread> workers;
+    std::queue<std::function<void()>> tasks;
+    std::mutex mtx;
+    std::condition_variable cv;
+    bool stop = false;
+
+public:
+    ThreadPool(size_t numThreads) {
+        for (size_t i = 0; i < numThreads; ++i) {
+            workers.emplace_back([this] {
+                while (true) {
+                    std::function<void()> task;
+                    {
+                        std::unique_lock<std::mutex> lock(mtx);
+                        cv.wait(lock, [this] { return stop || !tasks.empty(); });
+                        if (stop && tasks.empty()) return;
+                        task = std::move(tasks.front());
+                        tasks.pop();
+                    }
+                    task();
+                }
+            });
+        }
+    }
+
+    void submit(std::function<void()> task) {
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            tasks.push(std::move(task));
+        }
+        cv.notify_one();
+    }
+
+    ~ThreadPool() {
+        stop = true;
+        cv.notify_all();
+        for (auto& w : workers) {
+            w.join();
+        }
+    }
+};
+
+int main() {
+    std::atomic<int> completed{0};
+
+    {
+        ThreadPool pool(4);
+
+        for (int i = 0; i < 20; ++i) {
+            pool.submit([&completed, i] {
+                // Simulate work
+                std::this_thread::sleep_for(std::chrono::milliseconds(10));
+                ++completed;
+            });
+        }
+    } // pool destructor joins threads
+
+    std::cout << "Completed: " << completed << std::endl;
+}`,
+    hints: [
+      "In the destructor, `stop = true` is written without holding the mutex. Is this a data race?",
+      "The `stop` flag is a plain `bool`, not `std::atomic<bool>`. Is writing it from the main thread while workers read it safe?",
+      "Even if `stop` were atomic, is there a timing issue between setting `stop` and calling `notify_all`?",
+    ],
+    explanation: "The `stop` flag is a plain `bool` that is written by the destructor thread (`stop = true`) and read by worker threads (`[this] { return stop || !tasks.empty(); }`) without synchronization. This is a data race and undefined behavior. The worker threads read `stop` inside the mutex (in the wait predicate), but the destructor writes `stop` outside the mutex. Even though the write happens-before `notify_all`, the worker's predicate could evaluate `stop` in a spurious wakeup before the write is visible. The fix is to either make `stop` an `std::atomic<bool>`, or set it under the lock: `{ std::lock_guard lock(mtx); stop = true; }`.",
+    manifestation: `$ g++ -std=c++17 -O2 -fsanitize=thread pool.cpp -o pool -pthread && ./pool
+==================
+WARNING: ThreadSanitizer: data race (pid=18234)
+  Write of size 1 at 0x7ffd4a200060 by main thread:
+    #0 ThreadPool::~ThreadPool() pool.cpp:40
+  Previous read of size 1 at 0x7ffd4a200060 by thread T1:
+    #0 ThreadPool::ThreadPool(unsigned long)::$_0::operator()()
+       pool.cpp:23
+
+Completed: 20
+(result may be correct despite the data race, but behavior
+is undefined — could miss notifications or see stale stop flag)`,
+    stdlibRefs: [
+      { name: "std::condition_variable::notify_all", args: "() → void", brief: "Wakes up all threads waiting on this condition variable.", note: "The associated predicate data should be modified under the same mutex to avoid races.", link: "https://en.cppreference.com/w/cpp/thread/condition_variable/notify_all" },
+    ],
+  },
+  {
+    id: 292,
+    topic: "Multithreading",
+    difficulty: "Hard",
+    title: "Read-Write Lock",
+    description: "Implements a reader-writer lock that allows multiple concurrent readers but exclusive writers.",
+    code: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <shared_mutex>
+#include <vector>
+#include <chrono>
+
+class SharedConfig {
+    std::map<std::string, int> data;
+    mutable std::shared_mutex rwMutex;
+
+public:
+    int read(const std::string& key) const {
+        std::shared_lock<std::shared_mutex> lock(rwMutex);
+        auto it = data.find(key);
+        return it != data.end() ? it->second : -1;
+    }
+
+    void write(const std::string& key, int value) {
+        std::unique_lock<std::shared_mutex> lock(rwMutex);
+        data[key] = value;
+    }
+
+    int readAndUpdate(const std::string& key, int increment) {
+        std::shared_lock<std::shared_mutex> readLock(rwMutex);
+        auto it = data.find(key);
+        int oldValue = it != data.end() ? it->second : 0;
+        readLock.unlock();
+
+        std::unique_lock<std::shared_mutex> writeLock(rwMutex);
+        data[key] = oldValue + increment;
+        return oldValue;
+    }
+};
+
+int main() {
+    SharedConfig config;
+    config.write("counter", 0);
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 10; ++i) {
+        threads.emplace_back([&config] {
+            for (int j = 0; j < 1000; ++j) {
+                config.readAndUpdate("counter", 1);
+            }
+        });
+    }
+
+    for (auto& t : threads) t.join();
+
+    std::cout << "Expected: 10000" << std::endl;
+    std::cout << "Actual: " << config.read("counter") << std::endl;
+}`,
+    hints: [
+      "Look at `readAndUpdate`. It reads under a shared lock, unlocks, then writes under an exclusive lock. Is this safe?",
+      "Between `readLock.unlock()` and acquiring `writeLock`, can another thread modify the data?",
+      "This is a classic TOCTOU (time-of-check-time-of-use) race condition.",
+    ],
+    explanation: "The `readAndUpdate` method has a TOCTOU race condition. It reads the current value under a shared lock, then releases the lock, then acquires an exclusive lock to write. Between releasing the read lock and acquiring the write lock, another thread can modify the value. Multiple threads can read the same `oldValue` and then all write `oldValue + 1`, effectively losing increments. For 10 threads doing 1000 increments each, the result will be less than 10000. The fix is to perform the entire read-modify-write under a single exclusive lock.",
+    manifestation: `$ g++ -std=c++17 -O2 rwlock.cpp -o rwlock -pthread && ./rwlock
+Expected: 10000
+Actual: 3847
+
+$ ./rwlock
+Expected: 10000
+Actual: 4123
+
+(result varies — TOCTOU race between unlock(shared) and
+lock(exclusive) allows lost updates)`,
+    stdlibRefs: [
+      { name: "std::shared_mutex", brief: "A mutex that supports both exclusive (writer) and shared (reader) locking modes.", link: "https://en.cppreference.com/w/cpp/thread/shared_mutex" },
+      { name: "std::shared_lock", args: "<Mutex>(Mutex& m)", brief: "RAII lock wrapper for shared (reader) access to a shared_mutex.", link: "https://en.cppreference.com/w/cpp/thread/shared_lock" },
+    ],
+  },
+  {
+    id: 293,
+    topic: "Multithreading",
+    difficulty: "Easy",
+    title: "Detached Thread",
+    description: "Launches a background worker thread that periodically logs status updates.",
+    code: `#include <iostream>
+#include <thread>
+#include <chrono>
+#include <string>
+
+void backgroundWorker(const std::string& name) {
+    for (int i = 0; i < 5; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::cout << name << ": tick " << i << std::endl;
+    }
+    std::cout << name << ": done" << std::endl;
+}
+
+int main() {
+    std::string taskName = "Monitor";
+    std::thread worker(backgroundWorker, taskName);
+    worker.detach();
+
+    std::cout << "Main: started background worker" << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    std::cout << "Main: exiting" << std::endl;
+}`,
+    hints: [
+      "What happens to a detached thread when `main()` returns?",
+      "The background worker runs for ~500ms total, but main exits after ~250ms.",
+      "When the main thread exits, does the program wait for detached threads to finish?",
+    ],
+    explanation: "When `main()` returns, `std::exit()` is called, which terminates the program. Detached threads are not joined — they are simply abandoned. If the background worker is still running when the main thread exits, the worker is killed mid-execution. This means the worker only prints ticks 0 and 1 before being terminated. Worse, if the thread is in the middle of writing to `std::cout`, the output can be corrupted. Unlike `join()`, `detach()` provides no guarantee about thread completion. The program has a race: it depends on timing between main's exit and the worker's progress.",
+    manifestation: `$ g++ -std=c++17 -O2 detach.cpp -o detach -pthread && ./detach
+Main: started background worker
+Monitor: tick 0
+Monitor: tick 1
+Main: exiting
+
+(worker was killed after main exited — ticks 2, 3, 4 and
+"done" message never printed)
+
+$ ./detach
+Main: started background worker
+Monitor: tick 0
+Main: exiting
+Monitor: ti    ← output corrupted, thread killed mid-write`,
+    stdlibRefs: [
+      { name: "std::thread::detach", args: "() → void", brief: "Separates the thread of execution from the thread object, allowing execution to continue independently.", note: "Detached threads are terminated when main() exits. There is no way to join or wait for them.", link: "https://en.cppreference.com/w/cpp/thread/thread/detach" },
+    ],
+  },
 ];
