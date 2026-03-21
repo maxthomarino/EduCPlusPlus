@@ -67,4 +67,58 @@ export const learningPaths: LearningPath[] = [
     description: "Multiple threads, one truth. Ten programs about what happens when concurrent code disagrees on reality.",
     programIds: [124, 125, 126, 127, 128, 130, 129, 131, 132, 133],
   },
+  {
+    id: "template-traps",
+    title: "Template Traps",
+    description: "Type deduction, SFINAE, and instantiation surprises — ten programs that compile but don't do what you expect.",
+    programIds: [8, 134, 135, 136, 137, 138, 139, 140, 141, 142],
+  },
+  {
+    id: "text-processing",
+    title: "Text Processing",
+    description: "Splitting, searching, encoding — ten programs where string handling goes subtly wrong.",
+    programIds: [234, 235, 236, 237, 238, 239, 240, 241, 242, 243],
+  },
+  {
+    id: "pointer-discipline",
+    title: "Pointer Discipline",
+    description: "Dangling pointers, null dereferences, and address confusion — ten programs that test your pointer intuition.",
+    programIds: [244, 245, 246, 247, 248, 249, 250, 251, 252, 253],
+  },
+  {
+    id: "silent-conversions",
+    title: "Silent Conversions",
+    description: "Narrowing, truncation, and sign confusion — ten programs where the compiler helpfully destroys your data.",
+    programIds: [254, 255, 256, 257, 258, 259, 260, 261, 262, 263],
+  },
+  {
+    id: "build-it-yourself",
+    title: "Build It Yourself",
+    description: "Stacks, trees, heaps, and graphs — ten hand-rolled data structures with bugs lurking in the logic.",
+    programIds: [264, 265, 266, 267, 268, 269, 270, 271, 272, 273],
+  },
+  {
+    id: "construction-zone",
+    title: "Construction Zone",
+    description: "Initialization order, brace semantics, and constructor delegation — ten programs where objects start life wrong.",
+    programIds: [274, 275, 276, 277, 278, 279, 280, 281, 282, 283],
+  },
+  {
+    id: "thread-hazards",
+    title: "Thread Hazards",
+    description: "Deadlocks, data races, and lock-free illusions — ten more concurrency programs that look correct until they aren't.",
+    programIds: [284, 285, 286, 287, 288, 289, 290, 291, 292, 293],
+  },
+  {
+    id: "memory-forensics",
+    title: "Memory Forensics",
+    description: "Leaks, dangling pointers, and double frees — ten programs that expose what happens when you manage memory by hand.",
+    programIds: [224, 225, 226, 227, 228, 229, 230, 231, 232, 233],
+  },
+  {
+    id: "fundamentals-gauntlet",
+    title: "Fundamentals Gauntlet",
+    description: "Integer division, switch fallthrough, and operator precedence — ten beginner-level programs with traps hiding in plain sight.",
+    programIds: [3, 10, 214, 215, 216, 217, 218, 219, 220, 221],
+  },
 ];
