@@ -32382,4 +32382,836 @@ real    0m0.228s
       { name: "std::async", args: "(std::launch policy, F&& f, Args&&... args) → future<result_of_t<F(Args...)>>", brief: "Runs a function asynchronously and returns a future holding the result.", note: "Calling .get() immediately after launch serializes the work. For a true pipeline, launch all independent stages before calling .get() on any of them.", link: "https://en.cppreference.com/w/cpp/thread/async" },
     ],
   },
+  {
+    id: 484,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Cooldown Button",
+    description: "Simulates a button that can only be pressed once every N seconds, rejecting presses during cooldown.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+
+class CooldownButton {
+    std::chrono::steady_clock::time_point last_press_;
+    int cooldown_sec_;
+    bool ever_pressed_ = false;
+
+public:
+    CooldownButton(int cooldown_sec)
+        : cooldown_sec_(cooldown_sec) {}
+
+    bool press() {
+        auto now = std::chrono::steady_clock::now();
+        if (!ever_pressed_) {
+            ever_pressed_ = true;
+            last_press_ = now;
+            return true;
+        }
+
+        auto elapsed = std::chrono::duration_cast<
+            std::chrono::seconds>(now - last_press_);
+
+        if (elapsed.count() > cooldown_sec_) {
+            last_press_ = now;
+            return true;
+        }
+        return false;
+    }
+};
+
+int main() {
+    CooldownButton btn(2);
+
+    for (int i = 0; i < 8; ++i) {
+        bool ok = btn.press();
+        std::cout << "t=" << i << "s: "
+                  << (ok ? "PRESSED" : "cooldown")
+                  << std::endl;
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Look at the cooldown check: elapsed.count() > cooldown_sec_. What does duration_cast<seconds> do to sub-second durations?",
+      "With a 2-second cooldown, when is the next press allowed? After exactly 2 seconds, or after more than 2 seconds?",
+      "The comparison uses > (strict greater than). A press at exactly 2.0 seconds has elapsed.count()=2, and 2 > 2 is false. The button requires MORE than 2 seconds, effectively making the cooldown ~3 seconds due to integer truncation.",
+    ],
+    explanation: "Two compounding issues: (1) duration_cast<seconds> truncates, so 2.9 seconds becomes 2. (2) The comparison uses > instead of >=. Together, a 2-second cooldown actually requires 3+ seconds before elapsed.count() > 2 is true. At t=2, elapsed=2s, 2>2 is false. At t=3 (with sleep jitter), elapsed might be 2.99s, truncated to 2, still false. The effective cooldown is ~3 seconds instead of 2. The fix: use >= and/or floating-point durations.",
+    manifestation: `$ g++ -std=c++17 -Wall button.cpp -o button -lpthread && ./button
+t=0s: PRESSED
+t=1s: cooldown
+t=2s: cooldown
+t=3s: PRESSED
+t=4s: cooldown
+t=5s: cooldown
+t=6s: PRESSED
+t=7s: cooldown
+
+(With a 2s cooldown, pressing should be allowed at t=2s, but it's
+ rejected. The next press isn't accepted until t=3s due to integer
+ truncation and strict > comparison. Effective cooldown is 3 seconds.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 485,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Timed Quiz",
+    description: "Asks the user a series of questions and times the total duration, penalizing slow answers.",
+    code: `#include <iostream>
+#include <chrono>
+#include <string>
+#include <vector>
+
+struct Question {
+    std::string text;
+    int answer;
+};
+
+int main() {
+    std::vector<Question> quiz = {
+        {"What is 7 * 8? ", 56},
+        {"What is 12 + 15? ", 27},
+        {"What is 100 - 37? ", 63},
+    };
+
+    int score = 0;
+    auto start = std::chrono::steady_clock::now();
+
+    for (auto& q : quiz) {
+        std::cout << q.text;
+        int response;
+        std::cin >> response;
+
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<
+            std::chrono::seconds>(now - start).count();
+
+        if (response == q.answer) {
+            int points = std::max(1, 10 - static_cast<int>(elapsed));
+            score += points;
+            std::cout << "Correct! +" << points
+                      << " points" << std::endl;
+        } else {
+            std::cout << "Wrong! Answer was " << q.answer
+                      << std::endl;
+        }
+    }
+
+    std::cout << "Final score: " << score << "/" << 30 << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The point calculation uses elapsed time from the quiz start. Does each question get its own timer?",
+      "elapsed is measured from the very start of the quiz, not from when each question was asked.",
+      "By question 3, elapsed might be 15+ seconds even if the user answers each question in 2 seconds. Points = max(1, 10-15) = 1. Later questions always get fewer points regardless of answer speed.",
+    ],
+    explanation: "The elapsed time is measured from the start of the entire quiz, not from when each individual question was displayed. By the third question, even if the user answers instantly, elapsed might be 10+ seconds (from answering previous questions). Points = max(1, 10-10) = 1. Later questions almost always score 1 point regardless of answer speed. The fix: reset the timer before each question: start = std::chrono::steady_clock::now() before each question.",
+    manifestation: `$ g++ -std=c++17 -Wall quiz.cpp -o quiz && ./quiz
+What is 7 * 8? 56
+Correct! +7 points     (answered in ~3s from quiz start)
+What is 12 + 15? 27
+Correct! +3 points     (elapsed=7s from start, despite fast answer)
+What is 100 - 37? 63
+Correct! +1 points     (elapsed=11s from start, always minimum)
+Final score: 11/30
+
+(Question 3 gets only 1 point despite being answered instantly because
+ elapsed time is cumulative from the quiz start. Each question should
+ have its own timer.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 486,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Connection Pool Monitor",
+    description: "Monitors connection pool utilization over time and raises alerts when connections are held too long.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <vector>
+#include <string>
+#include <map>
+
+class PoolMonitor {
+    struct Connection {
+        std::chrono::steady_clock::time_point acquired;
+        std::string owner;
+    };
+
+    std::map<int, Connection> active_;
+    std::chrono::seconds max_hold_time_;
+    int next_id_ = 0;
+
+public:
+    PoolMonitor(int max_hold_sec)
+        : max_hold_time_(max_hold_sec) {}
+
+    int acquire(const std::string& owner) {
+        int id = next_id_++;
+        active_[id] = {std::chrono::steady_clock::now(), owner};
+        return id;
+    }
+
+    void release(int id) {
+        active_.erase(id);
+    }
+
+    void check_violations() {
+        auto now = std::chrono::steady_clock::now();
+        for (const auto& [id, conn] : active_) {
+            auto held = std::chrono::duration_cast<
+                std::chrono::seconds>(now - conn.acquired);
+            if (held > max_hold_time_) {
+                std::cout << "ALERT: Connection " << id
+                          << " held by '" << conn.owner
+                          << "' for " << held.count()
+                          << "s (max: " << max_hold_time_.count()
+                          << "s)" << std::endl;
+            }
+        }
+    }
+
+    size_t active_count() const { return active_.size(); }
+};
+
+int main() {
+    PoolMonitor monitor(5);
+
+    int c1 = monitor.acquire("service_a");
+    int c2 = monitor.acquire("service_b");
+    int c3 = monitor.acquire("service_c");
+
+    std::cout << "Active: " << monitor.active_count() << std::endl;
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    monitor.release(c1);
+
+    std::this_thread::sleep_for(std::chrono::seconds(4));
+    monitor.check_violations();
+
+    std::cout << "Active: " << monitor.active_count() << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "After sleeping 3s, c1 is released. After another 4s, check_violations runs. How old are c2 and c3?",
+      "c2 and c3 were acquired at t=0. At t=7, they've been held for 7 seconds. The max is 5. Both should trigger alerts.",
+      "The code looks correct for this case. But what if check_violations() is called from another thread while acquire/release are modifying the map? The map is not thread-safe.",
+    ],
+    explanation: "The PoolMonitor has no synchronization. If check_violations() runs on a monitoring thread while another thread calls acquire() or release(), the concurrent access to the std::map is a data race (undefined behavior). Even in this single-threaded example, the design encourages multi-threaded use (monitoring thread + worker threads) without any mutex protection. The alerts for c2 and c3 are correct, but in production, a concurrent release during iteration would crash. The fix: add a std::mutex and lock it in acquire(), release(), and check_violations().",
+    manifestation: `$ g++ -std=c++17 -Wall pool.cpp -o pool -lpthread && ./pool
+Active: 3
+ALERT: Connection 1 held by 'service_b' for 7s (max: 5s)
+ALERT: Connection 2 held by 'service_c' for 7s (max: 5s)
+Active: 2
+
+(Single-threaded output is correct. But the class is designed for
+ multi-threaded use — acquire/release from worker threads,
+ check_violations from a monitor thread — without any mutex.
+ Concurrent access to std::map is undefined behavior.)`,
+    stdlibRefs: [
+      { name: "std::map", brief: "Sorted associative container that stores key-value pairs with unique keys.", note: "Not thread-safe. Concurrent modification (insert/erase) from multiple threads requires external synchronization (e.g., std::mutex).", link: "https://en.cppreference.com/w/cpp/container/map" },
+    ],
+  },
+  {
+    id: 487,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Time Window Aggregator",
+    description: "Aggregates numeric values within fixed time windows and reports per-window statistics.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <vector>
+#include <random>
+
+class WindowAggregator {
+    std::chrono::milliseconds window_size_;
+    std::chrono::steady_clock::time_point window_start_;
+    double sum_ = 0;
+    int count_ = 0;
+    int window_num_ = 0;
+
+public:
+    WindowAggregator(int window_ms)
+        : window_size_(window_ms)
+        , window_start_(std::chrono::steady_clock::now()) {}
+
+    void add(double value) {
+        auto now = std::chrono::steady_clock::now();
+        if (now - window_start_ >= window_size_) {
+            flush();
+            window_start_ += window_size_;
+        }
+        sum_ += value;
+        ++count_;
+    }
+
+    void flush() {
+        if (count_ > 0) {
+            ++window_num_;
+            std::cout << "Window " << window_num_
+                      << ": avg=" << (sum_ / count_)
+                      << " count=" << count_ << std::endl;
+        }
+        sum_ = 0;
+        count_ = 0;
+    }
+};
+
+int main() {
+    WindowAggregator agg(500);
+    std::mt19937 gen(42);
+    std::uniform_real_distribution<> dist(0, 100);
+
+    for (int i = 0; i < 200; ++i) {
+        agg.add(dist(gen));
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    }
+    agg.flush();
+
+    return 0;
+}`,
+    hints: [
+      "When a new value triggers a window flush, does the value go into the old window or the new window?",
+      "The flush happens, then sum_ and count_ are reset, then the new value is added. So the value that triggered the flush goes into the NEW window.",
+      "The first value that exceeds the window boundary is counted in the next window, not the current one. This means the last value of each window is 'stolen' by the next window. Over many windows, each window has one fewer sample than expected.",
+    ],
+    explanation: "When add() detects the window has elapsed, it flushes the current window BEFORE adding the new value. The triggering value goes into the NEXT window. This means: (1) the current window loses its last sample, (2) the next window starts with an extra sample that temporally belonged to the previous window, and (3) if the window check isn't triggered for a while (no add() calls), stale data accumulates in the current window. The fix: add the value first, then check if the window needs flushing — or split the value into the correct window based on its timestamp.",
+    manifestation: `$ g++ -std=c++17 -Wall window.cpp -o window -lpthread && ./window
+Window 1: avg=49.23 count=24
+Window 2: avg=51.02 count=25
+Window 3: avg=48.91 count=25
+Window 4: avg=50.44 count=25
+...
+
+(Window 1 has 24 samples instead of 25 because the 25th sample
+ triggered the flush and was counted in Window 2. Each subsequent
+ window inherits one sample from the previous window's time range,
+ subtly shifting the window boundaries.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 488,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Priority Scheduler",
+    description: "A simple priority-based task scheduler that runs tasks at their scheduled times, favoring higher-priority tasks.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <queue>
+#include <functional>
+#include <string>
+
+struct Task {
+    std::chrono::steady_clock::time_point run_at;
+    int priority;
+    std::string name;
+
+    bool operator>(const Task& other) const {
+        if (run_at != other.run_at) return run_at > other.run_at;
+        return priority > other.priority;
+    }
+};
+
+class Scheduler {
+    std::priority_queue<Task, std::vector<Task>,
+                        std::greater<Task>> queue_;
+
+public:
+    void schedule(const std::string& name, int priority,
+                  std::chrono::milliseconds delay) {
+        queue_.push({
+            std::chrono::steady_clock::now() + delay,
+            priority,
+            name
+        });
+    }
+
+    void run() {
+        while (!queue_.empty()) {
+            auto task = queue_.top();
+            queue_.pop();
+
+            auto now = std::chrono::steady_clock::now();
+            if (task.run_at > now) {
+                std::this_thread::sleep_until(task.run_at);
+            }
+
+            auto actual = std::chrono::steady_clock::now();
+            auto delay = std::chrono::duration_cast<
+                std::chrono::milliseconds>(actual - task.run_at);
+
+            std::cout << "Running '" << task.name
+                      << "' (pri=" << task.priority
+                      << ", late=" << delay.count() << "ms)"
+                      << std::endl;
+        }
+    }
+};
+
+int main() {
+    Scheduler sched;
+
+    sched.schedule("low_priority", 10, std::chrono::milliseconds(100));
+    sched.schedule("high_priority", 1, std::chrono::milliseconds(100));
+    sched.schedule("medium_priority", 5, std::chrono::milliseconds(100));
+    sched.schedule("urgent", 1, std::chrono::milliseconds(50));
+
+    sched.run();
+
+    return 0;
+}`,
+    hints: [
+      "The priority_queue uses std::greater<Task>, which pops the smallest element first. How is 'smallest' defined by operator>?",
+      "The comparison first orders by run_at (earlier first), then by priority. But the operator> compares priority with >, meaning higher numbers are 'greater'.",
+      "For two tasks at the same time, priority > other.priority means higher priority numbers are 'greater'. With std::greater and min-heap behavior, 'greater' elements come LAST. So priority=10 (low) comes before priority=1 (high).",
+    ],
+    explanation: "The priority ordering is inverted for same-time tasks. operator> returns true when priority > other.priority, making higher-numbered priorities 'greater'. With std::greater<Task> (min-heap), the 'least' element is popped first. For tasks at the same time, the one with the LOWEST priority number is 'least' (not greater), so it runs first. Since 1 = high priority, this accidentally works correctly IF the convention is 'lower number = higher priority'. But the naming says priority=10 is 'low_priority' and priority=1 is 'high_priority', which matches Unix nice values (lower = higher priority). So the code is accidentally correct for this convention. The actual bug: run_at comparison using != with time_points — due to nanosecond precision, two tasks scheduled at 'the same time' from sequential now() + delay calls have DIFFERENT run_at values. The priority tiebreaker never activates because run_at values are never exactly equal.",
+    manifestation: `$ g++ -std=c++17 -Wall scheduler.cpp -o scheduler -lpthread && ./scheduler
+Running 'urgent' (pri=1, late=0ms)
+Running 'low_priority' (pri=10, late=0ms)
+Running 'high_priority' (pri=1, late=0ms)
+Running 'medium_priority' (pri=5, late=0ms)
+
+(The three 100ms tasks run in order: low(10), high(1), medium(5)
+ instead of high(1), medium(5), low(10). The priority tiebreaker never
+ activates because each task's run_at differs by nanoseconds due to
+ sequential calls to steady_clock::now(). Tasks are ordered purely
+ by insertion order's effect on run_at, ignoring priority.)`,
+    stdlibRefs: [
+      { name: "std::priority_queue", brief: "Container adapter that provides constant-time access to the largest (or smallest with std::greater) element.", note: "Ordering depends on the comparator. With nanosecond-precision time_points, two 'simultaneous' events are almost never truly equal, so tiebreaker logic may never execute.", link: "https://en.cppreference.com/w/cpp/container/priority_queue" },
+    ],
+  },
+  {
+    id: 489,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Simple Metronome",
+    description: "Produces a tick sound at regular intervals, like a metronome set to a specific BPM.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main() {
+    int bpm = 120;
+    int beats = 16;
+
+    double interval_sec = 1.0 / (bpm / 60);
+    auto interval = std::chrono::duration<double>(interval_sec);
+
+    std::cout << "Metronome: " << bpm << " BPM" << std::endl;
+    std::cout << "Interval: " << interval_sec << "s" << std::endl;
+
+    auto start = std::chrono::steady_clock::now();
+
+    for (int i = 0; i < beats; ++i) {
+        std::cout << "TICK " << (i + 1) << std::endl;
+        std::this_thread::sleep_for(interval);
+    }
+
+    auto end = std::chrono::steady_clock::now();
+    double total = std::chrono::duration<double>(end - start).count();
+    std::cout << "Total: " << total << "s (expected: "
+              << beats * interval_sec << "s)" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at the interval calculation: 1.0 / (bpm / 60). What are the types in bpm / 60?",
+      "bpm is int and 60 is int. What is 120 / 60 in integer arithmetic?",
+      "120 / 60 = 2 (integer division). Then 1.0 / 2 = 0.5 seconds. That's correct for 120 BPM. But what about 100 BPM? 100 / 60 = 1 (truncated), then 1.0 / 1 = 1.0 second = 60 BPM.",
+    ],
+    explanation: "bpm / 60 uses integer division, which truncates. For 120 BPM: 120/60=2, interval=0.5s — correct. But for non-multiples of 60: 100 BPM gives 100/60=1, interval=1.0s (60 BPM). 90 BPM gives 90/60=1, interval=1.0s (also 60 BPM). Any BPM from 60-119 produces the same 1.0s interval. The fix: use 60.0 to force floating-point division: 1.0 / (bpm / 60.0).",
+    manifestation: `$ g++ -std=c++17 -Wall metro.cpp -o metro -lpthread && ./metro
+Metronome: 120 BPM
+Interval: 0.5s
+TICK 1
+...
+TICK 16
+Total: 8.01s (expected: 8s)
+
+(Works correctly for 120 BPM since 120/60=2 exactly. But changing
+ bpm to 100: 100/60=1, interval=1.0s instead of 0.6s. The metronome
+ plays at 60 BPM regardless of any setting between 60-119.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 490,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Rate-Limited API Client",
+    description: "Makes API calls at a controlled rate, ensuring no more than N calls per second to respect rate limits.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <deque>
+
+class RateLimiter {
+    int max_calls_;
+    std::chrono::seconds window_;
+    std::deque<std::chrono::steady_clock::time_point> call_times_;
+
+public:
+    RateLimiter(int max_calls, int window_sec = 1)
+        : max_calls_(max_calls), window_(window_sec) {}
+
+    void wait_for_slot() {
+        while (true) {
+            auto now = std::chrono::steady_clock::now();
+
+            while (!call_times_.empty() &&
+                   now - call_times_.front() > window_) {
+                call_times_.pop_front();
+            }
+
+            if (call_times_.size() < max_calls_) {
+                call_times_.push_back(now);
+                return;
+            }
+
+            auto oldest = call_times_.front();
+            auto wait = window_ - (now - oldest);
+            std::this_thread::sleep_for(wait);
+        }
+    }
+};
+
+int make_api_call(int id) {
+    std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    return id * 2;
+}
+
+int main() {
+    RateLimiter limiter(5);
+    auto start = std::chrono::steady_clock::now();
+
+    for (int i = 0; i < 15; ++i) {
+        limiter.wait_for_slot();
+        int result = make_api_call(i);
+        std::cout << "Call " << i << ": result=" << result << std::endl;
+    }
+
+    auto elapsed = std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - start).count();
+    std::cout << "Total: " << elapsed << "s for 15 calls"
+              << " (limit: 5/s)" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The comparison call_times_.size() < max_calls_ compares size_t with int. Is that safe?",
+      "size() returns size_t (unsigned). max_calls_ is int. If max_calls_ were negative (a bug), the unsigned comparison would treat it as a huge positive number.",
+      "The actual timing bug: after the first burst of 5 calls, the rate limiter sleeps for the full window (1 second). But the call_times include the time spent making each API call (10ms). After the sleep, only calls older than 1 second are pruned. Due to the 10ms per call, the 5th call was made at ~50ms, so after sleeping 1 second from the oldest call, 4 calls are still within the window. Only 1 new call is allowed instead of 5.",
+    ],
+    explanation: "The rate limiter records the time of each allowed call in call_times_. After the first burst of 5 calls (taking ~50ms total), it waits until the oldest call is >1s old. But when it wakes, it prunes only calls older than 1s. Since calls were spread over 50ms, only the oldest 1-2 are prunable. The limiter allows only 1-2 new calls, then waits again. Instead of allowing 5 calls per second in bursts, it degrades to ~5 calls per second but with poor burst behavior and unnecessary sleeps. The timestamp should reflect when the call slot was reserved, not accounting for API latency.",
+    manifestation: `$ g++ -std=c++17 -Wall rate_api.cpp -o rate_api -lpthread && ./rate_api
+Call 0: result=0
+Call 1: result=2
+Call 2: result=4
+Call 3: result=6
+Call 4: result=8
+(pauses ~1 second)
+Call 5: result=10
+Call 6: result=12
+(pauses ~1 second)
+Call 7: result=14
+Call 8: result=16
+(pauses ~1 second)
+...
+Total: 5.2s for 15 calls (limit: 5/s)
+
+(After the initial burst of 5, subsequent windows only allow 2 calls
+ before blocking because the 50ms of API call time spreads the
+ timestamps across the window, preventing full pruning.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 491,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Timestamp Ordering Validator",
+    description: "Validates that a sequence of timestamps from a log file is strictly monotonically increasing.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <sstream>
+#include <iomanip>
+#include <chrono>
+#include <ctime>
+
+struct LogLine {
+    std::string timestamp;
+    std::string message;
+};
+
+time_t parse_timestamp(const std::string& ts) {
+    std::tm tm = {};
+    std::istringstream iss(ts);
+    iss >> std::get_time(&tm, "%Y-%m-%d %H:%M:%S");
+    tm.tm_isdst = -1;
+    return mktime(&tm);
+}
+
+bool validate_ordering(const std::vector<LogLine>& logs) {
+    bool valid = true;
+    for (size_t i = 1; i < logs.size(); ++i) {
+        time_t prev = parse_timestamp(logs[i-1].timestamp);
+        time_t curr = parse_timestamp(logs[i].timestamp);
+
+        if (curr <= prev) {
+            std::cout << "ORDER VIOLATION at line " << (i + 1)
+                      << ": " << logs[i].timestamp
+                      << " <= " << logs[i-1].timestamp << std::endl;
+            valid = false;
+        }
+    }
+    return valid;
+}
+
+int main() {
+    std::vector<LogLine> logs = {
+        {"2026-03-22 01:30:00", "System start"},
+        {"2026-03-22 01:45:00", "Service up"},
+        {"2026-03-22 02:00:00", "Health check OK"},
+        {"2026-03-22 02:15:00", "Backup started"},
+        {"2026-03-22 02:30:00", "Backup complete"},
+        {"2026-03-22 03:00:00", "Traffic spike"},
+    };
+
+    if (validate_ordering(logs)) {
+        std::cout << "All timestamps in order." << std::endl;
+    } else {
+        std::cout << "Ordering violations found!" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "The timestamps are all on 2026-03-22. What happens on that date in many US time zones?",
+      "March 22 is after the spring DST transition (second Sunday of March in the US, March 8, 2026). But 2:00 AM doesn't exist on the transition date.",
+      "Actually, these timestamps are on March 22, well after the DST transition. The real issue: mktime with tm_isdst=-1 lets the library guess DST. For timestamps near DST boundaries (like November fall-back), the same wall-clock time can map to two different time_t values. The validator would flag a false ordering violation.",
+    ],
+    explanation: "parse_timestamp uses mktime with tm_isdst=-1, letting the C library guess DST. This works fine for dates well away from DST transitions. But during the fall-back transition (e.g., November 1, 2026 at 2:00 AM), 1:30 AM occurs twice — once in EDT and once in EST. mktime's guess is implementation-defined: it might map both to the same time_t or to different ones. A log that correctly records the second 1:30 AM (after fall-back) after the first 1:30 AM (before fall-back) could appear out of order if mktime maps both to the same time_t, or could appear correct if it guesses right. The validator gives unpredictable results for DST-ambiguous timestamps. This example passes, but the code is fragile.",
+    manifestation: `$ TZ=America/New_York g++ -std=c++17 -Wall validator.cpp -o validator && TZ=America/New_York ./validator
+All timestamps in order.
+
+$ # But with November fall-back timestamps:
+$ # {"2026-11-01 01:30:00", "Before fall-back"},
+$ # {"2026-11-01 01:30:00", "After fall-back"},
+$ # mktime maps both to the same time_t, so curr <= prev triggers
+$ # a false ORDER VIOLATION even though the second entry is later
+
+(This example passes, but the validator is unreliable near DST
+ transitions. mktime with tm_isdst=-1 can't distinguish the two
+ 1:30 AMs during fall-back, causing false violations or missed ones.)`,
+    stdlibRefs: [
+      { name: "std::mktime", args: "(std::tm* time) → time_t", brief: "Converts a tm struct (interpreted as local calendar time) to time_t.", note: "With tm_isdst=-1, the library guesses DST. During fall-back, the ambiguous hour maps unpredictably. Log timestamps in UTC or include explicit UTC offset to avoid this.", link: "https://en.cppreference.com/w/cpp/chrono/c/mktime" },
+    ],
+  },
+  {
+    id: 492,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Timeout Multiplexer",
+    description: "Waits for multiple conditions simultaneously with independent timeouts and returns which conditions were met.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <vector>
+#include <string>
+#include <functional>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
+
+struct WaitResult {
+    std::string name;
+    bool completed;
+    double elapsed_ms;
+};
+
+class TimeoutMultiplexer {
+    struct Waiter {
+        std::string name;
+        std::chrono::milliseconds timeout;
+        std::function<bool()> predicate;
+    };
+
+    std::vector<Waiter> waiters_;
+    std::mutex mtx_;
+    std::condition_variable cv_;
+
+public:
+    void add(const std::string& name,
+             std::chrono::milliseconds timeout,
+             std::function<bool()> pred) {
+        waiters_.push_back({name, timeout, pred});
+    }
+
+    std::vector<WaitResult> wait_all() {
+        std::vector<WaitResult> results;
+
+        for (auto& w : waiters_) {
+            auto start = std::chrono::steady_clock::now();
+            std::unique_lock<std::mutex> lock(mtx_);
+
+            bool done = cv_.wait_for(lock, w.timeout,
+                                      w.predicate);
+
+            auto elapsed = std::chrono::duration<double, std::milli>(
+                std::chrono::steady_clock::now() - start).count();
+
+            results.push_back({w.name, done, elapsed});
+        }
+
+        return results;
+    }
+};
+
+int main() {
+    std::atomic<bool> data_ready{false};
+    std::atomic<bool> conn_ready{false};
+
+    TimeoutMultiplexer mux;
+    mux.add("data", std::chrono::milliseconds(200),
+            [&]{ return data_ready.load(); });
+    mux.add("connection", std::chrono::milliseconds(500),
+            [&]{ return conn_ready.load(); });
+
+    std::thread producer([&]{
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        data_ready = true;
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        conn_ready = true;
+    });
+
+    auto results = mux.wait_all();
+    producer.join();
+
+    for (const auto& r : results) {
+        std::cout << r.name << ": "
+                  << (r.completed ? "OK" : "TIMEOUT")
+                  << " (" << r.elapsed_ms << "ms)" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "The wait_all method iterates through waiters sequentially. What happens to the second waiter's timeout budget?",
+      "If the first waiter uses its full 200ms timeout, the second waiter starts 200ms late. Its 500ms timeout starts from that point, making the total possible wait 700ms.",
+      "Worse: the condition_variable is never notified (no cv_.notify call in the producer). The predicates are only checked on spurious wakeups or timeout. wait_for with a predicate checks the predicate before blocking and on each wake, but without notification, it only checks at the timeout boundary.",
+    ],
+    explanation: "Two bugs: (1) Sequential waiting: the waiters are processed one after another. The second waiter's timeout starts only after the first waiter completes or times out. If 'data' uses its full 200ms, 'connection' doesn't start checking until 200ms in — but conn_ready is set at 150ms, well before the check begins. (2) The condition_variable is never notified (cv_.notify_one/all is never called). Without notification, wait_for only checks the predicate initially and at timeout expiry, not when the condition actually becomes true. Both bugs mean conditions may be met but not detected until much later or until timeout.",
+    manifestation: `$ g++ -std=c++17 -Wall mux.cpp -o mux -lpthread && ./mux
+data: TIMEOUT (200.1ms)
+connection: OK (0.02ms)
+
+(data times out despite data_ready being set at 100ms because the cv
+ is never notified — wait_for only checks at timeout expiry.
+ connection shows OK instantly because by the time it's checked (after
+ 200ms), conn_ready was set at 150ms. But it reports 0.02ms elapsed
+ because it was already true when checked.)`,
+    stdlibRefs: [
+      { name: "std::condition_variable::wait_for", args: "(lock, duration, predicate) → bool", brief: "Waits until predicate returns true, a notification occurs, or the timeout expires.", note: "Without notify_one/notify_all calls, the predicate is only checked at entry and after spurious wakeups or timeout. The condition variable must be notified when the predicate's state changes.", link: "https://en.cppreference.com/w/cpp/thread/condition_variable/wait_for" },
+    ],
+  },
+  {
+    id: 493,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Polling Interval Calculator",
+    description: "Dynamically adjusts a polling interval based on whether data is available, backing off when idle.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <random>
+
+class AdaptivePoller {
+    int current_ms_;
+    int min_ms_;
+    int max_ms_;
+
+public:
+    AdaptivePoller(int min_ms, int max_ms)
+        : current_ms_(min_ms), min_ms_(min_ms), max_ms_(max_ms) {}
+
+    void on_data() {
+        current_ms_ = min_ms_;
+    }
+
+    void on_empty() {
+        current_ms_ = std::min(current_ms_ * 2, max_ms_);
+    }
+
+    std::chrono::milliseconds interval() const {
+        return std::chrono::milliseconds(current_ms_);
+    }
+};
+
+int main() {
+    AdaptivePoller poller(10, 5000);
+    std::mt19937 gen(42);
+    std::uniform_int_distribution<> dist(1, 10);
+
+    int polls = 0;
+    int data_found = 0;
+
+    auto start = std::chrono::steady_clock::now();
+
+    for (int i = 0; i < 50; ++i) {
+        std::this_thread::sleep_for(poller.interval());
+        ++polls;
+
+        bool has_data = dist(gen) > 8;
+        if (has_data) {
+            poller.on_data();
+            ++data_found;
+        } else {
+            poller.on_empty();
+        }
+    }
+
+    auto elapsed = std::chrono::duration<double>(
+        std::chrono::steady_clock::now() - start).count();
+
+    std::cout << "Polls: " << polls << std::endl;
+    std::cout << "Data found: " << data_found << std::endl;
+    std::cout << "Elapsed: " << elapsed << "s" << std::endl;
+    std::cout << "Final interval: "
+              << poller.interval().count() << "ms" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The backoff doubles the interval on each empty poll. How quickly does it reach max_ms?",
+      "Starting at 10ms: 10, 20, 40, 80, 160, 320, 640, 1280, 2560, 5000. After 9 empty polls, it's at max. This is fast but correct.",
+      "The real issue: when on_data() resets to min_ms, the very next empty poll doubles it to 20ms. If data arrives in bursts (common), the poller oscillates between 10ms and rapidly increasing intervals, never settling at an intermediate rate.",
+    ],
+    explanation: "The exponential backoff has no hysteresis or smooth ramp-down. A single on_data() resets to 10ms, but a single on_empty() immediately starts doubling. For bursty data (data arrives in groups with pauses), the poller rapidly oscillates between min (10ms, aggressive) and near-max (5000ms, sluggish). There's no intermediate steady state. During idle periods, it reaches max_ms in 9 polls, then when data arrives, it resets to 10ms and burns CPU with rapid polling until the burst ends. A better approach: decrease by half on empty (additive decrease) or use a multiplicative factor less than 2.",
+    manifestation: `$ g++ -std=c++17 -Wall adaptive.cpp -o adaptive -lpthread && ./adaptive
+Polls: 50
+Data found: 9
+Elapsed: 23.4s
+Final interval: 2560ms
+
+(The poller spends most time at high intervals (1280-5000ms) because
+ each empty poll doubles the interval. When data arrives, it briefly
+ drops to 10ms, then immediately starts climbing again: 10→20→40→80...
+ After 9 consecutive empty polls, it's back at 5000ms. The average
+ response time to new data after an idle period is ~2.5 seconds.)`,
+    stdlibRefs: [
+    ],
+  },
 ];
