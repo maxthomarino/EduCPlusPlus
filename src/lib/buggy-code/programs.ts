@@ -27299,4 +27299,631 @@ Expected: 2 * calculate(1000, 0.05, 10) = 3257.79)`,
       { name: "std::bind", args: "(F&& f, Args&&... args) → unspecified", brief: "Creates a function object with some arguments bound to specific values or placeholders.", note: "Using the same placeholder twice passes the same argument to both positions. Nested binds with shared placeholders are error-prone — prefer lambdas.", link: "https://en.cppreference.com/w/cpp/utility/functional/bind" },
     ],
   },
+  // ── Timing/clocks in C++ ──
+  {
+    id: 414,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Sleep Accuracy Test",
+    description: "Measures how accurately the system can sleep for a requested duration and reports the discrepancy.",
+    code: `#include <iostream>
+#include <ctime>
+#include <thread>
+#include <chrono>
+#include <iomanip>
+
+int main() {
+    std::cout << "Testing sleep accuracy..." << std::endl;
+
+    clock_t start = clock();
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    clock_t end = clock();
+
+    double elapsed = static_cast<double>(end - start) / CLOCKS_PER_SEC;
+    std::cout << "Requested: 2.000 seconds" << std::endl;
+    std::cout << "Actual:    " << std::fixed << std::setprecision(3)
+              << elapsed << " seconds" << std::endl;
+
+    double accuracy = (elapsed / 2.0) * 100.0;
+    std::cout << "Accuracy:  " << std::setprecision(1) << accuracy << "%" << std::endl;
+
+    if (accuracy > 95.0) {
+        std::cout << "PASS: Sleep is accurate" << std::endl;
+    } else {
+        std::cout << "FAIL: Sleep is inaccurate" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "What exactly does clock() measure — wall-clock time or something else?",
+      "What happens to the clock() counter while a thread is sleeping and not using the CPU?",
+      "Check the C standard: clock() returns processor time, not elapsed real time.",
+    ],
+    explanation: "clock() measures CPU time consumed by the program, not wall-clock (real) time. While the thread sleeps, it consumes no CPU time, so the difference between start and end is nearly zero. The fix is to use std::chrono::steady_clock::now() for wall-clock elapsed time measurement.",
+    manifestation: `$ g++ -std=c++17 -Wall sleep_test.cpp -o sleep_test -lpthread && ./sleep_test
+Testing sleep accuracy...
+Requested: 2.000 seconds
+Actual:    0.000 seconds
+Accuracy:  0.0%
+FAIL: Sleep is inaccurate`,
+    stdlibRefs: [
+      { name: "std::clock", args: "() → clock_t", brief: "Returns the approximate processor time used by the process since the program started.", note: "Measures CPU time, not wall-clock time. Sleeping, I/O waits, and time spent in other processes are not counted.", link: "https://en.cppreference.com/w/cpp/chrono/c/clock" },
+      { name: "std::this_thread::sleep_for", args: "(const duration& rel_time) → void", brief: "Blocks the calling thread for at least the specified duration.", note: "The thread yields the CPU during sleep, so CPU-time clocks will not advance.", link: "https://en.cppreference.com/w/cpp/thread/sleep_for" },
+    ],
+  },
+  {
+    id: 415,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Sort Benchmark",
+    description: "Times how long it takes to sort a large vector and reports the elapsed time in milliseconds.",
+    code: `#include <iostream>
+#include <ctime>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+
+void generate_and_sort(int size) {
+    std::vector<int> data(size);
+    std::iota(data.begin(), data.end(), 0);
+    std::reverse(data.begin(), data.end());
+    std::sort(data.begin(), data.end());
+}
+
+int main() {
+    const int SIZE = 5000000;
+    std::cout << "Sorting " << SIZE << " integers..." << std::endl;
+
+    clock_t start = clock();
+    generate_and_sort(SIZE);
+    clock_t end = clock();
+
+    long elapsed_ms = (end - start) / CLOCKS_PER_SEC * 1000;
+    std::cout << "Elapsed: " << elapsed_ms << " ms" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look carefully at the arithmetic used to convert clock ticks to milliseconds.",
+      "What is the type of (end - start) / CLOCKS_PER_SEC, and what happens when the numerator is smaller than the denominator?",
+      "Integer division truncates toward zero. What does that mean when ticks < CLOCKS_PER_SEC?",
+    ],
+    explanation: "The expression (end - start) / CLOCKS_PER_SEC * 1000 performs integer division first. Since CLOCKS_PER_SEC is typically 1000000, and the sort takes less than one second of CPU time, the division truncates to 0, making the result always 0 ms. The fix is to multiply first: (end - start) * 1000 / CLOCKS_PER_SEC, or use floating-point arithmetic.",
+    manifestation: `$ g++ -O2 -Wall sort_bench.cpp -o sort_bench && ./sort_bench
+Sorting 5000000 integers...
+Elapsed: 0 ms`,
+    stdlibRefs: [
+      { name: "std::clock", args: "() → clock_t", brief: "Returns the approximate processor time used by the process since the program started.", note: "CLOCKS_PER_SEC is typically 1000000 on POSIX systems, so (ticks / CLOCKS_PER_SEC) is 0 for sub-second measurements when using integer arithmetic.", link: "https://en.cppreference.com/w/cpp/chrono/c/clock" },
+    ],
+  },
+  {
+    id: 416,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Lap Timer",
+    description: "Records lap times for a series of simulated race laps and prints each lap duration along with the total.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <vector>
+
+int main() {
+    std::vector<std::chrono::seconds> laps;
+
+    std::cout << "Recording 5 laps..." << std::endl;
+
+    for (int i = 0; i < 5; ++i) {
+        auto start = std::chrono::steady_clock::now();
+        std::this_thread::sleep_for(std::chrono::milliseconds(150 * (i + 1)));
+        auto end = std::chrono::steady_clock::now();
+
+        auto lap = std::chrono::duration_cast<std::chrono::seconds>(end - start);
+        laps.push_back(lap);
+    }
+
+    for (std::size_t i = 0; i < laps.size(); ++i) {
+        std::cout << "Lap " << (i + 1) << ": " << laps[i].count()
+                  << " seconds" << std::endl;
+    }
+
+    auto total = std::chrono::seconds(0);
+    for (const auto& l : laps) total += l;
+    std::cout << "Total: " << total.count() << " seconds" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What unit of time are the lap durations stored in?",
+      "What happens when you duration_cast a sub-second duration to std::chrono::seconds?",
+      "duration_cast truncates toward zero — what does a 450ms duration become in whole seconds?",
+    ],
+    explanation: "Each lap duration (150ms to 750ms) is cast to std::chrono::seconds via duration_cast, which truncates toward zero. Since all laps are less than 1 second, every lap is recorded as 0 seconds and the total is also 0. The fix is to store laps as std::chrono::milliseconds or std::chrono::duration<double> to preserve sub-second precision.",
+    manifestation: `$ g++ -std=c++17 -Wall lap_timer.cpp -o lap_timer -lpthread && ./lap_timer
+Recording 5 laps...
+Lap 1: 0 seconds
+Lap 2: 0 seconds
+Lap 3: 0 seconds
+Lap 4: 0 seconds
+Lap 5: 0 seconds
+Total: 0 seconds`,
+    stdlibRefs: [
+      { name: "std::chrono::duration_cast", args: "<ToDuration>(const duration<Rep, Period>& d) → ToDuration", brief: "Converts a duration to a different unit, truncating toward zero if the conversion is not exact.", note: "Truncation silently discards fractional parts. A 999ms duration becomes 0 when cast to seconds.", link: "https://en.cppreference.com/w/cpp/chrono/duration/duration_cast" },
+    ],
+  },
+  {
+    id: 417,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Timestamp Logger",
+    description: "Creates log entries with timestamps for system events and prints them in chronological order.",
+    code: `#include <iostream>
+#include <ctime>
+#include <iomanip>
+#include <vector>
+#include <string>
+
+struct LogEntry {
+    std::tm* timestamp;
+    std::string message;
+};
+
+int main() {
+    std::vector<LogEntry> log;
+
+    time_t boot_time = time(nullptr);
+    time_t shutdown_time = boot_time + 3600;
+    time_t error_time = boot_time + 1800;
+
+    log.push_back({ std::localtime(&boot_time), "System boot" });
+    log.push_back({ std::localtime(&shutdown_time), "Scheduled shutdown" });
+    log.push_back({ std::localtime(&error_time), "Error detected" });
+
+    std::cout << "=== System Log ===" << std::endl;
+    for (const auto& entry : log) {
+        std::cout << "["
+                  << std::put_time(entry.timestamp, "%Y-%m-%d %H:%M:%S")
+                  << "] " << entry.message << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "How many distinct tm objects exist when all three log entries are printed?",
+      "What does the C standard say about the pointer returned by std::localtime?",
+      "std::localtime returns a pointer to a static internal buffer — what happens when you call it multiple times?",
+    ],
+    explanation: "std::localtime returns a pointer to a single static internal tm struct. Each call overwrites the previous result. All three LogEntry objects store the same pointer, so when the log is printed, every entry displays the timestamp from the last localtime call (error_time). The fix is to copy the tm struct by value: store std::tm instead of std::tm*, or use localtime_r/localtime_s.",
+    manifestation: `$ g++ -std=c++17 -Wall logger.cpp -o logger && ./logger
+=== System Log ===
+[2026-03-22 13:30:00] System boot
+[2026-03-22 13:30:00] Scheduled shutdown
+[2026-03-22 13:30:00] Error detected
+
+(All three entries show the same time — the error_time — instead of
+ boot_time=13:00:00, shutdown_time=14:00:00, error_time=13:30:00)`,
+    stdlibRefs: [
+      { name: "std::localtime", args: "(const time_t* time) → tm*", brief: "Converts a time_t value to a tm struct representing local calendar time.", note: "Returns a pointer to a static internal buffer. The next call to localtime (or gmtime) overwrites it. Not thread-safe.", link: "https://en.cppreference.com/w/cpp/chrono/c/localtime" },
+    ],
+  },
+  {
+    id: 418,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Nanosecond Profiler",
+    description: "Profiles several operations at nanosecond precision and verifies that longer operations produce larger measurements.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+
+int measure_ns(int sleep_ms) {
+    auto start = std::chrono::steady_clock::now();
+    std::this_thread::sleep_for(std::chrono::milliseconds(sleep_ms));
+    auto end = std::chrono::steady_clock::now();
+
+    int elapsed = std::chrono::duration_cast<
+        std::chrono::nanoseconds>(end - start).count();
+    return elapsed;
+}
+
+int main() {
+    std::cout << "Profiling sleep durations..." << std::endl;
+
+    int t1 = measure_ns(100);
+    int t2 = measure_ns(500);
+    int t3 = measure_ns(3000);
+
+    std::cout << "100ms sleep:  " << t1 << " ns ("
+              << t1 / 1000000.0 << " ms)" << std::endl;
+    std::cout << "500ms sleep:  " << t2 << " ns ("
+              << t2 / 1000000.0 << " ms)" << std::endl;
+    std::cout << "3000ms sleep: " << t3 << " ns ("
+              << t3 / 1000000.0 << " ms)" << std::endl;
+
+    if (t3 > t2 && t2 > t1) {
+        std::cout << "PASS: Measurements are consistent" << std::endl;
+    } else {
+        std::cout << "FAIL: Measurements are inconsistent!" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "What type does duration::count() return for std::chrono::nanoseconds?",
+      "How large is 3 seconds in nanoseconds, and what is the maximum value of int on most platforms?",
+      "3,000,000,000 nanoseconds exceeds INT_MAX (2,147,483,647). What happens when a long long is stored in an int?",
+    ],
+    explanation: "std::chrono::nanoseconds::count() returns a long long. Storing it in an int silently truncates: 3 billion nanoseconds exceeds INT_MAX (2,147,483,647), causing overflow. The 3-second measurement wraps to a negative value, making t3 < t1 and failing the consistency check. The 100ms and 500ms values fit in int and appear correct. The fix is to use long long (or auto) for the elapsed variable.",
+    manifestation: `$ g++ -std=c++17 -Wall profiler.cpp -o profiler -lpthread && ./profiler
+Profiling sleep durations...
+100ms sleep:  100238451 ns (100.238 ms)
+500ms sleep:  500194722 ns (500.195 ms)
+3000ms sleep: -1294835207 ns (-1294.84 ms)
+FAIL: Measurements are inconsistent!`,
+    stdlibRefs: [
+      { name: "std::chrono::nanoseconds", brief: "Duration type representing nanoseconds, with rep type of at least 64 bits (typically long long).", note: "count() returns a 64-bit integer. Storing it in a 32-bit int overflows for durations longer than ~2.1 seconds.", link: "https://en.cppreference.com/w/cpp/chrono/duration" },
+    ],
+  },
+  {
+    id: 419,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Timestamp Subtractor",
+    description: "Represents timestamps as seconds plus nanoseconds and computes the difference between two time points.",
+    code: `#include <iostream>
+#include <chrono>
+#include <iomanip>
+
+struct TimeStamp {
+    long seconds;
+    long nanoseconds;
+
+    static TimeStamp now() {
+        auto tp = std::chrono::steady_clock::now();
+        auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            tp.time_since_epoch()).count();
+        return {
+            static_cast<long>(ns / 1000000000L),
+            static_cast<long>(ns % 1000000000L)
+        };
+    }
+};
+
+TimeStamp subtract(const TimeStamp& end, const TimeStamp& start) {
+    TimeStamp result;
+    result.seconds = end.seconds - start.seconds;
+    result.nanoseconds = end.nanoseconds - start.nanoseconds;
+    return result;
+}
+
+int main() {
+    auto start = TimeStamp::now();
+
+    volatile long sum = 0;
+    for (long i = 0; i < 200000000; ++i) {
+        sum += i;
+    }
+
+    auto end = TimeStamp::now();
+    auto elapsed = subtract(end, start);
+
+    std::cout << "Elapsed: " << elapsed.seconds << "."
+              << std::setw(9) << std::setfill('0') << elapsed.nanoseconds
+              << " seconds" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What happens in the subtraction when end.nanoseconds is smaller than start.nanoseconds?",
+      "In manual time arithmetic with separate seconds and nanoseconds fields, when is borrowing needed?",
+      "If end.nanoseconds < start.nanoseconds, the nanoseconds difference is negative but seconds is one too large. How should you handle the carry?",
+    ],
+    explanation: "The subtract function does not handle the borrow case. When end.nanoseconds < start.nanoseconds (which happens ~50% of the time), the nanoseconds difference is negative while seconds is one too high. For example, 1.2s - 0.8s gives {seconds=1, nanoseconds=-600000000} instead of {seconds=0, nanoseconds=400000000}. The fix: if result.nanoseconds < 0, subtract 1 from result.seconds and add 1000000000 to result.nanoseconds.",
+    manifestation: `$ g++ -O2 -Wall timestamp.cpp -o timestamp && ./timestamp
+Elapsed: 1.-287345612 seconds
+
+(The negative nanosecond field means the borrow was not performed.
+ Correct output should be: Elapsed: 0.712654388 seconds)`,
+    stdlibRefs: [
+      { name: "std::chrono::steady_clock::now", args: "() → time_point", brief: "Returns the current time point of the steady (monotonic) clock.", link: "https://en.cppreference.com/w/cpp/chrono/steady_clock/now" },
+    ],
+  },
+  {
+    id: 420,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Deadline Timer",
+    description: "Sets a deadline in the future and periodically checks whether it has expired, printing remaining time.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+
+class DeadlineTimer {
+    std::chrono::system_clock::time_point deadline_;
+
+public:
+    DeadlineTimer(int timeout_ms) {
+        deadline_ = std::chrono::system_clock::now() +
+                    std::chrono::duration<int>(timeout_ms);
+    }
+
+    bool has_expired() const {
+        return std::chrono::system_clock::now() >= deadline_;
+    }
+
+    int remaining_ms() const {
+        auto remaining = deadline_ - std::chrono::system_clock::now();
+        return std::chrono::duration_cast<
+            std::chrono::milliseconds>(remaining).count();
+    }
+};
+
+int main() {
+    std::cout << "Setting 500ms deadline..." << std::endl;
+    DeadlineTimer timer(500);
+
+    for (int i = 0; i < 10; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        std::cout << "After " << (i + 1) * 100 << "ms: ";
+        if (timer.has_expired()) {
+            std::cout << "EXPIRED" << std::endl;
+            break;
+        } else {
+            std::cout << timer.remaining_ms() << "ms remaining" << std::endl;
+        }
+    }
+
+    return 0;
+}`,
+    hints: [
+      "What are the default template parameters of std::chrono::duration<int>?",
+      "What unit does std::chrono::duration<int> represent — milliseconds or something else?",
+      "std::chrono::duration<int> is duration<int, ratio<1>>, which counts in seconds. What does duration<int>(500) mean?",
+    ],
+    explanation: "std::chrono::duration<int>(timeout_ms) creates a duration of timeout_ms seconds, not milliseconds. The default period for duration<int> is std::ratio<1> (seconds). So duration<int>(500) means 500 seconds (~8 minutes), not 500 milliseconds. The deadline is set far in the future and never expires within the loop. The fix is to use std::chrono::milliseconds(timeout_ms) instead.",
+    manifestation: `$ g++ -std=c++17 -Wall deadline.cpp -o deadline -lpthread && ./deadline
+Setting 500ms deadline...
+After 100ms: 499900ms remaining
+After 200ms: 499800ms remaining
+After 300ms: 499700ms remaining
+After 400ms: 499600ms remaining
+After 500ms: 499500ms remaining
+After 600ms: 499400ms remaining
+After 700ms: 499300ms remaining
+After 800ms: 499200ms remaining
+After 900ms: 499100ms remaining
+After 1000ms: 499000ms remaining`,
+    stdlibRefs: [
+      { name: "std::chrono::duration", brief: "Class template representing a time duration with a tick count and a tick period.", note: "The default period is std::ratio<1> (seconds). duration<int>(500) is 500 seconds, not 500 milliseconds. Use std::chrono::milliseconds for millisecond precision.", link: "https://en.cppreference.com/w/cpp/chrono/duration" },
+    ],
+  },
+  {
+    id: 421,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Accumulating Timer",
+    description: "Allows multiple threads to time their work and accumulate the total elapsed time in a shared timer object.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <vector>
+
+class AccumulatingTimer {
+    std::chrono::steady_clock::time_point start_;
+    double total_elapsed_ = 0.0;
+
+public:
+    void start() {
+        start_ = std::chrono::steady_clock::now();
+    }
+
+    void stop() {
+        auto end = std::chrono::steady_clock::now();
+        double elapsed = std::chrono::duration<double>(end - start_).count();
+        total_elapsed_ += elapsed;
+    }
+
+    double total() const { return total_elapsed_; }
+};
+
+void worker(AccumulatingTimer& timer, int iterations) {
+    for (int i = 0; i < iterations; ++i) {
+        timer.start();
+        volatile int sum = 0;
+        for (int j = 0; j < 10000; ++j) sum += j;
+        timer.stop();
+    }
+}
+
+int main() {
+    AccumulatingTimer timer;
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < 4; ++i) {
+        threads.emplace_back(worker, std::ref(timer), 10000);
+    }
+
+    for (auto& t : threads) t.join();
+
+    std::cout << "Total accumulated time: " << timer.total()
+              << " s" << std::endl;
+
+    double single_thread_time = timer.total() / 4.0;
+    std::cout << "Estimated per-thread:   " << single_thread_time
+              << " s" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What happens when multiple threads call start() and stop() on the same object concurrently?",
+      "If thread A calls start(), then thread B calls start() before thread A calls stop(), whose start time does thread A measure from?",
+      "Both start_ and total_elapsed_ are shared mutable state accessed without synchronization. What does the C++ standard say about concurrent unsynchronized writes?",
+    ],
+    explanation: "Multiple threads read and write start_ and total_elapsed_ concurrently without any synchronization (no mutex, no atomic). This is a data race and undefined behavior. Thread A's start() can be overwritten by thread B's start() before A calls stop(), so A measures from B's start time. Additionally, concurrent total_elapsed_ += elapsed can lose updates. The result is wildly incorrect. The fix is to protect start/stop with a std::mutex, or give each thread its own timer and merge results.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=thread -g timer.cpp -o timer -lpthread && ./timer
+==================
+WARNING: ThreadSanitizer: data race (pid=18234)
+  Write of size 8 at 0x7ffd3a200040 by thread T2:
+    #0 AccumulatingTimer::start() timer.cpp:12
+    #1 worker(AccumulatingTimer&, int) timer.cpp:24
+
+  Previous write of size 8 at 0x7ffd3a200040 by thread T1:
+    #0 AccumulatingTimer::start() timer.cpp:12
+    #1 worker(AccumulatingTimer&, int) timer.cpp:24
+
+SUMMARY: ThreadSanitizer: data race timer.cpp:12 in AccumulatingTimer::start()
+==================
+Total accumulated time: 0.387214 s
+Estimated per-thread:   0.0968035 s`,
+    stdlibRefs: [
+      { name: "std::thread", args: "(Function&& f, Args&&... args)", brief: "Creates a new thread of execution that invokes the given callable with the provided arguments.", note: "Objects shared between threads require synchronization (mutex, atomic) to avoid data races.", link: "https://en.cppreference.com/w/cpp/thread/thread" },
+    ],
+  },
+  {
+    id: 422,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Scoped Timer Report",
+    description: "Times multiple named phases of work and prints a summary report of all phase durations at the end.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <vector>
+#include <string>
+
+class ScopedTimer {
+    const char* label_;
+    std::chrono::steady_clock::time_point start_;
+
+public:
+    ScopedTimer(const std::string& label)
+        : label_(label.c_str())
+        , start_(std::chrono::steady_clock::now()) {}
+
+    double elapsed_ms() const {
+        auto end = std::chrono::steady_clock::now();
+        return std::chrono::duration<double, std::milli>(
+            end - start_).count();
+    }
+
+    const char* label() const { return label_; }
+};
+
+int main() {
+    std::vector<ScopedTimer> timers;
+
+    for (int i = 0; i < 5; ++i) {
+        std::string name = "Phase_" + std::to_string(i);
+        timers.emplace_back(name);
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(50 * (i + 1)));
+    }
+
+    std::cout << "=== Timing Report ===" << std::endl;
+    for (const auto& t : timers) {
+        std::cout << t.label() << ": "
+                  << t.elapsed_ms() << " ms" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "What does the ScopedTimer constructor store, and where does that pointer point to?",
+      "What is the lifetime of the std::string 'name' relative to the ScopedTimer objects in the vector?",
+      "c_str() returns a pointer into the string's internal buffer. What happens to that pointer when the string is destroyed at the end of each loop iteration?",
+    ],
+    explanation: "The ScopedTimer constructor stores label.c_str(), a pointer to the internal buffer of the std::string parameter. The local variable 'name' is destroyed at the end of each loop iteration, invalidating the pointer. When the report is printed after the loop, all label_ pointers are dangling — they point to freed heap memory. This is use-after-free: the output is garbage strings or a crash.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=address -g scoped.cpp -o scoped -lpthread && ./scoped
+=================================================================
+==25891==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000070
+READ of size 1 at 0x602000000070 thread T0
+    #0 0x55a1b3 in ScopedTimer::label() scoped.cpp:22
+    #1 0x55a2f1 in main scoped.cpp:36
+    #2 0x7f8c2a in __libc_start_main
+0x602000000070 is located 0 bytes inside of 8-byte region
+freed by thread T0 here:
+    #0 0x7f9a01 in operator delete(void*)
+    #1 0x55a0c2 in std::string::~basic_string() string:4203
+SUMMARY: AddressSanitizer: heap-use-after-free scoped.cpp:22 in ScopedTimer::label()`,
+    stdlibRefs: [
+      { name: "std::string::c_str", args: "() const → const char*", brief: "Returns a pointer to the null-terminated character array representing the string's contents.", note: "The returned pointer is invalidated when the string is destroyed or modified. Storing it beyond the string's lifetime causes a dangling pointer.", link: "https://en.cppreference.com/w/cpp/string/basic_string/c_str" },
+    ],
+  },
+  {
+    id: 423,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Async Data Fetch",
+    description: "A consumer thread waits for a producer to prepare data, with a timeout to avoid blocking forever.",
+    code: `#include <iostream>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <chrono>
+#include <vector>
+#include <numeric>
+
+std::mutex mtx;
+std::condition_variable cv;
+bool data_ready = false;
+std::vector<int> shared_data;
+
+void producer() {
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    {
+        std::lock_guard<std::mutex> lock(mtx);
+        shared_data = {10, 20, 30, 40, 50};
+        data_ready = true;
+    }
+    cv.notify_one();
+}
+
+int consume_with_timeout(int timeout_ms) {
+    std::unique_lock<std::mutex> lock(mtx);
+    auto status = cv.wait_for(lock,
+        std::chrono::milliseconds(timeout_ms));
+
+    if (status == std::cv_status::no_timeout) {
+        int sum = std::accumulate(
+            shared_data.begin(), shared_data.end(), 0);
+        return sum;
+    }
+    return -1;
+}
+
+int main() {
+    std::thread prod(producer);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    int result = consume_with_timeout(2000);
+
+    prod.join();
+
+    if (result >= 0) {
+        std::cout << "Data sum: " << result << std::endl;
+        std::cout << "Expected: 150" << std::endl;
+    } else {
+        std::cout << "Timed out waiting for data" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "The consumer sleeps 200ms before waiting, but the producer only sleeps 50ms. When does the notification happen relative to the wait?",
+      "What happens to a condition_variable notification if no thread is currently waiting when notify_one() is called?",
+      "Without a predicate, wait_for cannot check the condition before blocking. If the notification was already sent, it is lost. What overload of wait_for solves this?",
+    ],
+    explanation: "The consumer sleeps 200ms before calling wait_for, but the producer finishes and calls notify_one() after only 50ms. Since no thread is waiting at that moment, the notification is lost. The consumer then calls wait_for and blocks for the full 2-second timeout, even though data_ready is already true and shared_data is populated. The fix is to use the predicate overload: cv.wait_for(lock, timeout, []{ return data_ready; }), which checks the condition before blocking.",
+    manifestation: `$ g++ -std=c++17 -Wall fetch.cpp -o fetch -lpthread && ./fetch
+(blocks for 2 seconds despite data being ready after 50ms...)
+Timed out waiting for data
+
+Expected output:
+Data sum: 150
+Expected: 150`,
+    stdlibRefs: [
+      { name: "std::condition_variable::wait_for", args: "(unique_lock<mutex>& lock, const duration& rel_time) → cv_status | (unique_lock<mutex>& lock, const duration& rel_time, Predicate pred) → bool", brief: "Blocks until notified, timed out, or (with predicate) until the predicate returns true.", note: "Without a predicate, a notification sent before wait_for() is called is lost. The predicate overload checks the condition before blocking, preventing missed notifications.", link: "https://en.cppreference.com/w/cpp/thread/condition_variable/wait_for" },
+    ],
+  },
 ];
