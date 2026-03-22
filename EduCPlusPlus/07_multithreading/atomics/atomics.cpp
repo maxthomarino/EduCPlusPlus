@@ -62,12 +62,6 @@
 // Key Takeaways
 // -----------------------------------------------
 // 1. std::atomic<T> guarantees atomicity for loads, stores, and
-//    What: Atomic types provide race-free operations on shared variables.
-//    When: Use this for counters/flags and low-level synchronization without a mutex.
-//    Why: They provide synchronization semantics with low overhead in suitable cases.
-//    Use: Use std::atomic operations with intentional memory-order choices.
-//    Which: C++11
-//
 //    read-modify-write operations. No mutex needed for single-variable
 //    access.
 // 2. The default memory order is seq_cst (sequentially consistent) --

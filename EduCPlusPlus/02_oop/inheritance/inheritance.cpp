@@ -287,12 +287,6 @@ public:
 // Key Takeaways
 // -----------------------------------------------
 // 1. Always give polymorphic base classes a virtual destructor;
-//    What: Constructors and special members define object initialization and ownership behavior.
-//    When: Use this when class invariants and resource semantics must be explicit.
-//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
-//    Use: Define/default/delete special members to match ownership intent.
-//    Which: C++98+ (major additions in C++11 and later)
-//
 //    otherwise deleting through a base pointer is undefined behaviour.
 // 2. Always use the override keyword on every overriding method so
 //    the compiler catches signature mismatches at compile time.

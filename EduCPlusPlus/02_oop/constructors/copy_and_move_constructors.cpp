@@ -35,11 +35,11 @@
 
 // -----------------------------------------------
 // 1. The problem: shallow copy of raw pointers
-//    What: When the first one is destroyed, it deletes the memory.
-//    When: When the first one is destroyed, it deletes the memory.
-//    Why: It improves clarity and helps prevent common correctness mistakes.
-//    Use: Follow the code pattern shown in this section and adapt it to your types.
-//    Which: C++11+ (file discusses C++17, C++98)
+//    What: The default (shallow) copy duplicates pointer addresses, not the pointed-to data.
+//    When: Any class with owning raw pointers needs a custom copy constructor.
+//    Why: Shallow copy leads to double-free and use-after-free bugs.
+//    Use: Implement deep copy (allocate new memory, copy contents) or use smart pointers.
+//    Which: C++98+ (improved with move semantics in C++11)
 //
 //    HOW THE DEFAULT COPY CONSTRUCTOR WORKS:
 //    The compiler-generated copy constructor copies each member by value.
