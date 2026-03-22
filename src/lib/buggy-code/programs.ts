@@ -29308,4 +29308,789 @@ Expected:   2000 ms
       { name: "std::this_thread::sleep_until", args: "(const time_point& abs_time) → void", brief: "Blocks the calling thread until the specified absolute time point.", note: "Automatically absorbs work time into the sleep period, preventing cumulative drift in periodic loops.", link: "https://en.cppreference.com/w/cpp/thread/sleep_until" },
     ],
   },
+  {
+    id: 444,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Elapsed Seconds Counter",
+    description: "Counts how many seconds have passed during a computation and prints a progress update each second.",
+    code: `#include <iostream>
+#include <chrono>
+#include <cmath>
+
+int main() {
+    auto start = std::chrono::steady_clock::now();
+    int last_reported = 0;
+    volatile double result = 0.0;
+
+    for (long i = 0; i < 500000000L; ++i) {
+        result += std::sin(i * 0.0000001);
+
+        auto now = std::chrono::steady_clock::now();
+        int elapsed = std::chrono::duration_cast<
+            std::chrono::seconds>(now - start).count();
+
+        if (elapsed > last_reported) {
+            std::cout << elapsed << "s elapsed, i=" << i << std::endl;
+            last_reported = elapsed;
+        }
+    }
+
+    auto end = std::chrono::steady_clock::now();
+    double total = std::chrono::duration<double>(end - start).count();
+    std::cout << "Done. Total: " << total << "s" << std::endl;
+    std::cout << "Result: " << result << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "How often is steady_clock::now() being called?",
+      "The clock is read on every single iteration of a 500-million-iteration loop. What is the overhead?",
+      "Each call to steady_clock::now() is a system call or hardware read. Calling it 500 million times adds significant overhead — possibly doubling the total runtime.",
+    ],
+    explanation: "steady_clock::now() is called on every iteration of a 500-million-iteration loop. While each call is fast (tens of nanoseconds), 500M calls add up to seconds of overhead. The timing code itself significantly distorts the measurement, potentially doubling the runtime. The fix is to check the clock less frequently, e.g., every 1 million iterations: if (i % 1000000 == 0) { auto now = ... }.",
+    manifestation: `$ g++ -O2 -Wall counter.cpp -o counter && ./counter
+1s elapsed, i=78234521
+2s elapsed, i=156102844
+3s elapsed, i=234501233
+4s elapsed, i=312089421
+5s elapsed, i=391234012
+6s elapsed, i=468901234
+Done. Total: 6.42s
+
+$ # Same computation WITHOUT per-iteration clock reads:
+$ # Done. Total: 3.21s
+(The per-iteration clock overhead doubled the runtime from ~3.2s to ~6.4s.
+ The act of measuring time dominates the computation itself.)`,
+    stdlibRefs: [
+      { name: "std::chrono::steady_clock::now", args: "() → time_point", brief: "Returns the current time point of the steady (monotonic) clock.", note: "Each call has overhead (tens of nanoseconds). In tight loops, call it periodically (e.g., every N iterations) rather than on every iteration.", link: "https://en.cppreference.com/w/cpp/chrono/steady_clock/now" },
+    ],
+  },
+  {
+    id: 445,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Timer Comparison",
+    description: "Compares the results of two different timing methods for the same computation to verify they agree.",
+    code: `#include <iostream>
+#include <chrono>
+#include <ctime>
+#include <vector>
+#include <algorithm>
+
+void do_work() {
+    std::vector<int> v(2000000);
+    for (int i = 0; i < 2000000; ++i) v[i] = 2000000 - i;
+    std::sort(v.begin(), v.end());
+}
+
+int main() {
+    // Method 1: clock()
+    clock_t c_start = clock();
+    do_work();
+    clock_t c_end = clock();
+    double clock_ms = (c_end - c_start) * 1000.0 / CLOCKS_PER_SEC;
+
+    // Method 2: steady_clock
+    auto s_start = std::chrono::steady_clock::now();
+    do_work();
+    auto s_end = std::chrono::steady_clock::now();
+    double steady_ms = std::chrono::duration<double, std::milli>(
+        s_end - s_start).count();
+
+    std::cout << "clock():      " << clock_ms << " ms" << std::endl;
+    std::cout << "steady_clock: " << steady_ms << " ms" << std::endl;
+
+    double diff = std::abs(clock_ms - steady_ms);
+    std::cout << "Difference:   " << diff << " ms" << std::endl;
+
+    if (diff < 10.0) {
+        std::cout << "PASS: Methods agree" << std::endl;
+    } else {
+        std::cout << "FAIL: Methods disagree" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Are the two methods measuring the same invocation of do_work()?",
+      "Method 1 times the first call to do_work(), and Method 2 times the second call. Are two separate calls guaranteed to take the same time?",
+      "The first sort operates on reverse-sorted data. The second sort also operates on reverse-sorted data (v is recreated). But CPU caches, branch predictors, and OS scheduling may differ between the two calls.",
+    ],
+    explanation: "The two timing methods measure two completely different invocations of do_work(), not the same one. The first call is timed with clock(), the second with steady_clock. They cannot be compared because: (1) they're different executions with potentially different performance characteristics, (2) the first call may warm up CPU caches that benefit the second, making steady_clock appear faster, (3) OS scheduling differences between the two calls add noise. The fix is to time the same single call with both methods by capturing all start/end timestamps around one call.",
+    manifestation: `$ g++ -O2 -Wall compare.cpp -o compare && ./compare
+clock():      142.31 ms
+steady_clock: 98.45 ms
+Difference:   43.86 ms
+FAIL: Methods disagree
+
+(The methods disagree not because of timing inaccuracy but because they
+ measure different calls. The second call benefits from warm CPU caches
+ left by the first, making it ~30-40% faster.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 446,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Expiry Cache",
+    description: "A cache that automatically expires entries after a configurable time-to-live, returning a default for expired keys.",
+    code: `#include <iostream>
+#include <unordered_map>
+#include <chrono>
+#include <thread>
+#include <string>
+
+class ExpiryCache {
+    struct Entry {
+        std::string value;
+        std::chrono::steady_clock::time_point expires_at;
+    };
+
+    std::unordered_map<std::string, Entry> store_;
+    std::chrono::seconds ttl_;
+
+public:
+    ExpiryCache(int ttl_seconds) : ttl_(ttl_seconds) {}
+
+    void put(const std::string& key, const std::string& value) {
+        store_[key] = {value, std::chrono::steady_clock::now() + ttl_};
+    }
+
+    std::string get(const std::string& key) {
+        auto it = store_.find(key);
+        if (it == store_.end()) return "(not found)";
+
+        if (std::chrono::steady_clock::now() > it->second.expires_at) {
+            return "(expired)";
+        }
+        return it->second.value;
+    }
+
+    void cleanup() {
+        auto now = std::chrono::steady_clock::now();
+        for (auto it = store_.begin(); it != store_.end(); ++it) {
+            if (now > it->second.expires_at) {
+                store_.erase(it);
+            }
+        }
+    }
+
+    size_t size() const { return store_.size(); }
+};
+
+int main() {
+    ExpiryCache cache(1);
+
+    cache.put("user:1", "Alice");
+    cache.put("user:2", "Bob");
+    cache.put("user:3", "Charlie");
+
+    std::cout << "Before expiry:" << std::endl;
+    std::cout << "  user:1 = " << cache.get("user:1") << std::endl;
+    std::cout << "  user:2 = " << cache.get("user:2") << std::endl;
+    std::cout << "  size = " << cache.size() << std::endl;
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+
+    std::cout << "After expiry:" << std::endl;
+    std::cout << "  user:1 = " << cache.get("user:1") << std::endl;
+    std::cout << "  size before cleanup = " << cache.size() << std::endl;
+    cache.cleanup();
+    std::cout << "  size after cleanup = " << cache.size() << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at the cleanup() method. What happens to the iterator after calling store_.erase(it)?",
+      "For std::unordered_map, does erase() invalidate the erased iterator?",
+      "After erase(it), the iterator is invalidated. The loop then does ++it on an invalid iterator — undefined behavior.",
+    ],
+    explanation: "In cleanup(), store_.erase(it) invalidates the iterator, but the loop continues with ++it on the invalidated iterator. This is undefined behavior — it may crash, skip elements, or loop forever. For unordered_map, erase returns the iterator to the next element. The fix is: it = store_.erase(it) in the if-branch, with ++it in an else-branch.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=address -g cache.cpp -o cache -lpthread && ./cache
+Before expiry:
+  user:1 = Alice
+  user:2 = Bob
+  size = 3
+After expiry:
+  user:1 = (expired)
+  size before cleanup = 3
+=================================================================
+==19823==ERROR: AddressSanitizer: heap-use-after-free on address 0x603000000050
+READ of size 8 at 0x603000000050 thread T0
+    #0 0x55a2c1 in ExpiryCache::cleanup() cache.cpp:31
+    #1 0x55a4f2 in main cache.cpp:53
+SUMMARY: AddressSanitizer: heap-use-after-free cache.cpp:31 in ExpiryCache::cleanup()`,
+    stdlibRefs: [
+      { name: "std::unordered_map::erase", args: "(const_iterator pos) → iterator", brief: "Removes the element at pos and returns an iterator to the element following the removed one.", note: "The passed iterator is invalidated. Always use the return value: it = map.erase(it). Do not increment the old iterator after erase.", link: "https://en.cppreference.com/w/cpp/container/unordered_map/erase" },
+    ],
+  },
+  {
+    id: 447,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Timed Mutex Acquisition",
+    description: "Attempts to acquire a mutex within a timeout period and reports whether the lock was obtained or timed out.",
+    code: `#include <iostream>
+#include <mutex>
+#include <thread>
+#include <chrono>
+
+std::timed_mutex resource_mtx;
+
+void hold_resource(int hold_ms) {
+    resource_mtx.lock();
+    std::cout << "[holder] Locked resource for "
+              << hold_ms << "ms" << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(hold_ms));
+    std::cout << "[holder] Releasing resource" << std::endl;
+    resource_mtx.unlock();
+}
+
+bool try_acquire(int timeout_ms) {
+    std::cout << "[acquire] Trying to lock (timeout: "
+              << timeout_ms << "ms)..." << std::endl;
+
+    auto deadline = std::chrono::steady_clock::now() +
+                    std::chrono::milliseconds(timeout_ms);
+
+    while (std::chrono::steady_clock::now() < deadline) {
+        if (resource_mtx.try_lock()) {
+            std::cout << "[acquire] Got the lock!" << std::endl;
+            resource_mtx.unlock();
+            return true;
+        }
+    }
+
+    std::cout << "[acquire] Timed out!" << std::endl;
+    return false;
+}
+
+int main() {
+    std::thread holder(hold_resource, 500);
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+
+    bool got_it = try_acquire(1000);
+    std::cout << "Result: " << (got_it ? "acquired" : "timeout")
+              << std::endl;
+
+    holder.join();
+    return 0;
+}`,
+    hints: [
+      "Look at how try_acquire waits for the lock. What is it doing between try_lock attempts?",
+      "The function busy-spins calling try_lock() in a tight loop. What is the CPU usage during the wait?",
+      "std::timed_mutex has a try_lock_for() method that blocks efficiently. Why isn't it used here?",
+    ],
+    explanation: "try_acquire() busy-spins calling try_lock() in a tight loop, consuming 100% CPU on one core for the entire wait period. This is extremely wasteful when std::timed_mutex provides try_lock_for() and try_lock_until() that block the thread efficiently (yielding CPU to the OS scheduler). The fix is simply: return resource_mtx.try_lock_for(std::chrono::milliseconds(timeout_ms)); — one line that does everything correctly.",
+    manifestation: `$ g++ -std=c++17 -Wall timed_lock.cpp -o timed_lock -lpthread && ./timed_lock &
+[holder] Locked resource for 500ms
+[acquire] Trying to lock (timeout: 1000ms)...
+
+$ top -b -n1 -p $(pgrep timed_lock) | tail -2
+  PID USER     PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+
+21034 user     20   0   84736   2048   1664 R  99.3  0.0   0:00.48
+
+[holder] Releasing resource
+[acquire] Got the lock!
+Result: acquired
+
+(Burns 100% CPU for ~500ms spinning on try_lock() instead of using
+ try_lock_for() which blocks the thread efficiently.)`,
+    stdlibRefs: [
+      { name: "std::timed_mutex::try_lock_for", args: "(const duration& timeout_duration) → bool", brief: "Blocks until the mutex is locked or the specified timeout expires, returning true if locked.", note: "Efficiently blocks the thread (no CPU usage while waiting). Always prefer this over a busy-spin loop with try_lock().", link: "https://en.cppreference.com/w/cpp/thread/timed_mutex/try_lock_for" },
+    ],
+  },
+  {
+    id: 448,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Throughput Meter",
+    description: "Measures the throughput of a data processing pipeline in items per second over a fixed time window.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+
+class ThroughputMeter {
+    long count_ = 0;
+    std::chrono::steady_clock::time_point window_start_;
+    std::chrono::milliseconds window_size_;
+
+public:
+    ThroughputMeter(int window_ms)
+        : window_start_(std::chrono::steady_clock::now())
+        , window_size_(window_ms) {}
+
+    void record() {
+        ++count_;
+    }
+
+    double throughput() {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<
+            std::chrono::milliseconds>(now - window_start_);
+
+        if (elapsed >= window_size_) {
+            double items_per_sec = count_ / (elapsed.count() / 1000);
+            count_ = 0;
+            window_start_ = now;
+            return items_per_sec;
+        }
+        return -1;
+    }
+};
+
+int main() {
+    ThroughputMeter meter(1000);
+    int reports = 0;
+
+    while (reports < 5) {
+        for (int i = 0; i < 100; ++i) {
+            meter.record();
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+
+        double tp = meter.throughput();
+        if (tp >= 0) {
+            ++reports;
+            std::cout << "Throughput: " << tp
+                      << " items/sec" << std::endl;
+        }
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Look at the throughput calculation: count_ / (elapsed.count() / 1000). What are the types involved?",
+      "elapsed.count() returns a long (milliseconds). What is 1050 / 1000 in integer arithmetic?",
+      "Integer division: 1050 / 1000 = 1. So count_ / 1 = count_, giving items per second = total count. If elapsed were 1999ms, 1999/1000 = 1, still dividing by 1.",
+    ],
+    explanation: "The throughput formula uses integer division: elapsed.count() / 1000 truncates milliseconds to whole seconds. For elapsed=1050ms, 1050/1000 = 1, so the result is count_/1 = count_ items/sec. For elapsed=1999ms, it's still 1999/1000 = 1. The throughput is overestimated because the time divisor is always rounded down to the nearest second. The fix: use floating-point division: count_ / (elapsed.count() / 1000.0), or better: count_ * 1000.0 / elapsed.count().",
+    manifestation: `$ g++ -std=c++17 -Wall throughput.cpp -o throughput -lpthread && ./throughput
+Throughput: 10000 items/sec
+Throughput: 10100 items/sec
+Throughput: 10000 items/sec
+Throughput: 10100 items/sec
+Throughput: 10000 items/sec
+
+(All readings show ~10000 items/sec because integer division truncates
+ elapsed milliseconds to 1 second. Actual throughput is ~9500 items/sec
+ since the window often extends to ~1050ms before being checked.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 449,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Leaderboard Timer",
+    description: "Records completion times for multiple contestants and ranks them from fastest to slowest.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <vector>
+#include <algorithm>
+#include <string>
+
+struct Contestant {
+    std::string name;
+    std::chrono::steady_clock::time_point start;
+    std::chrono::steady_clock::time_point finish;
+};
+
+double elapsed_sec(const Contestant& c) {
+    return std::chrono::duration<double>(c.finish - c.start).count();
+}
+
+int main() {
+    std::vector<Contestant> board;
+
+    auto race_start = std::chrono::steady_clock::now();
+
+    board.push_back({"Alice", race_start, {}});
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    board[0].finish = std::chrono::steady_clock::now();
+
+    board.push_back({"Bob", race_start, {}});
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    board[1].finish = std::chrono::steady_clock::now();
+
+    board.push_back({"Charlie", race_start, {}});
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    board[2].finish = std::chrono::steady_clock::now();
+
+    std::sort(board.begin(), board.end(),
+        [](const Contestant& a, const Contestant& b) {
+            return a.finish < b.finish;
+        });
+
+    std::cout << "=== Leaderboard ===" << std::endl;
+    for (size_t i = 0; i < board.size(); ++i) {
+        std::cout << (i + 1) << ". " << board[i].name
+                  << " - " << elapsed_sec(board[i])
+                  << "s" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "The sort ranks contestants. What criterion is used — elapsed time or absolute finish time?",
+      "All contestants have the same start time but different finish times. Does sorting by finish time give the same order as sorting by elapsed time?",
+      "In this case, same start + sorting by finish = correct order. But Bob's sleep starts AFTER Alice finishes. His 'elapsed' includes waiting time. Does elapsed_sec reflect actual race performance?",
+    ],
+    explanation: "All contestants share the same race_start, but they don't actually run concurrently — they run sequentially. Bob's 'race' doesn't start until Alice finishes (150ms in), so Bob's actual work is 100ms but his elapsed_sec is 150+100=250ms (from race_start to his finish). The sort by finish time puts them in order of when they finished (Alice at 150ms, Bob at 250ms, Charlie at 450ms), but elapsed_sec reports cumulative time from race_start, not individual performance. Bob appears slower than Alice (250ms vs 150ms) even though his work only took 100ms. The leaderboard conflates scheduling order with performance.",
+    manifestation: `$ g++ -std=c++17 -Wall leaderboard.cpp -o leaderboard -lpthread && ./leaderboard
+=== Leaderboard ===
+1. Alice - 0.150s
+2. Bob - 0.251s
+3. Charlie - 0.451s
+
+(Bob's actual work took only 100ms but he shows 251ms because his
+ elapsed time is measured from race_start, which includes 150ms of
+ waiting for Alice to finish first. The ranking reflects scheduling
+ order, not performance.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 450,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Timeout Chain",
+    description: "Chains multiple operations, each with its own timeout, and ensures the total time stays within an overall budget.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <functional>
+#include <vector>
+#include <string>
+
+struct Operation {
+    std::string name;
+    std::chrono::milliseconds duration;
+};
+
+bool run_with_budget(const std::vector<Operation>& ops,
+                     std::chrono::milliseconds total_budget) {
+    auto deadline = std::chrono::steady_clock::now() + total_budget;
+
+    for (const auto& op : ops) {
+        auto remaining = std::chrono::duration_cast<
+            std::chrono::milliseconds>(
+                deadline - std::chrono::steady_clock::now());
+
+        auto op_timeout = std::min(op.duration, remaining);
+
+        std::cout << "Running " << op.name
+                  << " (budget: " << op_timeout.count() << "ms)...";
+
+        if (op_timeout.count() <= 0) {
+            std::cout << " SKIPPED (no budget)" << std::endl;
+            return false;
+        }
+
+        auto start = std::chrono::steady_clock::now();
+        std::this_thread::sleep_for(op.duration);
+        auto actual = std::chrono::duration_cast<
+            std::chrono::milliseconds>(
+                std::chrono::steady_clock::now() - start);
+
+        std::cout << " done (" << actual.count() << "ms)" << std::endl;
+    }
+
+    return true;
+}
+
+int main() {
+    std::vector<Operation> pipeline = {
+        {"connect",   std::chrono::milliseconds(100)},
+        {"handshake", std::chrono::milliseconds(200)},
+        {"transfer",  std::chrono::milliseconds(300)},
+        {"verify",    std::chrono::milliseconds(150)},
+    };
+
+    std::cout << "Total pipeline budget: 500ms" << std::endl;
+    bool ok = run_with_budget(pipeline,
+        std::chrono::milliseconds(500));
+    std::cout << "Result: " << (ok ? "success" : "budget exceeded")
+              << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The code computes op_timeout as the minimum of the operation's duration and remaining budget. But what duration is actually used in sleep_for?",
+      "Look carefully: op_timeout limits the budget displayed, but sleep_for uses op.duration — the original, unlimited duration.",
+      "The budget check is cosmetic — it calculates the allowed time but then ignores it and runs the full operation duration anyway.",
+    ],
+    explanation: "The function computes op_timeout (clamped to remaining budget) and prints it, but then calls sleep_for(op.duration) — the original unclamped duration. The budget enforcement is entirely cosmetic: the displayed budget shrinks correctly, but every operation runs for its full duration regardless. The total time is 100+200+300+150 = 750ms, exceeding the 500ms budget. The last operation should have been skipped or truncated. The fix: use sleep_for(op_timeout) instead of sleep_for(op.duration).",
+    manifestation: `$ g++ -std=c++17 -Wall chain.cpp -o chain -lpthread && time ./chain
+Total pipeline budget: 500ms
+Running connect (budget: 100ms)... done (100ms)
+Running handshake (budget: 200ms)... done (200ms)
+Running transfer (budget: 200ms)... done (300ms)
+Running verify (budget: 0ms)... SKIPPED (no budget)
+Result: budget exceeded
+
+real    0m0.601s
+
+(The transfer operation ran for 300ms despite having only 200ms of
+ budget because sleep_for uses op.duration instead of op_timeout.
+ Total wall time is ~600ms, exceeding the 500ms budget by 20%.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 451,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "ETA Calculator",
+    description: "Estimates time remaining for a long-running task based on how much work has been completed so far.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <iomanip>
+
+int main() {
+    const int total_items = 100;
+    auto start = std::chrono::steady_clock::now();
+
+    for (int i = 1; i <= total_items; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(20 + i / 10));
+
+        if (i % 20 == 0) {
+            auto now = std::chrono::steady_clock::now();
+            double elapsed = std::chrono::duration<double>(
+                now - start).count();
+            double rate = elapsed / i;
+            double eta = rate * total_items;
+
+            std::cout << i << "/" << total_items
+                      << " done, elapsed: " << std::fixed
+                      << std::setprecision(1) << elapsed << "s"
+                      << ", ETA: " << eta << "s" << std::endl;
+        }
+    }
+
+    auto end = std::chrono::steady_clock::now();
+    double total = std::chrono::duration<double>(end - start).count();
+    std::cout << "Finished in " << total << "s" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at the ETA calculation: rate * total_items. What does 'rate' represent?",
+      "rate = elapsed / i gives seconds per item. rate * total_items gives total estimated time. Is that the ETA (time remaining)?",
+      "ETA should be the time remaining, not the total estimated time. The program prints the total predicted duration as if it were the remaining time.",
+    ],
+    explanation: "The ETA calculation computes rate * total_items, which estimates the total duration from start to finish. But ETA means 'estimated time of arrival' — the time remaining. At 50% completion with 2.5s elapsed, the code reports ETA: 5.0s (total time estimate) when it should report ETA: 2.5s (time remaining). The fix: double eta = rate * (total_items - i), which estimates only the remaining work.",
+    manifestation: `$ g++ -std=c++17 -Wall eta.cpp -o eta -lpthread && ./eta
+20/100 done, elapsed: 0.5s, ETA: 2.4s
+40/100 done, elapsed: 1.0s, ETA: 2.5s
+60/100 done, elapsed: 1.6s, ETA: 2.7s
+80/100 done, elapsed: 2.3s, ETA: 2.8s
+100/100 done, elapsed: 3.0s, ETA: 3.0s
+Finished in 3.0s
+
+(At 80% done with 2.3s elapsed, ETA shows 2.8s — that's the total
+ estimated time, not time remaining. Actual time remaining was ~0.7s.
+ At 100% done, ETA equals elapsed time, confirming it's total, not
+ remaining.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 452,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Concurrent Timer Pool",
+    description: "Manages a pool of named timers that can be started and stopped independently from multiple threads.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <unordered_map>
+#include <string>
+#include <mutex>
+#include <vector>
+
+class TimerPool {
+    struct TimerState {
+        std::chrono::steady_clock::time_point start;
+        double accumulated = 0.0;
+        bool running = false;
+    };
+
+    std::unordered_map<std::string, TimerState> timers_;
+    std::mutex mtx_;
+
+public:
+    void start(const std::string& name) {
+        std::lock_guard<std::mutex> lock(mtx_);
+        auto& t = timers_[name];
+        t.start = std::chrono::steady_clock::now();
+        t.running = true;
+    }
+
+    double stop(const std::string& name) {
+        std::lock_guard<std::mutex> lock(mtx_);
+        auto it = timers_.find(name);
+        if (it == timers_.end() || !it->second.running)
+            return -1.0;
+
+        auto elapsed = std::chrono::duration<double>(
+            std::chrono::steady_clock::now() - it->second.start).count();
+        it->second.accumulated += elapsed;
+        it->second.running = false;
+        return it->second.accumulated;
+    }
+
+    void report() {
+        std::lock_guard<std::mutex> lock(mtx_);
+        for (auto& [name, state] : timers_) {
+            std::cout << name << ": " << state.accumulated
+                      << "s" << std::endl;
+        }
+    }
+};
+
+void worker(TimerPool& pool, const std::string& name, int iterations) {
+    for (int i = 0; i < iterations; ++i) {
+        pool.start(name);
+        volatile int sum = 0;
+        for (int j = 0; j < 100000; ++j) sum += j;
+        pool.stop(name);
+    }
+}
+
+int main() {
+    TimerPool pool;
+
+    std::vector<std::thread> threads;
+    threads.emplace_back(worker, std::ref(pool), "compute_a", 100);
+    threads.emplace_back(worker, std::ref(pool), "compute_a", 100);
+    threads.emplace_back(worker, std::ref(pool), "compute_b", 100);
+
+    for (auto& t : threads) t.join();
+
+    std::cout << "=== Timer Report ===" << std::endl;
+    pool.report();
+
+    return 0;
+}`,
+    hints: [
+      "Two threads both use the timer named 'compute_a'. What happens when both call start() on the same timer?",
+      "Thread 1 calls start('compute_a'), setting the start time. Thread 2 calls start('compute_a'), overwriting the start time. Thread 1 calls stop — what elapsed time does it measure?",
+      "The mutex protects against data races, but the logic is still wrong: two threads sharing a timer name overwrite each other's start times, making accumulated time meaningless.",
+    ],
+    explanation: "Two threads share the timer 'compute_a'. When thread 1 calls start(), it sets the start time. If thread 2 calls start() before thread 1 calls stop(), it overwrites the start time. Thread 1's subsequent stop() measures from thread 2's start time, not its own. The mutex prevents data races (no UB), but the accumulated time is incorrect — some intervals are measured too short and others too long, and the total doesn't reflect the actual CPU time spent. The fix: use per-thread timers (e.g., append thread ID to the name), or redesign with thread-local start times.",
+    manifestation: `$ g++ -std=c++17 -O2 -Wall pool.cpp -o pool -lpthread && ./pool
+=== Timer Report ===
+compute_a: 0.0287s
+compute_b: 0.0451s
+
+$ # Single-threaded comparison:
+$ # compute_a (200 iterations): 0.0892s
+(Two threads doing 100 iterations each of compute_a should accumulate
+ ~0.089s total, but report only 0.029s because start/stop calls from
+ different threads interleave, measuring partial or overlapping intervals.)`,
+    stdlibRefs: [
+      { name: "std::mutex", brief: "Mutual exclusion primitive for protecting shared data from concurrent access.", note: "Prevents data races but does not prevent logical errors. Shared timers require per-thread state to avoid start/stop interleaving.", link: "https://en.cppreference.com/w/cpp/thread/mutex" },
+    ],
+  },
+  {
+    id: 453,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Timestamp Serializer",
+    description: "Serializes system_clock timestamps to a compact binary format and deserializes them back, verifying round-trip accuracy.",
+    code: `#include <iostream>
+#include <chrono>
+#include <cstdint>
+#include <thread>
+#include <cmath>
+
+struct PackedTime {
+    uint32_t seconds;
+    uint32_t microseconds;
+};
+
+PackedTime encode(std::chrono::system_clock::time_point tp) {
+    auto since_epoch = tp.time_since_epoch();
+    auto sec = std::chrono::duration_cast<
+        std::chrono::seconds>(since_epoch);
+    auto usec = std::chrono::duration_cast<
+        std::chrono::microseconds>(since_epoch) -
+        std::chrono::duration_cast<
+            std::chrono::microseconds>(sec);
+
+    return {
+        static_cast<uint32_t>(sec.count()),
+        static_cast<uint32_t>(usec.count())
+    };
+}
+
+std::chrono::system_clock::time_point decode(PackedTime pt) {
+    return std::chrono::system_clock::time_point(
+        std::chrono::seconds(pt.seconds) +
+        std::chrono::microseconds(pt.microseconds));
+}
+
+int main() {
+    auto now = std::chrono::system_clock::now();
+    auto packed = encode(now);
+    auto decoded = decode(packed);
+
+    auto orig_ms = std::chrono::duration_cast<
+        std::chrono::milliseconds>(now.time_since_epoch()).count();
+    auto dec_ms = std::chrono::duration_cast<
+        std::chrono::milliseconds>(decoded.time_since_epoch()).count();
+
+    std::cout << "Original:  " << orig_ms << " ms" << std::endl;
+    std::cout << "Packed:    sec=" << packed.seconds
+              << " usec=" << packed.microseconds << std::endl;
+    std::cout << "Decoded:   " << dec_ms << " ms" << std::endl;
+    std::cout << "Error:     " << std::abs(orig_ms - dec_ms)
+              << " ms" << std::endl;
+
+    // Test with a date past year 2106
+    auto future = now + std::chrono::hours(24 * 365 * 100);
+    auto future_packed = encode(future);
+    auto future_decoded = decode(future_packed);
+    auto fut_ms = std::chrono::duration_cast<
+        std::chrono::milliseconds>(future.time_since_epoch()).count();
+    auto fut_dec_ms = std::chrono::duration_cast<
+        std::chrono::milliseconds>(future_decoded.time_since_epoch()).count();
+
+    std::cout << "\nFuture test (year ~2126):" << std::endl;
+    std::cout << "Original:  " << fut_ms << " ms" << std::endl;
+    std::cout << "Decoded:   " << fut_dec_ms << " ms" << std::endl;
+    std::cout << "Match:     " << (fut_ms == fut_dec_ms ? "YES" : "NO")
+              << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What is the maximum value a uint32_t can hold for the seconds field?",
+      "uint32_t can store values up to 4,294,967,295 (year 2106). What happens to timestamps after that?",
+      "Current epoch seconds (~1.7 billion) fit in uint32_t. But 100 years from now exceeds UINT32_MAX, causing silent truncation in the encode step. The decoded timestamp is completely wrong.",
+    ],
+    explanation: "The PackedTime format uses uint32_t for seconds since epoch. Current timestamps (~1.7 billion seconds) fit, but the future test adds 100 years (~3.15 billion seconds), reaching ~4.9 billion — exceeding UINT32_MAX (4,294,967,295). The static_cast<uint32_t> silently truncates, and the decoded timestamp wraps around to a date in the 1990s. This is the Y2106 problem — a 32-bit unsigned epoch timestamp overflows in February 2106. The fix: use uint64_t for the seconds field.",
+    manifestation: `$ g++ -std=c++17 -Wall serializer.cpp -o serializer && ./serializer
+Original:  1774396800000 ms
+Packed:    sec=1774396800 usec=0
+Decoded:   1774396800000 ms
+Error:     0 ms
+
+Future test (year ~2126):
+Original:  4927377600000 ms
+Decoded:   632409904000 ms
+Match:     NO
+
+(The current timestamp round-trips correctly, but the future timestamp
+ wraps: 4,927,377,600 seconds truncates to 632,409,904 when cast to
+ uint32_t, decoding to a date in 1990 instead of 2126.)`,
+    stdlibRefs: [
+      { name: "std::chrono::system_clock", brief: "Wall-clock time representing the system-wide real time. Its epoch is typically Unix epoch (1970-01-01).", note: "Seconds since Unix epoch will exceed UINT32_MAX in February 2106. Use 64-bit integers for epoch storage.", link: "https://en.cppreference.com/w/cpp/chrono/system_clock" },
+    ],
+  },
 ];
