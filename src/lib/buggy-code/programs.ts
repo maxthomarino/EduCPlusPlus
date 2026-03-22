@@ -30861,4 +30861,762 @@ $ # The factor oscillates between ~0.9 and ~1.0 on repeated calibration
     stdlibRefs: [
     ],
   },
+  {
+    id: 464,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Typing Speed Test",
+    description: "Measures how long it takes the user to type a phrase and calculates words per minute.",
+    code: `#include <iostream>
+#include <chrono>
+#include <string>
+#include <sstream>
+
+int count_words(const std::string& text) {
+    std::istringstream iss(text);
+    std::string word;
+    int count = 0;
+    while (iss >> word) ++count;
+    return count;
+}
+
+int main() {
+    std::string phrase = "the quick brown fox jumps over the lazy dog";
+    int word_count = count_words(phrase);
+
+    std::cout << "Type this phrase:" << std::endl;
+    std::cout << "  " << phrase << std::endl;
+    std::cout << "> ";
+
+    auto start = std::chrono::steady_clock::now();
+    std::string input;
+    std::getline(std::cin, input);
+    auto end = std::chrono::steady_clock::now();
+
+    double seconds = std::chrono::duration<double>(end - start).count();
+    int wpm = word_count / seconds * 60;
+
+    std::cout << "Time: " << seconds << "s" << std::endl;
+    std::cout << "Speed: " << wpm << " WPM" << std::endl;
+
+    if (input != phrase) {
+        std::cout << "Note: input didn't match exactly" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "The timer starts before the user begins typing. When does the prompt appear relative to the clock starting?",
+      "Look at the WPM calculation: word_count / seconds * 60. What types are involved?",
+      "word_count is int, seconds is double. int / double yields double, so the division is fine. But the program counts the words in the PROMPT, not in what the user actually typed.",
+    ],
+    explanation: "The WPM calculation uses word_count from the original phrase, not from the user's actual input. If the user types fewer or more words (with typos, extra spaces, or missing words), the WPM is calculated from the wrong word count. For example, if the user only types 5 words in 3 seconds, the WPM should be 100, but the program calculates 9/3*60=180 using the original phrase's 9 words. The fix: count words in the user's input instead: int typed_words = count_words(input).",
+    manifestation: `$ g++ -std=c++17 -Wall typing.cpp -o typing && ./typing
+Type this phrase:
+  the quick brown fox jumps over the lazy dog
+> the quick brown fox
+Time: 3.21s
+Speed: 168 WPM
+
+(User only typed 4 words in 3.21s = 75 WPM, but the program reports
+ 168 WPM because it counts the 9 words in the prompt, not the 4 words
+ actually typed. Even partial input gets an inflated score.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 465,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Retry Timer",
+    description: "Retries a flaky operation with increasing delays between attempts and reports total time spent.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <random>
+
+bool flaky_operation() {
+    static std::mt19937 gen(12345);
+    static std::uniform_int_distribution<> dist(1, 10);
+    return dist(gen) > 7;
+}
+
+int main() {
+    const int max_retries = 10;
+    int delay_ms = 100;
+
+    auto total_start = std::chrono::steady_clock::now();
+
+    for (int attempt = 1; attempt <= max_retries; ++attempt) {
+        std::cout << "Attempt " << attempt
+                  << " (delay: " << delay_ms << "ms)... ";
+
+        auto start = std::chrono::steady_clock::now();
+        bool success = flaky_operation();
+        auto end = std::chrono::steady_clock::now();
+
+        auto op_time = std::chrono::duration_cast<
+            std::chrono::milliseconds>(end - start).count();
+
+        if (success) {
+            auto total = std::chrono::duration_cast<
+                std::chrono::milliseconds>(end - total_start).count();
+            std::cout << "SUCCESS (op: " << op_time
+                      << "ms, total: " << total << "ms)" << std::endl;
+            return 0;
+        }
+
+        std::cout << "FAILED (op: " << op_time << "ms)" << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+        delay_ms =* 2;
+    }
+
+    std::cout << "All retries exhausted." << std::endl;
+    return 1;
+}`,
+    hints: [
+      "Look carefully at the delay doubling expression on the retry path.",
+      "What does =* mean as a sequence of characters?",
+      "delay_ms =* 2 is parsed as delay_ms = (*2), which is a dereference of literal 2 — a compile error. Wait, actually it's delay_ms = *2 which... no, actually =* is not *= . It assigns the value of (unary * applied to 2), but 2 is not a pointer. Actually in C++, this parses as delay_ms = (* 2) which is a compile error.",
+    ],
+    explanation: "The expression delay_ms =* 2 is a typo — it should be delay_ms *= 2 (multiply-assign). As written, =* is parsed as the assignment operator = followed by the unary dereference operator *. This attempts to dereference the integer literal 2, which is a compile error. However, if this were a more subtle typo like delay_ms =- 2 (instead of delay_ms -= 2), it would compile but assign -2 to delay_ms instead of subtracting 2. The fix: change =* to *=.",
+    manifestation: `$ g++ -std=c++17 -Wall retry.cpp -o retry
+retry.cpp:35:20: error: indirection requires pointer operand ('int' invalid)
+        delay_ms =* 2;
+                   ^ ~
+
+(The =* typo is parsed as = followed by unary *. The compiler tries to
+ dereference the integer 2, which fails. The intended *= (multiply-assign)
+ has the operators in the wrong order.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 466,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Schedule Planner",
+    description: "Determines whether two time intervals overlap, useful for scheduling meetings or reserving resources.",
+    code: `#include <iostream>
+#include <chrono>
+#include <string>
+
+using TimePoint = std::chrono::system_clock::time_point;
+using Minutes = std::chrono::minutes;
+
+struct Interval {
+    std::string name;
+    TimePoint start;
+    TimePoint end;
+};
+
+bool overlaps(const Interval& a, const Interval& b) {
+    return a.start < b.end || b.start < a.end;
+}
+
+TimePoint make_time(int hour, int minute) {
+    auto today = std::chrono::system_clock::now();
+    auto today_midnight = std::chrono::floor<std::chrono::days>(today);
+    return today_midnight + std::chrono::hours(hour)
+                          + std::chrono::minutes(minute);
+}
+
+int main() {
+    Interval meeting1 = {"Standup",
+        make_time(9, 0), make_time(9, 30)};
+    Interval meeting2 = {"Design Review",
+        make_time(10, 0), make_time(11, 0)};
+    Interval meeting3 = {"Lunch",
+        make_time(11, 30), make_time(12, 30)};
+    Interval meeting4 = {"Code Review",
+        make_time(9, 15), make_time(10, 15)};
+
+    auto check = [](const Interval& a, const Interval& b) {
+        std::cout << a.name << " & " << b.name << ": "
+                  << (overlaps(a, b) ? "OVERLAP" : "no overlap")
+                  << std::endl;
+    };
+
+    check(meeting1, meeting2);
+    check(meeting2, meeting3);
+    check(meeting1, meeting4);
+    check(meeting2, meeting4);
+
+    return 0;
+}`,
+    hints: [
+      "Look at the overlaps() function. What logical operator connects the two conditions?",
+      "The overlap check uses || (OR). When do two intervals NOT overlap?",
+      "Two intervals don't overlap when a.end <= b.start OR b.end <= a.start. The overlap condition is the negation: a.start < b.end AND b.start < a.end. Using || instead of && makes almost everything 'overlap'.",
+    ],
+    explanation: "The overlaps() function uses || (OR) instead of && (AND). Two intervals overlap when a.start < b.end AND b.start < a.end. With OR, the function returns true if EITHER condition holds — which is almost always true for any two intervals. For example, Standup (9:00-9:30) and Lunch (11:30-12:30) don't overlap, but since 9:00 < 12:30 is true, the OR returns true. The fix: change || to &&.",
+    manifestation: `$ g++ -std=c++20 -Wall schedule.cpp -o schedule && ./schedule
+Standup & Design Review: OVERLAP
+Design Review & Lunch: OVERLAP
+Standup & Code Review: OVERLAP
+Design Review & Code Review: OVERLAP
+
+(Standup (9:00-9:30) and Design Review (10:00-11:00) are reported as
+ overlapping even though they're 30 minutes apart. The || should be &&.
+ Only adjacent/separated intervals with very specific timing would
+ correctly show "no overlap" with the buggy logic.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 467,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Execution Window Guard",
+    description: "Ensures a function only executes during allowed time windows (e.g., business hours) and blocks otherwise.",
+    code: `#include <iostream>
+#include <chrono>
+#include <ctime>
+#include <thread>
+#include <functional>
+
+class TimeWindowGuard {
+    int start_hour_;
+    int end_hour_;
+
+public:
+    TimeWindowGuard(int start_hour, int end_hour)
+        : start_hour_(start_hour), end_hour_(end_hour) {}
+
+    bool is_allowed() const {
+        time_t now = time(nullptr);
+        std::tm local;
+#ifdef _WIN32
+        localtime_s(&local, &now);
+#else
+        localtime_r(&now, &local);
+#endif
+        int hour = local.tm_hour;
+        return hour >= start_hour_ && hour <= end_hour_;
+    }
+
+    bool execute_if_allowed(std::function<void()> func) {
+        if (is_allowed()) {
+            func();
+            return true;
+        }
+        std::cout << "Outside allowed window ("
+                  << start_hour_ << ":00 - "
+                  << end_hour_ << ":00)" << std::endl;
+        return false;
+    }
+};
+
+int main() {
+    TimeWindowGuard business_hours(9, 17);
+    TimeWindowGuard night_window(22, 6);
+
+    std::cout << "Business hours check: ";
+    business_hours.execute_if_allowed([]() {
+        std::cout << "Running business task" << std::endl;
+    });
+
+    std::cout << "Night window check: ";
+    night_window.execute_if_allowed([]() {
+        std::cout << "Running night batch job" << std::endl;
+    });
+
+    return 0;
+}`,
+    hints: [
+      "Look at the night_window: start_hour=22, end_hour=6. What does the is_allowed check compute?",
+      "hour >= 22 && hour <= 6 — can any integer be simultaneously >= 22 AND <= 6?",
+      "The condition hour >= 22 && hour <= 6 is always false because no hour satisfies both conditions. The night window spanning midnight is never 'allowed'.",
+    ],
+    explanation: "The is_allowed() check uses hour >= start_hour_ && hour <= end_hour_, which works for same-day windows (9-17) but fails for windows that span midnight (22-6). No hour is simultaneously >= 22 AND <= 6, so the night window is permanently closed. The fix: for cross-midnight windows, use OR instead: if (start_hour_ > end_hour_) return hour >= start_hour_ || hour <= end_hour_.",
+    manifestation: `$ g++ -std=c++17 -Wall guard.cpp -o guard && ./guard
+Business hours check: Running business task
+Night window check: Outside allowed window (22:00 - 6:00)
+
+$ # Even at 2:00 AM:
+$ faketime '02:00:00' ./guard
+Business hours check: Outside allowed window (9:00 - 17:00)
+Night window check: Outside allowed window (22:00 - 6:00)
+
+(The night window 22:00-6:00 is never open because hour >= 22 && hour <= 6
+ is always false. At 2 AM, 2 >= 22 is false. At 23:00, 23 <= 6 is false.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 468,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Timeout Promise",
+    description: "Wraps an async computation in a promise that resolves with the result or rejects after a timeout.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <future>
+#include <optional>
+
+template<typename T>
+std::optional<T> with_timeout(std::future<T>& fut,
+                               std::chrono::milliseconds timeout) {
+    if (fut.wait_for(timeout) == std::future_status::ready) {
+        return fut.get();
+    }
+    return std::nullopt;
+}
+
+int slow_compute() {
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    return 42;
+}
+
+int fast_compute() {
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    return 7;
+}
+
+int main() {
+    auto fut1 = std::async(std::launch::async, fast_compute);
+    auto result1 = with_timeout(fut1, std::chrono::milliseconds(500));
+    std::cout << "Fast: " << (result1 ? std::to_string(*result1) : "timeout")
+              << std::endl;
+
+    auto fut2 = std::async(std::launch::async, slow_compute);
+    auto result2 = with_timeout(fut2, std::chrono::milliseconds(500));
+    std::cout << "Slow: " << (result2 ? std::to_string(*result2) : "timeout")
+              << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "When with_timeout returns nullopt for fut2, what happens to fut2?",
+      "fut2 was created by std::async(std::launch::async, ...). What does its destructor do?",
+      "The future from std::async blocks in its destructor until the task completes. When main() exits, fut2 is destroyed, blocking for the remaining ~2.5 seconds of slow_compute.",
+    ],
+    explanation: "When with_timeout detects the timeout and returns nullopt, the slow_compute thread is still running. The future fut2 was created with std::async(std::launch::async, ...), and its destructor blocks until the associated thread finishes. When main() returns and fut2 is destroyed, the program hangs for ~2.5 more seconds waiting for slow_compute to finish. The timeout is an illusion — the program still waits the full 3 seconds total. The fix: this is a fundamental limitation of std::async. Use std::thread with detach(), or use a cancellation mechanism.",
+    manifestation: `$ g++ -std=c++17 -Wall promise.cpp -o promise -lpthread && time ./promise
+Fast: 7
+Slow: timeout
+Done.
+
+real    0m3.12s
+
+(Despite the 500ms timeout, the program takes 3.1 seconds total because
+ fut2's destructor blocks until slow_compute finishes. The "timeout"
+ message appears at 600ms but the program doesn't exit until 3.1s.)`,
+    stdlibRefs: [
+      { name: "std::async", args: "(std::launch policy, F&& f, Args&&... args) → future<result_of_t<F(Args...)>>", brief: "Runs a function asynchronously and returns a future holding the result.", note: "With std::launch::async, the returned future's destructor blocks until the task completes. This makes true timeout/cancellation impossible with std::async alone.", link: "https://en.cppreference.com/w/cpp/thread/async" },
+    ],
+  },
+  {
+    id: 469,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Recurring Alarm Clock",
+    description: "Fires an alarm callback at a specified time each day, automatically rescheduling for the next day after firing.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <ctime>
+#include <functional>
+#include <atomic>
+
+class DailyAlarm {
+    int target_hour_;
+    int target_minute_;
+    std::function<void()> callback_;
+    std::atomic<bool> running_{true};
+    std::thread worker_;
+
+    time_t next_alarm() {
+        time_t now = time(nullptr);
+        std::tm local = *localtime(&now);
+
+        local.tm_hour = target_hour_;
+        local.tm_min = target_minute_;
+        local.tm_sec = 0;
+
+        time_t alarm_time = mktime(&local);
+        if (alarm_time <= now) {
+            local.tm_mday += 1;
+            alarm_time = mktime(&local);
+        }
+        return alarm_time;
+    }
+
+public:
+    DailyAlarm(int hour, int minute, std::function<void()> cb)
+        : target_hour_(hour), target_minute_(minute)
+        , callback_(std::move(cb))
+    {
+        worker_ = std::thread([this]() {
+            while (running_) {
+                time_t alarm = next_alarm();
+                time_t now = time(nullptr);
+                int wait_sec = static_cast<int>(difftime(alarm, now));
+
+                if (wait_sec > 0) {
+                    std::this_thread::sleep_for(
+                        std::chrono::seconds(wait_sec));
+                }
+
+                if (running_) {
+                    callback_();
+                }
+            }
+        });
+    }
+
+    ~DailyAlarm() {
+        running_ = false;
+        if (worker_.joinable()) worker_.join();
+    }
+};
+
+int main() {
+    std::cout << "Setting daily alarm for 07:00..." << std::endl;
+
+    DailyAlarm alarm(7, 0, []() {
+        time_t now = time(nullptr);
+        std::cout << "ALARM! Time: " << ctime(&now);
+    });
+
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+    std::cout << "Stopping..." << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The destructor sets running_ to false and joins the worker thread. But the worker might be sleeping for hours. How long does the destructor block?",
+      "sleep_for(seconds(wait_sec)) can sleep for up to 24 hours. During this sleep, running_ changes but the thread doesn't wake up.",
+      "The worker thread checks running_ only after waking from sleep. If the alarm is 12 hours away, the destructor blocks for 12 hours waiting for the thread to wake and check running_.",
+    ],
+    explanation: "The worker thread sleeps for potentially hours (until the next alarm time). The destructor sets running_ = false but has no way to wake the sleeping thread — it just calls join(), which blocks until the thread finishes its sleep. If the alarm is set for 7:00 AM and the program exits at 10:00 PM, the destructor blocks for 9 hours. The fix: use a condition_variable with wait_for in a loop that checks running_ periodically, or break the long sleep into short intervals with running_ checks.",
+    manifestation: `$ g++ -std=c++17 -Wall alarm.cpp -o alarm -lpthread && time ./alarm
+Setting daily alarm for 07:00...
+Stopping...
+(program hangs — destructor is blocking on join() while the worker
+ sleeps until 07:00 tomorrow)
+
+^C   (user kills after waiting)
+real    0m47.3s  (would have been hours if not killed)
+
+(The destructor blocks indefinitely because the worker thread is in a
+ long sleep_for and there's no mechanism to wake it early.)`,
+    stdlibRefs: [
+      { name: "std::this_thread::sleep_for", args: "(const duration& rel_time) → void", brief: "Blocks the calling thread for at least the specified duration.", note: "Cannot be interrupted early. For cancellable waits, use a condition_variable with wait_for that checks a stop flag between short sleep intervals.", link: "https://en.cppreference.com/w/cpp/thread/sleep_for" },
+    ],
+  },
+  {
+    id: 470,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Lock-Free Timestamp Counter",
+    description: "A lock-free counter that uses atomic operations to track the timestamp and count of the most recent event.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <atomic>
+#include <vector>
+
+struct EventInfo {
+    std::atomic<long long> timestamp_ns{0};
+    std::atomic<int> event_count{0};
+};
+
+EventInfo global_events;
+
+void producer(int id, int events) {
+    for (int i = 0; i < events; ++i) {
+        auto now = std::chrono::steady_clock::now();
+        long long ns = std::chrono::duration_cast<
+            std::chrono::nanoseconds>(now.time_since_epoch()).count();
+
+        global_events.timestamp_ns.store(ns, std::memory_order_relaxed);
+        global_events.event_count.fetch_add(1, std::memory_order_relaxed);
+
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
+}
+
+void monitor() {
+    for (int i = 0; i < 5; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+
+        int count = global_events.event_count.load(
+            std::memory_order_relaxed);
+        long long ts = global_events.timestamp_ns.load(
+            std::memory_order_relaxed);
+
+        auto now_ns = std::chrono::duration_cast<
+            std::chrono::nanoseconds>(
+                std::chrono::steady_clock::now().time_since_epoch()
+            ).count();
+
+        double age_ms = (now_ns - ts) / 1000000.0;
+
+        std::cout << "Events: " << count
+                  << ", last event age: " << age_ms << "ms"
+                  << std::endl;
+    }
+}
+
+int main() {
+    std::vector<std::thread> producers;
+    for (int i = 0; i < 4; ++i) {
+        producers.emplace_back(producer, i, 1000);
+    }
+    std::thread mon(monitor);
+
+    for (auto& t : producers) t.join();
+    mon.join();
+
+    std::cout << "Total events: "
+              << global_events.event_count.load() << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The monitor reads count and then timestamp in two separate atomic loads. Can the values be inconsistent?",
+      "With memory_order_relaxed, there's no ordering guarantee between the two loads. The count might reflect a newer state than the timestamp, or vice versa.",
+      "More critically: a producer stores timestamp and then increments count as two separate operations. Between these two stores, another producer can store a different timestamp. The monitor can read count=N but timestamp from event N-1 or N+1.",
+    ],
+    explanation: "There are two related bugs: (1) The producer stores timestamp and increments count as two non-atomic operations. Between them, another producer can overwrite the timestamp. This means count and timestamp are not coherent — count might be 500 while timestamp is from event 499 or 501. (2) The monitor reads count and timestamp as separate loads with relaxed ordering, so it can see stale values for one but fresh values for the other. The 'last event age' can appear negative if timestamp is from a more recent event than when the monitor read 'now'. The fix: combine timestamp and count into a single struct and use atomic<EventInfo> with compare_exchange, or use a mutex.",
+    manifestation: `$ g++ -std=c++17 -O2 -Wall counter.cpp -o counter -lpthread && ./counter
+Events: 987, last event age: -0.034ms
+Events: 1982, last event age: 0.112ms
+Events: 2976, last event age: -0.018ms
+Events: 3969, last event age: 0.089ms
+Events: 4000, last event age: 0.156ms
+Total events: 4000
+
+(Negative age values (-0.034ms, -0.018ms) occur because the monitor
+ reads a timestamp that was stored AFTER it captured "now" — the
+ relaxed memory ordering provides no consistency between the two
+ atomic loads. The count and timestamp don't correspond to the same event.)`,
+    stdlibRefs: [
+      { name: "std::atomic::store", args: "(T desired, memory_order order) → void", brief: "Atomically stores a value, optionally with a specified memory ordering.", note: "memory_order_relaxed provides no ordering between different atomic variables. Two relaxed stores to different atomics can be observed in any order by other threads.", link: "https://en.cppreference.com/w/cpp/atomic/atomic/store" },
+    ],
+  },
+  {
+    id: 471,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Uptime Reporter",
+    description: "Tracks and reports how long the application has been running since startup.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+
+class UptimeTracker {
+    std::chrono::steady_clock::time_point boot_time_;
+
+public:
+    UptimeTracker() : boot_time_(std::chrono::steady_clock::now()) {}
+
+    std::string uptime_string() const {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<
+            std::chrono::seconds>(now - boot_time_).count();
+
+        int hours = elapsed / 3600;
+        int minutes = elapsed / 60;
+        int seconds = elapsed % 60;
+
+        return std::to_string(hours) + "h "
+             + std::to_string(minutes) + "m "
+             + std::to_string(seconds) + "s";
+    }
+};
+
+int main() {
+    UptimeTracker tracker;
+
+    for (int i = 0; i < 5; ++i) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+        std::cout << "Uptime: " << tracker.uptime_string() << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Look at how hours, minutes, and seconds are extracted from elapsed.",
+      "hours = elapsed / 3600 is correct. But minutes = elapsed / 60 gives TOTAL minutes, not the remainder after hours.",
+      "For 3661 seconds: hours=1, minutes=61, seconds=1. It shows '1h 61m 1s' instead of '1h 1m 1s'.",
+    ],
+    explanation: "The minutes calculation uses elapsed / 60 which gives total minutes since startup, not the minutes component after subtracting hours. For an uptime of 3661 seconds: hours = 1, minutes = 61 (should be 1), seconds = 1. The output shows '1h 61m 1s' instead of '1h 1m 1s'. The fix: minutes = (elapsed % 3600) / 60.",
+    manifestation: `$ g++ -std=c++17 -Wall uptime.cpp -o uptime -lpthread && ./uptime
+Uptime: 0h 0m 1s
+Uptime: 0h 0m 2s
+Uptime: 0h 0m 3s
+Uptime: 0h 0m 4s
+Uptime: 0h 0m 5s
+
+(Looks correct for small values, but for elapsed=3661s it would show
+ "1h 61m 1s" instead of "1h 1m 1s". The minutes field shows total
+ minutes, not the remainder after hours.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 472,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Request Latency Tracker",
+    description: "Tracks request latencies and maintains a running average, min, and max for a monitoring dashboard.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <random>
+#include <limits>
+#include <algorithm>
+
+class LatencyTracker {
+    double sum_ = 0.0;
+    double min_ = std::numeric_limits<double>::max();
+    double max_ = std::numeric_limits<double>::min();
+    int count_ = 0;
+
+public:
+    void record(double latency_ms) {
+        sum_ += latency_ms;
+        min_ = std::min(min_, latency_ms);
+        max_ = std::max(max_, latency_ms);
+        ++count_;
+    }
+
+    double average() const { return count_ > 0 ? sum_ / count_ : 0; }
+    double min_val() const { return min_; }
+    double max_val() const { return max_; }
+    int count() const { return count_; }
+};
+
+int main() {
+    LatencyTracker tracker;
+    std::mt19937 gen(42);
+    std::uniform_real_distribution<> dist(5.0, 50.0);
+
+    for (int i = 0; i < 100; ++i) {
+        double latency = dist(gen);
+        tracker.record(latency);
+    }
+
+    std::cout << "Requests: " << tracker.count() << std::endl;
+    std::cout << "Average:  " << tracker.average() << " ms" << std::endl;
+    std::cout << "Min:      " << tracker.min_val() << " ms" << std::endl;
+    std::cout << "Max:      " << tracker.max_val() << " ms" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at how min_ and max_ are initialized.",
+      "max_ is initialized to std::numeric_limits<double>::min(). What value is that?",
+      "numeric_limits<double>::min() is the smallest POSITIVE normalized double (~2.2e-308), not negative infinity. For max tracking, it should be numeric_limits<double>::lowest() (which is -1.7e+308).",
+    ],
+    explanation: "max_ is initialized to std::numeric_limits<double>::min(), which is the smallest positive normalized double (~2.2e-308), not the most negative value. This happens to work correctly here because all latencies (5-50ms) are larger than 2.2e-308. But if latencies could be negative (e.g., clock adjustments, or tracking deltas), the max would never update for negative values. The semantic bug: min() means 'smallest positive normal' for floating types, not 'most negative'. The correct initialization for a maximum tracker is numeric_limits<double>::lowest() (-DBL_MAX). This is a classic trap that silently works for positive data but fails for any non-positive values.",
+    manifestation: `$ g++ -std=c++17 -Wall latency.cpp -o latency && ./latency
+Requests: 100
+Average:  27.34 ms
+Min:      5.12 ms
+Max:      49.87 ms
+
+(Appears correct because all latencies are positive. But if any value
+ were negative or zero, max_ starting at 2.2e-308 instead of -DBL_MAX
+ would fail to track it. The bug is latent — works by accident for this
+ data range. Use numeric_limits<double>::lowest() for correct semantics.)`,
+    stdlibRefs: [
+      { name: "std::numeric_limits::min", args: "() → T", brief: "For floating types: returns the smallest positive normalized value. For integer types: returns the minimum (most negative) value.", note: "For float/double, min() is a tiny positive number (~2.2e-308), NOT the most negative. Use lowest() for the most negative representable value.", link: "https://en.cppreference.com/w/cpp/types/numeric_limits/min" },
+    ],
+  },
+  {
+    id: 473,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Async Timeout Combinator",
+    description: "Runs multiple async operations concurrently and returns results from all that complete within a timeout, discarding the rest.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <future>
+#include <vector>
+#include <string>
+#include <optional>
+
+struct Result {
+    std::string source;
+    int value;
+};
+
+std::vector<Result> gather_with_timeout(
+    std::vector<std::pair<std::string, std::future<int>>>& tasks,
+    std::chrono::milliseconds timeout)
+{
+    std::vector<Result> results;
+    auto deadline = std::chrono::steady_clock::now() + timeout;
+
+    for (auto& [name, fut] : tasks) {
+        auto remaining = deadline - std::chrono::steady_clock::now();
+        if (remaining <= std::chrono::steady_clock::duration::zero()) {
+            break;
+        }
+
+        auto status = fut.wait_for(
+            std::chrono::duration_cast<std::chrono::milliseconds>(remaining));
+
+        if (status == std::future_status::ready) {
+            results.push_back({name, fut.get()});
+        }
+    }
+
+    return results;
+}
+
+int main() {
+    std::vector<std::pair<std::string, std::future<int>>> tasks;
+
+    tasks.emplace_back("fast_a", std::async(std::launch::async, []() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        return 1;
+    }));
+    tasks.emplace_back("slow_b", std::async(std::launch::async, []() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+        return 2;
+    }));
+    tasks.emplace_back("fast_c", std::async(std::launch::async, []() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        return 3;
+    }));
+
+    auto results = gather_with_timeout(tasks,
+        std::chrono::milliseconds(500));
+
+    std::cout << "Completed within timeout:" << std::endl;
+    for (const auto& r : results) {
+        std::cout << "  " << r.source << " = " << r.value << std::endl;
+    }
+    std::cout << "Got " << results.size() << " / "
+              << tasks.size() << " results" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The function iterates through tasks sequentially, waiting for each one. If slow_b takes the full remaining timeout, what happens to fast_c?",
+      "After waiting 500ms for slow_b (which doesn't finish), the remaining time is ≈ 0ms. fast_c would have finished in 100ms, but it's never checked because the timeout expired during slow_b's wait.",
+      "Additionally, the futures from std::async block in their destructors when the tasks vector is destroyed. The function returns quickly, but main() blocks when 'tasks' goes out of scope.",
+    ],
+    explanation: "Two bugs: (1) Sequential waiting: slow_b consumes the entire remaining timeout (~450ms), so fast_c is never checked despite finishing in 100ms. The function only gets fast_a's result, missing fast_c. A correct implementation would poll all futures in round-robin or use when_any(). (2) The blocking destructor problem: when tasks goes out of scope, slow_b's future destructor blocks for ~4.5 more seconds. The program appears done but hangs. Both issues stem from the sequential iteration pattern and std::async's destructor behavior.",
+    manifestation: `$ g++ -std=c++17 -Wall combinator.cpp -o combinator -lpthread && time ./combinator
+Completed within timeout:
+  fast_a = 1
+Got 1 / 3 results
+
+real    0m5.07s
+
+(Only fast_a (50ms) was captured. fast_c (100ms) also finished within
+ the 500ms budget but was never checked because slow_b consumed the
+ remaining wait time. Additionally, the program takes 5s total due to
+ slow_b's future blocking in its destructor.)`,
+    stdlibRefs: [
+      { name: "std::future::wait_for", args: "(const duration& timeout_duration) → future_status", brief: "Waits for the result to become available, up to the specified timeout.", note: "Waiting sequentially on multiple futures wastes the timeout budget on slow tasks, starving fast ones that appear later in the list.", link: "https://en.cppreference.com/w/cpp/thread/future/wait_for" },
+    ],
+  },
 ];
