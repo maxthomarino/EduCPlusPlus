@@ -27926,4 +27926,648 @@ Expected: 150`,
       { name: "std::condition_variable::wait_for", args: "(unique_lock<mutex>& lock, const duration& rel_time) → cv_status | (unique_lock<mutex>& lock, const duration& rel_time, Predicate pred) → bool", brief: "Blocks until notified, timed out, or (with predicate) until the predicate returns true.", note: "Without a predicate, a notification sent before wait_for() is called is lost. The predicate overload checks the condition before blocking, preventing missed notifications.", link: "https://en.cppreference.com/w/cpp/thread/condition_variable/wait_for" },
     ],
   },
+  {
+    id: 424,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Countdown Display",
+    description: "Displays a countdown from N seconds to zero, updating every second with remaining time.",
+    code: `#include <iostream>
+#include <ctime>
+
+int main() {
+    const int total = 5;
+    std::cout << "Countdown from " << total << " seconds:" << std::endl;
+
+    time_t start = time(nullptr);
+
+    while (true) {
+        time_t now = time(nullptr);
+        int elapsed = static_cast<int>(difftime(now, start));
+        int remaining = total - elapsed;
+
+        std::cout << "\r" << remaining << "s remaining..." << std::flush;
+
+        if (remaining <= 0) {
+            std::cout << std::endl << "Done!" << std::endl;
+            break;
+        }
+    }
+
+    return 0;
+}`,
+    hints: [
+      "What is this loop doing between updates — is it yielding or spinning?",
+      "How much CPU does a tight while-loop with no sleep consume?",
+      "The loop has no sleep or yield call — it busy-waits, consuming 100% CPU on one core for the entire countdown.",
+    ],
+    explanation: "The countdown loop has no sleep, yield, or wait. It busy-spins on time(), consuming 100% of one CPU core for the entire 5-second countdown. While the output is technically correct, this is extremely wasteful. The fix is to add std::this_thread::sleep_for(std::chrono::milliseconds(100)) or similar inside the loop to yield the CPU between checks.",
+    manifestation: `$ g++ -O2 countdown.cpp -o countdown && ./countdown &
+Countdown from 5 seconds:
+5s remaining...
+
+$ top -b -n 1 -p $(pgrep countdown) | tail -2
+  PID USER     PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+
+29401 user     20   0    8192   1024    896 R  99.7  0.0   0:03.12
+
+(Program uses 100% CPU for the entire 5-second countdown instead of
+ sleeping between checks. Output is correct but resource usage is
+ catastrophic.)`,
+    stdlibRefs: [
+      { name: "std::time", args: "(time_t* arg) → time_t", brief: "Returns the current calendar time as a time_t value.", note: "Has only whole-second resolution. Polling it in a tight loop wastes CPU — add a sleep between checks.", link: "https://en.cppreference.com/w/cpp/chrono/c/time" },
+    ],
+  },
+  {
+    id: 425,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Duration Formatter",
+    description: "Converts a duration in milliseconds into a human-readable HH:MM:SS.mmm format.",
+    code: `#include <iostream>
+#include <chrono>
+#include <iomanip>
+
+std::string format_duration(std::chrono::milliseconds total_ms) {
+    auto hours = std::chrono::duration_cast<std::chrono::hours>(total_ms);
+    total_ms -= hours;
+    auto minutes = std::chrono::duration_cast<std::chrono::minutes>(total_ms);
+    total_ms -= minutes;
+    auto seconds = std::chrono::duration_cast<std::chrono::seconds>(total_ms);
+    total_ms -= seconds;
+
+    std::ostringstream oss;
+    oss << std::setfill('0')
+        << std::setw(2) << hours.count() << ":"
+        << std::setw(2) << minutes.count() << ":"
+        << std::setw(2) << seconds.count() << "."
+        << std::setw(3) << total_ms.count();
+    return oss.str();
+}
+
+int main() {
+    using ms = std::chrono::milliseconds;
+
+    std::cout << format_duration(ms(0))        << std::endl;
+    std::cout << format_duration(ms(3661500))  << std::endl;
+    std::cout << format_duration(ms(59999))    << std::endl;
+    std::cout << format_duration(ms(-5000))    << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What type does total_ms -= hours produce, and what happens when subtracting a larger unit from a smaller?",
+      "Can std::chrono::milliseconds hold negative values? What does duration_cast do with negative durations?",
+      "duration_cast truncates toward zero. For -5000ms, hours=0, then total_ms is still -5000ms. What happens next?",
+    ],
+    explanation: "For negative durations, duration_cast truncates toward zero, not toward negative infinity. For ms(-5000): hours=0, minutes=0, seconds=0 (truncated from -5s toward zero), remaining ms=-5000. After subtracting hours(0), minutes(0), seconds(0), total_ms is still -5000, so the output shows 00:00:00.-5000 instead of a properly formatted negative duration. Even for positive values, the subtraction chain works correctly, but negative inputs break the decomposition entirely.",
+    manifestation: `$ g++ -std=c++17 -Wall formatter.cpp -o formatter && ./formatter
+00:00:00.000
+01:01:01.500
+00:00:59.999
+00:00:00.-5000
+
+(The negative duration produces "00:00:00.-5000" — the decomposition
+ fails because duration_cast truncates toward zero, leaving the full
+ negative value in the remainder.)`,
+    stdlibRefs: [
+      { name: "std::chrono::duration_cast", args: "<ToDuration>(const duration<Rep, Period>& d) → ToDuration", brief: "Converts a duration to a different unit, truncating toward zero if the conversion is not exact.", note: "Truncation toward zero means negative durations don't decompose correctly. -5500ms cast to seconds gives 0s, not -6s, leaving -5500ms as remainder.", link: "https://en.cppreference.com/w/cpp/chrono/duration/duration_cast" },
+    ],
+  },
+  {
+    id: 426,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Time Since Midnight",
+    description: "Calculates and prints how many hours, minutes, and seconds have elapsed since midnight today.",
+    code: `#include <iostream>
+#include <ctime>
+
+int main() {
+    time_t now = time(nullptr);
+    struct tm* local = localtime(&now);
+
+    int seconds_since_midnight = local->tm_hour * 3600
+                               + local->tm_min * 60
+                               + local->tm_sec;
+
+    int hours = seconds_since_midnight / 3600;
+    int minutes = seconds_since_midnight / 60;
+    int seconds = seconds_since_midnight % 60;
+
+    std::cout << "Current time: "
+              << local->tm_hour << ":"
+              << local->tm_min << ":"
+              << local->tm_sec << std::endl;
+
+    std::cout << "Since midnight: "
+              << hours << "h " << minutes << "m "
+              << seconds << "s" << std::endl;
+
+    std::cout << "Total seconds: "
+              << seconds_since_midnight << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at how hours, minutes, and seconds are extracted from seconds_since_midnight.",
+      "The hours calculation divides by 3600, but does the minutes calculation account for the hours already extracted?",
+      "minutes should be (seconds_since_midnight % 3600) / 60, not seconds_since_midnight / 60. What value does the current formula give?",
+    ],
+    explanation: "The minutes calculation is seconds_since_midnight / 60 instead of (seconds_since_midnight % 3600) / 60. This gives the total minutes since midnight (e.g., 754 for 12:34), not the minutes component (34). For 12:34:56, the output shows '12h 754m 56s' instead of '12h 34m 56s'. The fix is: int minutes = (seconds_since_midnight % 3600) / 60.",
+    manifestation: `$ g++ -Wall midnight.cpp -o midnight && ./midnight
+Current time: 12:34:56
+Since midnight: 12h 754m 56s
+Total seconds: 45296
+
+(Minutes shows 754 — the total minutes since midnight — instead of 34,
+ the minutes component of the current time.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 427,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Parallel Benchmark",
+    description: "Benchmarks a computation using multiple threads and compares wall-clock time with total CPU time.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <vector>
+#include <ctime>
+#include <cmath>
+
+void heavy_compute() {
+    volatile double result = 0.0;
+    for (int i = 0; i < 50000000; ++i) {
+        result += std::sin(i * 0.001) * std::cos(i * 0.001);
+    }
+}
+
+int main() {
+    const int num_threads = 4;
+    std::cout << "Benchmarking with " << num_threads << " threads..." << std::endl;
+
+    clock_t cpu_start = clock();
+    auto wall_start = std::chrono::steady_clock::now();
+
+    std::vector<std::thread> threads;
+    for (int i = 0; i < num_threads; ++i) {
+        threads.emplace_back(heavy_compute);
+    }
+    for (auto& t : threads) t.join();
+
+    auto wall_end = std::chrono::steady_clock::now();
+    clock_t cpu_end = clock();
+
+    double wall_sec = std::chrono::duration<double>(wall_end - wall_start).count();
+    double cpu_sec = static_cast<double>(cpu_end - cpu_start) / CLOCKS_PER_SEC;
+
+    std::cout << "Wall time: " << wall_sec << "s" << std::endl;
+    std::cout << "CPU time:  " << cpu_sec << "s" << std::endl;
+    std::cout << "Speedup:   " << cpu_sec / wall_sec << "x" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What does clock() measure in a multi-threaded program on different platforms?",
+      "On Linux, clock() sums CPU time across all threads. On Windows, it only counts the calling thread. How does this affect the speedup calculation?",
+      "The 'speedup' divides CPU time by wall time. If clock() only measures the main thread's CPU time (which is near zero while joining), what result do you get?",
+    ],
+    explanation: "The behavior of clock() with threads is platform-dependent. On Linux, clock() sums CPU time across all threads, so cpu_sec ≈ 4 * wall_sec and 'speedup' ≈ 4x — misleadingly suggesting the parallelism metric is wall_time/cpu_time, when it's actually the inverse. On Windows, clock() only measures the calling thread, so cpu_sec ≈ 0 (main thread just waits on join), giving a near-zero speedup. Neither interpretation is correct for measuring parallel speedup. The fix is to use steady_clock for wall time and compute speedup as single_thread_time / wall_sec.",
+    manifestation: `$ g++ -O2 -std=c++17 bench.cpp -o bench -lpthread && ./bench
+Benchmarking with 4 threads...
+Wall time: 1.23s
+CPU time:  4.89s
+Speedup:   3.98x
+
+(On Linux, clock() sums all threads' CPU time, so "speedup" is
+ cpu_total/wall ≈ num_threads — a tautology, not a speedup measurement.
+ On Windows, CPU time ≈ 0s, giving speedup ≈ 0x.)`,
+    stdlibRefs: [
+      { name: "std::clock", args: "() → clock_t", brief: "Returns the approximate processor time used by the process since the program started.", note: "Multi-thread behavior is platform-dependent: Linux sums all threads, Windows counts only the calling thread. Neither is suitable for parallel benchmarking.", link: "https://en.cppreference.com/w/cpp/chrono/c/clock" },
+    ],
+  },
+  {
+    id: 428,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Event Cooldown",
+    description: "Implements a cooldown system that prevents an action from being triggered more often than once per interval.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+
+class Cooldown {
+    std::chrono::steady_clock::time_point last_trigger_;
+    std::chrono::milliseconds interval_;
+    bool first_call_ = true;
+
+public:
+    Cooldown(int interval_ms)
+        : interval_(interval_ms) {}
+
+    bool try_trigger() {
+        auto now = std::chrono::steady_clock::now();
+
+        if (first_call_) {
+            first_call_ = false;
+            last_trigger_ = now;
+            return true;
+        }
+
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now - last_trigger_);
+
+        if (elapsed >= interval_) {
+            last_trigger_ = now;
+            return true;
+        }
+        return false;
+    }
+};
+
+int main() {
+    Cooldown cd(200);
+    int triggered = 0;
+
+    auto start = std::chrono::steady_clock::now();
+    while (std::chrono::steady_clock::now() - start <
+           std::chrono::milliseconds(1000)) {
+        if (cd.try_trigger()) {
+            ++triggered;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    }
+
+    std::cout << "Triggered " << triggered << " times in 1 second" << std::endl;
+    std::cout << "Expected ~5 times (every 200ms)" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What is the initial value of last_trigger_ before any call to try_trigger?",
+      "Member variables of class type are default-initialized. What is the default value of a steady_clock::time_point?",
+      "If an object of this class is copied or the first_call_ flag is somehow bypassed, last_trigger_ starts at epoch (time 0). The elapsed time since epoch is enormous — what does that mean for the first check?",
+    ],
+    explanation: "This code actually works correctly for single-instance usage due to the first_call_ guard. However, if the Cooldown object is copied (e.g., passed by value to a function), first_call_ is true in the copy but last_trigger_ is copied from the original. Actually, the real subtle bug: if try_trigger() is never called and someone checks elapsed via other means, or more practically — the first_call_ flag is not atomic, making this class unsafe for concurrent use. But the most visible issue is that the class uses last_trigger_ = now inside try_trigger, which means the cooldown is measured from the last successful trigger, not from a fixed interval grid. This causes drift: if a trigger happens at t=210ms instead of t=200ms, the next trigger is at t=410ms, not t=400ms. Over time, this drift accumulates, resulting in fewer triggers than expected.",
+    manifestation: `$ g++ -std=c++17 -Wall cooldown.cpp -o cooldown -lpthread && ./cooldown
+Triggered 4 times in 1 second
+Expected ~5 times (every 200ms)
+
+(Drift accumulates: each trigger is 200ms after the *previous* trigger
+ plus any scheduling delay from sleep_for. With 50ms polling, the actual
+ interval is ~250ms, yielding only 4 triggers instead of 5.)`,
+    stdlibRefs: [
+      { name: "std::chrono::steady_clock::now", args: "() → time_point", brief: "Returns the current time point of the steady (monotonic) clock.", note: "Measuring intervals from the last event time causes cumulative drift. For fixed-rate triggers, advance the target time by a fixed amount instead.", link: "https://en.cppreference.com/w/cpp/chrono/steady_clock/now" },
+    ],
+  },
+  {
+    id: 429,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "UTC Timestamp Builder",
+    description: "Constructs a UTC timestamp for a specific date and converts it to a formatted string for display.",
+    code: `#include <iostream>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
+
+std::string make_utc_timestamp(int year, int month, int day,
+                                int hour, int min, int sec) {
+    std::tm timeinfo = {};
+    timeinfo.tm_year = year - 1900;
+    timeinfo.tm_mon = month - 1;
+    timeinfo.tm_mday = day;
+    timeinfo.tm_hour = hour;
+    timeinfo.tm_min = min;
+    timeinfo.tm_sec = sec;
+
+    time_t timestamp = mktime(&timeinfo);
+
+    std::tm* utc = gmtime(&timestamp);
+    std::ostringstream oss;
+    oss << std::put_time(utc, "%Y-%m-%dT%H:%M:%SZ");
+    return oss.str();
+}
+
+int main() {
+    std::cout << make_utc_timestamp(2026, 3, 22, 12, 0, 0) << std::endl;
+    std::cout << make_utc_timestamp(2026, 7, 4, 18, 30, 0) << std::endl;
+    std::cout << make_utc_timestamp(2026, 1, 1, 0, 0, 0)   << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What timezone does mktime() interpret its input as?",
+      "The input is described as UTC, but mktime treats tm as local time. What happens in a non-UTC timezone?",
+      "mktime converts local time to time_t. Then gmtime converts time_t back to UTC. If the input was meant to be UTC, the round-trip shifts by the local timezone offset.",
+    ],
+    explanation: "mktime() interprets the tm struct as local time, not UTC. When the user passes what they intend as UTC values (e.g., 12:00 UTC), mktime treats it as 12:00 local time and converts to time_t accordingly. Then gmtime converts back to UTC, introducing a shift equal to the local timezone offset. In EST (UTC-5), the output shows 17:00Z instead of 12:00Z. The fix is to use timegm() (POSIX) or a C++20 <chrono> approach, or manually adjust for the timezone offset.",
+    manifestation: `$ TZ=America/New_York g++ -Wall utc.cpp -o utc && TZ=America/New_York ./utc
+2026-03-22T16:00:00Z
+2026-07-04T22:30:00Z
+2026-01-01T05:00:00Z
+
+(All timestamps are shifted by the local UTC offset. The input 12:00
+ was interpreted as 12:00 EST, then converted to 17:00 UTC.
+ Expected: 2026-03-22T12:00:00Z)`,
+    stdlibRefs: [
+      { name: "std::mktime", args: "(std::tm* time) → time_t", brief: "Converts a tm struct (interpreted as local calendar time) to a time_t value.", note: "Always interprets input as local time, not UTC. There is no standard C/C++ function to convert a UTC tm to time_t before C++20.", link: "https://en.cppreference.com/w/cpp/chrono/c/mktime" },
+      { name: "std::gmtime", args: "(const time_t* time) → tm*", brief: "Converts a time_t value to a tm struct representing UTC calendar time.", link: "https://en.cppreference.com/w/cpp/chrono/c/gmtime" },
+    ],
+  },
+  {
+    id: 430,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Sampling Profiler",
+    description: "Samples execution time of a function at regular intervals and builds a histogram of call durations.",
+    code: `#include <iostream>
+#include <chrono>
+#include <vector>
+#include <map>
+#include <thread>
+#include <cmath>
+#include <algorithm>
+
+using Duration = std::chrono::duration<double, std::micro>;
+
+Duration time_function() {
+    auto start = std::chrono::high_resolution_clock::now();
+    volatile double x = 1.0;
+    for (int i = 0; i < 100000; ++i) {
+        x = std::sin(x) + std::cos(x);
+    }
+    auto end = std::chrono::high_resolution_clock::now();
+    return end - start;
+}
+
+int main() {
+    const int samples = 1000;
+    std::vector<Duration> timings;
+    timings.reserve(samples);
+
+    for (int i = 0; i < samples; ++i) {
+        timings.push_back(time_function());
+        std::this_thread::sleep_for(std::chrono::microseconds(100));
+    }
+
+    std::sort(timings.begin(), timings.end());
+
+    auto median = timings[samples / 2];
+    auto p99 = timings[static_cast<int>(samples * 0.99)];
+
+    Duration sum{};
+    for (const auto& t : timings) sum += t;
+    auto mean = sum / samples;
+
+    std::cout << "Samples: " << samples << std::endl;
+    std::cout << "Mean:   " << mean.count() << " us" << std::endl;
+    std::cout << "Median: " << median.count() << " us" << std::endl;
+    std::cout << "P99:    " << p99.count() << " us" << std::endl;
+    std::cout << "Min:    " << timings.front().count() << " us" << std::endl;
+    std::cout << "Max:    " << timings.back().count() << " us" << std::endl;
+
+    if (p99 < median * 2) {
+        std::cout << "PASS: Consistent timing (P99 < 2x median)" << std::endl;
+    } else {
+        std::cout << "WARN: High variance detected" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Is high_resolution_clock guaranteed to be steady (monotonic)?",
+      "On some implementations, high_resolution_clock is an alias for system_clock. What happens if the system clock is adjusted during sampling?",
+      "If the system clock jumps backward during a measurement, (end - start) can be negative. How does a negative duration affect the sort and statistics?",
+    ],
+    explanation: "std::chrono::high_resolution_clock is not guaranteed to be steady (monotonic). On some implementations it aliases system_clock, which can be adjusted by NTP or the user. If the clock jumps backward between start and end, the duration is negative. Negative durations sort before positive ones, corrupting the min, median, and percentile calculations. The sort places them at the front, making 'min' negative and shifting all percentile indices. The fix is to use std::chrono::steady_clock, which is guaranteed monotonic.",
+    manifestation: `$ g++ -std=c++17 -O2 profiler.cpp -o profiler -lpthread && ./profiler
+Samples: 1000
+Mean:   234.51 us
+Median: 231.89 us
+P99:    412.33 us
+Min:    -8923410.22 us
+Max:    485.21 us
+WARN: High variance detected
+
+(An NTP clock adjustment during sampling produced a negative duration.
+ After sorting, the negative value becomes "Min" and skews statistics.
+ steady_clock would prevent this.)`,
+    stdlibRefs: [
+      { name: "std::chrono::high_resolution_clock", brief: "Clock with the shortest tick period available on the system.", note: "Not guaranteed to be steady. May alias system_clock, which can jump forward or backward due to NTP adjustments. Use steady_clock for elapsed-time measurements.", link: "https://en.cppreference.com/w/cpp/chrono/high_resolution_clock" },
+      { name: "std::chrono::steady_clock", brief: "Monotonic clock that never decreases. Suitable for measuring time intervals.", link: "https://en.cppreference.com/w/cpp/chrono/steady_clock" },
+    ],
+  },
+  {
+    id: 431,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Rate-Limited Logger",
+    description: "A logger that limits output to at most one message per interval, discarding messages that arrive too soon.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <string>
+#include <functional>
+#include <atomic>
+#include <mutex>
+
+class RateLimitedLogger {
+    std::chrono::steady_clock::time_point last_log_;
+    std::chrono::milliseconds min_interval_;
+    std::mutex mtx_;
+    int logged_ = 0;
+    int dropped_ = 0;
+
+public:
+    RateLimitedLogger(int interval_ms)
+        : last_log_(std::chrono::steady_clock::now())
+        , min_interval_(interval_ms) {}
+
+    void log(const std::string& msg) {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<
+            std::chrono::milliseconds>(now - last_log_);
+
+        if (elapsed >= min_interval_) {
+            std::lock_guard<std::mutex> lock(mtx_);
+            std::cout << "[LOG] " << msg << std::endl;
+            last_log_ = now;
+            ++logged_;
+        } else {
+            std::lock_guard<std::mutex> lock(mtx_);
+            ++dropped_;
+        }
+    }
+
+    void stats() const {
+        std::cout << "Logged: " << logged_
+                  << ", Dropped: " << dropped_ << std::endl;
+    }
+};
+
+void writer(RateLimitedLogger& logger, int id, int count) {
+    for (int i = 0; i < count; ++i) {
+        logger.log("Thread " + std::to_string(id) +
+                   " msg " + std::to_string(i));
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+}
+
+int main() {
+    RateLimitedLogger logger(100);
+
+    std::thread t1(writer, std::ref(logger), 1, 50);
+    std::thread t2(writer, std::ref(logger), 2, 50);
+    t1.join();
+    t2.join();
+
+    logger.stats();
+
+    return 0;
+}`,
+    hints: [
+      "Look at where the mutex is acquired relative to where shared state is read.",
+      "The elapsed-time check reads last_log_ and compares it. Is last_log_ protected by the mutex at that point?",
+      "The time check happens outside the lock. What if two threads both pass the check simultaneously, then both acquire the lock and write?",
+    ],
+    explanation: "The time-of-check-to-time-of-use (TOCTOU) race: last_log_ is read outside the mutex to check elapsed time, then the mutex is acquired only for writing. Two threads can both read the same last_log_ value, both pass the elapsed >= min_interval_ check, and both log — violating the rate limit. Additionally, reading last_log_ without the mutex while another thread writes it is a data race (undefined behavior). The fix is to acquire the mutex before reading last_log_ and hold it through the decision and update.",
+    manifestation: `$ g++ -std=c++17 -fsanitize=thread -g logger.cpp -o logger -lpthread && ./logger
+==================
+WARNING: ThreadSanitizer: data race (pid=31402)
+  Read of size 8 at 0x7ffd5b300080 by thread T2:
+    #0 RateLimitedLogger::log() logger.cpp:23
+    #1 writer() logger.cpp:43
+
+  Previous write of size 8 at 0x7ffd5b300080 by thread T1:
+    #0 RateLimitedLogger::log() logger.cpp:27
+    #1 writer() logger.cpp:43
+
+SUMMARY: ThreadSanitizer: data race logger.cpp:23 in RateLimitedLogger::log()
+==================
+[LOG] Thread 1 msg 0
+[LOG] Thread 2 msg 0
+[LOG] Thread 1 msg 10
+[LOG] Thread 2 msg 10
+Logged: 14, Dropped: 86`,
+    stdlibRefs: [
+      { name: "std::mutex", brief: "Mutual exclusion primitive for protecting shared data from concurrent access.", note: "All reads and writes to shared state must be within the locked region. A check-then-act pattern with the lock only around the act is a TOCTOU race.", link: "https://en.cppreference.com/w/cpp/thread/mutex" },
+    ],
+  },
+  {
+    id: 432,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Epoch Day Calculator",
+    description: "Calculates the number of days between two dates by converting each to a time_t and computing the difference.",
+    code: `#include <iostream>
+#include <ctime>
+#include <cmath>
+
+time_t make_date(int year, int month, int day) {
+    std::tm t = {};
+    t.tm_year = year - 1900;
+    t.tm_mon = month - 1;
+    t.tm_mday = day;
+    t.tm_hour = 0;
+    t.tm_min = 0;
+    t.tm_sec = 0;
+    return mktime(&t);
+}
+
+int days_between(int y1, int m1, int d1,
+                 int y2, int m2, int d2) {
+    time_t t1 = make_date(y1, m1, d1);
+    time_t t2 = make_date(y2, m2, d2);
+    double diff_sec = difftime(t2, t1);
+    return static_cast<int>(diff_sec / 86400);
+}
+
+int main() {
+    std::cout << "2026-01-01 to 2026-12-31: "
+              << days_between(2026, 1, 1, 2026, 12, 31)
+              << " days" << std::endl;
+
+    std::cout << "2026-03-07 to 2026-03-09: "
+              << days_between(2026, 3, 7, 2026, 3, 9)
+              << " days" << std::endl;
+
+    std::cout << "2026-11-01 to 2026-11-02: "
+              << days_between(2026, 11, 1, 2026, 11, 2)
+              << " days" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "mktime interprets the tm struct as local time. What field of tm does mktime also modify?",
+      "The tm_isdst field is left as 0. What does mktime do when DST is actually in effect for the given date?",
+      "When DST transitions occur (spring forward/fall back), midnight-to-midnight is not always exactly 86400 seconds. How does integer truncation interact with 23-hour or 25-hour days?",
+    ],
+    explanation: "tm_isdst is set to 0, telling mktime the date is in standard time. But mktime adjusts for DST automatically, and with tm_isdst=0 it may misinterpret the intended time. When crossing DST boundaries (e.g., spring forward), the actual seconds between two midnights is 82800 (23 hours) instead of 86400. Dividing 82800/86400 gives 0.958..., which truncates to 0 instead of 1. The March 7-to-March 9 span (crossing spring-forward in US) reports 1 day instead of 2. The fix is to set tm_isdst = -1 (let mktime determine DST) and use round() instead of truncation, or set the time to noon instead of midnight to avoid the edge case.",
+    manifestation: `$ TZ=America/New_York g++ -Wall epoch.cpp -o epoch && TZ=America/New_York ./epoch
+2026-01-01 to 2026-12-31: 364 days
+2026-03-07 to 2026-03-09: 1 days
+2026-11-01 to 2026-11-02: 1 days
+
+(March 7 to March 9 should be 2 days, but the DST spring-forward
+ makes the span 23+24=47 hours = 169200 seconds. 169200/86400 = 1.958,
+ which truncates to 1. Similarly, Jan 1 to Dec 31 loses a day.)`,
+    stdlibRefs: [
+      { name: "std::mktime", args: "(std::tm* time) → time_t", brief: "Converts a tm struct (interpreted as local calendar time) to a time_t value, normalizing fields and adjusting for DST.", note: "Setting tm_isdst to 0 forces standard time interpretation. Set it to -1 to let mktime auto-detect DST. Midnight-based date arithmetic is unreliable across DST transitions.", link: "https://en.cppreference.com/w/cpp/chrono/c/mktime" },
+    ],
+  },
+  {
+    id: 433,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Animation Frame Timer",
+    description: "Calculates the delta time between animation frames and uses it to update a position at a constant velocity.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main() {
+    double position = 0.0;
+    const double velocity = 100.0;
+    const int target_fps = 60;
+    const auto frame_time = std::chrono::milliseconds(1000 / target_fps);
+
+    auto last_time = std::chrono::steady_clock::now();
+
+    for (int frame = 0; frame < 120; ++frame) {
+        std::this_thread::sleep_for(frame_time);
+
+        auto current_time = std::chrono::steady_clock::now();
+        auto delta = current_time - last_time;
+
+        int delta_ms = std::chrono::duration_cast<
+            std::chrono::milliseconds>(delta).count();
+        double dt = delta_ms / 1000;
+
+        position += velocity * dt;
+        last_time = current_time;
+    }
+
+    std::cout << "After 120 frames at 60fps (~2 seconds):" << std::endl;
+    std::cout << "Position: " << position << std::endl;
+    std::cout << "Expected: ~200 (velocity=100, time=2s)" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What type is delta_ms, and what type is the literal 1000?",
+      "What is the result of integer 16 divided by integer 1000?",
+      "delta_ms is about 16 (for 60fps). 16 / 1000 in integer arithmetic is 0. What does that make dt?",
+    ],
+    explanation: "delta_ms is an int (~16 for 60fps frames) and 1000 is an int literal. Integer division 16 / 1000 = 0, so dt is always 0.0 (the int 0 is implicitly converted to double 0.0). Position never changes. The fix is to use floating-point division: double dt = delta_ms / 1000.0, or better yet, use std::chrono::duration<double> directly without the intermediate integer conversion.",
+    manifestation: `$ g++ -std=c++17 -Wall frame.cpp -o frame -lpthread && ./frame
+After 120 frames at 60fps (~2 seconds):
+Position: 0
+Expected: ~200 (velocity=100, time=2s)`,
+    stdlibRefs: [
+      { name: "std::chrono::duration_cast", args: "<ToDuration>(const duration<Rep, Period>& d) → ToDuration", brief: "Converts a duration to a different unit, truncating toward zero if the conversion is not exact.", note: "Casting to integer-based durations loses fractional parts. Prefer duration<double> for calculations requiring sub-unit precision.", link: "https://en.cppreference.com/w/cpp/chrono/duration/duration_cast" },
+    ],
+  },
 ];
