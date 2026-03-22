@@ -30093,4 +30093,772 @@ Match:     NO
       { name: "std::chrono::system_clock", brief: "Wall-clock time representing the system-wide real time. Its epoch is typically Unix epoch (1970-01-01).", note: "Seconds since Unix epoch will exceed UINT32_MAX in February 2106. Use 64-bit integers for epoch storage.", link: "https://en.cppreference.com/w/cpp/chrono/system_clock" },
     ],
   },
+  {
+    id: 454,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Timer Wrapper Class",
+    description: "A simple timer class that records start and stop times and reports the elapsed duration.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+
+class Timer {
+    std::chrono::steady_clock::time_point start_;
+    std::chrono::steady_clock::time_point stop_;
+
+public:
+    void start() { start_ = std::chrono::steady_clock::now(); }
+    void stop()  { stop_  = std::chrono::steady_clock::now(); }
+
+    double elapsed_ms() const {
+        return std::chrono::duration<double, std::milli>(
+            start_ - stop_).count();
+    }
+};
+
+int main() {
+    Timer t;
+
+    t.start();
+    std::this_thread::sleep_for(std::chrono::milliseconds(250));
+    t.stop();
+
+    std::cout << "Elapsed: " << t.elapsed_ms() << " ms" << std::endl;
+
+    t.start();
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    t.stop();
+
+    std::cout << "Elapsed: " << t.elapsed_ms() << " ms" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at the order of operands in the elapsed_ms calculation.",
+      "The subtraction is start_ - stop_. Which time point is larger?",
+      "stop_ is later than start_, so start_ - stop_ is negative. The function returns a negative elapsed time.",
+    ],
+    explanation: "The elapsed_ms() method computes start_ - stop_ instead of stop_ - start_. Since stop_ is always later than start_ (assuming correct usage), the result is always negative. The output shows '-250 ms' instead of '250 ms'. The fix: change the subtraction order to stop_ - start_.",
+    manifestation: `$ g++ -std=c++17 -Wall timer.cpp -o timer -lpthread && ./timer
+Elapsed: -250.134 ms
+Elapsed: -500.221 ms
+
+(Both readings are negative because the subtraction order is reversed:
+ start_ - stop_ instead of stop_ - start_.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 455,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Date Difference",
+    description: "Calculates the number of days between two user-specified dates using the C time library.",
+    code: `#include <iostream>
+#include <ctime>
+
+int main() {
+    std::tm date1 = {};
+    date1.tm_year = 2026 - 1900;
+    date1.tm_mon = 0;
+    date1.tm_mday = 1;
+    date1.tm_isdst = -1;
+
+    std::tm date2 = {};
+    date2.tm_year = 2026 - 1900;
+    date2.tm_mon = 11;
+    date2.tm_mday = 31;
+    date2.tm_isdst = -1;
+
+    time_t t1 = mktime(&date1);
+    time_t t2 = mktime(&date2);
+
+    int days = (t2 - t1) / 86400;
+
+    std::cout << "From 2026-01-01 to 2026-12-31: "
+              << days << " days" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What type is (t2 - t1) and what type is 86400?",
+      "time_t is typically a 64-bit integer. The division should work fine numerically. But is t2 - t1 always an exact multiple of 86400?",
+      "Due to DST, the difference between two midnights is not always exactly 86400 seconds. One day in the year has 23 hours and one has 25 hours.",
+    ],
+    explanation: "The calculation (t2 - t1) / 86400 assumes every day has exactly 86400 seconds. But in timezones with DST, one day has 23 hours (spring forward) and one has 25 hours (fall back). For 2026 in a US timezone, the total seconds from Jan 1 to Dec 31 is 364 days * 86400 = 31,449,600, but with DST it may be 31,449,600 ± 3600. Integer division then gives 363 or 365 instead of 364. The fix: set both times to noon instead of midnight, or use std::round(diff / 86400.0).",
+    manifestation: `$ TZ=America/New_York g++ -Wall date_diff.cpp -o date_diff && TZ=America/New_York ./date_diff
+From 2026-01-01 to 2026-12-31: 364 days
+
+$ TZ=UTC ./date_diff
+From 2026-01-01 to 2026-12-31: 364 days
+
+(In UTC it's correct: 364 days. But in timezones with DST, the count
+ can be 363 because one day has only 23 hours, making the total
+ seconds slightly less than 364 * 86400.)`,
+    stdlibRefs: [
+      { name: "std::mktime", args: "(std::tm* time) → time_t", brief: "Converts a tm struct (interpreted as local calendar time) to a time_t value.", note: "Midnight-to-midnight intervals are not always 86400 seconds in DST-aware timezones. Use noon times or round the division for reliable day counting.", link: "https://en.cppreference.com/w/cpp/chrono/c/mktime" },
+    ],
+  },
+  {
+    id: 456,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Performance Regression Detector",
+    description: "Runs a benchmark multiple times and compares against a baseline to detect performance regressions.",
+    code: `#include <iostream>
+#include <chrono>
+#include <vector>
+#include <numeric>
+#include <algorithm>
+#include <cmath>
+
+double benchmark_once() {
+    auto start = std::chrono::steady_clock::now();
+    std::vector<int> v(1000000);
+    std::iota(v.begin(), v.end(), 0);
+    std::reverse(v.begin(), v.end());
+    std::sort(v.begin(), v.end());
+    auto end = std::chrono::steady_clock::now();
+    return std::chrono::duration<double, std::milli>(end - start).count();
+}
+
+int main() {
+    const int runs = 10;
+    const double baseline_ms = 80.0;
+    const double threshold = 0.10;
+
+    std::vector<double> times;
+    for (int i = 0; i < runs; ++i) {
+        times.push_back(benchmark_once());
+    }
+
+    double mean = std::accumulate(times.begin(), times.end(), 0)
+                  / times.size();
+
+    std::sort(times.begin(), times.end());
+    double median = times[times.size() / 2];
+
+    double regression = (mean - baseline_ms) / baseline_ms;
+
+    std::cout << "Runs:       " << runs << std::endl;
+    std::cout << "Mean:       " << mean << " ms" << std::endl;
+    std::cout << "Median:     " << median << " ms" << std::endl;
+    std::cout << "Baseline:   " << baseline_ms << " ms" << std::endl;
+    std::cout << "Regression: " << (regression * 100) << "%" << std::endl;
+
+    if (std::abs(regression) > threshold) {
+        std::cout << "ALERT: Performance regression detected!" << std::endl;
+    } else {
+        std::cout << "OK: Within " << (threshold * 100)
+                  << "% of baseline" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Look at the std::accumulate call. What is the type of the initial value 0?",
+      "std::accumulate(times.begin(), times.end(), 0) — the initial value 0 is an int. What type does the accumulation use?",
+      "When the initial value is int, accumulate truncates each double addition to int. The sum is truncated at each step, and the final mean is essentially floor(sum) / size.",
+    ],
+    explanation: "std::accumulate(times.begin(), times.end(), 0) uses int as the accumulator type because the initial value 0 is an int. Each addition truncates the double to int, losing all decimal precision. If each run takes ~85.7ms, the sum accumulates as 85+85+85+... = 850, giving mean = 850/10 = 85.0 instead of 85.7. The truncation error compounds and the mean is always slightly lower than actual, potentially masking regressions. The fix: use 0.0 as the initial value to get double accumulation.",
+    manifestation: `$ g++ -O2 -std=c++17 -Wall regress.cpp -o regress && ./regress
+Runs:       10
+Mean:       85 ms
+Median:     85.723 ms
+Baseline:   80 ms
+Regression: 6.25%
+OK: Within 10% of baseline
+
+(Mean shows 85.000 instead of ~85.723 because std::accumulate with
+ int initial value truncates each addition. The 0.7ms/run error
+ compounds across runs, and could hide a real regression near the
+ threshold boundary.)`,
+    stdlibRefs: [
+      { name: "std::accumulate", args: "(InputIt first, InputIt last, T init) → T", brief: "Computes the sum of init and all elements in the range [first, last).", note: "The return type matches init. Using 0 (int) with a double range truncates every addition. Use 0.0 for floating-point accumulation.", link: "https://en.cppreference.com/w/cpp/algorithm/accumulate" },
+    ],
+  },
+  {
+    id: 457,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Backoff Calculator",
+    description: "Computes exponential backoff delays with jitter for retry logic, capping at a maximum delay.",
+    code: `#include <iostream>
+#include <chrono>
+#include <random>
+#include <algorithm>
+#include <thread>
+
+class ExponentialBackoff {
+    int base_ms_;
+    int max_ms_;
+    int attempt_ = 0;
+    std::mt19937 rng_;
+
+public:
+    ExponentialBackoff(int base_ms, int max_ms, unsigned seed = 42)
+        : base_ms_(base_ms), max_ms_(max_ms), rng_(seed) {}
+
+    std::chrono::milliseconds next_delay() {
+        int delay = base_ms_ * (1 << attempt_);
+        delay = std::min(delay, max_ms_);
+
+        std::uniform_int_distribution<> jitter(0, delay / 2);
+        delay += jitter(rng_);
+
+        ++attempt_;
+        return std::chrono::milliseconds(delay);
+    }
+
+    void reset() { attempt_ = 0; }
+    int attempts() const { return attempt_; }
+};
+
+int main() {
+    ExponentialBackoff backoff(100, 30000);
+
+    for (int i = 0; i < 20; ++i) {
+        auto delay = backoff.next_delay();
+        std::cout << "Attempt " << (i + 1) << ": wait "
+                  << delay.count() << "ms" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "What is the type of base_ms_ * (1 << attempt_)?",
+      "1 << attempt_ is a bit shift on an int. What happens when attempt_ reaches 31 or higher?",
+      "Shifting 1 left by 31 gives INT_MIN (negative) in signed 32-bit arithmetic. Shifting by 32+ is undefined behavior. At attempt 15+, the delay calculation overflows.",
+    ],
+    explanation: "The expression 1 << attempt_ is int arithmetic. When attempt_ reaches 31, 1 << 31 is INT_MIN (-2147483648) on 32-bit int systems — undefined behavior per the standard. At attempt_ >= 15, 100 * (1 << 15) = 3,276,800 which is fine, but at attempt_ = 21, 100 * (1 << 21) = 209,715,200 which overflows. At attempt_ = 31, the shift itself is UB. Even before UB, base_ms_ * (1 << attempt_) overflows int around attempt 21. The fix: use 1LL << attempt_ and cap the shift: int shift = std::min(attempt_, 30).",
+    manifestation: `$ g++ -std=c++17 -Wall -fsanitize=undefined backoff.cpp -o backoff && ./backoff
+Attempt 1: wait 137ms
+Attempt 2: wait 261ms
+...
+Attempt 15: wait 34521ms
+Attempt 16: wait 39102ms
+backoff.cpp:18:30: runtime error: signed integer overflow: 100 * 2097152 cannot be represented in type 'int'
+Attempt 17: wait -42145ms
+...
+Attempt 21: wait -31291ms
+
+(Integer overflow at attempt 17+ produces negative delays. The shift
+ 1 << 31 is undefined behavior. Even with the min() cap at 30000,
+ the overflow happens before the cap is applied.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 458,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Stopwatch with Splits",
+    description: "A stopwatch that records split times and computes the duration of each individual split.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <vector>
+
+class Stopwatch {
+    using TimePoint = std::chrono::steady_clock::time_point;
+    TimePoint start_;
+    std::vector<TimePoint> splits_;
+
+public:
+    void start() {
+        start_ = std::chrono::steady_clock::now();
+        splits_.clear();
+        splits_.push_back(start_);
+    }
+
+    void split() {
+        splits_.push_back(std::chrono::steady_clock::now());
+    }
+
+    void report() const {
+        std::cout << "Split times:" << std::endl;
+        for (size_t i = 1; i < splits_.size(); ++i) {
+            auto dur = std::chrono::duration<double, std::milli>(
+                splits_[i] - splits_[0]).count();
+            std::cout << "  Split " << i << ": " << dur
+                      << " ms" << std::endl;
+        }
+
+        if (splits_.size() > 1) {
+            auto total = std::chrono::duration<double, std::milli>(
+                splits_.back() - splits_.front()).count();
+            std::cout << "Total: " << total << " ms" << std::endl;
+        }
+    }
+};
+
+int main() {
+    Stopwatch sw;
+    sw.start();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    sw.split();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    sw.split();
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    sw.split();
+
+    sw.report();
+
+    return 0;
+}`,
+    hints: [
+      "Look at what each split duration is computed relative to.",
+      "splits_[i] - splits_[0] gives time since start. Is that the individual split duration?",
+      "Each split should show the time since the previous split, not since the start. The report shows cumulative times, not individual split durations.",
+    ],
+    explanation: "The report computes splits_[i] - splits_[0] for each split, giving the cumulative time from the start — not the duration of each individual split segment. Split 1 shows 100ms (correct by coincidence since it's the first), but Split 2 shows 300ms (cumulative) instead of 200ms (the split duration), and Split 3 shows 450ms instead of 150ms. The fix: use splits_[i] - splits_[i-1] to get individual split durations.",
+    manifestation: `$ g++ -std=c++17 -Wall stopwatch.cpp -o stopwatch -lpthread && ./stopwatch
+Split times:
+  Split 1: 100.23 ms
+  Split 2: 300.45 ms
+  Split 3: 450.67 ms
+Total: 450.67 ms
+
+(Split 2 shows 300ms — the cumulative time — instead of 200ms, which
+ is the actual duration of the second segment. Similarly, Split 3 shows
+ 450ms instead of 150ms. Only Split 1 appears correct because it's
+ measured from the start.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 459,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Time Zone Display Board",
+    description: "Displays the current time in multiple world time zones by applying UTC offsets.",
+    code: `#include <iostream>
+#include <ctime>
+#include <iomanip>
+#include <vector>
+#include <string>
+
+struct TimeZone {
+    std::string name;
+    int utc_offset_hours;
+};
+
+void display_times(const std::vector<TimeZone>& zones) {
+    time_t now = time(nullptr);
+    std::tm* utc = gmtime(&now);
+    int utc_hour = utc->tm_hour;
+    int utc_min = utc->tm_min;
+    int utc_sec = utc->tm_sec;
+
+    std::cout << "=== World Clock ===" << std::endl;
+    for (const auto& tz : zones) {
+        int local_hour = utc_hour + tz.utc_offset_hours;
+        if (local_hour < 0) local_hour += 24;
+        if (local_hour >= 24) local_hour -= 24;
+
+        std::cout << std::setw(20) << std::left << tz.name
+                  << std::setfill('0') << std::right
+                  << std::setw(2) << local_hour << ":"
+                  << std::setw(2) << utc_min << ":"
+                  << std::setw(2) << utc_sec << std::endl;
+    }
+}
+
+int main() {
+    std::vector<TimeZone> zones = {
+        {"New York (EST)",  -5},
+        {"London (GMT)",     0},
+        {"Berlin (CET)",    +1},
+        {"Mumbai (IST)",    +5},
+        {"Tokyo (JST)",     +9},
+        {"Sydney (AEDT)",  +11},
+    };
+
+    display_times(zones);
+
+    return 0;
+}`,
+    hints: [
+      "Look at how the UTC hour, minute, and second are extracted. Are they saved before or after potential modification?",
+      "gmtime returns a pointer to a static buffer. But we extract the values before iterating — is that safe?",
+      "The real issue: UTC offsets are applied only to the hour. What about time zones with half-hour or 45-minute offsets like IST (UTC+5:30)?",
+    ],
+    explanation: "The code only handles whole-hour UTC offsets. India Standard Time is actually UTC+5:30, Nepal is UTC+5:45, and several other zones have fractional-hour offsets. The program shows Mumbai as UTC+5 (losing the 30-minute offset), displaying a time that's 30 minutes behind the actual local time. Additionally, the setfill('0') from the first formatted number persists and affects the left-aligned zone name on subsequent iterations, potentially padding it with zeros. The fix: use a fractional offset (double or separate hours/minutes fields) and reset setfill.",
+    manifestation: `$ g++ -std=c++17 -Wall worldclock.cpp -o worldclock && ./worldclock
+=== World Clock ===
+New York (EST)      07:30:15
+London (GMT)0000000012:30:15
+Berlin (CET)0000000013:30:15
+Mumbai (IST)0000000017:30:15
+Tokyo (JST)00000000021:30:15
+Sydney (AEDT)000000023:30:15
+
+(Two bugs: (1) Mumbai shows 17:30 instead of 18:00 because IST is
+ UTC+5:30, not UTC+5. (2) setfill('0') bleeds into the left-aligned
+ zone name, padding with zeros instead of spaces after the first line.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 460,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Timer-Driven State Machine",
+    description: "A state machine that transitions between states based on timeouts and events, logging state durations.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <string>
+#include <functional>
+#include <map>
+
+enum class State { Idle, Connecting, Active, Closing };
+
+std::string state_name(State s) {
+    switch(s) {
+        case State::Idle: return "Idle";
+        case State::Connecting: return "Connecting";
+        case State::Active: return "Active";
+        case State::Closing: return "Closing";
+    }
+    return "Unknown";
+}
+
+class TimedStateMachine {
+    State current_ = State::Idle;
+    std::chrono::steady_clock::time_point state_entered_;
+    std::map<State, double> time_in_state_;
+
+    void record_time() {
+        auto now = std::chrono::steady_clock::now();
+        double elapsed = std::chrono::duration<double>(
+            now - state_entered_).count();
+        time_in_state_[current_] = elapsed;
+        state_entered_ = now;
+    }
+
+public:
+    TimedStateMachine()
+        : state_entered_(std::chrono::steady_clock::now()) {}
+
+    void transition(State next) {
+        record_time();
+        std::cout << state_name(current_) << " -> "
+                  << state_name(next) << std::endl;
+        current_ = next;
+    }
+
+    void report() {
+        record_time();
+        std::cout << "\n=== Time in each state ===" << std::endl;
+        for (auto& [state, time] : time_in_state_) {
+            std::cout << "  " << state_name(state) << ": "
+                      << time << "s" << std::endl;
+        }
+    }
+};
+
+int main() {
+    TimedStateMachine sm;
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    sm.transition(State::Connecting);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    sm.transition(State::Active);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    sm.transition(State::Active);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    sm.transition(State::Closing);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    sm.report();
+
+    return 0;
+}`,
+    hints: [
+      "Look at how time_in_state_ is updated in record_time(). What happens when a state is visited multiple times?",
+      "time_in_state_[current_] = elapsed assigns, not accumulates. What happens to the Active state's first 500ms when it transitions to Active again?",
+      "The Active->Active self-transition records 500ms for Active, then the second stint records 300ms and overwrites the first. Total Active time shows 300ms instead of 800ms.",
+    ],
+    explanation: "record_time() assigns elapsed time to time_in_state_[current_] using = instead of +=. When a state is visited multiple times (Active is entered twice), only the last visit's duration is recorded — previous time is overwritten. Active shows 0.3s instead of 0.8s (0.5s + 0.3s). The fix: use += instead of = to accumulate time across multiple visits: time_in_state_[current_] += elapsed.",
+    manifestation: `$ g++ -std=c++17 -Wall sm.cpp -o sm -lpthread && ./sm
+Idle -> Connecting
+Connecting -> Active
+Active -> Active
+Active -> Closing
+Closing: recorded in report
+
+=== Time in each state ===
+  Idle: 0.100s
+  Connecting: 0.200s
+  Active: 0.300s
+  Closing: 0.050s
+
+(Active shows 0.300s but the state machine was Active for 0.500s + 0.300s
+ = 0.800s total. The first Active stint was overwritten by the second
+ because record_time uses = instead of +=.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 461,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Jitter Analyzer",
+    description: "Measures the jitter in sleep timing by comparing requested vs actual sleep durations over many iterations.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <vector>
+#include <cmath>
+#include <numeric>
+#include <algorithm>
+
+int main() {
+    const int iterations = 100;
+    const auto target = std::chrono::milliseconds(10);
+    std::vector<double> jitter_us;
+
+    for (int i = 0; i < iterations; ++i) {
+        auto before = std::chrono::steady_clock::now();
+        std::this_thread::sleep_for(target);
+        auto after = std::chrono::steady_clock::now();
+
+        double actual_us = std::chrono::duration<double, std::micro>(
+            after - before).count();
+        double target_us = std::chrono::duration<double, std::micro>(
+            target).count();
+        jitter_us.push_back(actual_us - target_us);
+    }
+
+    auto [min_it, max_it] = std::minmax_element(
+        jitter_us.begin(), jitter_us.end());
+
+    double mean = std::accumulate(
+        jitter_us.begin(), jitter_us.end(), 0.0) / jitter_us.size();
+
+    double sq_sum = 0.0;
+    for (double j : jitter_us) {
+        sq_sum += (j - mean) * (j - mean);
+    }
+    double stddev = std::sqrt(sq_sum / jitter_us.size());
+
+    std::cout << "Sleep jitter analysis (" << iterations
+              << " x " << target.count() << "ms):" << std::endl;
+    std::cout << "  Mean jitter: " << mean << " us" << std::endl;
+    std::cout << "  Std dev:     " << stddev << " us" << std::endl;
+    std::cout << "  Min jitter:  " << *min_it << " us" << std::endl;
+    std::cout << "  Max jitter:  " << *max_it << " us" << std::endl;
+
+    if (stddev > 1000) {
+        std::cout << "WARNING: High jitter (stddev > 1ms)" << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "The first iteration's jitter is often significantly larger than subsequent iterations. Why?",
+      "On the first sleep, the OS may need to bring timer infrastructure into cache, load the thread scheduler state, etc. This cold-start effect inflates the max jitter.",
+      "Including the first iteration's cold-start outlier inflates stddev and max_jitter. Production code typically discards warmup iterations.",
+    ],
+    explanation: "The analysis includes the very first iteration, which typically has much higher jitter due to cold-start effects: the OS scheduler hasn't settled, timer hardware may not be initialized, CPU caches are cold, and the thread may need to be first scheduled. This single outlier can dominate max_jitter and inflate stddev significantly, giving a misleadingly pessimistic view of steady-state jitter. The fix: add a warmup phase (run a few iterations without recording) or at minimum, trim outliers (e.g., report the 5th–95th percentile).",
+    manifestation: `$ g++ -std=c++17 -O2 -Wall jitter.cpp -o jitter -lpthread && ./jitter
+Sleep jitter analysis (100 x 10ms):
+  Mean jitter: 312.4 us
+  Std dev:     1842.1 us
+  Min jitter:  12.3 us
+  Max jitter:  18234.5 us
+WARNING: High jitter (stddev > 1ms)
+
+(Max jitter of 18ms is the cold-start first iteration. Without it,
+ max would be ~500us and stddev ~180us — well under the 1ms threshold.
+ One outlier triggers a false warning about high jitter.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 462,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Sliding Window Rate Counter",
+    description: "Counts events within a sliding time window and reports the current event rate per second.",
+    code: `#include <iostream>
+#include <chrono>
+#include <deque>
+#include <thread>
+
+class SlidingWindowCounter {
+    std::deque<std::chrono::steady_clock::time_point> events_;
+    std::chrono::milliseconds window_;
+
+public:
+    SlidingWindowCounter(int window_ms) : window_(window_ms) {}
+
+    void record() {
+        auto now = std::chrono::steady_clock::now();
+        events_.push_back(now);
+        prune(now);
+    }
+
+    double rate_per_second() {
+        auto now = std::chrono::steady_clock::now();
+        prune(now);
+        double window_sec = window_.count() / 1000.0;
+        return events_.size() / window_sec;
+    }
+
+    size_t count() {
+        prune(std::chrono::steady_clock::now());
+        return events_.size();
+    }
+
+private:
+    void prune(std::chrono::steady_clock::time_point now) {
+        auto cutoff = now - window_;
+        while (!events_.empty() && events_.front() < cutoff) {
+            events_.pop_front();
+        }
+    }
+};
+
+int main() {
+    SlidingWindowCounter counter(5000);
+
+    // Phase 1: 100 events/sec for 3 seconds
+    for (int i = 0; i < 300; ++i) {
+        counter.record();
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    }
+    std::cout << "After phase 1 (100/s for 3s): "
+              << counter.rate_per_second() << " events/sec"
+              << " (count=" << counter.count() << ")" << std::endl;
+
+    // Phase 2: pause for 3 seconds
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    std::cout << "After 3s pause: "
+              << counter.rate_per_second() << " events/sec"
+              << " (count=" << counter.count() << ")" << std::endl;
+
+    // Phase 3: burst of 50 events
+    for (int i = 0; i < 50; ++i) {
+        counter.record();
+    }
+    std::cout << "After burst of 50: "
+              << counter.rate_per_second() << " events/sec"
+              << " (count=" << counter.count() << ")" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "After the 3-second pause, how many events are still in the 5-second window?",
+      "The rate calculation divides count by the full window size (5 seconds). But right after a pause, events only span a portion of the window. Is the rate accurate?",
+      "After a burst of 50 events at nearly the same instant, rate = 50/5.0 = 10 events/sec. But the actual instantaneous rate is much higher — the window denominator doesn't reflect that events span only a tiny fraction of the window.",
+    ],
+    explanation: "The rate calculation always divides by the full window duration (5 seconds), even when events only span a small portion of the window. After a burst of 50 events at nearly the same instant, rate = 50/5.0 = 10/sec, but the actual rate during the burst is much higher (~50,000/sec). The counter underestimates rates during bursts and overestimates during transitions. More subtly, after the 3s pause, only ~2 seconds of Phase 1 events remain in the 5s window (events from seconds 1-3 were pruned), so count ≈ 200 and rate ≈ 40/sec — but the actual rate during Phase 1 was 100/sec. The fix: divide by min(window, time_since_first_event) instead of always dividing by the full window.",
+    manifestation: `$ g++ -std=c++17 -O2 -Wall sliding.cpp -o sliding -lpthread && ./sliding
+After phase 1 (100/s for 3s): 60.0 events/sec (count=300)
+After 3s pause: 40.0 events/sec (count=200)
+After burst of 50: 10.0 events/sec (count=50)
+
+(Phase 1: 300 events in a 5s window = 60/sec, but actual rate was 100/sec
+ — the window is wider than the active period.
+ After pause: 200 events remain, rate shows 40/sec but actual was 100/sec.
+ After burst: 50 events show as 10/sec but the burst was near-instant.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 463,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Sleep Calibrator",
+    description: "Calibrates sleep accuracy by measuring actual vs requested sleep times and computing a correction factor.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <vector>
+#include <numeric>
+
+class SleepCalibrator {
+    double correction_factor_ = 1.0;
+
+public:
+    void calibrate(int target_ms, int samples) {
+        std::vector<double> ratios;
+
+        for (int i = 0; i < samples; ++i) {
+            auto adjusted_ms = static_cast<int>(target_ms * correction_factor_);
+            auto target = std::chrono::milliseconds(adjusted_ms);
+
+            auto start = std::chrono::steady_clock::now();
+            std::this_thread::sleep_for(target);
+            auto end = std::chrono::steady_clock::now();
+
+            double actual = std::chrono::duration<double, std::milli>(
+                end - start).count();
+            ratios.push_back(target_ms / actual);
+        }
+
+        double avg_ratio = std::accumulate(
+            ratios.begin(), ratios.end(), 0.0) / ratios.size();
+        correction_factor_ = avg_ratio;
+    }
+
+    void calibrated_sleep(int ms) {
+        auto adjusted = static_cast<int>(ms * correction_factor_);
+        std::this_thread::sleep_for(std::chrono::milliseconds(adjusted));
+    }
+
+    double factor() const { return correction_factor_; }
+};
+
+int main() {
+    SleepCalibrator cal;
+
+    std::cout << "Calibrating..." << std::endl;
+    cal.calibrate(10, 50);
+    std::cout << "Correction factor: " << cal.factor() << std::endl;
+
+    // Test calibrated sleep
+    auto start = std::chrono::steady_clock::now();
+    for (int i = 0; i < 10; ++i) {
+        cal.calibrated_sleep(10);
+    }
+    auto end = std::chrono::steady_clock::now();
+    double actual = std::chrono::duration<double, std::milli>(
+        end - start).count();
+    std::cout << "10 x 10ms calibrated sleep: " << actual
+              << " ms (target: 100ms)" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "During calibration, the correction factor is applied to the sleep duration. But on the first calibration pass, correction_factor_ is 1.0, so ratios measure the raw oversleep.",
+      "The ratio is computed as target_ms / actual. If actual is 11ms and target is 10ms, ratio = 0.909. But this ratio is meant to correct for oversleep — should a value < 1 make the next sleep shorter or longer?",
+      "The correction goes the wrong way. If the OS oversleeps by 10%, ratio < 1, so adjusted_ms = ms * 0.909 = 9ms. Sleeping less helps! But on the next calibration round, the correction compounds in a feedback loop: each calibration run uses the previous correction, making the factor converge to 0.",
+    ],
+    explanation: "The calibration has a feedback loop: it applies the current correction_factor_ when measuring, then computes a new correction from those already-corrected measurements. On the first pass, if sleep overshoots by 10%, correction_factor_ becomes 0.909. On the second call to calibrate(), it sleeps for target_ms * 0.909, measures closer to target, and computes a ratio near 1.0 — but now correction_factor_ is ~1.0, losing the correction. Each calibration overwrites rather than refining the factor. The fix: measure raw sleep (without correction) during calibration, and don't apply correction_factor_ to the calibration measurements.",
+    manifestation: `$ g++ -std=c++17 -O2 -Wall calibrate.cpp -o calibrate -lpthread && ./calibrate
+Calibrating...
+Correction factor: 0.903
+
+$ # If we calibrate a second time:
+$ # Correction factor: 0.992 (nearly 1.0, correction is lost)
+$ # The factor oscillates between ~0.9 and ~1.0 on repeated calibration
+10 x 10ms calibrated sleep: 91.2 ms (target: 100ms)
+
+(First calibration correctly identifies ~10% oversleep and sets factor
+ to 0.903. Calibrated sleeps work well initially. But a second
+ calibrate() call would measure the already-corrected sleeps and set
+ factor back to ~1.0, losing the correction.)`,
+    stdlibRefs: [
+    ],
+  },
 ];
