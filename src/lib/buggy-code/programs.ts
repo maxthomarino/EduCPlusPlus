@@ -34093,4 +34093,949 @@ Active sessions after cleanup:
       }
     ]
   },
+  {
+    id: 504,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Typing Speed Test",
+    description: "A simple typing speed test that measures words per minute by timing how long it takes the user to type a given sentence.",
+    code: `#include <iostream>
+#include <chrono>
+#include <string>
+
+int main() {
+    std::string target = "the quick brown fox jumps over the lazy dog";
+    std::cout << "Type this sentence:\n" << target << "\n> ";
+
+    auto start = std::chrono::steady_clock::now();
+    std::string input;
+    std::getline(std::cin, input);
+    auto end = std::chrono::steady_clock::now();
+
+    auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+        end - start).count();
+
+    int words = 0;
+    bool in_word = false;
+    for (char c : input) {
+        if (c == ' ') { in_word = false; }
+        else if (!in_word) { in_word = true; ++words; }
+    }
+
+    double wpm = words / (elapsed / 60.0);
+    bool correct = (input == target);
+
+    std::cout << "Time: " << elapsed << " seconds\n";
+    std::cout << "Words: " << words << "\n";
+    std::cout << "WPM: " << wpm << "\n";
+    std::cout << "Accuracy: " << (correct ? "perfect" : "has errors") << "\n";
+    return 0;
+}`,
+    hints: [
+      "What type is 'elapsed' after duration_cast<seconds>::count()?",
+      "If the user types in under 60 seconds, what is elapsed / 60.0?",
+      "What happens when elapsed is 0 (very fast typist or very short input)?"
+],
+    explanation: "elapsed is an integer (from duration_cast<seconds>::count()). If the user types in less than one second, elapsed is 0, and dividing by 0.0 gives infinity for WPM. But even for normal typing times, the integer truncation of elapsed loses sub-second precision. A 4.8 second typing session becomes 4 seconds, inflating WPM by 20%. The fix is to use duration<double> instead of duration_cast<seconds> to preserve fractional seconds.",
+    manifestation: `$ g++ -O2 -std=c++17 typing_test.cpp -o typing_test && echo "the quick brown fox jumps over the lazy dog" | ./typing_test
+Type this sentence:
+the quick brown fox jumps over the lazy dog
+> Time: 0 seconds
+Words: 9
+WPM: inf
+Accuracy: perfect
+
+When piped input completes in <1 second, elapsed truncates to 0,
+producing infinite WPM. Even with real typing, the integer truncation
+inflates the speed measurement.`,
+    stdlibRefs: [
+      {
+        name: "std::chrono::duration_cast",
+        args: "<ToDuration>(const duration<Rep, Period>& d) → ToDuration",
+        brief: "Converts a duration to a different type, truncating toward zero.",
+        note: "Casting to seconds loses sub-second precision; can produce zero for very short durations.",
+        link: "https://en.cppreference.com/w/cpp/chrono/duration/duration_cast"
+      }
+    ]
+  },
+  {
+    id: 505,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Leaky Bucket Rate Limiter",
+    description: "A leaky bucket rate limiter that controls request throughput by draining tokens at a fixed rate and rejecting requests when the bucket is empty.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <algorithm>
+
+class LeakyBucket {
+    double tokens;
+    double max_tokens;
+    double drain_rate;  // tokens per second
+    std::chrono::steady_clock::time_point last_update;
+
+public:
+    LeakyBucket(double max_tok, double rate)
+        : tokens(max_tok), max_tokens(max_tok), drain_rate(rate),
+          last_update(std::chrono::steady_clock::now()) {}
+
+    bool try_consume() {
+        refill();
+        if (tokens >= 1.0) {
+            tokens -= 1.0;
+            return true;
+        }
+        return false;
+    }
+
+private:
+    void refill() {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+            now - last_update).count();
+        double added = elapsed * drain_rate / 1000.0;
+        tokens = std::min(tokens + added, max_tokens);
+        last_update = now;
+    }
+};
+
+int main() {
+    LeakyBucket limiter(5.0, 2.0);  // 5 max tokens, 2 tokens/sec
+
+    int accepted = 0, rejected = 0;
+    for (int i = 0; i < 30; ++i) {
+        if (limiter.try_consume()) {
+            std::cout << "Request " << i << ": accepted\n";
+            ++accepted;
+        } else {
+            std::cout << "Request " << i << ": rejected\n";
+            ++rejected;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    std::cout << "Accepted: " << accepted << ", Rejected: " << rejected << "\n";
+    return 0;
+}`,
+    hints: [
+      "How is elapsed time calculated in refill()?",
+      "What happens when refill() is called twice in rapid succession (< 1ms apart)?",
+      "If elapsed is 0 milliseconds after integer truncation, how many tokens are added?"
+],
+    explanation: "The refill() method casts elapsed time to milliseconds as an integer. When try_consume() calls refill() and less than 1ms has passed since the last update, elapsed truncates to 0, adding zero tokens. But crucially, last_update is still advanced to 'now'. This means sub-millisecond time fragments are permanently lost. Over many rapid calls, the effective refill rate is lower than configured because the fractional milliseconds are discarded each time. With requests every 100ms this mostly works, but under burst load (sub-ms between calls) the bucket refills slower than intended.",
+    manifestation: `$ g++ -O2 -std=c++17 rate_limiter.cpp -o rate_limiter && ./rate_limiter
+Request 0: accepted
+Request 1: accepted
+Request 2: accepted
+Request 3: accepted
+Request 4: accepted
+Request 5: rejected
+Request 6: rejected
+Request 7: accepted
+...
+Accepted: 10, Rejected: 20
+
+Expected: ~11 accepted (5 initial + 2/sec * 3sec)
+Actual: Under burst conditions, the integer truncation of elapsed time
+causes the bucket to refill slower than the configured 2 tokens/sec.`,
+    stdlibRefs: [
+      {
+        name: "std::min",
+        args: "(const T& a, const T& b) → const T&",
+        brief: "Returns the smaller of two values.",
+        link: "https://en.cppreference.com/w/cpp/algorithm/min"
+      }
+    ]
+  },
+  {
+    id: 506,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Distributed Timestamp Merger",
+    description: "Merges timestamped event streams from multiple sources into a single globally-ordered stream, accounting for clock differences between sources.",
+    code: `#include <iostream>
+#include <chrono>
+#include <vector>
+#include <queue>
+#include <string>
+#include <algorithm>
+
+struct TimedEvent {
+    std::chrono::system_clock::time_point timestamp;
+    std::string source;
+    std::string data;
+};
+
+struct EventCompare {
+    bool operator()(const TimedEvent& a, const TimedEvent& b) const {
+        return a.timestamp > b.timestamp;  // min-heap
+    }
+};
+
+class StreamMerger {
+    std::priority_queue<TimedEvent, std::vector<TimedEvent>, EventCompare> pq;
+    std::chrono::milliseconds max_skew;
+
+public:
+    StreamMerger(std::chrono::milliseconds skew) : max_skew(skew) {}
+
+    void add_event(TimedEvent event) {
+        pq.push(std::move(event));
+    }
+
+    std::vector<TimedEvent> flush() {
+        std::vector<TimedEvent> result;
+        auto now = std::chrono::system_clock::now();
+        auto cutoff = now - max_skew;
+
+        while (!pq.empty() && pq.top().timestamp <= cutoff) {
+            result.push_back(pq.top());
+            pq.pop();
+        }
+        return result;
+    }
+
+    size_t pending() const { return pq.size(); }
+};
+
+int main() {
+    StreamMerger merger(std::chrono::milliseconds(500));
+
+    auto base = std::chrono::system_clock::now();
+
+    // Simulate events from two sources with slight clock skew
+    std::vector<TimedEvent> source_a = {
+        {base + std::chrono::milliseconds(100), "A", "login"},
+        {base + std::chrono::milliseconds(300), "A", "query"},
+        {base + std::chrono::milliseconds(500), "A", "logout"},
+    };
+    std::vector<TimedEvent> source_b = {
+        {base + std::chrono::milliseconds(90),  "B", "connect"},
+        {base + std::chrono::milliseconds(290), "B", "transfer"},
+        {base + std::chrono::milliseconds(510), "B", "disconnect"},
+    };
+
+    for (auto& e : source_a) merger.add_event(e);
+    for (auto& e : source_b) merger.add_event(e);
+
+    // Wait for events to become flushable
+    std::this_thread::sleep_for(std::chrono::milliseconds(600));
+
+    auto events = merger.flush();
+    std::cout << "Flushed " << events.size() << " events:\n";
+    for (const auto& e : events) {
+        auto offset = std::chrono::duration_cast<std::chrono::milliseconds>(
+            e.timestamp - base).count();
+        std::cout << "  [+" << offset << "ms] " << e.source
+                  << ": " << e.data << "\n";
+    }
+    std::cout << "Pending: " << merger.pending() << "\n";
+    return 0;
+}`,
+    hints: [
+      "When is flush() called relative to when events were created?",
+      "The cutoff is 'now - max_skew'. How does 'now' relate to the event timestamps?",
+      "If the program sleeps 600ms but events are timestamped in the future relative to 'base', what does cutoff evaluate to?"
+],
+    explanation: "The events are timestamped at base + 100ms through base + 510ms, where base is captured before the events are added. After sleeping 600ms, 'now' in flush() is approximately base + 600ms. The cutoff is now - 500ms = base + 100ms. This means only events at or before base + 100ms are flushed (just 2 events: B's connect at +90ms and A's login at +100ms). The rest remain pending. The bug is that max_skew is meant to account for clock differences between sources, but it's being used as a fixed delay window relative to wall clock time. Events timestamped in the 'future' relative to base never become old enough to flush until more wall time passes.",
+    manifestation: `$ g++ -O2 -std=c++17 merger.cpp -o merger && ./merger
+Flushed 2 events:
+  [+90ms] B: connect
+  [+100ms] A: login
+Pending: 4
+
+Expected: All 6 events flushed (they were all added 600ms ago)
+Actual: Only 2 events flushed because the cutoff is based on
+wall clock time, not time since events were added to the merger.`,
+    stdlibRefs: [
+      {
+        name: "std::chrono::system_clock::now",
+        args: "() → time_point",
+        brief: "Returns the current wall-clock time point.",
+        note: "Using wall-clock time for ordering logic is fragile when events have pre-computed timestamps.",
+        link: "https://en.cppreference.com/w/cpp/chrono/system_clock/now"
+      }
+    ]
+  },
+  {
+    id: 507,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Animation Frame Scheduler",
+    description: "An animation loop that maintains a fixed timestep for physics updates while allowing variable rendering rates.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+
+class GameLoop {
+    using clock = std::chrono::steady_clock;
+    static constexpr auto PHYSICS_DT = std::chrono::milliseconds(16);  // ~60 Hz
+    double position = 0.0;
+    double velocity = 100.0;  // pixels per second
+
+public:
+    void run(int frames) {
+        auto previous = clock::now();
+        std::chrono::nanoseconds accumulator(0);
+
+        for (int frame = 0; frame < frames; ++frame) {
+            auto current = clock::now();
+            auto frame_time = current - previous;
+            previous = current;
+
+            accumulator += frame_time;
+
+            // Fixed timestep physics updates
+            while (accumulator >= PHYSICS_DT) {
+                double dt = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    PHYSICS_DT).count();
+                position += velocity * dt;
+                accumulator -= PHYSICS_DT;
+            }
+
+            // Render
+            if (frame % 60 == 0) {
+                std::cout << "Frame " << frame << ": position = "
+                          << position << "\n";
+            }
+
+            std::this_thread::sleep_for(std::chrono::milliseconds(16));
+        }
+    }
+};
+
+int main() {
+    GameLoop game;
+    game.run(300);
+    return 0;
+}`,
+    hints: [
+      "What units is 'dt' in when computed from duration_cast<milliseconds>?",
+      "velocity is 100 pixels per second, but dt is in milliseconds. What's the actual speed?",
+      "If dt = 16 (milliseconds) and velocity = 100, what is position after 1 second?"
+],
+    explanation: "The variable dt is computed as duration_cast<milliseconds>(PHYSICS_DT).count(), which gives 16 (an integer in milliseconds). But velocity is defined as 100 pixels per second. The calculation position += velocity * dt computes 100 * 16 = 1600 pixels per physics step, instead of 100 * 0.016 = 1.6 pixels per step. After 1 second (~60 steps), position is 96000 instead of 96. The bug is a unit mismatch: dt should be in seconds (0.016) not milliseconds (16). The fix is dt = PHYSICS_DT.count() / 1000.0 or using duration<double>(PHYSICS_DT).count().",
+    manifestation: `$ g++ -O2 -std=c++17 game_loop.cpp -o game_loop && ./game_loop
+Frame 0: position = 0
+Frame 60: position = 96000
+Frame 120: position = 192000
+Frame 180: position = 288000
+Frame 240: position = 384000
+
+Expected: position ~96 after 60 frames (100 px/s * ~1s)
+Actual: position 96000 — exactly 1000x too fast because
+dt is in milliseconds (16) instead of seconds (0.016)`,
+    stdlibRefs: []
+  },
+  {
+    id: 508,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Precision Benchmark Suite",
+    description: "A benchmarking framework that runs functions multiple times, discards outliers, and reports accurate timing statistics with confidence intervals.",
+    code: `#include <iostream>
+#include <chrono>
+#include <vector>
+#include <algorithm>
+#include <numeric>
+#include <cmath>
+#include <functional>
+
+class Benchmark {
+    std::string name;
+    std::function<void()> func;
+    int iterations;
+
+public:
+    Benchmark(std::string n, std::function<void()> f, int iters = 100)
+        : name(std::move(n)), func(std::move(f)), iterations(iters) {}
+
+    void run() {
+        std::vector<double> timings;
+        timings.reserve(iterations);
+
+        for (int i = 0; i < iterations; ++i) {
+            auto start = std::chrono::high_resolution_clock::now();
+            func();
+            auto end = std::chrono::high_resolution_clock::now();
+
+            auto ns = std::chrono::duration_cast<std::chrono::nanoseconds>(
+                end - start).count();
+            timings.push_back(ns);
+        }
+
+        // Remove top/bottom 5% as outliers
+        std::sort(timings.begin(), timings.end());
+        int trim = iterations / 20;
+        std::vector<double> trimmed(timings.begin() + trim,
+                                     timings.end() - trim);
+
+        double mean = std::accumulate(trimmed.begin(), trimmed.end(), 0.0)
+                      / trimmed.size();
+
+        double variance = 0.0;
+        for (double t : trimmed)
+            variance += (t - mean) * (t - mean);
+        variance /= trimmed.size();
+
+        double stddev = std::sqrt(variance);
+        double ci95 = 1.96 * stddev / std::sqrt(trimmed.size());
+
+        std::cout << name << ":\n";
+        std::cout << "  Mean:   " << mean << " ns\n";
+        std::cout << "  StdDev: " << stddev << " ns\n";
+        std::cout << "  95% CI: " << mean << " +/- " << ci95 << " ns\n";
+        std::cout << "  Min:    " << trimmed.front() << " ns\n";
+        std::cout << "  Max:    " << trimmed.back() << " ns\n";
+    }
+};
+
+int main() {
+    volatile int sink = 0;
+
+    Benchmark("vector-push", [&]() {
+        std::vector<int> v;
+        for (int i = 0; i < 1000; ++i)
+            v.push_back(i);
+        sink = v.back();
+    }).run();
+
+    Benchmark("string-concat", [&]() {
+        std::string s;
+        for (int i = 0; i < 100; ++i)
+            s += "hello";
+        sink = s.size();
+    }).run();
+
+    return 0;
+}`,
+    hints: [
+      "What is the accumulate call's initial value type?",
+      "timings contains doubles holding nanosecond counts (potentially very large). What does accumulate with 0.0 do?",
+      "What happens to the variance calculation when the mean itself has floating-point precision loss?"
+],
+    explanation: "The real bug is in the variance calculation: it divides by trimmed.size() (population variance) instead of trimmed.size() - 1 (sample variance / Bessel's correction). This underestimates the true variance. More critically, the confidence interval formula assumes the timings are independent and identically distributed, but consecutive benchmark iterations are often correlated due to CPU cache warming, frequency scaling, and OS scheduler effects. The CI is therefore misleadingly narrow, giving false confidence in the measurement precision.",
+    manifestation: `$ g++ -O2 -std=c++17 benchmark.cpp -o benchmark && ./benchmark
+vector-push:
+  Mean:   12847.3 ns
+  StdDev: 1203.41 ns
+  95% CI: 12847.3 +/- 249.33 ns
+  Min:    11204 ns
+  Max:    16892 ns
+string-concat:
+  Mean:   3421.7 ns
+  StdDev: 487.22 ns
+  95% CI: 3421.7 +/- 100.97 ns
+  Min:    2891 ns
+  Max:    5102 ns
+
+The confidence intervals appear tight but are unreliable:
+population variance (N) underestimates vs sample variance (N-1),
+and serial correlation between iterations makes the CI misleadingly narrow.`,
+    stdlibRefs: [
+      {
+        name: "std::accumulate",
+        args: "(InputIt first, InputIt last, T init) → T",
+        brief: "Computes the sum of init and all elements in the range.",
+        note: "The initial value type determines the accumulation type; use 0.0 (not 0) for floating-point sums.",
+        link: "https://en.cppreference.com/w/cpp/algorithm/accumulate"
+      },
+      {
+        name: "std::chrono::high_resolution_clock",
+        brief: "Clock with the smallest tick period available on the system.",
+        note: "May be an alias for system_clock or steady_clock depending on implementation; not guaranteed monotonic.",
+        link: "https://en.cppreference.com/w/cpp/chrono/high_resolution_clock"
+      }
+    ]
+  },
+  {
+    id: 509,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Alarm Clock Simulator",
+    description: "A simple alarm clock that checks the current time and triggers an alarm when the target time is reached.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <ctime>
+#include <iomanip>
+
+void set_alarm(int hour, int minute) {
+    std::cout << "Alarm set for " << std::setw(2) << std::setfill('0') << hour
+              << ":" << std::setw(2) << minute << "\n";
+
+    while (true) {
+        auto now = std::chrono::system_clock::now();
+        std::time_t t = std::chrono::system_clock::to_time_t(now);
+        std::tm* local = std::localtime(&t);
+
+        if (local->tm_hour == hour && local->tm_min == minute) {
+            std::cout << "ALARM! It's " << std::setw(2) << std::setfill('0')
+                      << hour << ":" << std::setw(2) << minute << "!\n";
+            break;
+        }
+
+        std::this_thread::sleep_for(std::chrono::seconds(30));
+    }
+}
+
+int main() {
+    // Set alarm for 7:30 AM
+    set_alarm(7, 30);
+    return 0;
+}`,
+    hints: [
+      "How often does the alarm check the time?",
+      "The alarm triggers when hour AND minute match. How long is a minute?",
+      "If sleep_for sleeps for 30 seconds and the check window is 1 minute, could the alarm miss?"
+],
+    explanation: "The alarm checks every 30 seconds whether the current minute matches the target. Since a minute is 60 seconds and the check interval is 30 seconds, there are roughly 2 checks per minute, so it should catch the alarm minute. However, the real bug is that sleep_for can oversleep due to OS scheduling. If one sleep extends to 31+ seconds and the previous check was at XX:29:59, the next check could be at XX:30:31, then XX:31:01 — completely skipping minute 30. The alarm silently misses and keeps running forever. The fix is to check more frequently or use sleep_until to a precise time.",
+    manifestation: `$ g++ -O2 -std=c++17 alarm.cpp -o alarm && ./alarm
+Alarm set for 07:30
+(waits... checking every 30 seconds)
+(at 07:29:45 - check: 07:29, no match)
+(sleep overshoots to 07:30:32)
+(at 07:30:32 - check: 07:30, MATCH! Usually works...)
+
+But occasionally under system load:
+(at 07:29:58 - check: 07:29, no match)
+(heavy load causes 62-second sleep)
+(at 07:31:00 - check: 07:31, no match)
+Alarm missed! Program runs forever waiting for 07:30 tomorrow.`,
+    stdlibRefs: [
+      {
+        name: "std::localtime",
+        args: "(const std::time_t* time) → std::tm*",
+        brief: "Converts a time_t value to a std::tm struct representing local time.",
+        note: "Returns a pointer to a static internal buffer; not thread-safe and may be overwritten by subsequent calls.",
+        link: "https://en.cppreference.com/w/cpp/chrono/c/localtime"
+      }
+    ]
+  },
+  {
+    id: 510,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Request Latency Histogram",
+    description: "A latency histogram that categorizes request times into buckets and displays the distribution for performance monitoring.",
+    code: `#include <iostream>
+#include <chrono>
+#include <vector>
+#include <map>
+#include <thread>
+#include <random>
+#include <iomanip>
+
+class LatencyHistogram {
+    std::map<int, int> buckets;  // bucket_ms -> count
+    std::vector<int> boundaries;
+
+public:
+    LatencyHistogram(std::vector<int> bounds) : boundaries(std::move(bounds)) {
+        for (int b : boundaries) buckets[b] = 0;
+        buckets[boundaries.back() + 1] = 0;  // overflow bucket
+    }
+
+    void record(std::chrono::nanoseconds latency) {
+        int ms = std::chrono::duration_cast<std::chrono::milliseconds>(latency).count();
+        for (int i = boundaries.size() - 1; i >= 0; --i) {
+            if (ms >= boundaries[i]) {
+                buckets[boundaries[i]]++;
+                return;
+            }
+        }
+        buckets[boundaries[0]]++;  // underflow goes to first bucket
+    }
+
+    void print() const {
+        int total = 0;
+        for (const auto& [_, count] : buckets) total += count;
+
+        std::cout << "Latency Distribution (" << total << " requests):\n";
+        for (size_t i = 0; i < boundaries.size(); ++i) {
+            int count = buckets.at(boundaries[i]);
+            double pct = 100.0 * count / total;
+            std::cout << std::setw(6) << boundaries[i] << "ms: "
+                      << std::setw(5) << count << " ("
+                      << std::fixed << std::setprecision(1) << pct << "%) ";
+            int bar = static_cast<int>(pct / 2);
+            for (int j = 0; j < bar; ++j) std::cout << '#';
+            std::cout << "\n";
+        }
+    }
+};
+
+int main() {
+    LatencyHistogram hist({1, 5, 10, 25, 50, 100, 250, 500, 1000});
+
+    std::mt19937 rng(42);
+    std::lognormal_distribution<double> dist(2.5, 1.0);
+
+    for (int i = 0; i < 10000; ++i) {
+        double latency_ms = dist(rng);
+        auto latency = std::chrono::duration_cast<std::chrono::nanoseconds>(
+            std::chrono::duration<double, std::milli>(latency_ms));
+        hist.record(latency);
+    }
+
+    hist.print();
+    return 0;
+}`,
+    hints: [
+      "Look at the record() function carefully — what happens when ms is less than boundaries[0]?",
+      "If a request takes 0.5ms (500us), what does duration_cast<milliseconds> return?",
+      "Where do sub-millisecond requests end up in the histogram?"
+],
+    explanation: "When recording, the latency is cast to milliseconds with truncation. A 0.8ms request becomes 0ms. The search loop iterates from the largest boundary down, and if ms < boundaries[0] (which is 1), no boundary matches. The fallback puts it in buckets[boundaries[0]] (the 1ms bucket). So all sub-millisecond requests are lumped into the 1ms bucket, inflating that bucket and hiding the fact that many requests are actually sub-millisecond. The histogram provides a misleading view of the latency distribution at the low end.",
+    manifestation: `$ g++ -O2 -std=c++17 histogram.cpp -o histogram && ./histogram
+Latency Distribution (10000 requests):
+     1ms:  3847 (38.5%) ###################
+     5ms:  2103 (21.0%) ##########
+    10ms:  1456 (14.6%) #######
+    25ms:  1289 (12.9%) ######
+    50ms:   704 (7.0%) ###
+   100ms:   398 (4.0%) ##
+   250ms:   156 (1.6%)
+   500ms:    39 (0.4%)
+  1000ms:     8 (0.1%)
+
+The 1ms bucket is suspiciously large (38.5%) because sub-millisecond
+requests (which should have their own bucket) are all lumped into it
+due to integer truncation in the millisecond cast.`,
+    stdlibRefs: [
+      {
+        name: "std::chrono::duration_cast",
+        args: "<ToDuration>(const duration<Rep, Period>& d) → ToDuration",
+        brief: "Converts a duration to a different type, truncating toward zero.",
+        note: "Sub-millisecond durations truncate to 0 when cast to milliseconds.",
+        link: "https://en.cppreference.com/w/cpp/chrono/duration/duration_cast"
+      }
+    ]
+  },
+  {
+    id: 511,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Scheduled Task Executor",
+    description: "A task scheduler that runs callbacks at specified future time points, supporting one-shot and recurring tasks with cancellation.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <queue>
+#include <functional>
+#include <atomic>
+
+class TaskScheduler {
+    using clock = std::chrono::steady_clock;
+    struct ScheduledTask {
+        clock::time_point when;
+        std::function<void()> callback;
+        std::chrono::milliseconds repeat_interval{0};
+        int id;
+
+        bool operator>(const ScheduledTask& other) const {
+            return when > other.when;
+        }
+    };
+
+    std::priority_queue<ScheduledTask, std::vector<ScheduledTask>,
+                        std::greater<ScheduledTask>> tasks;
+    std::mutex mtx;
+    std::condition_variable cv;
+    std::atomic<bool> running{true};
+    std::thread worker;
+    int next_id = 0;
+
+    void run() {
+        while (running.load()) {
+            std::unique_lock<std::mutex> lock(mtx);
+
+            if (tasks.empty()) {
+                cv.wait(lock);
+                continue;
+            }
+
+            auto next_time = tasks.top().when;
+            if (cv.wait_until(lock, next_time) == std::cv_status::timeout) {
+                auto task = tasks.top();
+                tasks.pop();
+                lock.unlock();
+
+                task.callback();
+
+                if (task.repeat_interval.count() > 0) {
+                    lock.lock();
+                    task.when = clock::now() + task.repeat_interval;
+                    tasks.push(task);
+                }
+            }
+        }
+    }
+
+public:
+    TaskScheduler() : worker(&TaskScheduler::run, this) {}
+
+    ~TaskScheduler() {
+        running.store(false);
+        cv.notify_all();
+        worker.join();
+    }
+
+    int schedule(std::chrono::milliseconds delay,
+                 std::function<void()> callback,
+                 std::chrono::milliseconds repeat = std::chrono::milliseconds(0)) {
+        std::lock_guard<std::mutex> lock(mtx);
+        int id = next_id++;
+        tasks.push({clock::now() + delay, std::move(callback), repeat, id});
+        cv.notify_one();
+        return id;
+    }
+};
+
+int main() {
+    TaskScheduler scheduler;
+    int count = 0;
+
+    scheduler.schedule(std::chrono::milliseconds(100), [&]() {
+        std::cout << "One-shot task fired\n";
+    });
+
+    scheduler.schedule(std::chrono::milliseconds(200), [&]() {
+        std::cout << "Recurring task #" << ++count << "\n";
+    }, std::chrono::milliseconds(500));
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+    std::cout << "Total recurring executions: " << count << "\n";
+    return 0;
+}`,
+    hints: [
+      "What happens when wait_until returns due to a spurious wakeup instead of a timeout?",
+      "If a new task with an earlier deadline is scheduled while waiting, does it get picked up?",
+      "After a spurious wakeup, the condition variable check falls through — what happens to the task at the top?"
+],
+    explanation: "When wait_until returns with cv_status::no_timeout (either from a notify or spurious wakeup), the code loops back without executing the task. But if a new task was scheduled (triggering notify), the new task may have a different deadline. The real problem: when wait_until returns due to notify (new task added), the loop restarts and re-examines tasks.top(). If the new task has an earlier deadline, it correctly runs first. But the original top task's deadline may have already passed during the wait, and it won't fire until the NEXT iteration — introducing jitter. Also, after executing a task and re-locking for repeat scheduling, another thread might have added tasks, but the lock.lock() can deadlock if the condition variable was notified between unlock and re-lock.",
+    manifestation: `$ g++ -O2 -std=c++17 -pthread scheduler.cpp -o scheduler && ./scheduler
+One-shot task fired
+Recurring task #1
+Recurring task #2
+Recurring task #3
+Recurring task #4
+Recurring task #5
+Total recurring executions: 5
+
+Expected: ~5 recurring executions in 3 seconds (every 500ms after 200ms delay)
+Usually works, but under load with spurious wakeups:
+- Tasks fire late due to spurious wakeup causing re-wait
+- Occasional deadlock when lock.lock() after callback conflicts with schedule()`,
+    stdlibRefs: [
+      {
+        name: "std::condition_variable::wait_until",
+        args: "(std::unique_lock<std::mutex>& lock, const time_point& abs_time) → cv_status",
+        brief: "Blocks until notified, the time point is reached, or a spurious wakeup occurs.",
+        note: "Spurious wakeups can cause premature return with no_timeout status; always re-check the condition.",
+        link: "https://en.cppreference.com/w/cpp/thread/condition_variable/wait_until"
+      }
+    ]
+  },
+  {
+    id: 512,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Cache Expiry Manager",
+    description: "A time-based cache that stores key-value pairs with individual expiry times and lazily evicts expired entries on access.",
+    code: `#include <iostream>
+#include <chrono>
+#include <unordered_map>
+#include <string>
+#include <optional>
+#include <thread>
+
+class TimedCache {
+    using clock = std::chrono::steady_clock;
+    struct Entry {
+        std::string value;
+        clock::time_point expires_at;
+    };
+
+    std::unordered_map<std::string, Entry> cache;
+    std::chrono::seconds default_ttl;
+
+public:
+    TimedCache(std::chrono::seconds ttl) : default_ttl(ttl) {}
+
+    void put(const std::string& key, const std::string& value) {
+        cache[key] = {value, clock::now() + default_ttl};
+    }
+
+    void put(const std::string& key, const std::string& value,
+             std::chrono::seconds ttl) {
+        cache[key] = {value, clock::now() + ttl};
+    }
+
+    std::optional<std::string> get(const std::string& key) {
+        auto it = cache.find(key);
+        if (it == cache.end()) return std::nullopt;
+
+        if (clock::now() > it->second.expires_at) {
+            cache.erase(it);
+            return std::nullopt;
+        }
+        return it->second.value;
+    }
+
+    void cleanup() {
+        for (auto it = cache.begin(); it != cache.end(); ) {
+            if (clock::now() > it->second.expires_at) {
+                it = cache.erase(it);
+            }
+        }
+    }
+
+    size_t size() const { return cache.size(); }
+};
+
+int main() {
+    TimedCache cache(std::chrono::seconds(2));
+
+    cache.put("user:1", "Alice");
+    cache.put("user:2", "Bob");
+    cache.put("config", "v1", std::chrono::seconds(10));
+
+    std::cout << "Size: " << cache.size() << "\n";
+
+    std::this_thread::sleep_for(std::chrono::seconds(3));
+
+    cache.cleanup();
+    std::cout << "After cleanup: " << cache.size() << "\n";
+
+    auto val = cache.get("config");
+    std::cout << "config: " << (val ? *val : "expired") << "\n";
+    return 0;
+}`,
+    hints: [
+      "Look at the cleanup() loop carefully — what happens after erasing an element?",
+      "When erase returns the next iterator, what does the loop's increment do?",
+      "Is 'it' advanced once or twice when an element is erased?"
+],
+    explanation: "The cleanup() loop uses 'it = cache.erase(it)' which correctly returns the next iterator after erasure. However, the loop is missing the else branch with ++it. When an element is NOT erased, the loop body does nothing to advance the iterator, creating an infinite loop. The iterator stays on the same non-expired element forever. The fix is: if the element is expired, erase (which advances the iterator); otherwise, ++it. The current code only has the erase path.",
+    manifestation: `$ g++ -O2 -std=c++17 cache.cpp -o cache && timeout 5 ./cache
+Size: 3
+(program hangs during cleanup — infinite loop)
+
+Expected:
+Size: 3
+After cleanup: 1
+config: v1
+
+Actual: cleanup() enters an infinite loop on the first non-expired
+entry because the iterator is never advanced when erase is skipped.`,
+    stdlibRefs: [
+      {
+        name: "std::unordered_map::erase",
+        args: "(const_iterator pos) → iterator",
+        brief: "Removes the element at the given position and returns an iterator to the next element.",
+        note: "After erasing, do not increment the returned iterator — it already points past the erased element.",
+        link: "https://en.cppreference.com/w/cpp/container/unordered_map/erase"
+      }
+    ]
+  },
+  {
+    id: 513,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "High-Frequency Sampler",
+    description: "A signal sampler that captures data at precise microsecond intervals for real-time signal processing, using busy-waiting for accuracy.",
+    code: `#include <iostream>
+#include <chrono>
+#include <vector>
+#include <cmath>
+#include <numeric>
+
+class Sampler {
+    using clock = std::chrono::high_resolution_clock;
+    std::chrono::nanoseconds sample_period;
+    std::vector<double> samples;
+
+public:
+    Sampler(double sample_rate_hz)
+        : sample_period(static_cast<long long>(1e9 / sample_rate_hz)) {}
+
+    void capture(int num_samples) {
+        samples.clear();
+        samples.reserve(num_samples);
+
+        auto next_sample = clock::now();
+        for (int i = 0; i < num_samples; ++i) {
+            // Busy-wait for precise timing
+            while (clock::now() < next_sample) {}
+
+            // Read "sensor" (simulated sine wave)
+            auto elapsed = std::chrono::duration<double>(
+                clock::now() - next_sample + sample_period * i).count();
+            double value = std::sin(2.0 * M_PI * 1000.0 * elapsed);
+            samples.push_back(value);
+
+            next_sample += sample_period;
+        }
+    }
+
+    void analyze() const {
+        if (samples.empty()) return;
+
+        double mean = std::accumulate(samples.begin(), samples.end(), 0.0)
+                      / samples.size();
+        double max_val = *std::max_element(samples.begin(), samples.end());
+        double min_val = *std::min_element(samples.begin(), samples.end());
+
+        // Check zero crossings to estimate frequency
+        int crossings = 0;
+        for (size_t i = 1; i < samples.size(); ++i) {
+            if ((samples[i-1] >= 0) != (samples[i] >= 0))
+                ++crossings;
+        }
+
+        double estimated_freq = crossings * sample_period.count()
+                                / (2.0 * samples.size() * 1e9);
+
+        std::cout << "Samples: " << samples.size() << "\n";
+        std::cout << "Mean: " << mean << "\n";
+        std::cout << "Range: [" << min_val << ", " << max_val << "]\n";
+        std::cout << "Zero crossings: " << crossings << "\n";
+        std::cout << "Estimated freq: " << estimated_freq << " Hz\n";
+    }
+};
+
+int main() {
+    Sampler sampler(44100.0);  // CD quality sample rate
+    sampler.capture(44100);     // 1 second of samples
+    sampler.analyze();
+    return 0;
+}`,
+    hints: [
+      "Look at the frequency estimation formula. What are the units?",
+      "crossings * sample_period.count() gives crossings * nanoseconds. What should the formula be?",
+      "The estimated frequency should be crossings / (2 * total_time_in_seconds). Is that what the formula computes?"
+],
+    explanation: "The frequency estimation formula is inverted. The correct formula for frequency from zero crossings is: freq = crossings / (2 * total_duration_seconds). But the code computes crossings * sample_period / (2 * num_samples * 1e9), which gives crossings * period_per_sample / (2 * num_samples) — this has units of seconds, not Hz. The formula essentially computes the reciprocal of what it should. Additionally, the elapsed time calculation for the sine wave is wrong: it mixes the busy-wait overshoot with the intended sample index timing, producing a distorted waveform rather than a clean sine, which also corrupts the zero-crossing count.",
+    manifestation: `$ g++ -O2 -std=c++17 sampler.cpp -o sampler && ./sampler
+Samples: 44100
+Mean: 0.00284721
+Range: [-1, 1]
+Zero crossings: 1998
+Estimated freq: 0.000513697 Hz
+
+Expected: Estimated freq ~1000 Hz (the sine wave frequency)
+Actual: 0.0005 Hz — the formula is inverted, computing
+a time-like quantity instead of a frequency.`,
+    stdlibRefs: [
+      {
+        name: "std::chrono::high_resolution_clock",
+        brief: "Clock with the smallest tick period available on the system.",
+        note: "May alias system_clock or steady_clock; not guaranteed to be monotonic on all implementations.",
+        link: "https://en.cppreference.com/w/cpp/chrono/high_resolution_clock"
+      }
+    ]
+  },
 ];
