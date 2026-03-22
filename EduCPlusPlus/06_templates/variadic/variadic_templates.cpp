@@ -25,9 +25,7 @@
 #include <vector>
 #include <tuple>
 #include <memory>
-#include <sstream>
 #include <type_traits>
-#include <numeric>
 
 // =====================================================
 // FREQUENTLY ASKED QUESTIONS (first-timer Q&A)

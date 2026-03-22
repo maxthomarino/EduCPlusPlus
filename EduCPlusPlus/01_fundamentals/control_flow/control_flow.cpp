@@ -77,12 +77,13 @@ int main() {
     // -----------------------------------------------
     enum class Color { Red, Green, Blue };
 
-    auto pick = Color::Green;
-    switch (pick) {
+    // switch with init-statement: 'pick' is scoped to this switch block
+    switch (auto pick = Color::Green; pick) {
         case Color::Red:   std::cout << "Red\n";   break;
         case Color::Green: std::cout << "Green\n"; break;
         case Color::Blue:  std::cout << "Blue\n";  break;
     }
+    // 'pick' is no longer accessible here -- stays tightly scoped
 
     // -----------------------------------------------
     // 3. Range-based for loops (C++11/17/20)

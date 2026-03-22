@@ -21,6 +21,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <string>
+#include <vector>
 
 // -----------------------------------------------
 // Custom hash function for user-defined types.

@@ -20,7 +20,6 @@
 #include <vector>
 #include <string>
 #include <algorithm>
-#include <numeric>
 
 // -----------------------------------------------
 // HOW IT WORKS: Lazy Evaluation in Ranges

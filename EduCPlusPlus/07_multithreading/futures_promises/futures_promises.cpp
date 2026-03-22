@@ -34,8 +34,8 @@ using namespace std::chrono_literals;
 // 1. std::async with launch::async returns a future whose destructor
 //    BLOCKS until the task completes. Discarding the returned future
 //    makes the call effectively synchronous.
-// 2. Calling future::get() more than once is undefined behavior. Use
-//    std::shared_future if multiple consumers need the same result.
+// 2. Calling future::get() more than once throws std::future_error
+//    (error code: no_state). Use std::shared_future for multiple consumers.
 // 3. Exceptions thrown inside an async task or promise are captured and
 //    re-thrown when you call future::get() -- no special handling needed.
 // 4. std::async with launch::deferred runs the task lazily on the first
@@ -49,8 +49,8 @@ using namespace std::chrono_literals;
 // destructor blocks until the task completes. Discarding the future
 // (e.g., not capturing the return value) makes the call synchronous.
 // -----------------------------------------------
-int compute_sum(int from, int to) {
-    int sum = 0;
+long long compute_sum(int from, int to) {
+    long long sum = 0;
     for (int i = from; i <= to; ++i) sum += i;
     return sum;
 }
@@ -81,8 +81,8 @@ int risky_computation(int x) {
 // -----------------------------------------------
 // 4. std::shared_future -- multiple consumers
 //    A regular future can only be .get() once.
-// Watch out: calling future::get() more than once is UB. Use
-// shared_future if multiple consumers need the result.
+// Watch out: calling future::get() more than once throws
+// std::future_error. Use shared_future for multiple consumers.
 // -----------------------------------------------
 void wait_and_print(std::shared_future<int> sf, std::string name) {
     int result = sf.get();  // Multiple threads can call .get()
@@ -93,7 +93,7 @@ int main() {
     // ---- std::async ----
     std::cout << "--- std::async ---\n";
 
-    // Launch async tasks (may run in a thread pool)
+    // Launch async tasks (launch::async guarantees a new thread)
     auto future1 = std::async(std::launch::async, compute_sum, 1, 50'000);
     auto future2 = std::async(std::launch::async, compute_sum, 50'001, 100'000);
 
@@ -101,7 +101,7 @@ int main() {
     std::cout << "Computing in background...\n";
 
     // .get() blocks until the result is ready
-    int total = future1.get() + future2.get();
+    long long total = future1.get() + future2.get();
     std::cout << std::format("Sum 1..100000 = {}\n", total);
 
     // ---- std::promise / std::future ----

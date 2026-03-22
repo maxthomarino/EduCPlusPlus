@@ -37,6 +37,7 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <cstring>
 
 // =====================================================
 // FREQUENTLY ASKED QUESTIONS (first-timer Q&A)

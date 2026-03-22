@@ -20,6 +20,8 @@
 #include <format>
 #include <string>
 #include <cmath>
+#include <numbers>
+#include <algorithm>
 
 // -----------------------------------------------
 // 1. Basic class with encapsulation
@@ -103,11 +105,11 @@ public:
     ~Circle() { --instance_count_; }
 
     [[nodiscard]] double area() const {
-        return M_PI * radius_ * radius_;
+        return std::numbers::pi * radius_ * radius_;
     }
 
     [[nodiscard]] double circumference() const {
-        return 2.0 * M_PI * radius_;
+        return 2.0 * std::numbers::pi * radius_;
     }
 
     [[nodiscard]] bool contains(const Point& p) const {

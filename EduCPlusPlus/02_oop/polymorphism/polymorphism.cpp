@@ -24,6 +24,7 @@
 #include <memory>
 #include <string>
 #include <numbers>
+#include <cmath>
 
 // -----------------------------------------------
 // 1. Abstract base class (interface)

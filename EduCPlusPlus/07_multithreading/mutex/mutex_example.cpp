@@ -70,7 +70,7 @@ public:
 // -----------------------------------------------
 class BankAccount {
     double balance_ = 0;
-    std::mutex mtx_;
+    mutable std::mutex mtx_;
 
 public:
     explicit BankAccount(double initial) : balance_(initial) {}
@@ -86,7 +86,11 @@ public:
         }
     }
 
-    double balance() const { return balance_; }
+    // Thread-safe read: must lock even for reads to avoid data races
+    double balance() const {
+        std::lock_guard lock(mtx_);
+        return balance_;
+    }
 };
 
 int main() {

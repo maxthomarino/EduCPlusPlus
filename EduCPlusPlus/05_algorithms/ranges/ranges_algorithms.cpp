@@ -24,7 +24,6 @@
 #include <string>
 #include <algorithm>
 #include <ranges>
-#include <numeric>
 
 // -----------------------------------------------
 // Key Takeaways

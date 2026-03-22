@@ -26,6 +26,7 @@
 #include <string_view>
 #include <numeric>
 #include <cmath>
+#include <type_traits>
 
 // -----------------------------------------------
 // 1. Basic constexpr functions
@@ -173,6 +174,7 @@ constexpr int count_vowels(std::string_view s) {
 }
 
 constexpr bool is_palindrome(std::string_view s) {
+    if (s.empty()) return true;
     std::size_t left = 0;
     std::size_t right = s.size() - 1;
     while (left < right) {

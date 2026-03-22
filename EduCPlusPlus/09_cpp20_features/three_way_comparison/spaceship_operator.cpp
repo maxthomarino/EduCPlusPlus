@@ -24,6 +24,7 @@
 #include <set>
 #include <vector>
 #include <algorithm>
+#include <cmath>
 
 // -----------------------------------------------
 // 1. Defaulted <=> — one line gives you all 6 operators

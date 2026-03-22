@@ -23,7 +23,7 @@
 #include <vector>
 #include <algorithm>
 #include <string>
-#include <numeric>
+#include <cstdlib>
 
 // Helper: print a vector
 void print(std::string_view label, const std::vector<int>& v) {

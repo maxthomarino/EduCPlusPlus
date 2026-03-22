@@ -21,7 +21,6 @@
 #include <format>
 #include <string>
 #include <string_view>
-#include <numeric>
 
 // -----------------------------------------------
 // 1. Trailing return type (C++11)
