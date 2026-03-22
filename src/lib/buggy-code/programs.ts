@@ -36775,4 +36775,1025 @@ Read back: 0xdeadbeef
 Small fields work fine, but 32-bit packing triggers UB from (1 << 31).`,
     stdlibRefs: []
   },
+  {
+    id: 534,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Easy",
+    title: "Bit Mask Generator",
+    description: "Generates bit masks for extracting fields from hardware registers, supporting arbitrary start positions and widths.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <bitset>
+
+// Create mask of 'width' bits starting at bit 'start'
+uint32_t make_mask(int start, int width) {
+    return ((1 << width) - 1) << start;
+}
+
+// Extract field from register value
+uint32_t extract_field(uint32_t reg, int start, int width) {
+    return (reg >> start) & ((1 << width) - 1);
+}
+
+// Insert value into field
+uint32_t insert_field(uint32_t reg, int start, int width, uint32_t value) {
+    uint32_t mask = make_mask(start, width);
+    return (reg & ~mask) | ((value << start) & mask);
+}
+
+int main() {
+    // Hardware register: bits 0-7 = status, bits 8-15 = data, bits 16-31 = address
+    uint32_t reg = 0xABCD1234;
+
+    std::cout << "Register: 0x" << std::hex << reg << "\n";
+    std::cout << "Status (bits 0-7):   0x" << extract_field(reg, 0, 8) << "\n";
+    std::cout << "Data (bits 8-15):    0x" << extract_field(reg, 8, 8) << "\n";
+    std::cout << "Address (bits 16-31): 0x" << extract_field(reg, 16, 16) << "\n";
+
+    // Mask for full 32-bit register
+    std::cout << "Full mask: 0x" << make_mask(0, 32) << "\n";
+    std::cout << "Expected:  0xFFFFFFFF\n";
+    return 0;
+}`,
+    hints: [
+      "What happens when width is 32 in make_mask()?",
+      "What type is '1' in (1 << width)? What is 1 << 32?",
+      "Is shifting a 32-bit int by 32 defined behavior?"
+],
+    explanation: "When width is 32, '(1 << 32)' shifts a 32-bit signed int by its full width, which is undefined behavior in C++. On x86, the shift is often masked to 5 bits, so 1 << 32 acts like 1 << 0 = 1, making the mask (1-1) << start = 0 instead of 0xFFFFFFFF. The same bug affects extract_field with width=32. Additionally, even for width < 32, using signed int '1' means width=31 shifts into the sign bit (UB in C++17). The fix is to use 1U or handle width=32 as a special case: width == 32 ? ~0U : ((1U << width) - 1).",
+    manifestation: `$ g++ -O2 -std=c++17 -fsanitize=undefined bitmask.cpp -o bitmask && ./bitmask
+Register: 0xabcd1234
+Status (bits 0-7):   0x34
+Data (bits 8-15):    0x12
+Address (bits 16-31): 0xabcd
+bitmask.cpp:5:19: runtime error: shift exponent 32 is too large for 32-bit type 'int'
+Full mask: 0x0
+Expected:  0xFFFFFFFF
+
+The 32-bit mask returns 0 instead of 0xFFFFFFFF because (1 << 32)
+is undefined behavior. On x86 it wraps to (1 << 0) = 1, giving
+mask = 0.`,
+    stdlibRefs: []
+  },
+  {
+    id: 535,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Medium",
+    title: "Gray Code Converter",
+    description: "Converts between standard binary and Gray code representations, used in rotary encoders and error-resistant digital communications.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <bitset>
+#include <vector>
+
+uint32_t to_gray(uint32_t n) {
+    return n ^ (n >> 1);
+}
+
+uint32_t from_gray(uint32_t gray) {
+    uint32_t result = gray;
+    for (uint32_t mask = gray >> 1; mask != 0; mask >>= 1) {
+        result ^= mask;
+    }
+    return result;
+}
+
+// Generate Gray code sequence for n bits
+std::vector<uint32_t> gray_sequence(int n_bits) {
+    std::vector<uint32_t> seq;
+    int count = 1 << n_bits;
+    for (int i = 0; i < count; ++i) {
+        seq.push_back(to_gray(i));
+    }
+    return seq;
+}
+
+// Check that consecutive Gray codes differ by exactly 1 bit
+bool verify_gray_property(const std::vector<uint32_t>& seq) {
+    for (size_t i = 0; i < seq.size() - 1; ++i) {
+        uint32_t diff = seq[i] ^ seq[i+1];
+        if (__builtin_popcount(diff) != 1) return false;
+    }
+    return true;
+}
+
+int main() {
+    // Test round-trip conversion
+    bool all_ok = true;
+    for (uint32_t i = 0; i < 1000; ++i) {
+        if (from_gray(to_gray(i)) != i) {
+            std::cout << "Round-trip failed for " << i << "\n";
+            all_ok = false;
+        }
+    }
+    std::cout << "Round-trip test: " << (all_ok ? "PASS" : "FAIL") << "\n";
+
+    // Show 4-bit Gray codes
+    auto seq = gray_sequence(4);
+    std::cout << "\n4-bit Gray code:\n";
+    for (size_t i = 0; i < seq.size(); ++i) {
+        std::cout << std::bitset<4>(i) << " -> " << std::bitset<4>(seq[i]) << "\n";
+    }
+
+    std::cout << "\nGray property verified: "
+              << verify_gray_property(seq) << "\n";
+
+    // Test wrapping: does the sequence wrap around?
+    uint32_t first = seq.front();
+    uint32_t last = seq.back();
+    uint32_t wrap_diff = first ^ last;
+    std::cout << "Wrap-around bits differ: " << __builtin_popcount(wrap_diff)
+              << " (should be 1 for cyclic Gray code)\n";
+    return 0;
+}`,
+    hints: [
+      "The verify function checks adjacent pairs but not the wrap-around.",
+      "For a cyclic Gray code, the last element and the first should also differ by 1 bit.",
+      "Look at the 4-bit output: does the last value (1000) differ from the first (0000) by 1 bit?"
+],
+    explanation: "The verify_gray_property function only checks consecutive pairs in the sequence, not the wrap-around from last to first. For a true cyclic Gray code, the last code and the first must also differ by exactly 1 bit. The reflected binary Gray code IS cyclic, so to_gray(15) XOR to_gray(0) = 1000 XOR 0000 = 1000, which has exactly 1 bit set. But the verification function doesn't check this, meaning it would pass a sequence that isn't actually cyclic. The main test at the end does check it manually, revealing the verification gap. This is a logic completeness bug: the property checker claims the sequence is valid but doesn't verify the full cyclic property it's supposed to guarantee.",
+    manifestation: `$ g++ -O2 -std=c++17 gray.cpp -o gray && ./gray
+Round-trip test: PASS
+
+4-bit Gray code:
+0000 -> 0000
+0001 -> 0001
+0010 -> 0011
+0011 -> 0010
+0100 -> 0110
+0101 -> 0111
+0110 -> 0101
+0111 -> 0100
+1000 -> 1100
+1001 -> 1101
+1010 -> 1111
+1011 -> 1110
+1100 -> 1010
+1101 -> 1011
+1110 -> 1001
+1111 -> 1000
+
+Gray property verified: 1
+Wrap-around bits differ: 1 (should be 1 for cyclic Gray code)
+
+The output is actually correct for this specific case, but
+verify_gray_property would also pass for a NON-cyclic sequence
+(e.g., if the last element differed from the first by 3 bits).
+The function only checks linear adjacency, not cyclic adjacency.`,
+    stdlibRefs: []
+  },
+  {
+    id: 536,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Hard",
+    title: "Interval Bitmap Allocator",
+    description: "A memory allocator that uses a bitmap to track free/used pages, supporting contiguous multi-page allocations and efficient free-range searching.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <array>
+#include <algorithm>
+#include <optional>
+
+class BitmapAllocator {
+    static constexpr size_t NUM_PAGES = 256;
+    static constexpr size_t WORDS = NUM_PAGES / 64;
+    std::array<uint64_t, WORDS> bitmap{};  // 0 = free, 1 = used
+
+    int find_free_run(int length) const {
+        int run = 0;
+        for (int page = 0; page < NUM_PAGES; ++page) {
+            int word = page / 64;
+            int bit = page % 64;
+
+            if (bitmap[word] & (1ULL << bit)) {
+                run = 0;
+            } else {
+                run++;
+                if (run >= length) {
+                    return page - length + 1;
+                }
+            }
+        }
+        return -1;
+    }
+
+    void set_range(int start, int length, bool used) {
+        for (int i = start; i < start + length; ++i) {
+            int word = i / 64;
+            int bit = i % 64;
+            if (used)
+                bitmap[word] |= (1ULL << bit);
+            else
+                bitmap[word] &= ~(1ULL << bit);
+        }
+    }
+
+public:
+    std::optional<int> allocate(int pages) {
+        int start = find_free_run(pages);
+        if (start < 0) return std::nullopt;
+        set_range(start, pages, true);
+        return start;
+    }
+
+    void free(int start, int pages) {
+        set_range(start, pages, false);
+    }
+
+    int free_pages() const {
+        int count = 0;
+        for (auto word : bitmap) {
+            count += 64 - __builtin_popcountll(word);
+        }
+        return count;
+    }
+
+    void dump_summary() const {
+        std::cout << "Free: " << free_pages() << "/" << NUM_PAGES << " pages\n";
+    }
+};
+
+int main() {
+    BitmapAllocator alloc;
+    alloc.dump_summary();
+
+    auto a = alloc.allocate(10);
+    auto b = alloc.allocate(5);
+    auto c = alloc.allocate(20);
+
+    std::cout << "Allocated 10 at page " << (a ? std::to_string(*a) : "FAIL") << "\n";
+    std::cout << "Allocated 5 at page " << (b ? std::to_string(*b) : "FAIL") << "\n";
+    std::cout << "Allocated 20 at page " << (c ? std::to_string(*c) : "FAIL") << "\n";
+    alloc.dump_summary();
+
+    // Free middle allocation
+    if (b) alloc.free(*b, 5);
+    alloc.dump_summary();
+
+    // Try to allocate 6 in the freed gap (should fail - only 5 free)
+    auto d = alloc.allocate(6);
+    std::cout << "Allocated 6 in gap: " << (d ? std::to_string(*d) : "FAIL") << "\n";
+
+    // Allocate 5 in the gap (should succeed)
+    auto e = alloc.allocate(5);
+    std::cout << "Allocated 5 in gap: " << (e ? std::to_string(*e) : "FAIL") << "\n";
+
+    // Free all and re-allocate large block
+    if (a) alloc.free(*a, 10);
+    if (c) alloc.free(*c, 20);
+    if (e) alloc.free(*e, 5);
+
+    auto f = alloc.allocate(256);
+    std::cout << "Allocated all 256: " << (f ? std::to_string(*f) : "FAIL") << "\n";
+    alloc.dump_summary();
+    return 0;
+}`,
+    hints: [
+      "What happens when you free and re-allocate blocks in different orders?",
+      "After freeing b (pages 10-14), the free gap is between a (0-9) and c (15-34). find_free_run scans linearly...",
+      "Does free() validate that the pages being freed were actually allocated?"
+],
+    explanation: "The allocator has no validation in free() — it blindly marks pages as free regardless of whether they were allocated. This means double-free goes undetected, and freeing unallocated ranges corrupts the bitmap by marking in-use pages as free. More subtly, if the caller passes the wrong length to free() (e.g., freeing 20 pages when only 10 were allocated), it silently corrupts neighboring allocations. The allocator also doesn't store allocation metadata, so there's no way to verify free() calls. This is a real-world bug pattern in embedded memory allocators.",
+    manifestation: `$ g++ -O2 -std=c++17 bitmap_alloc.cpp -o bitmap_alloc && ./bitmap_alloc
+Free: 256/256 pages
+Allocated 10 at page 0
+Allocated 5 at page 10
+Allocated 20 at page 15
+Free: 221/256 pages
+Free: 226/256 pages
+Allocated 6 in gap: FAIL
+Allocated 5 in gap: 10
+Free: 256/256 pages
+Allocated all 256: 0
+Free: 0/256 pages
+
+Looks correct! But this masks the underlying vulnerability:
+  alloc.free(0, 256);  // frees pages 0-255 regardless of state
+  alloc.free(50, 10);  // double-free, corrupts bitmap silently
+
+No assertion, no error — the allocator silently corrupts state.
+A wrong-length free like free(0, 20) when only 10 were allocated
+would silently free pages belonging to adjacent allocation b.`,
+    stdlibRefs: [
+      {
+        name: "std::optional",
+        brief: "A wrapper that may or may not contain a value, used to express optional return values.",
+        note: "Accessing value on an empty optional is undefined behavior; use value_or() or check has_value() first.",
+        link: "https://en.cppreference.com/w/cpp/utility/optional"
+      }
+    ]
+  },
+  {
+    id: 537,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Easy",
+    title: "Nibble Swapper",
+    description: "A utility that swaps the high and low nibbles (4-bit halves) of each byte in a data buffer, used in certain encoding schemes.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <vector>
+#include <iomanip>
+
+uint8_t swap_nibbles(uint8_t byte) {
+    return (byte << 4) | (byte >> 4);
+}
+
+void swap_nibbles_buffer(std::vector<uint8_t>& data) {
+    for (auto& byte : data) {
+        byte = swap_nibbles(byte);
+    }
+}
+
+uint16_t swap_nibbles_16(uint16_t val) {
+    return (swap_nibbles(val & 0xFF) << 8) | swap_nibbles(val >> 8);
+}
+
+int main() {
+    uint8_t test = 0xAB;
+    std::cout << "swap_nibbles(0xAB) = 0x" << std::hex
+              << static_cast<int>(swap_nibbles(test)) << "\n";
+    std::cout << "Expected: 0xBA\n";
+
+    uint16_t test16 = 0x1234;
+    std::cout << "swap_nibbles_16(0x1234) = 0x"
+              << swap_nibbles_16(test16) << "\n";
+    std::cout << "Expected: 0x2143\n";
+
+    // Round-trip test
+    std::vector<uint8_t> data = {0x12, 0xAB, 0x00, 0xFF, 0x0F, 0xF0};
+    auto original = data;
+    swap_nibbles_buffer(data);
+    swap_nibbles_buffer(data);
+
+    bool match = (data == original);
+    std::cout << "Round-trip: " << (match ? "PASS" : "FAIL") << "\n";
+    return 0;
+}`,
+    hints: [
+      "What type is 'byte' when passed to swap_nibbles? What type does (byte << 4) produce?",
+      "Integer promotion: uint8_t gets promoted to int before shifting. Does (byte << 4) fit in int?",
+      "What about swap_nibbles_16: what type does (swap_nibbles(val & 0xFF) << 8) produce?"
+],
+    explanation: "swap_nibbles works correctly for individual bytes because uint8_t is promoted to int, shifted, and the result is truncated back to uint8_t on return. The real bug is in swap_nibbles_16: swap_nibbles returns uint8_t, which gets promoted to int for the << 8 shift. This is fine for values up to 127, but if swap_nibbles returns a value >= 128, promoting to int and shifting left by 8 can set bits that, when combined with the OR, produce unexpected results due to sign extension when the int is implicitly converted back to uint16_t. Actually the core issue is simpler: (swap_nibbles(val & 0xFF) << 8) swaps the nibbles of the low byte and puts it in the high byte position, while swap_nibbles(val >> 8) swaps nibbles of the high byte and puts it low. For 0x1234: low byte 0x34 becomes 0x43, shifted to 0x4300. High byte 0x12 becomes 0x21. Result: 0x4321, not 0x2143. The function swaps nibbles AND bytes, not just nibbles.",
+    manifestation: `$ g++ -O2 -std=c++17 nibbles.cpp -o nibbles && ./nibbles
+swap_nibbles(0xAB) = 0xba
+Expected: 0xBA
+swap_nibbles_16(0x1234) = 0x4321
+Expected: 0x2143
+
+Round-trip: PASS
+
+swap_nibbles_16 produces 0x4321 instead of 0x2143. The function
+swaps nibbles within each byte AND swaps the byte order, because
+it puts the nibble-swapped low byte into the high position and
+the nibble-swapped high byte into the low position.`,
+    stdlibRefs: []
+  },
+  {
+    id: 538,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Medium",
+    title: "Compact Set Intersection",
+    description: "Uses bitwise operations to compute set intersections, unions, and differences for sets of small integers (0-63).",
+    code: `#include <iostream>
+#include <cstdint>
+#include <vector>
+#include <initializer_list>
+
+class BitSet64 {
+    uint64_t bits = 0;
+
+public:
+    BitSet64() = default;
+    BitSet64(std::initializer_list<int> values) {
+        for (int v : values) add(v);
+    }
+
+    void add(int val) {
+        if (val < 0 || val > 63) return;
+        bits |= (1ULL << val);
+    }
+
+    void remove(int val) {
+        if (val < 0 || val > 63) return;
+        bits &= ~(1ULL << val);
+    }
+
+    bool contains(int val) const {
+        if (val < 0 || val > 63) return false;
+        return bits & (1ULL << val);
+    }
+
+    BitSet64 operator&(const BitSet64& other) const {
+        BitSet64 result;
+        result.bits = bits & other.bits;
+        return result;
+    }
+
+    BitSet64 operator|(const BitSet64& other) const {
+        BitSet64 result;
+        result.bits = bits | other.bits;
+        return result;
+    }
+
+    BitSet64 operator-(const BitSet64& other) const {
+        BitSet64 result;
+        result.bits = bits & ~other.bits;
+        return result;
+    }
+
+    BitSet64 operator~() const {
+        BitSet64 result;
+        result.bits = ~bits;
+        return result;
+    }
+
+    bool operator==(const BitSet64& other) const {
+        return bits == other.bits;
+    }
+
+    int size() const {
+        return __builtin_popcountll(bits);
+    }
+
+    bool is_subset_of(const BitSet64& other) const {
+        return (bits | other.bits) == other.bits;
+    }
+
+    void print() const {
+        std::cout << "{";
+        bool first = true;
+        for (int i = 0; i < 64; ++i) {
+            if (bits & (1ULL << i)) {
+                if (!first) std::cout << ", ";
+                std::cout << i;
+                first = false;
+            }
+        }
+        std::cout << "}";
+    }
+};
+
+int main() {
+    BitSet64 a = {1, 3, 5, 7, 9};
+    BitSet64 b = {2, 3, 5, 8, 9};
+
+    std::cout << "A = "; a.print(); std::cout << "\n";
+    std::cout << "B = "; b.print(); std::cout << "\n";
+
+    auto intersect = a & b;
+    std::cout << "A & B = "; intersect.print(); std::cout << "\n";
+
+    auto diff = a - b;
+    std::cout << "A - B = "; diff.print(); std::cout << "\n";
+
+    auto complement = ~a;
+    std::cout << "~A size = " << complement.size() << "\n";
+    std::cout << "Expected: 59 (64 - 5)\n";
+
+    // De Morgan's law: ~(A & B) == (~A | ~B)
+    auto lhs = ~(a & b);
+    auto rhs = (~a | ~b);
+    std::cout << "De Morgan's: " << (lhs == rhs ? "PASS" : "FAIL") << "\n";
+    return 0;
+}`,
+    hints: [
+      "What does operator~() return? Does ~bits flip ALL 64 bits?",
+      "If the set's universe is {0..63}, is complementing all 64 bits correct?",
+      "What's the size of ~{1,3,5,7,9}? Is it 59?"
+],
+    explanation: "The complement operator flips all 64 bits, so ~a has 59 elements (64 - 5), which is correct IF the universe is exactly {0..63}. This appears to work. But De Morgan's law also passes. The actual bug is subtle: the class allows values 0-63, but the complement includes ALL values 0-63 that aren't in the original set. If someone uses complement and then checks contains(64), it correctly returns false. The real issue is that the complement is universe-dependent — if one set is meant to represent elements from {0..31} and another from {0..63}, complementing them gives different-universe sets that produce wrong results when combined. The class doesn't track its universe, making complement semantically ambiguous. The more concrete bug: operator~ creates a full 64-bit complement, but there's no way to restrict the universe, so union with a complement always gives all-ones, making certain set algebraic identities break when the user expects a smaller universe.",
+    manifestation: `$ g++ -O2 -std=c++17 bitset64.cpp -o bitset64 && ./bitset64
+A = {1, 3, 5, 7, 9}
+B = {2, 3, 5, 8, 9}
+A & B = {3, 5, 9}
+A - B = {1, 7}
+~A size = 59
+Expected: 59 (64 - 5)
+De Morgan's: PASS
+
+Tests pass for universe {0..63}. But if user expects universe {0..9}:
+  ~{1,3,5,7,9} should be {0,2,4,6,8} (size 5)
+  Actual ~A has size 59 (includes 10,11,...63)
+
+Using complement in algorithms that assume a bounded universe
+produces silently wrong results: A | ~A gives {0..63}, not {0..9}.`,
+    stdlibRefs: []
+  },
+  {
+    id: 539,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Hard",
+    title: "XOR-Based Stack",
+    description: "An XOR-linked list that uses bitwise XOR to store both forward and backward pointers in a single pointer field, halving memory usage.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <string>
+
+struct Node {
+    std::string data;
+    uintptr_t both;  // XOR of prev and next pointers
+};
+
+class XORList {
+    Node* head = nullptr;
+    Node* tail = nullptr;
+    int count = 0;
+
+    static uintptr_t xor_ptr(Node* a, Node* b) {
+        return reinterpret_cast<uintptr_t>(a) ^ reinterpret_cast<uintptr_t>(b);
+    }
+
+    static Node* get_ptr(uintptr_t xored, Node* known) {
+        return reinterpret_cast<Node*>(xored ^ reinterpret_cast<uintptr_t>(known));
+    }
+
+public:
+    void push_front(const std::string& value) {
+        Node* node = new Node{value, 0};
+        node->both = xor_ptr(nullptr, head);
+        if (head) {
+            head->both = xor_ptr(node, get_ptr(head->both, nullptr));
+        } else {
+            tail = node;
+        }
+        head = node;
+        ++count;
+    }
+
+    void push_back(const std::string& value) {
+        Node* node = new Node{value, 0};
+        node->both = xor_ptr(tail, nullptr);
+        if (tail) {
+            tail->both = xor_ptr(get_ptr(tail->both, nullptr), node);
+        } else {
+            head = node;
+        }
+        tail = node;
+        ++count;
+    }
+
+    void print_forward() const {
+        Node* prev = nullptr;
+        Node* curr = head;
+        while (curr) {
+            std::cout << curr->data << " ";
+            Node* next = get_ptr(curr->both, prev);
+            prev = curr;
+            curr = next;
+        }
+        std::cout << "\n";
+    }
+
+    void print_backward() const {
+        Node* next = nullptr;
+        Node* curr = tail;
+        while (curr) {
+            std::cout << curr->data << " ";
+            Node* prev = get_ptr(curr->both, next);
+            next = curr;
+            curr = prev;
+        }
+        std::cout << "\n";
+    }
+
+    int size() const { return count; }
+
+    ~XORList() {
+        Node* prev = nullptr;
+        Node* curr = head;
+        while (curr) {
+            Node* next = get_ptr(curr->both, prev);
+            prev = curr;
+            delete curr;
+            curr = next;
+        }
+    }
+};
+
+int main() {
+    XORList list;
+    list.push_back("A");
+    list.push_back("B");
+    list.push_back("C");
+    list.push_front("Z");
+
+    std::cout << "Forward:  ";
+    list.print_forward();
+    std::cout << "Backward: ";
+    list.print_backward();
+    std::cout << "Size: " << list.size() << "\n";
+    return 0;
+}`,
+    hints: [
+      "What happens to the XOR pointers when the garbage collector moves a node?",
+      "Does this code handle copy or move operations?",
+      "If the list is copied or a node is reallocated, what happens to the XOR-encoded pointers?"
+],
+    explanation: "The XOR-linked list stores raw addresses XORed together. This has a fundamental flaw: the class has a destructor but no copy/move constructor or assignment operator (Rule of Five violation). If the XORList is copied, both the original and copy share the same nodes. When one is destroyed, it frees all nodes, leaving the other with dangling pointers. When the second is destroyed, it double-frees everything. Even moving is dangerous because the raw XOR-encoded pointers contain absolute addresses that become invalid if nodes are relocated. The destructor also uses 'prev' after deleting curr in the traversal, but since prev is a local copy of the pointer (not dereferenced), this is technically fine. The Rule of Five violation is the real bug.",
+    manifestation: `$ g++ -O2 -std=c++17 -fsanitize=address xorlist.cpp -o xorlist && ./xorlist
+Forward:  Z A B C
+Backward: C B A Z
+Size: 4
+
+Output is correct! But:
+$ cat test_copy.cpp  # test with: XORList copy = list;
+$ g++ -fsanitize=address test_copy.cpp && ./a.out
+=================================================================
+==12345==ERROR: AddressSanitizer: heap-use-after-free on address 0x602000000050
+    #0 XORList::~XORList() xorlist.cpp:68
+    #1 main xorlist.cpp:80
+
+The class violates the Rule of Five: destructor but no copy/move
+constructors or assignment operators. Copying leads to double-free.`,
+    stdlibRefs: []
+  },
+  {
+    id: 540,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Medium",
+    title: "Parity Bit Calculator",
+    description: "Adds and verifies parity bits for data integrity checking, computing both even and odd parity for byte streams.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <vector>
+#include <bitset>
+
+enum class Parity { Even, Odd };
+
+// Compute parity of a byte (0 = even number of 1s, 1 = odd number)
+int byte_parity(uint8_t byte) {
+    byte ^= byte >> 4;
+    byte ^= byte >> 2;
+    byte ^= byte >> 1;
+    return byte & 1;
+}
+
+// Add parity bit to 7-bit data, producing 8-bit result
+uint8_t add_parity(uint8_t data7, Parity p) {
+    int par = byte_parity(data7 & 0x7F);
+    uint8_t parity_bit = (p == Parity::Even) ? par : !par;
+    return (data7 & 0x7F) | (parity_bit << 7);
+}
+
+// Check parity of 8-bit value (returns true if parity is correct)
+bool check_parity(uint8_t data8, Parity p) {
+    int par = byte_parity(data8);
+    return (p == Parity::Even) ? (par == 0) : (par == 1);
+}
+
+// Encode a string with parity bits
+std::vector<uint8_t> encode(const std::string& msg, Parity p) {
+    std::vector<uint8_t> encoded;
+    for (char c : msg) {
+        encoded.push_back(add_parity(c, p));
+    }
+    return encoded;
+}
+
+// Decode and check
+std::string decode(const std::vector<uint8_t>& data, Parity p) {
+    std::string result;
+    for (uint8_t byte : data) {
+        if (!check_parity(byte, p)) {
+            result += '?';  // Error detected
+        } else {
+            result += static_cast<char>(byte & 0x7F);
+        }
+    }
+    return result;
+}
+
+int main() {
+    std::string msg = "Hello!";
+    auto encoded = encode(msg, Parity::Even);
+
+    std::cout << "Original: " << msg << "\n";
+    std::cout << "Encoded bytes: ";
+    for (uint8_t b : encoded)
+        std::cout << std::bitset<8>(b) << " ";
+    std::cout << "\n";
+
+    auto decoded = decode(encoded, Parity::Even);
+    std::cout << "Decoded: " << decoded << "\n";
+
+    // Simulate a bit error
+    encoded[2] ^= 0x04;  // flip bit 2 of 'l'
+    auto decoded_err = decode(encoded, Parity::Even);
+    std::cout << "With error: " << decoded_err << "\n";
+
+    // Test with char > 127
+    std::string msg2 = "caf\xE9";  // "café" with é = 233
+    auto enc2 = encode(msg2, Parity::Even);
+    auto dec2 = decode(enc2, Parity::Even);
+    std::cout << "Extended: " << dec2 << "\n";
+    return 0;
+}`,
+    hints: [
+      "What happens when a character's ASCII value uses all 8 bits (> 127)?",
+      "add_parity masks to 7 bits with & 0x7F. What happens to bit 7 of the original char?",
+      "For the character 0xE9 (233), (data7 & 0x7F) = 0x69 (105). Is the original data preserved?"
+],
+    explanation: "The encoding scheme uses 7 data bits + 1 parity bit. The add_parity function masks the input with 0x7F, discarding bit 7. For standard ASCII (0-127), this works. But for extended characters like 0xE9 (233 = '\\u00e9'), the high bit is stripped: 0xE9 & 0x7F = 0x69 = 'i'. So 'caf\\u00e9' decodes as 'cafi'. The data corruption is silent — the parity check passes because parity is computed on the already-truncated value. Any byte with the high bit set (chars 128-255) loses information irreversibly.",
+    manifestation: `$ g++ -O2 -std=c++17 parity.cpp -o parity && ./parity
+Original: Hello!
+Encoded bytes: 01001000 11100101 01101100 01101100 11101111 00100001
+Decoded: Hello!
+With error: He?lo!
+Extended: cafi
+
+Expected: Extended should decode as "café"
+Actual: "cafi" — the character é (0xE9) had its high bit
+stripped by the 7-bit mask, silently corrupting it to 'i' (0x69).
+The parity check passes because it was computed on the truncated value.`,
+    stdlibRefs: []
+  },
+  {
+    id: 541,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Easy",
+    title: "Bit Array Indexer",
+    description: "A compact boolean array that stores each flag as a single bit, providing 8x memory savings over a vector of bools.",
+    code: `#include <iostream>
+#include <vector>
+#include <cstdint>
+
+class BitArray {
+    std::vector<uint8_t> data;
+    size_t num_bits;
+
+public:
+    BitArray(size_t n) : num_bits(n) {
+        data.resize((n + 7) / 8, 0);
+    }
+
+    void set(size_t idx) {
+        data[idx / 8] |= (1 << (idx % 8));
+    }
+
+    void clear(size_t idx) {
+        data[idx / 8] &= ~(1 << (idx % 8));
+    }
+
+    bool get(size_t idx) const {
+        return data[idx / 8] & (1 << (idx % 8));
+    }
+
+    size_t size() const { return num_bits; }
+
+    // Count set bits
+    size_t popcount() const {
+        size_t count = 0;
+        for (uint8_t byte : data) {
+            while (byte) {
+                byte &= (byte - 1);
+                ++count;
+            }
+        }
+        return count;
+    }
+
+    // Set all bits in range [start, end)
+    void set_range(size_t start, size_t end) {
+        for (size_t i = start; i <= end; ++i) {
+            set(i);
+        }
+    }
+};
+
+int main() {
+    BitArray arr(100);
+
+    arr.set(0);
+    arr.set(7);
+    arr.set(8);
+    arr.set(99);
+
+    std::cout << "Bit 0: " << arr.get(0) << "\n";
+    std::cout << "Bit 1: " << arr.get(1) << "\n";
+    std::cout << "Bit 7: " << arr.get(7) << "\n";
+    std::cout << "Bit 99: " << arr.get(99) << "\n";
+    std::cout << "Count: " << arr.popcount() << "\n";
+
+    // Set range [10, 20)
+    arr.set_range(10, 20);
+    std::cout << "After set_range(10, 20): " << arr.popcount() << "\n";
+    std::cout << "Bit 20: " << arr.get(20) << "\n";
+    return 0;
+}`,
+    hints: [
+      "Look at set_range carefully: what does the loop condition say?",
+      "The function is documented as setting bits in range [start, end), but what does 'i <= end' do?",
+      "If end = 20, does the loop set bit 20?"
+],
+    explanation: "The set_range function is documented as setting bits in the half-open range [start, end), but the loop condition is 'i <= end' (inclusive), making it actually set [start, end]. Bit 20 gets set when the caller expected only bits 10-19 to be set. This is an off-by-one / fencepost error. Additionally, there's no bounds checking: if end >= num_bits, the function writes past the allocated data, causing undefined behavior. The fix is to use 'i < end' to match the half-open range convention.",
+    manifestation: `$ g++ -O2 -std=c++17 bitarray.cpp -o bitarray && ./bitarray
+Bit 0: 1
+Bit 1: 0
+Bit 7: 1
+Bit 99: 1
+Count: 4
+After set_range(10, 20): 16
+Bit 20: 1
+
+Expected: set_range(10, 20) sets bits 10-19 (11 new bits, total 15)
+Actual: Sets bits 10-20 (12 new bits, total 16). Bit 20 is set
+because the loop uses <= instead of <, making the range inclusive
+instead of the documented half-open [start, end).`,
+    stdlibRefs: []
+  },
+  {
+    id: 542,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Hard",
+    title: "Bit-Parallel String Matcher",
+    description: "Uses Bitap algorithm (shift-or) for exact string matching, achieving O(n) text scanning using bitwise parallelism for patterns up to 64 characters.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+#include <cstdint>
+#include <array>
+
+class BitapMatcher {
+    std::array<uint64_t, 256> pattern_mask;
+    int pattern_len;
+
+public:
+    BitapMatcher(const std::string& pattern) : pattern_len(pattern.size()) {
+        if (pattern_len > 64) {
+            throw std::runtime_error("Pattern too long (max 64)");
+        }
+
+        // Initialize: all bits set (no match at any position)
+        pattern_mask.fill(~0ULL);
+
+        // Clear bit i for each character that appears at position i
+        for (int i = 0; i < pattern_len; ++i) {
+            pattern_mask[static_cast<unsigned char>(pattern[i])] &= ~(1ULL << i);
+        }
+    }
+
+    std::vector<int> find_all(const std::string& text) const {
+        std::vector<int> matches;
+        uint64_t state = ~0ULL;  // all bits set
+
+        for (int i = 0; i < text.size(); ++i) {
+            state = (state << 1) | pattern_mask[static_cast<unsigned char>(text[i])];
+
+            // Check if pattern_len-th bit is 0 (match found)
+            if ((state & (1ULL << pattern_len)) == 0) {
+                matches.push_back(i - pattern_len + 1);
+            }
+        }
+        return matches;
+    }
+};
+
+int main() {
+    std::string text = "abcabcabcabc";
+    std::string pattern = "abc";
+
+    BitapMatcher matcher(pattern);
+    auto matches = matcher.find_all(text);
+
+    std::cout << "Pattern '" << pattern << "' found at positions:";
+    for (int pos : matches) std::cout << " " << pos;
+    std::cout << "\n";
+    std::cout << "Expected: 0 3 6 9\n";
+
+    // Test overlapping matches
+    BitapMatcher matcher2("aba");
+    auto matches2 = matcher2.find_all("abababa");
+    std::cout << "Pattern 'aba' found at positions:";
+    for (int pos : matches2) std::cout << " " << pos;
+    std::cout << "\n";
+    std::cout << "Expected: 0 2 4\n";
+
+    // Test single char
+    BitapMatcher matcher3("a");
+    auto matches3 = matcher3.find_all("banana");
+    std::cout << "Pattern 'a' found at positions:";
+    for (int pos : matches3) std::cout << " " << pos;
+    std::cout << "\n";
+    std::cout << "Expected: 1 3 5\n";
+
+    return 0;
+}`,
+    hints: [
+      "Look at the match detection: (state & (1ULL << pattern_len)). Which bit is being checked?",
+      "For a 3-character pattern, pattern_len = 3. Which bit indicates a complete match?",
+      "In Bitap, bit 0 tracks 'matched 1 char', bit 1 tracks 'matched 2 chars'... which bit means 'matched all'?"
+],
+    explanation: "The Bitap algorithm tracks match progress: bit 0 = matched first character, bit 1 = matched first two characters, etc. A complete match of a pattern of length L is indicated when bit (L-1) is 0. But the code checks bit L: (1ULL << pattern_len) instead of (1ULL << (pattern_len - 1)). For the 3-character pattern 'abc', it checks bit 3 instead of bit 2. Bit 3 would only be 0 if there's a 4th character matching, which never happens (the pattern mask leaves bit 3 set for all chars). This means the matcher never finds any matches. The fix is to check (1ULL << (pattern_len - 1)).",
+    manifestation: `$ g++ -O2 -std=c++17 bitap.cpp -o bitap && ./bitap
+Pattern 'abc' found at positions:
+Expected: 0 3 6 9
+Pattern 'aba' found at positions:
+Expected: 0 2 4
+Pattern 'a' found at positions:
+Expected: 1 3 5
+
+No matches found for any pattern! The algorithm checks bit
+pattern_len instead of bit (pattern_len - 1) for match detection.
+Since the pattern mask only sets bits 0 through pattern_len-1,
+bit pattern_len is always 1 (set), so the match condition never fires.`,
+    stdlibRefs: []
+  },
+  {
+    id: 543,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Medium",
+    title: "Checksum Validator",
+    description: "Computes and validates Internet checksums (RFC 1071) for network packet headers, using one's complement arithmetic.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <vector>
+#include <iomanip>
+
+uint16_t compute_checksum(const uint8_t* data, size_t length) {
+    uint32_t sum = 0;
+
+    // Sum 16-bit words
+    for (size_t i = 0; i < length - 1; i += 2) {
+        uint16_t word = (data[i] << 8) | data[i+1];
+        sum += word;
+    }
+
+    // Handle odd byte
+    if (length % 2 != 0) {
+        sum += data[length - 1] << 8;
+    }
+
+    // Fold 32-bit sum into 16 bits
+    while (sum >> 16) {
+        sum = (sum & 0xFFFF) + (sum >> 16);
+    }
+
+    return ~static_cast<uint16_t>(sum);
+}
+
+bool verify_checksum(const uint8_t* data, size_t length) {
+    uint32_t sum = 0;
+    for (size_t i = 0; i < length - 1; i += 2) {
+        uint16_t word = (data[i] << 8) | data[i+1];
+        sum += word;
+    }
+    if (length % 2 != 0) {
+        sum += data[length - 1] << 8;
+    }
+    while (sum >> 16) {
+        sum = (sum & 0xFFFF) + (sum >> 16);
+    }
+    return static_cast<uint16_t>(sum) == 0xFFFF;
+}
+
+int main() {
+    // Example IP header (20 bytes, checksum at bytes 10-11 set to 0)
+    std::vector<uint8_t> header = {
+        0x45, 0x00, 0x00, 0x3C,  // Version, IHL, TOS, Total Length
+        0x1C, 0x46, 0x40, 0x00,  // ID, Flags, Fragment Offset
+        0x40, 0x06, 0x00, 0x00,  // TTL, Protocol, Checksum (placeholder)
+        0xAC, 0x10, 0x0A, 0x63,  // Source IP: 172.16.10.99
+        0xAC, 0x10, 0x0A, 0x0C   // Dest IP: 172.16.10.12
+    };
+
+    uint16_t checksum = compute_checksum(header.data(), header.size());
+    std::cout << "Computed checksum: 0x" << std::hex << std::setw(4)
+              << std::setfill('0') << checksum << "\n";
+
+    // Insert checksum into header
+    header[10] = checksum >> 8;
+    header[11] = checksum & 0xFF;
+
+    // Verify
+    bool valid = verify_checksum(header.data(), header.size());
+    std::cout << "Verification: " << (valid ? "PASS" : "FAIL") << "\n";
+
+    // Test with zero-length data
+    uint8_t empty[] = {};
+    uint16_t zero_sum = compute_checksum(empty, 0);
+    std::cout << "Empty checksum: 0x" << std::hex << zero_sum << "\n";
+    return 0;
+}`,
+    hints: [
+      "What happens when length is 0 in compute_checksum?",
+      "The loop condition is 'i < length - 1'. What is 0 - 1 for size_t (unsigned)?",
+      "When length is 0, does length - 1 underflow?"
+],
+    explanation: "When length is 0, 'length - 1' is SIZE_MAX (unsigned underflow), making the loop condition 'i < SIZE_MAX' effectively iterate over the entire address space, reading out of bounds. Even for length = 1, the loop 'i < length - 1' = 'i < 0' never executes, which is correct but means the odd-byte handling processes byte 0 by itself. The real problem is the size_t underflow when length is 0, causing a massive out-of-bounds read and likely crash. The fix is to check for length < 2 before the loop.",
+    manifestation: `$ g++ -O2 -std=c++17 checksum.cpp -o checksum && ./checksum
+Computed checksum: 0xb1e6
+Verification: PASS
+Empty checksum: (segmentation fault)
+
+Or with AddressSanitizer:
+=================================================================
+==12345==ERROR: AddressSanitizer: stack-buffer-overflow
+  READ of size 1 at 0x7fff...
+    #0 compute_checksum checksum.cpp:8
+
+The loop condition 'i < length - 1' underflows when length is 0
+(size_t is unsigned), causing SIZE_MAX iterations and a crash.`,
+    stdlibRefs: []
+  },
 ];
