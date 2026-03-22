@@ -33214,4 +33214,883 @@ Final interval: 2560ms
     stdlibRefs: [
     ],
   },
+  {
+    id: 494,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Frame Rate Display",
+    description: "A simple frame rate counter that measures how many frames are rendered per second and displays the current FPS.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main() {
+    using clock = std::chrono::steady_clock;
+    int frame_count = 0;
+    auto start = clock::now();
+
+    // Simulate 200 frames
+    for (int i = 0; i < 200; ++i) {
+        // Simulate rendering work
+        std::this_thread::sleep_for(std::chrono::microseconds(500));
+        ++frame_count;
+
+        auto elapsed = clock::now() - start;
+        auto seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+
+        if (seconds >= 1) {
+            double fps = frame_count / seconds;
+            std::cout << "FPS: " << fps << "\n";
+            frame_count = 0;
+            start = clock::now();
+        }
+    }
+    return 0;
+}`,
+    hints: [
+      "What type does duration_cast<seconds>::count() return?",
+      "When seconds is exactly 1, what is the type of frame_count / seconds?",
+      "What happens with integer division when dividing frame_count by a long integer?"
+],
+    explanation: "The variable 'seconds' is of type long (from count()), and frame_count is int, so 'frame_count / seconds' is integer division. Since duration_cast<seconds> truncates the elapsed time to whole seconds, the denominator is always 1 when the condition triggers. This means FPS equals frame_count exactly, not the true rate. Any fractional second of elapsed time is lost. Using duration<double> instead of duration_cast<seconds> would give proper fractional seconds for accurate FPS calculation.",
+    manifestation: `$ g++ -O2 -std=c++17 frame_rate.cpp -o frame_rate && ./frame_rate
+FPS: 934
+FPS: 989
+FPS: 1002
+FPS: 967
+
+Expected output:
+FPS: ~950-1000 (consistent)
+
+Actual output:
+FPS values jump erratically because the integer seconds denominator
+is always 1 (truncated), making FPS = frame_count exactly.`,
+    stdlibRefs: [
+      {
+        name: "std::chrono::duration_cast",
+        args: "<ToDuration>(const duration<Rep, Period>& d) → ToDuration",
+        brief: "Converts a duration to a different type, truncating toward zero.",
+        note: "Truncation can lose significant time when casting to coarse units like seconds.",
+        link: "https://en.cppreference.com/w/cpp/chrono/duration/duration_cast"
+      }
+    ]
+  },
+  {
+    id: 495,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Simple Stopwatch Class",
+    description: "A stopwatch utility class that supports start, stop, and lap functions, reporting elapsed time for each lap.",
+    code: `#include <iostream>
+#include <chrono>
+#include <vector>
+#include <string>
+
+class Stopwatch {
+    using clock = std::chrono::steady_clock;
+    clock::time_point start_time;
+    std::vector<double> laps;
+    bool running = false;
+
+public:
+    void start() {
+        start_time = clock::now();
+        running = true;
+    }
+
+    void lap() {
+        if (!running) return;
+        auto now = clock::now();
+        auto ms = std::chrono::duration<double, std::milli>(now - start_time).count();
+        laps.push_back(ms);
+    }
+
+    void stop() {
+        lap();  // record final lap
+        running = false;
+    }
+
+    void report() const {
+        for (size_t i = 0; i < laps.size(); ++i) {
+            double split = (i == 0) ? laps[i] : laps[i] - laps[i-1];
+            std::cout << "Lap " << i+1 << ": " << split << " ms\n";
+        }
+    }
+};
+
+int main() {
+    Stopwatch sw;
+    sw.start();
+    for (int i = 0; i < 5; ++i) {
+        volatile int x = 0;
+        for (int j = 0; j < 1000000; ++j) x += j;
+        sw.lap();
+    }
+    sw.stop();
+    sw.report();
+    return 0;
+}`,
+    hints: [
+      "How many times is lap() called in total?",
+      "What does stop() do before setting running to false?",
+      "Is the final lap being double-counted?"
+],
+    explanation: "The stop() method calls lap() to record a final lap, but the loop already calls lap() after the last iteration of work. This means the last work interval gets recorded twice — once by the loop's final lap() and once by stop(). The report shows 6 laps instead of 5, with the last lap showing nearly 0 ms because it measures the time between the loop's last lap() and stop()'s lap(). The fix is to either not call lap() in stop(), or track whether the last lap was already recorded.",
+    manifestation: `$ g++ -O2 -std=c++17 stopwatch.cpp -o stopwatch && ./stopwatch
+Lap 1: 2.341 ms
+Lap 2: 2.298 ms
+Lap 3: 2.315 ms
+Lap 4: 2.287 ms
+Lap 5: 2.302 ms
+Lap 6: 0.001 ms
+
+Expected: 5 laps
+Actual: 6 laps — the final lap is nearly zero because stop() double-records`,
+    stdlibRefs: []
+  },
+  {
+    id: 496,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Periodic Health Check",
+    description: "A health monitoring system that pings services at regular intervals and tracks uptime statistics over a configurable window.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <map>
+#include <string>
+#include <functional>
+
+class HealthMonitor {
+    using clock = std::chrono::steady_clock;
+    struct ServiceInfo {
+        std::function<bool()> check;
+        std::chrono::milliseconds interval;
+        clock::time_point last_check;
+        int successes = 0;
+        int total = 0;
+    };
+    std::map<std::string, ServiceInfo> services;
+
+public:
+    void add_service(const std::string& name,
+                     std::function<bool()> check,
+                     std::chrono::milliseconds interval) {
+        services[name] = {check, interval, clock::now(), 0, 0};
+    }
+
+    void tick() {
+        auto now = clock::now();
+        for (auto& [name, svc] : services) {
+            if (now - svc.last_check >= svc.interval) {
+                bool ok = svc.check();
+                svc.total++;
+                if (ok) svc.successes++;
+                svc.last_check += svc.interval;
+            }
+        }
+    }
+
+    void report() const {
+        for (const auto& [name, svc] : services) {
+            double uptime = svc.total > 0
+                ? 100.0 * svc.successes / svc.total : 0.0;
+            std::cout << name << ": " << uptime << "% uptime ("
+                      << svc.total << " checks)\n";
+        }
+    }
+};
+
+int main() {
+    HealthMonitor monitor;
+    int call_count = 0;
+    monitor.add_service("database", [&]() {
+        return ++call_count % 10 != 0;
+    }, std::chrono::milliseconds(100));
+
+    for (int i = 0; i < 50; ++i) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        monitor.tick();
+    }
+    monitor.report();
+    return 0;
+}`,
+    hints: [
+      "What happens when tick() is called but the thread was delayed?",
+      "If the system falls behind by several intervals, how many checks fire per tick?",
+      "Look at how last_check is advanced — does it catch up one interval at a time or all at once?"
+],
+    explanation: "When tick() detects that the interval has elapsed, it advances last_check by exactly one interval. But if the system fell behind by multiple intervals (because tick() wasn't called frequently enough), only one check fires per tick() call. Meanwhile, last_check only advances by one interval, so the next tick() will also fire a check. This creates a burst of rapid catch-up checks with no actual delay between them, making the health check results unreliable — the checks pile up and all run within milliseconds of each other rather than being spaced out.",
+    manifestation: `$ g++ -O2 -std=c++17 health_check.cpp -o health_check && ./health_check
+database: 90% uptime (50 checks)
+
+Expected: ~25 checks over 2.5 seconds (50 * 50ms tick, 100ms interval)
+Actual: 50 checks — catch-up mechanism fires extra checks
+when the system falls behind, distorting uptime statistics`,
+    stdlibRefs: [
+      {
+        name: "std::this_thread::sleep_for",
+        args: "(const std::chrono::duration<Rep, Period>& sleep_duration) → void",
+        brief: "Blocks the current thread for at least the specified duration.",
+        note: "The actual sleep may exceed the requested duration due to OS scheduling.",
+        link: "https://en.cppreference.com/w/cpp/thread/sleep_for"
+      }
+    ]
+  },
+  {
+    id: 497,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Deadline Task Queue",
+    description: "A task scheduling system where tasks have deadlines, and the scheduler processes them in deadline order, reporting which ones met their deadline.",
+    code: `#include <iostream>
+#include <chrono>
+#include <queue>
+#include <string>
+#include <vector>
+#include <thread>
+#include <functional>
+
+struct Task {
+    std::string name;
+    std::chrono::steady_clock::time_point deadline;
+    std::function<void()> work;
+
+    bool operator>(const Task& other) const {
+        return deadline > other.deadline;
+    }
+};
+
+class Scheduler {
+    std::priority_queue<Task, std::vector<Task>, std::greater<Task>> queue;
+    std::chrono::steady_clock::time_point epoch;
+
+public:
+    Scheduler() : epoch(std::chrono::steady_clock::now()) {}
+
+    void add_task(const std::string& name,
+                  std::chrono::milliseconds deadline_offset,
+                  std::function<void()> work) {
+        queue.push({name, epoch + deadline_offset, work});
+    }
+
+    void run() {
+        while (!queue.empty()) {
+            auto task = queue.top();
+            queue.pop();
+
+            auto now = std::chrono::steady_clock::now();
+            if (now < task.deadline) {
+                std::this_thread::sleep_until(task.deadline);
+            }
+
+            task.work();
+
+            auto finished = std::chrono::steady_clock::now();
+            auto late = std::chrono::duration_cast<std::chrono::milliseconds>(
+                finished - task.deadline).count();
+            std::cout << task.name << ": completed "
+                      << (late <= 0 ? "on time" : std::to_string(late) + "ms late")
+                      << "\n";
+        }
+    }
+};
+
+int main() {
+    Scheduler sched;
+    sched.add_task("fast-task", std::chrono::milliseconds(100), []() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    });
+    sched.add_task("slow-task", std::chrono::milliseconds(200), []() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    });
+    sched.add_task("medium-task", std::chrono::milliseconds(300), []() {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    });
+    sched.run();
+    return 0;
+}`,
+    hints: [
+      "What happens to later tasks when an earlier task takes a long time?",
+      "Does sleep_until account for the execution time of the current task?",
+      "The slow-task takes 150ms but its deadline is at 200ms — when does medium-task start?"
+],
+    explanation: "Tasks execute sequentially, so if slow-task takes 150ms starting at 200ms, it finishes at ~350ms. medium-task has a 300ms deadline but can't start until slow-task finishes at ~350ms — it's already late before it begins. The scheduler reports lateness based on finish time minus deadline, but the real problem is the single-threaded design: long-running tasks block all subsequent tasks, causing cascading deadline misses. The work duration of each task counts against the deadline of the next task.",
+    manifestation: `$ g++ -O2 -std=c++17 deadline_queue.cpp -o deadline_queue && ./deadline_queue
+fast-task: completed on time
+slow-task: completed 150ms late
+medium-task: completed 100ms late
+
+Expected: All tasks complete on time (each has adequate deadline slack)
+Actual: slow-task blocks medium-task, causing cascading delays`,
+    stdlibRefs: [
+      {
+        name: "std::this_thread::sleep_until",
+        args: "(const std::chrono::time_point<Clock, Duration>& abs_time) → void",
+        brief: "Blocks the current thread until the specified time point.",
+        note: "Returns immediately if the time point is already in the past.",
+        link: "https://en.cppreference.com/w/cpp/thread/sleep_until"
+      }
+    ]
+  },
+  {
+    id: 498,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Lock-Free Timestamp Logger",
+    description: "A high-performance logger that stores timestamped events in a ring buffer without using mutexes, designed for low-latency systems.",
+    code: `#include <iostream>
+#include <chrono>
+#include <atomic>
+#include <thread>
+#include <array>
+#include <string>
+#include <cstring>
+
+struct LogEntry {
+    std::chrono::steady_clock::time_point timestamp;
+    char message[64];
+    bool valid = false;
+};
+
+class TimestampLogger {
+    static constexpr size_t BUFFER_SIZE = 1024;
+    std::array<LogEntry, BUFFER_SIZE> buffer;
+    std::atomic<size_t> write_index{0};
+
+public:
+    void log(const char* msg) {
+        size_t idx = write_index.fetch_add(1, std::memory_order_relaxed)
+                     % BUFFER_SIZE;
+        buffer[idx].timestamp = std::chrono::steady_clock::now();
+        std::strncpy(buffer[idx].message, msg, 63);
+        buffer[idx].message[63] = '\0';
+        buffer[idx].valid = true;
+    }
+
+    void dump_recent(size_t count) const {
+        size_t current = write_index.load(std::memory_order_relaxed);
+        size_t start = (current >= count) ? current - count : 0;
+        auto first_time = buffer[start % BUFFER_SIZE].timestamp;
+
+        for (size_t i = start; i < current; ++i) {
+            const auto& entry = buffer[i % BUFFER_SIZE];
+            if (!entry.valid) continue;
+            auto offset = std::chrono::duration_cast<std::chrono::microseconds>(
+                entry.timestamp - first_time).count();
+            std::cout << "[+" << offset << "us] " << entry.message << "\n";
+        }
+    }
+};
+
+int main() {
+    TimestampLogger logger;
+
+    std::thread t1([&]() {
+        for (int i = 0; i < 100; ++i)
+            logger.log("sensor-A reading");
+    });
+    std::thread t2([&]() {
+        for (int i = 0; i < 100; ++i)
+            logger.log("sensor-B reading");
+    });
+
+    t1.join();
+    t2.join();
+    logger.dump_recent(20);
+    return 0;
+}`,
+    hints: [
+      "Is the log() function truly atomic from start to finish?",
+      "What happens if thread A claims an index but thread B writes to the next index first?",
+      "Can dump_recent see a partially written entry where valid is true but timestamp/message is incomplete?"
+],
+    explanation: "The log() function has a race condition: fetch_add is atomic but the subsequent writes to timestamp, message, and valid are not. Thread A can claim index N, then get preempted. Thread B claims index N+1, writes it fully, sets valid=true. If dump_recent runs now, it sees a gap at index N. Worse, on architectures with relaxed memory ordering, the valid=true store can become visible before the timestamp and message writes, so dump_recent reads garbage data from an entry that appears valid. The 'lock-free' design lacks proper memory fences between the data writes and the valid flag.",
+    manifestation: `$ g++ -O2 -std=c++17 -pthread -fsanitize=thread logger.cpp -o logger && ./logger
+==================
+WARNING: ThreadSanitizer: data race (pid=29411)
+  Write of size 8 at 0x7f3a4c001240 by thread T2:
+    #0 TimestampLogger::log(char const*) logger.cpp:21
+    #1 main::$_1::operator()() logger.cpp:44
+
+  Previous read of size 8 at 0x7f3a4c001240 by thread T1:
+    #0 TimestampLogger::log(char const*) logger.cpp:21
+
+  Location is global 'logger' of size 81920 at 0x7f3a4c000080
+==================
+[+0us] sensor-A reading
+[+18446744073709551us] sensor-B reading
+[+2us] sensor-A reading`,
+    stdlibRefs: [
+      {
+        name: "std::atomic::fetch_add",
+        args: "(T arg, std::memory_order order) → T",
+        brief: "Atomically adds arg to the stored value and returns the previous value.",
+        note: "Only the fetch_add itself is atomic; subsequent non-atomic operations on other data are still subject to races.",
+        link: "https://en.cppreference.com/w/cpp/atomic/atomic/fetch_add"
+      }
+    ]
+  },
+  {
+    id: 499,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Animated Progress Bar",
+    description: "A terminal progress bar that smoothly animates from 0% to 100%, updating at a fixed visual frame rate regardless of task speed.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <iomanip>
+
+class ProgressBar {
+    double progress = 0.0;
+    double target = 0.0;
+    std::chrono::steady_clock::time_point last_frame;
+    static constexpr double SMOOTHING = 0.1;
+    static constexpr auto FRAME_TIME = std::chrono::milliseconds(16);
+
+public:
+    ProgressBar() : last_frame(std::chrono::steady_clock::now()) {}
+
+    void set_target(double t) { target = t; }
+
+    bool update() {
+        auto now = std::chrono::steady_clock::now();
+        if (now - last_frame < FRAME_TIME) return false;
+        last_frame = now;
+
+        progress += (target - progress) * SMOOTHING;
+
+        int bar_width = 40;
+        int filled = static_cast<int>(progress * bar_width);
+        std::cout << "\r[";
+        for (int i = 0; i < bar_width; ++i)
+            std::cout << (i < filled ? '#' : ' ');
+        std::cout << "] " << std::fixed << std::setprecision(1)
+                  << (progress * 100.0) << "%" << std::flush;
+
+        return progress >= 0.999;
+    }
+};
+
+int main() {
+    ProgressBar bar;
+    double stages[] = {0.25, 0.50, 0.75, 1.0};
+    for (double stage : stages) {
+        bar.set_target(stage);
+        while (!bar.update()) {
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        }
+    }
+    std::cout << "\n";
+    return 0;
+}`,
+    hints: [
+      "How does exponential smoothing approach a target — does it ever exactly reach it?",
+      "What value does progress converge to with SMOOTHING = 0.1?",
+      "When target is 0.25, can progress ever reach >= 0.999 to break the loop?"
+],
+    explanation: "The update() function uses exponential interpolation (lerp), which asymptotically approaches the target but never reaches it exactly. The loop breaks when progress >= 0.999, but when target is 0.25, progress can never exceed 0.25. So the first stage loops forever — progress smoothly approaches 0.25 but never reaches 0.999. The completion check should compare progress to the current target (within some epsilon), not a fixed 0.999 threshold.",
+    manifestation: `$ g++ -O2 -std=c++17 progress.cpp -o progress && timeout 5 ./progress
+[##########                              ] 25.0%
+(program hangs — never advances past stage 1)
+
+Expected: Smooth animation from 0% -> 25% -> 50% -> 75% -> 100%
+Actual: Infinite loop at 25% because lerp toward 0.25 never reaches 0.999`,
+    stdlibRefs: []
+  },
+  {
+    id: 500,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Watchdog Timer Service",
+    description: "A watchdog timer that monitors multiple threads and triggers recovery if any thread fails to send a heartbeat within the configured timeout.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <mutex>
+#include <map>
+#include <string>
+#include <atomic>
+#include <condition_variable>
+
+class Watchdog {
+    using clock = std::chrono::steady_clock;
+    struct ThreadInfo {
+        clock::time_point last_heartbeat;
+        std::chrono::milliseconds timeout;
+    };
+
+    std::mutex mtx;
+    std::condition_variable cv;
+    std::map<std::string, ThreadInfo> threads;
+    std::atomic<bool> running{true};
+    std::thread monitor_thread;
+
+    void monitor() {
+        while (running.load()) {
+            std::unique_lock<std::mutex> lock(mtx);
+            cv.wait_for(lock, std::chrono::milliseconds(100));
+
+            auto now = clock::now();
+            for (auto& [name, info] : threads) {
+                auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+                    now - info.last_heartbeat);
+                if (elapsed > info.timeout) {
+                    std::cout << "WATCHDOG: " << name << " missed deadline by "
+                              << (elapsed - info.timeout).count() << "ms\n";
+                    info.last_heartbeat = now;
+                }
+            }
+        }
+    }
+
+public:
+    Watchdog() : monitor_thread(&Watchdog::monitor, this) {}
+
+    ~Watchdog() {
+        running.store(false);
+        cv.notify_all();
+        monitor_thread.join();
+    }
+
+    void register_thread(const std::string& name,
+                         std::chrono::milliseconds timeout) {
+        std::lock_guard<std::mutex> lock(mtx);
+        threads[name] = {clock::now(), timeout};
+    }
+
+    void heartbeat(const std::string& name) {
+        threads[name].last_heartbeat = clock::now();
+    }
+};
+
+int main() {
+    Watchdog wd;
+    wd.register_thread("worker-1", std::chrono::milliseconds(500));
+    wd.register_thread("worker-2", std::chrono::milliseconds(500));
+
+    std::thread t1([&]() {
+        for (int i = 0; i < 10; ++i) {
+            wd.heartbeat("worker-1");
+            std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        }
+    });
+    std::thread t2([&]() {
+        for (int i = 0; i < 10; ++i) {
+            wd.heartbeat("worker-2");
+            std::this_thread::sleep_for(std::chrono::milliseconds(400));
+        }
+    });
+
+    t1.join();
+    t2.join();
+    return 0;
+}`,
+    hints: [
+      "Look at heartbeat() carefully — does it acquire the mutex?",
+      "The monitor thread reads last_heartbeat under the lock, but what about the writers?",
+      "Is std::chrono::time_point guaranteed to be atomically readable and writable?"
+],
+    explanation: "The heartbeat() method writes to last_heartbeat without acquiring the mutex. Meanwhile, the monitor thread reads last_heartbeat under the lock. This is a data race: time_point is not an atomic type, so concurrent reads and writes are undefined behavior. On most 64-bit platforms, the time_point happens to be written atomically, masking the bug. But on 32-bit systems or with aggressive optimization, the monitor could read a torn value producing a nonsensical time_point that triggers false watchdog alerts or misses real ones.",
+    manifestation: `$ g++ -O2 -std=c++17 -pthread -fsanitize=thread watchdog.cpp -o watchdog && ./watchdog
+==================
+WARNING: ThreadSanitizer: data race (pid=8823)
+  Write of size 8 at 0x55a3bc001440 by thread T2:
+    #0 Watchdog::heartbeat(std::string const&) watchdog.cpp:49
+    #1 main::$_0::operator()() watchdog.cpp:56
+
+  Previous read of size 8 at 0x55a3bc001440 by thread T1:
+    #0 Watchdog::monitor() watchdog.cpp:29
+    #1 std::thread::_Invoke<...> thread:252
+==================
+WATCHDOG: worker-2 missed deadline by 18446744073709051ms`,
+    stdlibRefs: [
+      {
+        name: "std::condition_variable::wait_for",
+        args: "(std::unique_lock<std::mutex>& lock, const duration& rel_time) → cv_status",
+        brief: "Blocks until notified or the specified duration elapses, atomically releasing the lock.",
+        note: "Spurious wakeups can occur; the returned cv_status indicates timeout vs notification.",
+        link: "https://en.cppreference.com/w/cpp/thread/condition_variable/wait_for"
+      }
+    ]
+  },
+  {
+    id: 501,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Countdown Timer",
+    description: "A simple countdown timer that displays minutes and seconds remaining, updating once per second.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <iomanip>
+
+void countdown(int total_seconds) {
+    auto start = std::chrono::steady_clock::now();
+
+    while (true) {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(
+            now - start).count();
+        int remaining = total_seconds - elapsed;
+
+        if (remaining < 0) break;
+
+        int minutes = remaining / 60;
+        int seconds = remaining - minutes * 60;
+
+        std::cout << "\r" << std::setfill('0') << std::setw(2) << minutes
+                  << ":" << std::setw(2) << seconds << std::flush;
+
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+    }
+    std::cout << "\nTime's up!\n";
+}
+
+int main() {
+    std::cout << "Starting 2-minute countdown:\n";
+    countdown(120);
+    return 0;
+}`,
+    hints: [
+      "How much total time elapses between updates — is it exactly 1 second?",
+      "Each iteration does work then sleeps for 1 second. What accumulates?",
+      "After 120 iterations, how much total drift has accumulated?"
+],
+    explanation: "Each loop iteration sleeps for 1 second PLUS the time to compute and print. This small overhead (~1-5ms per iteration) accumulates over 120 iterations. The timer appears to work but finishes late — after approximately 122-123 real seconds instead of 120. Since elapsed is recalculated from the real clock, the display is correct, but some seconds are skipped (displayed too briefly) because the sleep overshoots. The fix is to use sleep_until the next target time rather than sleep_for a fixed duration.",
+    manifestation: `$ g++ -O2 -std=c++17 countdown.cpp -o countdown && time ./countdown
+Starting 2-minute countdown:
+02:00 01:59 01:58 ... 00:02 00:01 00:00
+Time's up!
+
+real    2m02.471s    <-- should be ~2m00s
+user    0m0.012s
+
+The timer takes 2+ extra seconds due to accumulated per-iteration overhead.
+Some second values may flash too briefly to read as the display catches up.`,
+    stdlibRefs: [
+      {
+        name: "std::this_thread::sleep_for",
+        args: "(const std::chrono::duration<Rep, Period>& sleep_duration) → void",
+        brief: "Blocks the current thread for at least the specified duration.",
+        note: "sleep_for guarantees sleeping for at least the specified duration, often slightly more due to OS scheduling.",
+        link: "https://en.cppreference.com/w/cpp/thread/sleep_for"
+      }
+    ]
+  },
+  {
+    id: 502,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Event Replay Engine",
+    description: "An event replay system that reads timestamped events from a log and replays them at the original timing intervals for testing purposes.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <vector>
+#include <string>
+#include <functional>
+
+struct Event {
+    std::chrono::microseconds original_timestamp;
+    std::string data;
+};
+
+class ReplayEngine {
+    std::vector<Event> events;
+    std::function<void(const std::string&)> handler;
+
+public:
+    ReplayEngine(std::function<void(const std::string&)> h) : handler(h) {}
+
+    void load_events(std::vector<Event> evts) {
+        events = std::move(evts);
+    }
+
+    void replay(double speed = 1.0) {
+        if (events.empty()) return;
+        auto wall_start = std::chrono::steady_clock::now();
+        auto event_start = events[0].original_timestamp;
+
+        for (size_t i = 0; i < events.size(); ++i) {
+            auto event_offset = events[i].original_timestamp - event_start;
+            auto wall_target = wall_start +
+                std::chrono::duration_cast<std::chrono::microseconds>(
+                    event_offset / speed);
+
+            std::this_thread::sleep_until(wall_target);
+            handler(events[i].data);
+        }
+    }
+};
+
+int main() {
+    int count = 0;
+    ReplayEngine engine([&](const std::string& data) {
+        auto now = std::chrono::steady_clock::now();
+        std::cout << "Event: " << data << "\n";
+        ++count;
+    });
+
+    std::vector<Event> events;
+    for (int i = 0; i < 100; ++i) {
+        events.push_back({
+            std::chrono::microseconds(i * 1000),
+            "event-" + std::to_string(i)
+        });
+    }
+
+    engine.load_events(std::move(events));
+
+    auto start = std::chrono::steady_clock::now();
+    engine.replay(10.0);
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(
+        std::chrono::steady_clock::now() - start).count();
+
+    std::cout << "Replayed " << count << " events in " << elapsed << "ms\n";
+    std::cout << "Expected: ~10ms at 10x speed\n";
+    return 0;
+}`,
+    hints: [
+      "What is the type of event_offset? What type does dividing a duration by a double produce?",
+      "Does std::chrono::microseconds support division by a floating-point number?",
+      "What happens when you divide a std::chrono::microseconds (integer rep) by a double and then duration_cast back?"
+],
+    explanation: "event_offset is std::chrono::microseconds (integer representation). Dividing an integer-based duration by a double returns a duration with double representation. However, duration_cast back to microseconds truncates. At 10x speed with 1ms intervals, each event should be 100us apart, but the cumulative effect of integer truncation in duration_cast causes events to bunch together. The real fix is to avoid the unnecessary duration_cast and work with the floating-point duration directly, or use duration<double, std::micro> throughout.",
+    manifestation: `$ g++ -O2 -std=c++17 replay.cpp -o replay && ./replay
+Event: event-0
+Event: event-1
+...
+Event: event-99
+Replayed 100 events in 7ms
+Expected: ~10ms at 10x speed
+
+Events replay faster than expected because duration_cast<microseconds>
+truncates fractional microseconds at each step, compounding the error.`,
+    stdlibRefs: [
+      {
+        name: "std::chrono::duration_cast",
+        args: "<ToDuration>(const duration<Rep, Period>& d) → ToDuration",
+        brief: "Converts a duration to a different type, truncating toward zero.",
+        note: "Casting from a floating-point duration to an integer duration truncates; repeated casts compound the error.",
+        link: "https://en.cppreference.com/w/cpp/chrono/duration/duration_cast"
+      }
+    ]
+  },
+  {
+    id: 503,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Session Timeout Manager",
+    description: "A session management system that tracks user sessions and automatically expires them after a configurable inactivity timeout.",
+    code: `#include <iostream>
+#include <chrono>
+#include <map>
+#include <string>
+#include <vector>
+
+class SessionManager {
+    using clock = std::chrono::system_clock;
+    struct Session {
+        std::string user;
+        clock::time_point created;
+        clock::time_point last_activity;
+        std::chrono::minutes timeout;
+    };
+
+    std::map<std::string, Session> sessions;
+    int next_id = 1;
+
+public:
+    std::string create_session(const std::string& user,
+                               std::chrono::minutes timeout = std::chrono::minutes(30)) {
+        std::string id = "sess-" + std::to_string(next_id++);
+        auto now = clock::now();
+        sessions[id] = {user, now, now, timeout};
+        return id;
+    }
+
+    void touch(const std::string& session_id) {
+        auto it = sessions.find(session_id);
+        if (it != sessions.end()) {
+            it->second.last_activity = clock::now();
+        }
+    }
+
+    void cleanup() {
+        auto now = clock::now();
+        std::vector<std::string> expired;
+        for (const auto& [id, sess] : sessions) {
+            auto idle = std::chrono::duration_cast<std::chrono::minutes>(
+                now - sess.last_activity);
+            if (idle >= sess.timeout) {
+                expired.push_back(id);
+            }
+        }
+        for (const auto& id : expired) {
+            std::cout << "Expired session: " << id
+                      << " (user: " << sessions[id].user << ")\n";
+            sessions.erase(id);
+        }
+    }
+
+    void status() const {
+        auto now = clock::now();
+        for (const auto& [id, sess] : sessions) {
+            auto idle = std::chrono::duration_cast<std::chrono::seconds>(
+                now - sess.last_activity).count();
+            std::cout << id << " [" << sess.user << "] idle: "
+                      << idle << "s\n";
+        }
+    }
+};
+
+int main() {
+    SessionManager mgr;
+    auto s1 = mgr.create_session("alice", std::chrono::minutes(30));
+    auto s2 = mgr.create_session("bob", std::chrono::minutes(30));
+
+    mgr.touch(s1);
+
+    mgr.status();
+    mgr.cleanup();
+    std::cout << "Active sessions after cleanup:\n";
+    mgr.status();
+    return 0;
+}`,
+    hints: [
+      "What clock is being used for last_activity? Is it monotonic?",
+      "What happens if the system clock is adjusted (e.g., NTP sync, DST change)?",
+      "If system_clock jumps forward, how does idle time calculation behave?"
+],
+    explanation: "The SessionManager uses system_clock for tracking last_activity. system_clock is not monotonic — it can jump forward or backward due to NTP synchronization, DST changes, or manual adjustments. If the system clock jumps forward by 30+ minutes (e.g., after waking from sleep with an NTP correction), all sessions appear to have been idle for 30+ minutes and get expired, even if users were active seconds ago. Conversely, a backward jump could make sessions appear to have negative idle time, preventing them from ever expiring. The fix is to use steady_clock for elapsed durations.",
+    manifestation: `$ g++ -O2 -std=c++17 session_mgr.cpp -o session_mgr && ./session_mgr
+sess-1 [alice] idle: 0s
+sess-2 [bob] idle: 0s
+Active sessions after cleanup:
+sess-1 [alice] idle: 0s
+sess-2 [bob] idle: 0s
+
+Normal run looks fine. But after an NTP clock jump:
+$ sudo date -s "+31 min" && ./session_mgr
+Expired session: sess-1 (user: alice)
+Expired session: sess-2 (user: bob)
+Active sessions after cleanup:
+(empty — all sessions wrongly expired due to system_clock jump)`,
+    stdlibRefs: [
+      {
+        name: "std::chrono::system_clock",
+        brief: "Wall-clock time that may be adjusted by the system (NTP, DST, manual changes).",
+        note: "Not monotonic — can jump forward or backward. Use steady_clock for measuring elapsed durations.",
+        link: "https://en.cppreference.com/w/cpp/chrono/system_clock"
+      },
+      {
+        name: "std::chrono::steady_clock",
+        brief: "Monotonic clock that never decreases and is not affected by system clock adjustments.",
+        note: "Preferred over system_clock for measuring time intervals and implementing timeouts.",
+        link: "https://en.cppreference.com/w/cpp/chrono/steady_clock"
+      }
+    ]
+  },
 ];
