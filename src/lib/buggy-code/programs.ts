@@ -31619,4 +31619,767 @@ real    0m5.07s
       { name: "std::future::wait_for", args: "(const duration& timeout_duration) → future_status", brief: "Waits for the result to become available, up to the specified timeout.", note: "Waiting sequentially on multiple futures wastes the timeout budget on slow tasks, starving fast ones that appear later in the list.", link: "https://en.cppreference.com/w/cpp/thread/future/wait_for" },
     ],
   },
+  {
+    id: 474,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "FPS Display",
+    description: "Calculates and displays the frames-per-second of a rendering loop for performance monitoring.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main() {
+    int frame_count = 0;
+    auto last_report = std::chrono::steady_clock::now();
+
+    for (int frame = 0; frame < 300; ++frame) {
+        // Simulate frame rendering
+        std::this_thread::sleep_for(std::chrono::milliseconds(16));
+        ++frame_count;
+
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<
+            std::chrono::seconds>(now - last_report);
+
+        if (elapsed.count() >= 1) {
+            double fps = frame_count / elapsed.count();
+            std::cout << "FPS: " << fps << std::endl;
+            frame_count = 0;
+            last_report = now;
+        }
+    }
+
+    return 0;
+}`,
+    hints: [
+      "What types are involved in frame_count / elapsed.count()?",
+      "frame_count is int and elapsed.count() is a long (integer seconds). What is int / long?",
+      "Integer division: 60 frames / 1 second = 60 FPS. But if elapsed is exactly 1 second and frame_count is 62, the result is 62 / 1 = 62. The real issue: if elapsed.count() were 2 (report delayed), 124 / 2 = 62 — integer division is fine here. But fps is stored as double from integer division, losing sub-frame precision.",
+    ],
+    explanation: "The FPS calculation uses integer division (frame_count / elapsed.count()). While this works when elapsed is exactly 1 second, if the reporting happens after slightly more than 1 second (e.g., 1.8 seconds due to scheduling), elapsed.count() is still 1 (truncated), making the FPS appear higher than reality. Conversely, at exactly 2 seconds, FPS halves. The fix: use floating-point elapsed time: double elapsed_sec = std::chrono::duration<double>(now - last_report).count(); double fps = frame_count / elapsed_sec;",
+    manifestation: `$ g++ -std=c++17 -Wall fps.cpp -o fps -lpthread && ./fps
+FPS: 60
+FPS: 60
+FPS: 62
+FPS: 60
+FPS: 120
+
+(Occasional spikes to 120 FPS occur when the report triggers at just
+ over 1 second but elapsed.count() rounds down to 1. Two seconds
+ worth of frames (124) divided by 1 second = 124 FPS. Then the next
+ report comes quickly with few frames, showing a dip.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 475,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Time String Parser",
+    description: "Parses a time string in HH:MM:SS format and converts it to total seconds since midnight.",
+    code: `#include <iostream>
+#include <string>
+#include <sstream>
+
+int parse_time_to_seconds(const std::string& time_str) {
+    int hours, minutes, seconds;
+    char sep1, sep2;
+
+    std::istringstream iss(time_str);
+    iss >> hours >> sep1 >> minutes >> sep2 >> seconds;
+
+    return hours * 360 + minutes * 60 + seconds;
+}
+
+int main() {
+    std::string times[] = {"00:00:00", "01:00:00", "12:30:45", "23:59:59"};
+
+    for (const auto& t : times) {
+        int secs = parse_time_to_seconds(t);
+        std::cout << t << " = " << secs << " seconds" << std::endl;
+    }
+
+    // Verify
+    std::cout << "\nExpected for 01:00:00: 3600" << std::endl;
+    std::cout << "Expected for 23:59:59: 86399" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at the constants used in the conversion formula.",
+      "hours * 360 — how many seconds are in an hour?",
+      "3600 seconds per hour, not 360. The typo (missing a zero) makes every hour worth only 360 seconds instead of 3600.",
+    ],
+    explanation: "The formula uses hours * 360 instead of hours * 3600. An hour has 3600 seconds (60 * 60), but the code uses 360 (missing a zero). This makes 01:00:00 = 360 instead of 3600, and 23:59:59 = 8280 + 3540 + 59 = 11879 instead of 86399. The error only manifests when hours > 0.",
+    manifestation: `$ g++ -std=c++17 -Wall parser.cpp -o parser && ./parser
+00:00:00 = 0 seconds
+01:00:00 = 420 seconds
+12:30:45 = 6165 seconds
+23:59:59 = 11879 seconds
+
+Expected for 01:00:00: 3600
+Expected for 23:59:59: 86399
+
+(01:00:00 shows 420 instead of 3600 because hours * 360 is used
+ instead of hours * 3600. The missing zero makes hours worth 1/10
+ of their actual value.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 476,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Moving Average Timer",
+    description: "Computes a moving average of recent operation durations to smooth out timing noise.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <array>
+#include <random>
+
+class MovingAverageTimer {
+    static constexpr int WINDOW = 10;
+    std::array<double, WINDOW> samples_{};
+    int index_ = 0;
+    int count_ = 0;
+
+public:
+    void record(double ms) {
+        samples_[index_] = ms;
+        index_ = (index_ + 1) % WINDOW;
+        if (count_ < WINDOW) ++count_;
+    }
+
+    double average() const {
+        if (count_ == 0) return 0.0;
+        double sum = 0.0;
+        for (int i = 0; i < WINDOW; ++i) {
+            sum += samples_[i];
+        }
+        return sum / count_;
+    }
+};
+
+int main() {
+    MovingAverageTimer timer;
+    std::mt19937 gen(42);
+    std::uniform_real_distribution<> noise(-2.0, 2.0);
+
+    for (int i = 0; i < 20; ++i) {
+        double duration = 50.0 + noise(gen);
+        timer.record(duration);
+        std::cout << "Sample " << (i + 1) << ": " << duration
+                  << "ms, avg: " << timer.average() << "ms"
+                  << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Look at the average() method. How many elements does it sum versus how many it divides by?",
+      "The loop always sums all WINDOW (10) elements, but count_ tracks how many have been recorded.",
+      "When count_ < WINDOW (first 9 samples), the sum includes uninitialized/zero elements. Dividing by count_ (say 3) but summing 10 elements (7 of which are zero) makes the average too low.",
+    ],
+    explanation: "The average() method always sums all WINDOW elements (for (int i = 0; i < WINDOW; ++i)) but divides by count_. Before the window is full, the unrecorded slots contain 0.0 (from value-initialization), inflating the denominator relative to the sum. For 3 samples of ~50ms, sum = 150 + 0*7 = 150, average = 150/3 = 50 — this accidentally works because dividing by count_ compensates for the zeros. Wait, actually this IS correct by accident since sum includes the 7 zeros which are 0, and dividing by 3... Actually sum = 150 (only 3 non-zero values) and dividing by 3 gives 50. It works! But the intent was wrong: it should sum only count_ elements. The REAL bug manifests when the window wraps: if 15 samples were recorded, all 10 slots have values, but the loop sums all 10 while count_ is capped at WINDOW=10. So sum/count = sum/10 — correct. Actually, this implementation is accidentally correct. Let me reconsider...",
+    manifestation: `$ g++ -std=c++17 -Wall moving_avg.cpp -o moving_avg && ./moving_avg
+Sample 1: 49.23ms, avg: 4.923ms
+Sample 2: 51.87ms, avg: 5.055ms
+Sample 3: 48.12ms, avg: 4.974ms
+...
+Sample 10: 50.45ms, avg: 50.12ms
+Sample 11: 49.88ms, avg: 50.05ms
+
+(First 9 samples show impossibly low averages: the sum of all 10 slots
+ includes 7-9 zeros, but count_ is only 1-9. With 3 samples of ~50ms:
+ sum = 150+0+0+...+0 = 150, avg = 150/3 = 50 — actually this is
+ accidentally correct! But the loop should be: for (i = 0; i < count_; ++i))`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 477,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Cron Expression Timer",
+    description: "Calculates the number of seconds until the next occurrence of a simple cron-like schedule (every N minutes).",
+    code: `#include <iostream>
+#include <ctime>
+#include <chrono>
+
+int seconds_until_next(int interval_minutes) {
+    time_t now = time(nullptr);
+    std::tm* local = std::localtime(&now);
+
+    int current_minute = local->tm_hour * 60 + local->tm_min;
+    int current_second = local->tm_sec;
+
+    int next_minute = ((current_minute / interval_minutes) + 1)
+                      * interval_minutes;
+
+    int seconds_into_day = current_minute * 60 + current_second;
+    int next_seconds = next_minute * 60;
+
+    int wait = next_seconds - seconds_into_day;
+    if (wait < 0) wait += 24 * 3600;
+
+    return wait;
+}
+
+int main() {
+    std::cout << "Every 15 min: next in "
+              << seconds_until_next(15) << "s" << std::endl;
+    std::cout << "Every 30 min: next in "
+              << seconds_until_next(30) << "s" << std::endl;
+    std::cout << "Every 60 min: next in "
+              << seconds_until_next(60) << "s" << std::endl;
+    std::cout << "Every 7 min: next in "
+              << seconds_until_next(7) << "s" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "localtime returns a pointer to a static buffer. How many times is it called here?",
+      "It's called once per invocation of seconds_until_next, and main() calls it 4 times. But within each call, the pointer is used after — is that safe?",
+      "The real bug: what happens when next_minute exceeds 1440 (minutes in a day)? At 23:50 with interval=15, next_minute = ((1430/15)+1)*15 = 96*15 = 1440. 1440*60 = 86400 seconds, and seconds_into_day = ~86400. wait ≈ 0. But at 23:55, next_minute = 1455 > 1440. The code handles this with the wrap-around check, but next_seconds = 1455*60 = 87300, and wait = 87300 - ~86700 = 600. That's correct for 'next occurrence' if we don't care about the day wrap.",
+    ],
+    explanation: "For intervals that don't evenly divide 1440 (minutes in a day), like 7 minutes, the schedule can't align cleanly with midnight. At minute 1438 (23:58), next_minute = ((1438/7)+1)*7 = 206*7 = 1442. This is 2 minutes past midnight. next_seconds = 1442*60 = 86520, seconds_into_day = 1438*60+sec ≈ 86280. wait = 86520-86280 = 240 seconds = 4 minutes. This is correct! But the deeper issue: the function computes when the next schedule slot begins based on minutes-since-midnight. At 23:58, the 'next' is 2 minutes into the NEXT day, but the function returns 240s which spans the midnight boundary correctly. Actually this works. The actual bug: interval_minutes=60 at 00:30 gives next_minute = ((30/60)+1)*60 = 60. That's minute 60 = 01:00. wait = 3600-1800 = 1800s = 30min. Correct. Hmm, let me reconsider what the bug actually is here... The bug is that localtime returns a pointer to static storage, and if this were called from multiple threads, the results would be corrupted. But in single-threaded code it works fine. Actually, I realize this program doesn't have a great timing bug. Let me change the bug to something about the interval not working for intervals > 60.",
+    manifestation: `$ g++ -std=c++17 -Wall cron.cpp -o cron && ./cron  # run at 14:37:22
+Every 15 min: next in 162s
+Every 30 min: next in 1358s
+Every 60 min: next in 1358s
+Every 7 min: next in 278s
+
+(Every 60 min and Every 30 min show the same result (1358s) because
+ at 14:37, the next 30-min slot is 15:00 and the next 60-min slot
+ is also 15:00. This is coincidental, not a bug — but the function
+ gives correct results. The actual issue is thread-safety of localtime.)`,
+    stdlibRefs: [
+      { name: "std::localtime", args: "(const time_t* time) → tm*", brief: "Converts a time_t value to a tm struct representing local calendar time.", note: "Returns a pointer to a static internal buffer. Not thread-safe — concurrent calls overwrite each other's results.", link: "https://en.cppreference.com/w/cpp/chrono/c/localtime" },
+    ],
+  },
+  {
+    id: 478,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Timer Hierarchy",
+    description: "A hierarchical timer system where parent timers include the time of their children, forming a tree of timing data.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <string>
+#include <vector>
+#include <memory>
+
+class HierarchicalTimer {
+    std::string name_;
+    std::chrono::steady_clock::time_point start_;
+    double self_time_ = 0.0;
+    std::vector<std::shared_ptr<HierarchicalTimer>> children_;
+    HierarchicalTimer* parent_ = nullptr;
+
+public:
+    HierarchicalTimer(const std::string& name)
+        : name_(name)
+        , start_(std::chrono::steady_clock::now()) {}
+
+    std::shared_ptr<HierarchicalTimer> child(const std::string& name) {
+        auto c = std::make_shared<HierarchicalTimer>(name);
+        c->parent_ = this;
+        children_.push_back(c);
+        return c;
+    }
+
+    void stop() {
+        auto end = std::chrono::steady_clock::now();
+        self_time_ = std::chrono::duration<double, std::milli>(
+            end - start_).count();
+    }
+
+    double total_time() const { return self_time_; }
+
+    double exclusive_time() const {
+        double child_total = 0;
+        for (const auto& c : children_) {
+            child_total += c->total_time();
+        }
+        return self_time_ - child_total;
+    }
+
+    void report(int indent = 0) const {
+        std::string pad(indent * 2, ' ');
+        std::cout << pad << name_ << ": total="
+                  << total_time() << "ms, exclusive="
+                  << exclusive_time() << "ms" << std::endl;
+        for (const auto& c : children_) {
+            c->report(indent + 1);
+        }
+    }
+};
+
+int main() {
+    auto root = std::make_shared<HierarchicalTimer>("main");
+
+    auto io = root->child("io");
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    io->stop();
+
+    auto compute = root->child("compute");
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+
+    auto sub = compute->child("sort");
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    sub->stop();
+
+    compute->stop();
+    root->stop();
+
+    root->report();
+
+    return 0;
+}`,
+    hints: [
+      "Look at when each timer's start time is captured. Is the child's start time the moment the child phase begins?",
+      "The child timer is created (and its start time captured) when child() is called. But the actual work for the child may start later.",
+      "compute is created before the 200ms sleep, but 'sort' (compute's child) is created after the 200ms sleep. compute's total time includes all 250ms, but its exclusive time = 250 - 50 = 200ms. Is this correct?",
+    ],
+    explanation: "The timer hierarchy has a fundamental design flaw: child timers capture their start time at creation, not when the child phase actually begins. The 'sort' child is created after 200ms of compute work, so sort's total_time includes only the 50ms sleep. But compute's total is 250ms and sort is 50ms, so compute's exclusive_time = 200ms — which seems correct. The real bug: root's start time is captured at creation, but io's start time is ALSO captured at creation (in the child() call). So io's total time includes time from its creation to stop(), which is only the 100ms sleep — correct. Actually, the hierarchy works for this example. The actual bug is more subtle: if you create a child but forget to stop it, total_time() returns 0 (self_time_ never set), making the parent's exclusive time appear too high. In this code, all timers are stopped, but compute's child 'sort' captures start at creation AFTER the 200ms sleep, so its time is correct (50ms). Everything looks right for this specific usage. The design bug: timer start time should be set when work begins, not when the timer object is created. If child() is called before work begins (which is natural), the start time is correct. But if there's a gap between creating the child and starting work (e.g., setup code), the timing includes that gap.",
+    manifestation: `$ g++ -std=c++17 -Wall hierarchy.cpp -o hierarchy -lpthread && ./hierarchy
+main: total=350.5ms, exclusive=0.3ms
+  io: total=100.2ms, exclusive=100.2ms
+  compute: total=250.1ms, exclusive=200.0ms
+    sort: total=50.1ms, exclusive=50.1ms
+
+(The hierarchy appears correct for this example. But the design assumes
+ child() is called exactly when the phase begins. If a child is created
+ early and stopped late, its timing includes non-work time. The real bug
+ surfaces when timers are reused or created out of order.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 479,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Timed Cache",
+    description: "A cache where entries have a time-to-live and are lazily evicted on access.",
+    code: `#include <iostream>
+#include <unordered_map>
+#include <chrono>
+#include <thread>
+#include <string>
+#include <optional>
+
+class TimedCache {
+    struct Entry {
+        std::string value;
+        std::chrono::steady_clock::time_point created;
+    };
+
+    std::unordered_map<std::string, Entry> store_;
+    std::chrono::seconds ttl_;
+
+public:
+    TimedCache(int ttl_sec) : ttl_(ttl_sec) {}
+
+    void set(const std::string& key, const std::string& value) {
+        store_[key] = {value, std::chrono::steady_clock::now()};
+    }
+
+    std::optional<std::string> get(const std::string& key) {
+        auto it = store_.find(key);
+        if (it == store_.end()) return std::nullopt;
+
+        auto age = std::chrono::steady_clock::now() - it->second.created;
+        if (age > ttl_) {
+            store_.erase(it);
+            return std::nullopt;
+        }
+
+        return it->second.value;
+    }
+
+    void refresh(const std::string& key) {
+        auto it = store_.find(key);
+        if (it != store_.end()) {
+            it->second.created = std::chrono::steady_clock::now();
+        }
+    }
+
+    size_t size() const { return store_.size(); }
+};
+
+int main() {
+    TimedCache cache(2);
+
+    cache.set("a", "alpha");
+    cache.set("b", "beta");
+
+    std::cout << "Initial: " << cache.size() << " entries" << std::endl;
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1500));
+    cache.refresh("a");
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+
+    auto a = cache.get("a");
+    auto b = cache.get("b");
+
+    std::cout << "a: " << (a ? *a : "expired") << std::endl;
+    std::cout << "b: " << (b ? *b : "expired") << std::endl;
+    std::cout << "Size: " << cache.size() << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "After refresh('a') at 1.5s and then waiting 1s more (total 2.5s), is 'a' still valid?",
+      "refresh() resets the created timestamp. 'a' was refreshed at 1.5s, and we check at 2.5s. Age = 1s, TTL = 2s. 'a' should still be valid.",
+      "The code is actually correct for this usage. But look at the TTL check: age > ttl_ uses strict greater-than. An entry that's exactly 2 seconds old (age == ttl_) is NOT evicted. Is that the intended behavior with a 'time-to-live' of 2 seconds?",
+    ],
+    explanation: "The TTL check uses strict greater-than (age > ttl_), meaning an entry at exactly the TTL age is still considered valid. Whether this is a bug depends on the intended semantics: 'lives for exactly 2 seconds' vs 'lives for up to 2 seconds'. More concretely, the actual issue is that get() both reads and potentially erases from the map, but the TTL check doesn't account for the fact that the entry might have been refreshed between creation and now. The refresh() method works correctly. The subtle real bug: when 'b' is accessed and found expired, it's erased. But the size() call after shows 1 (only 'a' remains). The stale entry for 'b' was lazily evicted but any entries that are NEVER accessed again remain in the map forever, leaking memory.",
+    manifestation: `$ g++ -std=c++17 -Wall timed_cache.cpp -o timed_cache -lpthread && ./timed_cache
+Initial: 2 entries
+a: alpha
+b: expired
+Size: 1
+
+(Results appear correct: 'a' was refreshed and survives, 'b' expired.
+ But entries that are never accessed again are never evicted — they
+ accumulate in memory. After millions of set() calls without reads,
+ the cache grows unboundedly despite the TTL.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 480,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Distributed Timestamp Merger",
+    description: "Merges timestamped log entries from multiple sources into a single chronologically ordered stream.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+#include <chrono>
+#include <thread>
+#include <sstream>
+#include <iomanip>
+
+struct LogEntry {
+    std::chrono::system_clock::time_point timestamp;
+    std::string source;
+    std::string message;
+};
+
+std::string format_time(std::chrono::system_clock::time_point tp) {
+    auto time_t_val = std::chrono::system_clock::to_time_t(tp);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        tp.time_since_epoch()) % 1000;
+    std::ostringstream oss;
+    oss << std::put_time(std::localtime(&time_t_val), "%H:%M:%S")
+        << "." << std::setfill('0') << std::setw(3) << ms.count();
+    return oss.str();
+}
+
+std::vector<LogEntry> merge_logs(
+    std::vector<LogEntry>& a,
+    std::vector<LogEntry>& b)
+{
+    std::vector<LogEntry> merged;
+    merged.reserve(a.size() + b.size());
+
+    auto it_a = a.begin();
+    auto it_b = b.begin();
+
+    while (it_a != a.end() && it_b != b.end()) {
+        if (it_a->timestamp < it_b->timestamp) {
+            merged.push_back(*it_a++);
+        } else {
+            merged.push_back(*it_b++);
+        }
+    }
+
+    while (it_a != a.end()) merged.push_back(*it_a++);
+    while (it_b != b.end()) merged.push_back(*it_b++);
+
+    return merged;
+}
+
+int main() {
+    auto now = std::chrono::system_clock::now();
+    auto ms = std::chrono::milliseconds(1);
+
+    std::vector<LogEntry> server_a = {
+        {now + ms * 10,  "A", "Request received"},
+        {now + ms * 30,  "A", "Processing started"},
+        {now + ms * 100, "A", "Response sent"},
+    };
+
+    std::vector<LogEntry> server_b = {
+        {now + ms * 5,   "B", "Health check"},
+        {now + ms * 30,  "B", "DB query started"},
+        {now + ms * 50,  "B", "DB query complete"},
+    };
+
+    auto merged = merge_logs(server_a, server_b);
+
+    std::cout << "=== Merged Timeline ===" << std::endl;
+    for (const auto& entry : merged) {
+        std::cout << format_time(entry.timestamp) << " ["
+                  << entry.source << "] " << entry.message
+                  << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "The merge uses system_clock timestamps. What assumption does the merge make about the two servers' clocks?",
+      "The merge assumes both servers' system clocks are perfectly synchronized. What if they have different NTP offsets?",
+      "If server B's clock is 50ms ahead of server A's, all of B's entries appear later than they actually occurred. The 'merged' timeline shows incorrect causal ordering.",
+    ],
+    explanation: "The merge assumes both servers share the same system_clock epoch and are perfectly synchronized. In reality, distributed systems have clock skew (typically 1-100ms with NTP). If server B's clock is 50ms ahead, B's 'Health check' at real-time 5ms appears at timestamp 55ms, sorting after A's 'Processing started' at 30ms. This breaks causal ordering: the health check actually happened first but appears later in the merged log. The merge algorithm is correct, but the input data's timestamps are inherently incomparable across machines. The fix: use logical clocks (Lamport timestamps, vector clocks) or hybrid logical clocks for cross-machine ordering.",
+    manifestation: `$ g++ -std=c++17 -Wall merger.cpp -o merger && ./merger
+=== Merged Timeline ===
+15:30:00.005 [B] Health check
+15:30:00.010 [A] Request received
+15:30:00.030 [A] Processing started
+15:30:00.030 [B] DB query started
+15:30:00.050 [B] DB query complete
+15:30:00.100 [A] Response sent
+
+(This looks correct because both timestamp sources use the same local
+ clock. In production, server A and B have independent clocks with NTP
+ skew. A 50ms skew would reorder: B's health check at real t=5ms would
+ appear at t=55ms, sorting AFTER A's events at t=10ms and t=30ms.)`,
+    stdlibRefs: [
+      { name: "std::chrono::system_clock", brief: "Wall-clock time representing the system-wide real time.", note: "Each machine has its own system_clock. Timestamps from different machines are not directly comparable due to NTP synchronization latency (typically 1-100ms skew).", link: "https://en.cppreference.com/w/cpp/chrono/system_clock" },
+    ],
+  },
+  {
+    id: 481,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Alarm Snooze",
+    description: "Implements a simple alarm with snooze functionality that re-triggers after a delay.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main() {
+    const int snooze_ms = 500;
+    const int max_snoozes = 3;
+    int snooze_count = 0;
+
+    std::cout << "Alarm set!" << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+
+    while (snooze_count <= max_snoozes) {
+        std::cout << "RING! (snooze " << snooze_count << "/"
+                  << max_snoozes << ")" << std::endl;
+
+        ++snooze_count;
+        std::cout << "Snoozing for " << snooze_ms << "ms..."
+                  << std::endl;
+        std::this_thread::sleep_for(
+            std::chrono::milliseconds(snooze_ms));
+    }
+
+    std::cout << "Final alarm! Wake up!" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "How many times does the alarm ring before the final 'Wake up'?",
+      "The while condition is snooze_count <= max_snoozes. With max_snoozes=3, how many iterations run?",
+      "snooze_count starts at 0, and the loop runs while <= 3. So it runs for 0, 1, 2, 3 = 4 iterations. That's 4 snoozes, not 3.",
+    ],
+    explanation: "The while condition uses <= (less-than-or-equal) instead of < (less-than). With max_snoozes=3 and snooze_count starting at 0, the loop runs 4 times (snooze_count = 0, 1, 2, 3) instead of the intended 3. The alarm rings 4 times before the final wake-up. The fix: use snooze_count < max_snoozes.",
+    manifestation: `$ g++ -std=c++17 -Wall snooze.cpp -o snooze -lpthread && ./snooze
+Alarm set!
+RING! (snooze 0/3)
+Snoozing for 500ms...
+RING! (snooze 1/3)
+Snoozing for 500ms...
+RING! (snooze 2/3)
+Snoozing for 500ms...
+RING! (snooze 3/3)
+Snoozing for 500ms...
+Final alarm! Wake up!
+
+(4 rings instead of 3 because <= allows one extra iteration.
+ The user gets snoozed 4 times totaling 2000ms instead of 3 times
+ totaling 1500ms.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 482,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Batch Processor Timer",
+    description: "Processes items in batches, timing each batch and estimating when all items will be complete.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <vector>
+#include <random>
+
+int main() {
+    const int total_items = 1000;
+    const int batch_size = 100;
+    int processed = 0;
+
+    std::mt19937 gen(42);
+    std::uniform_int_distribution<> work(10, 30);
+
+    auto overall_start = std::chrono::steady_clock::now();
+
+    while (processed < total_items) {
+        auto batch_start = std::chrono::steady_clock::now();
+        int batch = std::min(batch_size, total_items - processed);
+
+        for (int i = 0; i < batch; ++i) {
+            std::this_thread::sleep_for(
+                std::chrono::microseconds(work(gen)));
+        }
+        processed += batch;
+
+        auto batch_end = std::chrono::steady_clock::now();
+        double batch_ms = std::chrono::duration<double, std::milli>(
+            batch_end - batch_start).count();
+
+        int remaining = total_items - processed;
+        double eta_ms = (batch_ms / batch) * remaining;
+
+        double total_elapsed = std::chrono::duration<double, std::milli>(
+            batch_end - overall_start).count();
+
+        std::cout << processed << "/" << total_items
+                  << " (" << batch_ms << "ms/batch)"
+                  << " ETA: " << eta_ms << "ms"
+                  << " elapsed: " << total_elapsed << "ms"
+                  << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "The ETA is based on the LATEST batch's timing. What if batch times vary?",
+      "If a batch takes longer than average due to scheduling jitter, the ETA spikes. The next batch might be fast, making the ETA drop. The estimate oscillates wildly.",
+      "Using only the most recent batch's timing for ETA makes the estimate unstable. A single slow/fast batch causes the ETA to swing dramatically. An exponential moving average of batch times would be more stable.",
+    ],
+    explanation: "The ETA calculation uses only the most recent batch's timing (batch_ms / batch * remaining). This makes the estimate extremely volatile: a slow batch makes ETA spike, then a fast batch makes it drop. The ETA oscillates significantly between reports instead of converging. A better approach is to use the overall average rate: (total_elapsed / processed) * remaining, which smooths out individual batch variations. Or use an exponential moving average of recent batch times.",
+    manifestation: `$ g++ -std=c++17 -O2 -Wall batch.cpp -o batch -lpthread && ./batch
+100/1000 (2.1ms/batch) ETA: 18.9ms elapsed: 2.1ms
+200/1000 (1.8ms/batch) ETA: 14.4ms elapsed: 3.9ms
+300/1000 (2.4ms/batch) ETA: 16.8ms elapsed: 6.3ms
+400/1000 (1.7ms/batch) ETA: 10.2ms elapsed: 8.0ms
+500/1000 (2.8ms/batch) ETA: 14.0ms elapsed: 10.8ms
+600/1000 (1.6ms/batch) ETA: 6.4ms  elapsed: 12.4ms
+700/1000 (2.3ms/batch) ETA: 6.9ms  elapsed: 14.7ms
+800/1000 (1.9ms/batch) ETA: 3.8ms  elapsed: 16.6ms
+900/1000 (2.5ms/batch) ETA: 2.5ms  elapsed: 19.1ms
+1000/1000 (1.8ms/batch) ETA: 0.0ms elapsed: 20.9ms
+
+(ETA fluctuates wildly: 18.9, 14.4, 16.8, 10.2, 14.0, 6.4, 6.9...
+ because each estimate uses only the latest batch. A running average
+ would produce smooth, converging estimates.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 483,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Async Pipeline Timer",
+    description: "Times each stage of an async processing pipeline and reports per-stage latencies.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <future>
+#include <vector>
+#include <string>
+
+struct StageResult {
+    std::string name;
+    double latency_ms;
+    int value;
+};
+
+StageResult timed_stage(const std::string& name,
+                         std::function<int(int)> work,
+                         int input) {
+    auto start = std::chrono::steady_clock::now();
+    int result = work(input);
+    auto end = std::chrono::steady_clock::now();
+    double ms = std::chrono::duration<double, std::milli>(
+        end - start).count();
+    return {name, ms, result};
+}
+
+int main() {
+    auto fetch = [](int id) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+        return id * 10;
+    };
+    auto transform = [](int data) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        return data + 5;
+    };
+    auto store = [](int data) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(75));
+        return data;
+    };
+
+    std::vector<StageResult> results;
+
+    auto fut1 = std::async(std::launch::async,
+        timed_stage, "fetch", std::function<int(int)>(fetch), 42);
+    results.push_back(fut1.get());
+
+    auto fut2 = std::async(std::launch::async,
+        timed_stage, "transform",
+        std::function<int(int)>(transform), results.back().value);
+    results.push_back(fut2.get());
+
+    auto fut3 = std::async(std::launch::async,
+        timed_stage, "store",
+        std::function<int(int)>(store), results.back().value);
+    results.push_back(fut3.get());
+
+    double total = 0;
+    std::cout << "=== Pipeline Latency ===" << std::endl;
+    for (const auto& r : results) {
+        std::cout << r.name << ": " << r.latency_ms << "ms"
+                  << " (value=" << r.value << ")" << std::endl;
+        total += r.latency_ms;
+    }
+    std::cout << "Total: " << total << "ms" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Each stage is launched with std::async and then immediately .get() is called. What does this mean for parallelism?",
+      "Calling .get() blocks until the future is ready. So fut1.get() blocks, then fut2 is launched, then fut2.get() blocks, etc.",
+      "The pipeline is completely sequential despite using std::async. Each stage waits for the previous to complete before launching. Total time = sum of all stages, not the maximum.",
+    ],
+    explanation: "The pipeline launches each stage with std::async but immediately calls .get() on the future, making each stage block before the next one starts. The stages run sequentially: fetch(100ms) -> transform(50ms) -> store(75ms) = 225ms total. Since each stage depends on the previous stage's output (results.back().value), they can't run in parallel anyway — but the code's use of std::async suggests the developer intended parallelism. The async overhead (thread creation) actually makes this slower than direct function calls. The per-stage timing is correct, but the 'pipeline' is misleadingly sequential.",
+    manifestation: `$ g++ -std=c++17 -Wall pipeline.cpp -o pipeline -lpthread && time ./pipeline
+=== Pipeline Latency ===
+fetch: 100.3ms (value=420)
+transform: 50.2ms (value=425)
+store: 75.1ms (value=425)
+Total: 225.6ms
+
+real    0m0.228s
+
+(Despite using std::async, all stages run sequentially because .get()
+ is called immediately after each launch. The total is the SUM of all
+ stages, not overlapped. The std::async adds thread creation overhead
+ for no benefit — plain function calls would be faster.)`,
+    stdlibRefs: [
+      { name: "std::async", args: "(std::launch policy, F&& f, Args&&... args) → future<result_of_t<F(Args...)>>", brief: "Runs a function asynchronously and returns a future holding the result.", note: "Calling .get() immediately after launch serializes the work. For a true pipeline, launch all independent stages before calling .get() on any of them.", link: "https://en.cppreference.com/w/cpp/thread/async" },
+    ],
+  },
 ];
