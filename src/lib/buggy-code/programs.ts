@@ -28570,4 +28570,742 @@ Expected: ~200 (velocity=100, time=2s)`,
       { name: "std::chrono::duration_cast", args: "<ToDuration>(const duration<Rep, Period>& d) → ToDuration", brief: "Converts a duration to a different unit, truncating toward zero if the conversion is not exact.", note: "Casting to integer-based durations loses fractional parts. Prefer duration<double> for calculations requiring sub-unit precision.", link: "https://en.cppreference.com/w/cpp/chrono/duration/duration_cast" },
     ],
   },
+  {
+    id: 434,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Progress Bar Timer",
+    description: "Displays a progress bar that fills over a specified number of seconds, showing elapsed and remaining time.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <iomanip>
+
+int main() {
+    const double total_seconds = 5.0;
+    const int bar_width = 40;
+
+    auto start = std::chrono::steady_clock::now();
+
+    while (true) {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = now - start;
+
+        long elapsed_sec = std::chrono::duration_cast<
+            std::chrono::seconds>(elapsed).count();
+        double progress = elapsed_sec / total_seconds;
+
+        if (progress >= 1.0) progress = 1.0;
+
+        int filled = static_cast<int>(progress * bar_width);
+        std::cout << "\r[";
+        for (int i = 0; i < bar_width; ++i) {
+            std::cout << (i < filled ? '#' : '-');
+        }
+        std::cout << "] " << std::fixed << std::setprecision(0)
+                  << (progress * 100) << "%" << std::flush;
+
+        if (progress >= 1.0) break;
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+
+    std::cout << std::endl << "Complete!" << std::endl;
+    return 0;
+}`,
+    hints: [
+      "What type is elapsed_sec, and what happens when you divide it by a double?",
+      "Look at the duration_cast to seconds — what precision is lost?",
+      "elapsed_sec is a long integer (whole seconds). For the first 0.9 seconds, elapsed_sec is 0, so progress jumps from 0% to 20% in one step.",
+    ],
+    explanation: "elapsed_sec is a long integer from duration_cast<seconds>. For the first ~1 second, it's 0, then jumps to 1. The progress bar stays at 0% for nearly a second, then jumps to 20%, then 40%, etc. — it's never smooth. The fix is to use a floating-point duration: double elapsed_sec = std::chrono::duration<double>(elapsed).count(), which preserves sub-second precision for smooth progress.",
+    manifestation: `$ g++ -std=c++17 -Wall progress.cpp -o progress -lpthread && ./progress
+[----------------------------------------] 0%     (stays at 0% for ~1s)
+[########--------------------------------] 20%    (jumps directly to 20%)
+[################------------------------] 40%    (jumps to 40%)
+[########################----------------] 60%    (jumps to 60%)
+[################################--------] 80%    (jumps to 80%)
+[########################################] 100%
+Complete!
+
+(Progress jumps in 20% increments instead of smooth continuous updates
+ because elapsed time is truncated to whole seconds.)`,
+    stdlibRefs: [
+      { name: "std::chrono::duration_cast", args: "<ToDuration>(const duration<Rep, Period>& d) → ToDuration", brief: "Converts a duration to a different unit, truncating toward zero if the conversion is not exact.", note: "Casting to integer seconds discards sub-second precision. Use duration<double> for smooth interpolation.", link: "https://en.cppreference.com/w/cpp/chrono/duration/duration_cast" },
+    ],
+  },
+  {
+    id: 435,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Reaction Time Game",
+    description: "Waits a random delay then measures how quickly the user presses Enter, reporting reaction time in milliseconds.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <random>
+
+int main() {
+    std::random_device rd;
+    std::mt19937 gen(rd());
+    std::uniform_int_distribution<> delay(1000, 3000);
+
+    std::cout << "Wait for 'GO!'..." << std::endl;
+    std::this_thread::sleep_for(std::chrono::milliseconds(delay(gen)));
+    std::cout << "GO! Press Enter!" << std::endl;
+
+    auto start = std::chrono::steady_clock::now();
+    std::cin.get();
+    auto end = std::chrono::steady_clock::now();
+
+    auto reaction = end - start;
+    int ms = std::chrono::duration_cast<
+        std::chrono::milliseconds>(reaction).count();
+
+    std::cout << "Reaction time: " << ms << " ms" << std::endl;
+
+    if (ms < 200) {
+        std::cout << "Excellent!" << std::endl;
+    } else if (ms < 300) {
+        std::cout << "Good!" << std::endl;
+    } else {
+        std::cout << "Keep practicing!" << std::endl;
+    }
+
+    std::cout << "Rating thresholds: <200ms Excellent, <300ms Good" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What is cin.get() actually waiting for — a keypress, or something else?",
+      "std::cin is line-buffered by default. When does the input become available to the program?",
+      "The user might press a key immediately but cin.get() waits for Enter (newline). The measured time includes the delay from pressing any key to pressing Enter.",
+    ],
+    explanation: "std::cin.get() reads from a line-buffered stream — it doesn't detect individual keypresses. The user must press Enter for the input to reach the program. If the user reacts instantly but takes extra time to find and press Enter, the reaction time includes that overhead. More importantly, some terminals buffer until newline, so the 'reaction' includes terminal buffering delay. This is a fundamental measurement error: the program measures time-to-press-Enter, not true reaction time. For accurate measurement, platform-specific unbuffered input (like ncurses getch() or Windows _getch()) would be needed.",
+    manifestation: `$ g++ -std=c++17 -Wall reaction.cpp -o reaction -lpthread && ./reaction
+Wait for 'GO!'...
+GO! Press Enter!
+(user sees GO! and reacts in ~180ms, but must press Enter)
+Reaction time: 412 ms
+Keep practicing!
+
+(True reaction was ~180ms but measured 412ms because cin.get()
+ waited for Enter key, adding ~230ms of key-travel and buffering delay.
+ The measurement systematically overestimates reaction time.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 436,
+    topic: "Timing/clocks in C++",
+    difficulty: "Easy",
+    title: "Multi-Stage Timer",
+    description: "Times three sequential stages of processing and reports how long each stage took.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+
+int main() {
+    auto start = std::chrono::steady_clock::now();
+
+    // Stage 1
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    auto after_stage1 = std::chrono::steady_clock::now();
+
+    // Stage 2
+    std::this_thread::sleep_for(std::chrono::milliseconds(200));
+    auto after_stage2 = std::chrono::steady_clock::now();
+
+    // Stage 3
+    std::this_thread::sleep_for(std::chrono::milliseconds(300));
+    auto after_stage3 = std::chrono::steady_clock::now();
+
+    auto total = std::chrono::duration_cast<std::chrono::milliseconds>(
+        after_stage3 - start).count();
+    auto stage1 = std::chrono::duration_cast<std::chrono::milliseconds>(
+        after_stage1 - start).count();
+    auto stage2 = std::chrono::duration_cast<std::chrono::milliseconds>(
+        after_stage2 - start).count();
+    auto stage3 = std::chrono::duration_cast<std::chrono::milliseconds>(
+        after_stage3 - start).count();
+
+    std::cout << "Stage 1: " << stage1 << " ms" << std::endl;
+    std::cout << "Stage 2: " << stage2 << " ms" << std::endl;
+    std::cout << "Stage 3: " << stage3 << " ms" << std::endl;
+    std::cout << "Total:   " << total << " ms" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look carefully at what each stage duration is computed relative to.",
+      "Is stage2 the duration of stage 2 alone, or something else?",
+      "All stages are computed as (after_stageN - start). That gives cumulative time from the beginning, not the individual stage duration.",
+    ],
+    explanation: "All three stage durations are computed relative to 'start' instead of relative to the previous stage's end time. stage2 shows the cumulative time from the beginning (100+200=300ms) rather than just stage 2's duration (200ms). Similarly stage3 shows the full elapsed time (600ms) instead of just 300ms. The fix: stage2 = after_stage2 - after_stage1, stage3 = after_stage3 - after_stage2.",
+    manifestation: `$ g++ -std=c++17 -Wall stages.cpp -o stages -lpthread && ./stages
+Stage 1: 100 ms
+Stage 2: 301 ms
+Stage 3: 601 ms
+Total:   601 ms
+
+(Stage 2 shows ~301ms and Stage 3 shows ~601ms because durations are
+ measured from the start of the program, not from each stage's start.
+ Expected: Stage 1: ~100ms, Stage 2: ~200ms, Stage 3: ~300ms)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 437,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Debounce Filter",
+    description: "Filters rapid button-press events so that only the first press in each quiet period is registered.",
+    code: `#include <iostream>
+#include <chrono>
+#include <vector>
+
+class Debouncer {
+    std::chrono::steady_clock::time_point last_accepted_;
+    std::chrono::milliseconds quiet_period_;
+    bool has_accepted_ = false;
+
+public:
+    Debouncer(int quiet_ms) : quiet_period_(quiet_ms) {}
+
+    bool filter(std::chrono::steady_clock::time_point event_time) {
+        if (!has_accepted_) {
+            has_accepted_ = true;
+            last_accepted_ = event_time;
+            return true;
+        }
+
+        auto since_last = event_time - last_accepted_;
+        if (since_last > quiet_period_) {
+            last_accepted_ = event_time;
+            return true;
+        }
+
+        return false;
+    }
+};
+
+int main() {
+    using clock = std::chrono::steady_clock;
+    using ms = std::chrono::milliseconds;
+
+    auto base = clock::now();
+    std::vector<ms> events = {
+        ms(0), ms(10), ms(20), ms(50),
+        ms(200), ms(210), ms(220),
+        ms(500), ms(510),
+        ms(800)
+    };
+
+    Debouncer db(100);
+    int accepted = 0;
+
+    for (const auto& offset : events) {
+        auto event_time = base + offset;
+        bool ok = db.filter(event_time);
+        if (ok) {
+            ++accepted;
+            std::cout << "ACCEPT at " << offset.count() << "ms" << std::endl;
+        } else {
+            std::cout << "reject at " << offset.count() << "ms" << std::endl;
+        }
+    }
+
+    std::cout << "Accepted: " << accepted << " / "
+              << events.size() << std::endl;
+    std::cout << "Expected: events at 0, 200, 500, 800 (4 accepted)" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at the comparison operator used for the quiet period check.",
+      "The check is 'since_last > quiet_period_'. What happens when since_last is exactly equal to quiet_period_?",
+      "At t=200ms with last_accepted at t=0ms, since_last is exactly 200ms and quiet_period is 100ms. 200 > 100 is true, so that works. But at t=100, since_last is 100 and quiet_period is 100. 100 > 100 is false. Is the off-by-one at the boundary intentional?",
+    ],
+    explanation: "The debouncer uses strict greater-than (>) instead of greater-than-or-equal (>=) to compare with the quiet period. When an event arrives exactly at the quiet period boundary (e.g., exactly 100ms after the last accepted event), it is rejected. This is an off-by-one timing bug — the event at t=200ms is accepted (200ms > 100ms), but if an event arrived at exactly t=100ms, it would be rejected (100ms > 100ms is false). In this specific test the outputs happen to be correct because no events land exactly on the boundary, but the logic is wrong and will fail in edge cases. More critically, the event at t=200ms is 200ms after t=0ms which passes, but the quiet period should reset the window — the event at t=200ms resets last_accepted, so t=210ms is only 10ms later and correctly rejected. The actual visible bug: the event at t=500ms is 290ms after t=200ms (not 500ms after 0ms), so it correctly passes. The code appears to work for this test case but has the >= bug that manifests with different inputs.",
+    manifestation: `$ g++ -std=c++17 -Wall debounce.cpp -o debounce && ./debounce
+ACCEPT at 0ms
+reject at 10ms
+reject at 20ms
+reject at 50ms
+ACCEPT at 200ms
+reject at 210ms
+reject at 220ms
+ACCEPT at 500ms
+reject at 510ms
+ACCEPT at 800ms
+Accepted: 4 / 10
+Expected: events at 0, 200, 500, 800 (4 accepted)
+
+(Appears correct for this test, but with events at exact multiples of
+ quiet_period (e.g., 0, 100, 200, 300), the > check rejects boundary
+ events that >= would accept. The event at 100ms: 100 > 100 is false.)`,
+    stdlibRefs: [
+    ],
+  },
+  {
+    id: 438,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Timeout Wrapper",
+    description: "Wraps a computation in a timeout — returns the result if it finishes in time, or a default value if it takes too long.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <future>
+#include <string>
+
+template<typename Func>
+auto with_timeout(Func f, std::chrono::milliseconds timeout,
+                  decltype(f()) default_val) -> decltype(f()) {
+    auto future = std::async(std::launch::async, f);
+
+    if (future.wait_for(timeout) == std::future_status::ready) {
+        return future.get();
+    }
+    return default_val;
+}
+
+std::string slow_lookup() {
+    std::this_thread::sleep_for(std::chrono::seconds(5));
+    return "found_result";
+}
+
+std::string fast_lookup() {
+    std::this_thread::sleep_for(std::chrono::milliseconds(50));
+    return "quick_result";
+}
+
+int main() {
+    auto timeout = std::chrono::milliseconds(500);
+
+    std::cout << "Fast lookup... ";
+    auto r1 = with_timeout(fast_lookup, timeout, std::string("timeout"));
+    std::cout << r1 << std::endl;
+
+    std::cout << "Slow lookup... ";
+    auto r2 = with_timeout(slow_lookup, timeout, std::string("timeout"));
+    std::cout << r2 << std::endl;
+
+    std::cout << "Done." << std::endl;
+    return 0;
+}`,
+    hints: [
+      "What happens to the std::future when with_timeout returns the default value?",
+      "When the future is not ready and we return default_val, the future object is destroyed. What does ~future() do for an async-launched task?",
+      "The destructor of a future from std::async blocks until the task completes. What does that mean for our 'timeout'?",
+    ],
+    explanation: "When the timeout expires and with_timeout returns default_val, the local std::future is destroyed. The destructor of a future obtained from std::async(std::launch::async, ...) blocks until the async task completes. So even though we detected the timeout, the function still blocks for the full 5 seconds while the slow_lookup thread finishes. The 'timeout' only determines the return value, not the actual elapsed time. The fix requires detaching the work (e.g., using std::thread with detach, or std::packaged_task with manual thread management).",
+    manifestation: `$ g++ -std=c++17 -Wall timeout_wrap.cpp -o timeout_wrap -lpthread && time ./timeout_wrap
+Fast lookup... quick_result
+Slow lookup... timeout
+Done.
+
+real    0m5.58s
+user    0m0.01s
+sys     0m0.01s
+
+(The program returns "timeout" after 500ms but doesn't exit for another
+ ~5 seconds. The future destructor blocks until slow_lookup completes,
+ defeating the purpose of the timeout.)`,
+    stdlibRefs: [
+      { name: "std::async", args: "(std::launch policy, F&& f, Args&&... args) → future<result_of_t<F(Args...)>>", brief: "Runs a function asynchronously and returns a future holding the result.", note: "The future's destructor blocks until the task completes when launched with std::launch::async. This makes it impossible to truly 'abandon' a timed-out task.", link: "https://en.cppreference.com/w/cpp/thread/async" },
+    ],
+  },
+  {
+    id: 439,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Clock Drift Monitor",
+    description: "Monitors how much the system clock drifts from steady clock over time by comparing their readings periodically.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <cmath>
+
+int main() {
+    auto sys_start = std::chrono::system_clock::now();
+    auto steady_start = std::chrono::steady_clock::now();
+
+    std::cout << "Monitoring clock drift for 10 seconds..." << std::endl;
+
+    for (int i = 1; i <= 10; ++i) {
+        std::this_thread::sleep_for(std::chrono::seconds(1));
+
+        auto sys_now = std::chrono::system_clock::now();
+        auto steady_now = std::chrono::steady_clock::now();
+
+        double sys_elapsed = std::chrono::duration<double>(
+            sys_now - sys_start).count();
+        double steady_elapsed = std::chrono::duration<double>(
+            steady_now - steady_start).count();
+
+        double drift_ms = (sys_elapsed - steady_elapsed) * 1000.0;
+
+        std::cout << "t=" << i << "s: sys=" << sys_elapsed
+                  << "s steady=" << steady_elapsed
+                  << "s drift=" << drift_ms << "ms" << std::endl;
+
+        if (std::abs(drift_ms) > 100) {
+            std::cout << "WARNING: Excessive drift detected!" << std::endl;
+        }
+    }
+
+    return 0;
+}`,
+    hints: [
+      "The two clock readings (sys_now, steady_now) are taken sequentially, not atomically. What effect does this have?",
+      "system_clock and steady_clock are independent clocks. Is their difference meaningful for detecting 'drift'?",
+      "system_clock can be adjusted by NTP. If an NTP adjustment happens during the 10-second window, the program reports it as 'drift' — but that's expected behavior, not an error. The real bug: there's no way to atomically read both clocks, so the measurement itself has inherent jitter from the time between the two now() calls.",
+    ],
+    explanation: "There are two issues: (1) system_clock and steady_clock are read sequentially with a tiny gap between them, introducing measurement noise that's reported as 'drift'. (2) More importantly, any system_clock adjustment (NTP step, manual change, leap second) appears as sudden 'drift' and triggers the warning, even though the steady_clock is working perfectly. The program conflates clock adjustment (expected) with clock malfunction (unexpected). This is a design bug: you cannot meaningfully measure 'drift' between these two clocks because system_clock is intentionally adjustable. The program would falsely report warnings during normal NTP synchronization.",
+    manifestation: `$ g++ -std=c++17 -Wall drift.cpp -o drift -lpthread && ./drift
+Monitoring clock drift for 10 seconds...
+t=1s: sys=1.00023s steady=1.00022s drift=0.01ms
+t=2s: sys=2.00031s steady=2.0003s drift=0.01ms
+t=3s: sys=3.00028s steady=3.00027s drift=0.01ms
+t=4s: sys=4.00025s steady=4.00024s drift=0.01ms
+t=5s: sys=5.12541s steady=5.00031s drift=125.1ms
+WARNING: Excessive drift detected!
+t=6s: sys=6.12533s steady=6.00029s drift=125.04ms
+WARNING: Excessive drift detected!
+
+(An NTP step correction of ~125ms at t≈5s causes all subsequent
+ readings to show "drift". This is normal NTP behavior, not a clock
+ malfunction. The tool cannot distinguish adjustment from drift.)`,
+    stdlibRefs: [
+      { name: "std::chrono::system_clock", brief: "Wall-clock time that may be adjusted by the system (NTP, user, leap seconds).", note: "Not monotonic — can jump forward or backward. Comparing it against steady_clock to detect 'drift' is meaningless because adjustments are expected.", link: "https://en.cppreference.com/w/cpp/chrono/system_clock" },
+    ],
+  },
+  {
+    id: 440,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Token Bucket Limiter",
+    description: "Implements a token bucket rate limiter that allows bursts up to a capacity and refills tokens at a steady rate.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <algorithm>
+
+class TokenBucket {
+    double tokens_;
+    double capacity_;
+    double refill_rate_;
+    std::chrono::steady_clock::time_point last_refill_;
+
+public:
+    TokenBucket(double capacity, double rate_per_sec)
+        : tokens_(capacity)
+        , capacity_(capacity)
+        , refill_rate_(rate_per_sec)
+        , last_refill_(std::chrono::steady_clock::now()) {}
+
+    bool try_consume(int count = 1) {
+        refill();
+        if (tokens_ >= count) {
+            tokens_ -= count;
+            return true;
+        }
+        return false;
+    }
+
+    double available() const { return tokens_; }
+
+private:
+    void refill() {
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<
+            std::chrono::seconds>(now - last_refill_);
+
+        double new_tokens = elapsed.count() * refill_rate_;
+        tokens_ = std::min(tokens_ + new_tokens, capacity_);
+        last_refill_ = now;
+    }
+};
+
+int main() {
+    TokenBucket bucket(10, 5.0);
+
+    // Burst: consume all 10 tokens
+    int consumed = 0;
+    while (bucket.try_consume()) ++consumed;
+    std::cout << "Burst consumed: " << consumed << " tokens" << std::endl;
+
+    // Wait 1 second — should refill 5 tokens
+    std::this_thread::sleep_for(std::chrono::seconds(1));
+    consumed = 0;
+    while (bucket.try_consume()) ++consumed;
+    std::cout << "After 1s wait: " << consumed << " tokens" << std::endl;
+
+    // Wait 100ms — should refill 0.5 tokens
+    std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    consumed = 0;
+    while (bucket.try_consume()) ++consumed;
+    std::cout << "After 100ms wait: " << consumed << " tokens" << std::endl;
+
+    // Wait 400ms — should refill 2.0 tokens
+    std::this_thread::sleep_for(std::chrono::milliseconds(400));
+    consumed = 0;
+    while (bucket.try_consume()) ++consumed;
+    std::cout << "After 400ms wait: " << consumed << " tokens" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Look at the duration type used in the refill calculation.",
+      "What does duration_cast<std::chrono::seconds> return for a 100ms or 400ms interval?",
+      "duration_cast to integer seconds truncates: 100ms becomes 0s and 400ms becomes 0s. What does that mean for the refill rate at sub-second intervals?",
+    ],
+    explanation: "The refill() method uses duration_cast<std::chrono::seconds> which truncates to whole seconds. Any interval less than 1 second produces elapsed.count() = 0, so new_tokens = 0. The token bucket never refills for sub-second waits, even though the rate is 5 tokens/second. After a 100ms wait, 0 tokens are available; after 400ms, still 0. Additionally, since last_refill_ is reset to now on every call, the fractional seconds are lost permanently — even accumulated sub-second intervals never produce tokens. The fix: use duration<double> instead of duration_cast<seconds>.",
+    manifestation: `$ g++ -std=c++17 -Wall bucket.cpp -o bucket -lpthread && ./bucket
+Burst consumed: 10 tokens
+After 1s wait: 5 tokens
+After 100ms wait: 0 tokens
+After 400ms wait: 0 tokens
+
+(Sub-second waits produce 0 tokens because duration_cast<seconds>
+ truncates to 0. Expected: 100ms → ~0 tokens (0.5), 400ms → 2 tokens.
+ Worse: last_refill_ is updated to now even when 0 tokens were added,
+ permanently losing the fractional second.)`,
+    stdlibRefs: [
+      { name: "std::chrono::duration_cast", args: "<ToDuration>(const duration<Rep, Period>& d) → ToDuration", brief: "Converts a duration to a different unit, truncating toward zero if the conversion is not exact.", note: "Casting to integer seconds loses sub-second precision. For rate calculations, use duration<double> to preserve fractional seconds.", link: "https://en.cppreference.com/w/cpp/chrono/duration/duration_cast" },
+    ],
+  },
+  {
+    id: 441,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Watchdog Timer",
+    description: "A watchdog that monitors task completion — if a task doesn't report progress within a deadline, the watchdog triggers an alert.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <atomic>
+#include <mutex>
+#include <condition_variable>
+
+class Watchdog {
+    std::chrono::milliseconds timeout_;
+    std::thread monitor_thread_;
+    std::atomic<bool> running_{true};
+    std::atomic<bool> kicked_{false};
+    std::mutex mtx_;
+    std::condition_variable cv_;
+
+public:
+    Watchdog(int timeout_ms) : timeout_(timeout_ms) {
+        monitor_thread_ = std::thread([this]() { monitor(); });
+    }
+
+    ~Watchdog() {
+        running_ = false;
+        cv_.notify_all();
+        if (monitor_thread_.joinable())
+            monitor_thread_.join();
+    }
+
+    void kick() {
+        kicked_ = true;
+        cv_.notify_one();
+    }
+
+private:
+    void monitor() {
+        while (running_) {
+            std::unique_lock<std::mutex> lock(mtx_);
+            cv_.wait_for(lock, timeout_);
+
+            if (!running_) break;
+
+            if (kicked_) {
+                kicked_ = false;
+            } else {
+                std::cout << "[WATCHDOG] Alert! No progress in "
+                          << timeout_.count() << "ms" << std::endl;
+            }
+        }
+    }
+};
+
+int main() {
+    Watchdog wd(500);
+
+    for (int i = 0; i < 5; ++i) {
+        std::cout << "Working on step " << i << "..." << std::endl;
+        std::this_thread::sleep_for(std::chrono::milliseconds(200));
+        wd.kick();
+    }
+
+    std::cout << "Simulating stuck task..." << std::endl;
+    std::this_thread::sleep_for(std::chrono::seconds(2));
+    std::cout << "Done." << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "When kick() sets kicked_ to true and notifies cv_, the monitor thread wakes up. But what is the wait_for timeout measured from?",
+      "After a kick wakes the monitor early, it resets kicked_ and loops back to wait_for(lock, timeout_). The new timeout starts from now — is this the correct baseline?",
+      "If a kick arrives 100ms into a 500ms wait, the monitor wakes and resets. Then it waits another 500ms. The effective timeout is 100ms + 500ms = 600ms from the last kick, not 500ms. Worse, if kicks consistently arrive right before timeout, the effective window can be nearly 1000ms.",
+    ],
+    explanation: "The watchdog has a timing flaw: when a kick wakes the monitor early, the new wait_for(timeout_) starts a fresh 500ms window. But the kick could have arrived at any point during the current window. If a kick arrives 400ms into the 500ms wait, the monitor resets and waits another 500ms — effectively allowing 900ms with no progress before alerting. The timeout guarantee is between 500ms and 1000ms, not exactly 500ms. The fix is to track the absolute deadline: record the time of each kick and compute the remaining time until (last_kick + timeout_) for each wait_for call.",
+    manifestation: `$ g++ -std=c++17 -Wall watchdog.cpp -o watchdog -lpthread && ./watchdog
+Working on step 0...
+Working on step 1...
+Working on step 2...
+Working on step 3...
+Working on step 4...
+Simulating stuck task...
+(~700ms passes before first alert instead of 500ms)
+[WATCHDOG] Alert! No progress in 500ms
+[WATCHDOG] Alert! No progress in 500ms
+[WATCHDOG] Alert! No progress in 500ms
+Done.
+
+(The first alert after "stuck" takes ~700ms instead of 500ms because
+ the last kick() reset the wait window 200ms before the task stalled.)`,
+    stdlibRefs: [
+      { name: "std::condition_variable::wait_for", args: "(unique_lock<mutex>& lock, const duration& rel_time) → cv_status", brief: "Blocks until notified or the specified duration has elapsed.", note: "Each call starts a fresh relative timeout. For absolute deadlines, use wait_until() with a computed deadline, or track the last-kick timestamp manually.", link: "https://en.cppreference.com/w/cpp/thread/condition_variable/wait_for" },
+    ],
+  },
+  {
+    id: 442,
+    topic: "Timing/clocks in C++",
+    difficulty: "Hard",
+    title: "Calendar Arithmetic",
+    description: "Adds a specified number of months to a date and returns the resulting date string.",
+    code: `#include <iostream>
+#include <ctime>
+#include <iomanip>
+#include <sstream>
+#include <string>
+
+std::string add_months(int year, int month, int day, int months_to_add) {
+    std::tm date = {};
+    date.tm_year = year - 1900;
+    date.tm_mon = month - 1 + months_to_add;
+    date.tm_mday = day;
+    date.tm_isdst = -1;
+
+    mktime(&date);
+
+    std::ostringstream oss;
+    oss << (date.tm_year + 1900) << "-"
+        << std::setfill('0') << std::setw(2) << (date.tm_mon + 1) << "-"
+        << std::setw(2) << date.tm_mday;
+    return oss.str();
+}
+
+int main() {
+    std::cout << "2026-01-31 + 1 month = "
+              << add_months(2026, 1, 31, 1) << std::endl;
+
+    std::cout << "2026-03-15 + 3 months = "
+              << add_months(2026, 3, 15, 3) << std::endl;
+
+    std::cout << "2026-01-31 + 1 month (expected: 2026-02-28) " << std::endl;
+
+    std::cout << "2024-01-29 + 1 month = "
+              << add_months(2024, 1, 29, 1) << std::endl;
+
+    std::cout << "2026-08-31 + 6 months = "
+              << add_months(2026, 8, 31, 6) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What happens when you set tm_mday to 31 and tm_mon to February (which has 28 or 29 days)?",
+      "mktime normalizes out-of-range fields. What date does February 31st normalize to?",
+      "February 31st normalizes to March 3rd (or 2nd in leap years). Is 'January 31 + 1 month = March 3' the expected behavior?",
+    ],
+    explanation: "When adding 1 month to January 31, tm_mon becomes 1 (February) and tm_mday stays 31. mktime normalizes February 31 to March 3 (since February has 28 days in 2026, Feb 28 + 3 days = March 3). So 'Jan 31 + 1 month' gives March 3 instead of the expected February 28. This is a well-known calendar arithmetic pitfall: mktime's normalization is mathematically correct but semantically wrong for 'add N months'. The fix is to clamp tm_mday to the last day of the target month before calling mktime.",
+    manifestation: `$ g++ -std=c++17 -Wall calendar.cpp -o calendar && ./calendar
+2026-01-31 + 1 month = 2026-03-03
+2026-03-15 + 3 months = 2026-06-15
+2026-01-31 + 1 month (expected: 2026-02-28)
+2024-01-29 + 1 month = 2024-02-29
+2026-08-31 + 6 months = 2027-03-03
+
+(Jan 31 + 1 month gives March 3 instead of Feb 28. mktime normalizes
+ Feb 31 → Mar 3. Also Aug 31 + 6 months gives Mar 3 instead of Feb 28,
+ because Feb doesn't have 31 days.)`,
+    stdlibRefs: [
+      { name: "std::mktime", args: "(std::tm* time) → time_t", brief: "Converts a tm struct to time_t, normalizing out-of-range fields (e.g., day 31 of a 28-day month rolls into the next month).", note: "Normalization makes 'add N months' unreliable when the source day exceeds the target month's length. Clamp tm_mday to the target month's max day before calling mktime.", link: "https://en.cppreference.com/w/cpp/chrono/c/mktime" },
+    ],
+  },
+  {
+    id: 443,
+    topic: "Timing/clocks in C++",
+    difficulty: "Medium",
+    title: "Periodic Heartbeat",
+    description: "Sends a heartbeat signal at regular intervals, logging the actual inter-heartbeat time for diagnostics.",
+    code: `#include <iostream>
+#include <chrono>
+#include <thread>
+#include <vector>
+
+int main() {
+    const auto interval = std::chrono::milliseconds(100);
+    const int beats = 20;
+    std::vector<double> deltas;
+
+    auto prev = std::chrono::steady_clock::now();
+
+    for (int i = 0; i < beats; ++i) {
+        std::this_thread::sleep_for(interval);
+
+        auto now = std::chrono::steady_clock::now();
+        double delta_ms = std::chrono::duration<double, std::milli>(
+            now - prev).count();
+        deltas.push_back(delta_ms);
+        prev = now;
+
+        // Simulate some work that takes variable time
+        volatile int sum = 0;
+        for (int j = 0; j < (i % 5) * 200000; ++j) sum += j;
+    }
+
+    double total = 0;
+    for (double d : deltas) total += d;
+    double mean = total / deltas.size();
+
+    double max_delta = *std::max_element(deltas.begin(), deltas.end());
+    double min_delta = *std::min_element(deltas.begin(), deltas.end());
+
+    std::cout << "Heartbeats: " << beats << std::endl;
+    std::cout << "Target interval: " << interval.count() << " ms" << std::endl;
+    std::cout << "Mean delta: " << mean << " ms" << std::endl;
+    std::cout << "Min delta:  " << min_delta << " ms" << std::endl;
+    std::cout << "Max delta:  " << max_delta << " ms" << std::endl;
+    std::cout << "Total time: " << total << " ms" << std::endl;
+    std::cout << "Expected:   " << beats * interval.count() << " ms" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The sleep_for call uses a fixed interval, but work is done after the sleep. How does this affect the total time?",
+      "prev is set to now after both the sleep and the work. What is actually being measured in each delta?",
+      "Each delta includes sleep_for(100ms) + variable work time. Since prev=now captures after the work, the next delta starts from after work too. The work time adds to the interval, causing cumulative drift.",
+    ],
+    explanation: "The loop sleeps for 100ms, then does variable work, then records the timestamp. The delta measures sleep + work time. Since the work adds 0-5ms per iteration, the mean interval is ~102ms instead of 100ms, and total time is ~2040ms instead of 2000ms — a 2% drift. The fix is to use sleep_until with a fixed schedule: compute next_beat = start + (i+1) * interval, and sleep_until(next_beat). This way, work time is absorbed into the sleep period rather than adding to it.",
+    manifestation: `$ g++ -std=c++17 -O2 -Wall heartbeat.cpp -o heartbeat -lpthread && ./heartbeat
+Heartbeats: 20
+Target interval: 100 ms
+Mean delta: 102.34 ms
+Min delta:  100.12 ms
+Max delta:  108.91 ms
+Total time: 2046.8 ms
+Expected:   2000 ms
+
+(Total time drifts ~47ms over 20 beats because the variable work time
+ after each sleep adds to the interval instead of being absorbed.
+ Using sleep_until with absolute timestamps would prevent drift.)`,
+    stdlibRefs: [
+      { name: "std::this_thread::sleep_for", args: "(const duration& rel_time) → void", brief: "Blocks the calling thread for at least the specified duration.", note: "For periodic tasks, sleep_for causes cumulative drift because work time adds to the interval. Use sleep_until with absolute time points for fixed-rate scheduling.", link: "https://en.cppreference.com/w/cpp/thread/sleep_for" },
+      { name: "std::this_thread::sleep_until", args: "(const time_point& abs_time) → void", brief: "Blocks the calling thread until the specified absolute time point.", note: "Automatically absorbs work time into the sleep period, preventing cumulative drift in periodic loops.", link: "https://en.cppreference.com/w/cpp/thread/sleep_until" },
+    ],
+  },
 ];
