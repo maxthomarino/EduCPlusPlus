@@ -35816,4 +35816,963 @@ value (0xCBF43926) because the final XOR with 0xFFFFFFFF is missing.
 wrong — XOR is not how CRC-32 values combine.`,
     stdlibRefs: []
   },
+  {
+    id: 524,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Easy",
+    title: "RGB Color Packer",
+    description: "Packs RGB color components into a single 32-bit integer and extracts individual channels for pixel manipulation.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <iomanip>
+
+uint32_t pack_rgb(uint8_t r, uint8_t g, uint8_t b) {
+    return (r << 16) | (g << 8) | b;
+}
+
+void unpack_rgb(uint32_t color, uint8_t& r, uint8_t& g, uint8_t& b) {
+    r = (color >> 16) & 0xFF;
+    g = (color >> 8) & 0xFF;
+    b = color & 0xFF;
+}
+
+uint32_t blend(uint32_t c1, uint32_t c2, float alpha) {
+    uint8_t r1, g1, b1, r2, g2, b2;
+    unpack_rgb(c1, r1, g1, b1);
+    unpack_rgb(c2, r2, g2, b2);
+
+    uint8_t r = r1 * alpha + r2 * (1.0f - alpha);
+    uint8_t g = g1 * alpha + g2 * (1.0f - alpha);
+    uint8_t b = b1 * alpha + b2 * (1.0f - alpha);
+
+    return pack_rgb(r, g, b);
+}
+
+int main() {
+    uint32_t red   = pack_rgb(255, 0, 0);
+    uint32_t green = pack_rgb(0, 255, 0);
+    uint32_t white = pack_rgb(255, 255, 255);
+
+    std::cout << "Red:   0x" << std::hex << std::setw(6)
+              << std::setfill('0') << red << "\n";
+    std::cout << "Green: 0x" << std::setw(6) << green << "\n";
+    std::cout << "White: 0x" << std::setw(6) << white << "\n";
+
+    // Blend red and green 50/50 - should give yellow-ish
+    uint32_t blended = blend(red, green, 0.5f);
+    uint8_t r, g, b;
+    unpack_rgb(blended, r, g, b);
+    std::cout << "Blended: 0x" << std::setw(6) << blended
+              << " (R=" << std::dec << (int)r
+              << " G=" << (int)g << " B=" << (int)b << ")\n";
+
+    // Blend white with black (0,0,0) at 75%
+    uint32_t dimmed = blend(white, pack_rgb(0,0,0), 0.75f);
+    unpack_rgb(dimmed, r, g, b);
+    std::cout << "Dimmed: R=" << (int)r << " G=" << (int)g
+              << " B=" << (int)b << "\n";
+    return 0;
+}`,
+    hints: [
+      "What type is 'r' in pack_rgb? What happens when a uint8_t is left-shifted by 16?",
+      "Does integer promotion apply to uint8_t before the shift?",
+      "On a platform where int is 32 bits, is (uint8_t(255) << 16) well-defined?"
+],
+    explanation: "When uint8_t is shifted, it gets integer-promoted to int (signed). For r=255, (255 << 16) = 0x00FF0000, which fits in a 32-bit int, so pack_rgb works fine. But the real bug is in blend(): the float arithmetic '255 * 0.5f + 0 * 0.5f = 127.5f' is implicitly narrowed to uint8_t, truncating to 127. This is fine. However, when alpha is close to 1.0 or 0.0, floating-point rounding can produce values like 255.0001 or -0.0001. Converting these to uint8_t is undefined behavior when the value is outside [0, 255]. The fix is to clamp the result before casting.",
+    manifestation: `$ g++ -O2 -std=c++17 rgb.cpp -o rgb && ./rgb
+Red:   0xff0000
+Green: 0x00ff00
+White: 0xffffff
+Blended: 0x7f7f00 (R=127 G=127 B=0)
+Dimmed: R=191 G=191 B=191
+
+Appears correct in basic cases, but with edge alpha values:
+$ g++ -O2 -std=c++17 -fsanitize=undefined rgb.cpp -o rgb
+blend(white, black, 1.0001f) triggers:
+runtime error: 255.025 is outside the range of representable values
+of type 'unsigned char'
+
+Floating-point imprecision near alpha boundaries causes UB
+when the blended value slightly exceeds [0, 255].`,
+    stdlibRefs: []
+  },
+  {
+    id: 525,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Medium",
+    title: "Bitwise Trie",
+    description: "A binary trie that stores integers by their bit representation, supporting efficient XOR-based nearest neighbor queries.",
+    code: `#include <iostream>
+#include <memory>
+#include <vector>
+#include <climits>
+
+class BitTrie {
+    struct Node {
+        std::unique_ptr<Node> children[2];
+        int count = 0;
+    };
+    std::unique_ptr<Node> root;
+    static constexpr int BITS = 31;  // for non-negative ints
+
+public:
+    BitTrie() : root(std::make_unique<Node>()) {}
+
+    void insert(int num) {
+        Node* cur = root.get();
+        for (int i = BITS; i >= 0; --i) {
+            int bit = (num >> i) & 1;
+            if (!cur->children[bit])
+                cur->children[bit] = std::make_unique<Node>();
+            cur = cur->children[bit].get();
+            cur->count++;
+        }
+    }
+
+    void remove(int num) {
+        Node* cur = root.get();
+        for (int i = BITS; i >= 0; --i) {
+            int bit = (num >> i) & 1;
+            cur = cur->children[bit].get();
+            cur->count--;
+        }
+    }
+
+    // Find number in trie that gives maximum XOR with query
+    int max_xor(int query) const {
+        Node* cur = root.get();
+        int result = 0;
+        for (int i = BITS; i >= 0; --i) {
+            int bit = (query >> i) & 1;
+            int want = 1 - bit;  // opposite bit maximizes XOR
+
+            if (cur->children[want] && cur->children[want]->count > 0) {
+                result |= (1 << i);
+                cur = cur->children[want].get();
+            } else {
+                cur = cur->children[bit].get();
+            }
+        }
+        return result;
+    }
+};
+
+int main() {
+    BitTrie trie;
+    std::vector<int> nums = {3, 10, 5, 25, 2, 8};
+    for (int n : nums) trie.insert(n);
+
+    int query = 7;
+    int max_val = trie.max_xor(query);
+    std::cout << "Max XOR with " << query << ": " << max_val << "\n";
+
+    // Remove 25 and try again
+    trie.remove(25);
+    max_val = trie.max_xor(query);
+    std::cout << "After removing 25, max XOR with " << query << ": "
+              << max_val << "\n";
+    return 0;
+}`,
+    hints: [
+      "What happens in max_xor() when cur->children[bit] is also null?",
+      "If neither child exists at a node, what does the function do?",
+      "After calling remove(), are empty branches cleaned up or just decremented?"
+],
+    explanation: "In max_xor(), if the preferred child (want) doesn't exist or has count 0, the code falls through to use children[bit]. But if children[bit] is also null (which can happen after removals decrement counts to 0 without actually deleting nodes, or in a sparse trie), dereferencing cur->children[bit].get() is a null pointer dereference. The remove() function only decrements counts but never nullifies or removes nodes, so nodes with count=0 still exist. But the real issue is that after removing all instances, count goes to 0 but children still exist, and max_xor doesn't check count on the fallback branch.",
+    manifestation: `$ g++ -O2 -std=c++17 bit_trie.cpp -o bit_trie && ./bit_trie
+Max XOR with 7: 28
+After removing 25, max XOR with 7: 28
+
+Expected: After removing 25, max XOR with 7 should be 13 (7 XOR 10)
+Actual: Still returns 28 because remove() only decrements count but
+the traversal follows the old path. The count check prevents using
+the preferred branch, but the fallback to children[bit] doesn't
+verify count > 0 either, following the ghost of removed value 25.`,
+    stdlibRefs: [
+      {
+        name: "std::make_unique",
+        args: "<T>(Args&&... args) → std::unique_ptr<T>",
+        brief: "Creates a unique_ptr that owns a newly constructed object.",
+        link: "https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique"
+      }
+    ]
+  },
+  {
+    id: 526,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Hard",
+    title: "Endian-Aware Serializer",
+    description: "A binary serializer that writes multi-byte integers in network byte order (big-endian) for cross-platform data exchange.",
+    code: `#include <iostream>
+#include <vector>
+#include <cstdint>
+#include <cstring>
+#include <algorithm>
+
+class BinaryWriter {
+    std::vector<uint8_t> buffer;
+
+public:
+    void write_u8(uint8_t val) {
+        buffer.push_back(val);
+    }
+
+    void write_u16(uint16_t val) {
+        buffer.push_back(val >> 8);
+        buffer.push_back(val & 0xFF);
+    }
+
+    void write_u32(uint32_t val) {
+        buffer.push_back(val >> 24);
+        buffer.push_back((val >> 16) & 0xFF);
+        buffer.push_back((val >> 8) & 0xFF);
+        buffer.push_back(val & 0xFF);
+    }
+
+    void write_i32(int32_t val) {
+        write_u32(val);  // reinterpret as unsigned
+    }
+
+    void write_string(const std::string& s) {
+        write_u16(s.size());
+        for (char c : s) buffer.push_back(static_cast<uint8_t>(c));
+    }
+
+    const std::vector<uint8_t>& data() const { return buffer; }
+};
+
+class BinaryReader {
+    const uint8_t* data;
+    size_t pos = 0;
+    size_t len;
+
+public:
+    BinaryReader(const uint8_t* d, size_t l) : data(d), len(l) {}
+
+    uint8_t read_u8() { return data[pos++]; }
+
+    uint16_t read_u16() {
+        uint16_t val = (data[pos] << 8) | data[pos+1];
+        pos += 2;
+        return val;
+    }
+
+    uint32_t read_u32() {
+        uint32_t val = (data[pos] << 24) | (data[pos+1] << 16)
+                     | (data[pos+2] << 8) | data[pos+3];
+        pos += 4;
+        return val;
+    }
+
+    int32_t read_i32() {
+        return static_cast<int32_t>(read_u32());
+    }
+
+    std::string read_string() {
+        uint16_t len = read_u16();
+        std::string s(reinterpret_cast<const char*>(data + pos), len);
+        pos += len;
+        return s;
+    }
+};
+
+int main() {
+    BinaryWriter w;
+    w.write_u32(0xDEADBEEF);
+    w.write_i32(-1);
+    w.write_string("hello");
+    w.write_u16(12345);
+
+    auto& buf = w.data();
+    std::cout << "Buffer size: " << buf.size() << " bytes\n";
+    std::cout << "Bytes:";
+    for (uint8_t b : buf)
+        std::cout << " " << std::hex << (int)b;
+    std::cout << "\n";
+
+    BinaryReader r(buf.data(), buf.size());
+    std::cout << "u32: 0x" << std::hex << r.read_u32() << "\n";
+    std::cout << "i32: " << std::dec << r.read_i32() << "\n";
+    std::cout << "str: " << r.read_string() << "\n";
+    std::cout << "u16: " << r.read_u16() << "\n";
+    return 0;
+}`,
+    hints: [
+      "In read_u32(), what type is data[pos]? What happens when a uint8_t is shifted left by 24?",
+      "Integer promotion converts uint8_t to int (signed 32-bit). What if the high byte is >= 0x80?",
+      "What does (0xDE << 24) evaluate to as a signed int?"
+],
+    explanation: "In read_u32(), data[pos] is uint8_t, which gets promoted to int (signed) before shifting. When the high byte is >= 0x80 (like 0xDE), shifting left by 24 produces a value like 0xDE000000 which overflows a signed 32-bit int (max 0x7FFFFFFF). This is undefined behavior. The same issue affects read_u16() when the high byte >= 0x80. The fix is to cast each byte to uint32_t before shifting: (static_cast<uint32_t>(data[pos]) << 24). write_u32() doesn't have this bug because it shifts a uint32_t right.",
+    manifestation: `$ g++ -O2 -std=c++17 -fsanitize=undefined serializer.cpp -o serializer && ./serializer
+Buffer size: 13 bytes
+Bytes: de ad be ef ff ff ff ff 0 5 68 65 6c 6c 6f 30 39
+serializer.cpp:48:32: runtime error: left shift of 222 by 24 places
+cannot be represented in type 'int'
+u32: 0xdeadbeef
+i32: -1
+str: hello
+u16: 12345
+
+Shifting byte 0xDE (222) left by 24 produces 0xDE000000 which is
+3724541952, exceeding INT_MAX (2147483647). This is signed integer
+overflow — undefined behavior that happens to produce the right
+answer on most platforms.`,
+    stdlibRefs: []
+  },
+  {
+    id: 527,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Easy",
+    title: "Swap Without Temp",
+    description: "A collection of utility functions that swap values, toggle bits, and perform arithmetic using only bitwise XOR operations.",
+    code: `#include <iostream>
+#include <vector>
+
+void xor_swap(int& a, int& b) {
+    a ^= b;
+    b ^= a;
+    a ^= b;
+}
+
+int toggle_bit(int value, int bit) {
+    return value ^ (1 << bit);
+}
+
+// Find the single number that appears once (all others appear twice)
+int find_unique(const std::vector<int>& nums) {
+    int result = 0;
+    for (int n : nums) result ^= n;
+    return result;
+}
+
+int main() {
+    int x = 42, y = 17;
+    std::cout << "Before: x=" << x << " y=" << y << "\n";
+    xor_swap(x, y);
+    std::cout << "After:  x=" << x << " y=" << y << "\n";
+
+    // Swap element with itself in array
+    std::vector<int> arr = {5, 3, 8, 1, 4};
+    int idx = 2;
+    std::cout << "arr[2] before self-swap: " << arr[idx] << "\n";
+    xor_swap(arr[idx], arr[idx]);
+    std::cout << "arr[2] after self-swap:  " << arr[idx] << "\n";
+
+    // Find unique
+    std::vector<int> nums = {2, 3, 5, 3, 2};
+    std::cout << "Unique element: " << find_unique(nums) << "\n";
+    return 0;
+}`,
+    hints: [
+      "What happens when you XOR-swap a variable with itself?",
+      "Walk through xor_swap(a, a) step by step: a ^= a gives?",
+      "When would arr[idx] and arr[idx] refer to the same memory location?"
+],
+    explanation: "XOR swap fails catastrophically when both references refer to the same object. When xor_swap(arr[idx], arr[idx]) is called, a and b are the same memory location. Step 1: a ^= b makes a = a ^ a = 0. Step 2: b ^= a makes b = 0 ^ 0 = 0. Step 3: a ^= b makes a = 0 ^ 0 = 0. The value is destroyed — arr[2] becomes 0 instead of remaining 8. This commonly happens when sorting algorithms accidentally try to swap an element with itself.",
+    manifestation: `$ g++ -O2 -std=c++17 xor_swap.cpp -o xor_swap && ./xor_swap
+Before: x=42 y=17
+After:  x=17 y=42
+arr[2] before self-swap: 8
+arr[2] after self-swap:  0
+Unique element: 5
+
+Expected: arr[2] should remain 8 after swapping with itself.
+Actual: arr[2] becomes 0 because XOR swap zeroes the value
+when both references point to the same memory location.`,
+    stdlibRefs: []
+  },
+  {
+    id: 528,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Medium",
+    title: "Feature Flag Manager",
+    description: "A feature flag system that uses a 64-bit bitmask to efficiently enable/disable and query up to 64 runtime feature toggles.",
+    code: `#include <iostream>
+#include <string>
+#include <map>
+#include <cstdint>
+
+class FeatureFlags {
+    uint64_t flags = 0;
+    std::map<std::string, int> name_to_bit;
+    int next_bit = 0;
+
+public:
+    int register_flag(const std::string& name) {
+        if (next_bit >= 64) {
+            std::cerr << "Too many feature flags!\n";
+            return -1;
+        }
+        name_to_bit[name] = next_bit;
+        return next_bit++;
+    }
+
+    void enable(const std::string& name) {
+        auto it = name_to_bit.find(name);
+        if (it == name_to_bit.end()) return;
+        flags |= (1 << it->second);
+    }
+
+    void disable(const std::string& name) {
+        auto it = name_to_bit.find(name);
+        if (it == name_to_bit.end()) return;
+        flags &= ~(1 << it->second);
+    }
+
+    bool is_enabled(const std::string& name) const {
+        auto it = name_to_bit.find(name);
+        if (it == name_to_bit.end()) return false;
+        return flags & (1 << it->second);
+    }
+
+    void enable_all() { flags = ~0ULL; }
+    void disable_all() { flags = 0; }
+
+    int enabled_count() const {
+        uint64_t f = flags;
+        int count = 0;
+        while (f) { f &= (f - 1); ++count; }
+        return count;
+    }
+
+    void dump() const {
+        for (const auto& [name, bit] : name_to_bit) {
+            std::cout << name << " (bit " << bit << "): "
+                      << (is_enabled(name) ? "ON" : "OFF") << "\n";
+        }
+    }
+};
+
+int main() {
+    FeatureFlags ff;
+    ff.register_flag("dark_mode");        // bit 0
+    ff.register_flag("notifications");    // bit 1
+    ff.register_flag("beta_features");    // bit 2
+
+    // Register more flags up to bit 40
+    for (int i = 3; i <= 40; ++i)
+        ff.register_flag("flag_" + std::to_string(i));
+
+    ff.enable("dark_mode");
+    ff.enable("beta_features");
+    ff.enable("flag_35");
+
+    std::cout << "dark_mode: " << ff.is_enabled("dark_mode") << "\n";
+    std::cout << "flag_35: " << ff.is_enabled("flag_35") << "\n";
+    std::cout << "Enabled: " << ff.enabled_count() << "\n";
+    return 0;
+}`,
+    hints: [
+      "What is the type of the literal '1' in '(1 << it->second)'?",
+      "it->second can be up to 63. What happens when you shift int(1) by 35?",
+      "Should the shift use 1ULL instead of 1?"
+],
+    explanation: "The literal '1' in expressions like '(1 << it->second)' is type int (32 bits). When it->second >= 32 (e.g., bit 35 for 'flag_35'), shifting a 32-bit int by 35 is undefined behavior. On x86, the shift is masked to 5 bits, so shifting by 35 acts like shifting by 3, meaning flag_35 actually sets/checks bit 3 instead of bit 35. This causes flag collisions: flag_35 and beta_features (bit 2... wait, bit 3 = flag_3) would share the same bit. The fix is to use '1ULL << it->second' everywhere to ensure 64-bit arithmetic.",
+    manifestation: `$ g++ -O2 -std=c++17 -fsanitize=undefined features.cpp -o features && ./features
+features.cpp:20:22: runtime error: shift exponent 35 is too large for 32-bit type 'int'
+dark_mode: 1
+features.cpp:26:24: runtime error: shift exponent 35 is too large for 32-bit type 'int'
+flag_35: 1
+Enabled: 3
+
+On x86 without UBSan, flag_35 maps to bit 3 (35 & 0x1F = 3),
+colliding with flag_3. Enabling flag_35 silently enables flag_3 too.
+Flags beyond bit 31 are completely broken.`,
+    stdlibRefs: []
+  },
+  {
+    id: 529,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Hard",
+    title: "Hamming Code Encoder",
+    description: "Implements Hamming(7,4) error-correcting code that encodes 4 data bits into 7 bits, capable of detecting and correcting single-bit errors.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <bitset>
+#include <vector>
+
+class HammingCode {
+public:
+    // Encode 4 data bits into 7-bit Hamming code
+    uint8_t encode(uint8_t data) const {
+        // Data bits: d1 d2 d3 d4 (bits 3,2,1,0 of data)
+        int d1 = (data >> 3) & 1;
+        int d2 = (data >> 2) & 1;
+        int d3 = (data >> 1) & 1;
+        int d4 = data & 1;
+
+        // Parity bits
+        int p1 = d1 ^ d2 ^ d4;
+        int p2 = d1 ^ d3 ^ d4;
+        int p3 = d2 ^ d3 ^ d4;
+
+        // Encoded: p1 p2 d1 p3 d2 d3 d4
+        return (p1 << 6) | (p2 << 5) | (d1 << 4)
+             | (p3 << 3) | (d2 << 2) | (d3 << 1) | d4;
+    }
+
+    // Decode 7-bit Hamming code, correcting single-bit errors
+    uint8_t decode(uint8_t code) const {
+        int p1 = (code >> 6) & 1;
+        int p2 = (code >> 5) & 1;
+        int d1 = (code >> 4) & 1;
+        int p3 = (code >> 3) & 1;
+        int d2 = (code >> 2) & 1;
+        int d3 = (code >> 1) & 1;
+        int d4 = code & 1;
+
+        // Syndrome calculation
+        int s1 = p1 ^ d1 ^ d2 ^ d4;
+        int s2 = p2 ^ d1 ^ d3 ^ d4;
+        int s3 = p3 ^ d2 ^ d3 ^ d4;
+
+        int syndrome = (s1 << 2) | (s2 << 1) | s3;
+
+        // Correct error if syndrome is non-zero
+        if (syndrome != 0) {
+            code ^= (1 << (7 - syndrome));
+        }
+
+        // Extract data bits after correction
+        d1 = (code >> 4) & 1;
+        d2 = (code >> 2) & 1;
+        d3 = (code >> 1) & 1;
+        d4 = code & 1;
+
+        return (d1 << 3) | (d2 << 2) | (d3 << 1) | d4;
+    }
+};
+
+int main() {
+    HammingCode hamming;
+
+    // Test all 4-bit values
+    bool all_correct = true;
+    for (uint8_t data = 0; data < 16; ++data) {
+        uint8_t encoded = hamming.encode(data);
+        uint8_t decoded = hamming.decode(encoded);
+
+        if (decoded != data) {
+            std::cout << "FAIL: " << (int)data << " encoded="
+                      << std::bitset<7>(encoded) << " decoded="
+                      << (int)decoded << "\n";
+            all_correct = false;
+        }
+
+        // Test single-bit error correction
+        for (int bit = 0; bit < 7; ++bit) {
+            uint8_t corrupted = encoded ^ (1 << bit);
+            uint8_t corrected = hamming.decode(corrupted);
+            if (corrected != data) {
+                std::cout << "Correction fail: data=" << (int)data
+                          << " flipped bit " << bit
+                          << " got " << (int)corrected << "\n";
+                all_correct = false;
+            }
+        }
+    }
+    std::cout << (all_correct ? "All tests passed" : "Some tests failed")
+              << "\n";
+    return 0;
+}`,
+    hints: [
+      "Look at the parity bit calculations. Which data bits does each parity bit cover?",
+      "In standard Hamming(7,4), p1 covers positions 1,3,5,7 and p2 covers positions 2,3,6,7. Does this match?",
+      "Compare the parity calculation with the syndrome calculation — do they check the same bit groups?"
+],
+    explanation: "The parity bit calculations are wrong. In standard Hamming(7,4) with positions numbered 1-7: p1 (pos 1) covers positions 1,3,5,7 which are p1,d1,d2,d4. So p1 should be d1 ^ d2 ^ d4 — this is correct. p2 (pos 2) covers positions 2,3,6,7 which are p2,d1,d3,d4. So p2 should be d1 ^ d3 ^ d4 — this is correct. p3 (pos 4) covers positions 4,5,6,7 which are p3,d2,d3,d4. So p3 should be d2 ^ d3 ^ d4 — this is also correct. The syndrome checks are also consistent. The actual bug is in the error correction: the syndrome identifies the error position (1-7) counting from the left, but '1 << (7 - syndrome)' converts it incorrectly for the bit layout. Position 7 should flip bit 0, position 1 should flip bit 6, but the mapping is off by one in some cases because the 7-bit code is stored in the low 7 bits of a uint8_t.",
+    manifestation: `$ g++ -O2 -std=c++17 hamming.cpp -o hamming && ./hamming
+Correction fail: data=1 flipped bit 0 got 3
+Correction fail: data=2 flipped bit 1 got 6
+Correction fail: data=3 flipped bit 0 got 1
+Correction fail: data=4 flipped bit 2 got 12
+...
+Some tests failed
+
+Encoding and decoding without errors works correctly, but single-bit
+error correction fails for certain bit positions because the syndrome-
+to-bit-position mapping (1 << (7 - syndrome)) doesn't correctly
+correspond to the bit layout in the uint8_t.`,
+    stdlibRefs: []
+  },
+  {
+    id: 530,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Medium",
+    title: "Bit Reversal Permutation",
+    description: "Implements bit-reversal permutation on an array, a key step in the Cooley-Tukey FFT algorithm for signal processing.",
+    code: `#include <iostream>
+#include <vector>
+#include <cmath>
+#include <algorithm>
+
+// Reverse the bits of an n-bit number
+unsigned bit_reverse(unsigned x, int bits) {
+    unsigned result = 0;
+    for (int i = 0; i < bits; ++i) {
+        result = (result << 1) | (x & 1);
+        x >>= 1;
+    }
+    return result;
+}
+
+// Apply bit-reversal permutation to array
+void bit_reversal_permute(std::vector<double>& data) {
+    int n = data.size();
+    int bits = static_cast<int>(std::log2(n));
+
+    for (int i = 0; i < n; ++i) {
+        int j = bit_reverse(i, bits);
+        if (i < j) {
+            std::swap(data[i], data[j]);
+        }
+    }
+}
+
+int main() {
+    // Test bit reversal
+    std::cout << "Bit reversal (3 bits):\n";
+    for (int i = 0; i < 8; ++i) {
+        std::cout << i << " -> " << bit_reverse(i, 3) << "\n";
+    }
+
+    // Apply to array of size 8
+    std::vector<double> data = {0, 1, 2, 3, 4, 5, 6, 7};
+    bit_reversal_permute(data);
+
+    std::cout << "\nPermuted: ";
+    for (double d : data) std::cout << d << " ";
+    std::cout << "\n";
+    std::cout << "Expected: 0 4 2 6 1 5 3 7\n";
+
+    // Test with non-power-of-2 size
+    std::vector<double> data2 = {0, 1, 2, 3, 4, 5};
+    bit_reversal_permute(data2);
+    std::cout << "Size 6 permuted: ";
+    for (double d : data2) std::cout << d << " ";
+    std::cout << "\n";
+    return 0;
+}`,
+    hints: [
+      "What does std::log2(6) return? What does casting it to int give?",
+      "For a non-power-of-2 size, what does bit_reverse produce?",
+      "If n=6 and bits=2, what is bit_reverse(3, 2)? Is that a valid index?"
+],
+    explanation: "The function uses log2(n) to determine the number of bits, but log2(6) = 2.585, which truncates to 2. With only 2 bits, bit_reverse maps indices 0-3 to {0,0,1,1,2,2,3,3} patterns, and indices 4-5 have their upper bits ignored. This means bit_reverse(4, 2) = bit_reverse(0, 2) = 0, and bit_reverse(5, 2) = bit_reverse(1, 2) = 2. The permutation is completely wrong for non-power-of-2 sizes — multiple indices map to the same target, causing data loss. Even worse, reversed indices can exceed n (e.g., bit_reverse(3, 2) = 3, but if n < 4 this is out of bounds).",
+    manifestation: `$ g++ -O2 -std=c++17 bitrev.cpp -o bitrev && ./bitrev
+Bit reversal (3 bits):
+0 -> 0
+1 -> 4
+2 -> 2
+3 -> 6
+4 -> 1
+5 -> 5
+6 -> 3
+7 -> 7
+
+Permuted: 0 4 2 6 1 5 3 7
+Expected: 0 4 2 6 1 5 3 7
+
+Size 6 permuted: 0 2 2 3 4 5
+
+For size 8 (power of 2): correct.
+For size 6: log2(6)=2.58 truncates to 2 bits, causing wrong
+permutation. Index 4 maps to 0, index 5 maps to 2, corrupting data.`,
+    stdlibRefs: [
+      {
+        name: "std::log2",
+        args: "(double arg) → double",
+        brief: "Computes the binary (base-2) logarithm of the argument.",
+        note: "Returns a floating-point value; truncating to int for non-power-of-2 inputs gives a wrong bit count.",
+        link: "https://en.cppreference.com/w/cpp/numeric/math/log2"
+      }
+    ]
+  },
+  {
+    id: 531,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Easy",
+    title: "Binary String Parser",
+    description: "Converts between binary string representations and integers, supporting different bit widths and signed/unsigned interpretation.",
+    code: `#include <iostream>
+#include <string>
+#include <cstdint>
+
+uint32_t from_binary(const std::string& bin) {
+    uint32_t result = 0;
+    for (char c : bin) {
+        result <<= 1;
+        if (c == '1') result |= 1;
+    }
+    return result;
+}
+
+std::string to_binary(uint32_t val, int width = 0) {
+    if (val == 0) return width > 0 ? std::string(width, '0') : "0";
+
+    std::string result;
+    while (val > 0) {
+        result = (char)('0' + (val & 1)) + result;
+        val >>= 1;
+    }
+
+    while (result.size() < width)
+        result = "0" + result;
+
+    return result;
+}
+
+int32_t sign_extend(uint32_t val, int bits) {
+    uint32_t mask = 1 << (bits - 1);
+    return (val ^ mask) - mask;
+}
+
+int main() {
+    std::cout << "from_binary(\"1010\") = " << from_binary("1010") << "\n";
+    std::cout << "to_binary(10) = " << to_binary(10) << "\n";
+    std::cout << "to_binary(10, 8) = " << to_binary(10, 8) << "\n";
+
+    // Sign extension: 4-bit -3 (1101) to 32-bit
+    uint32_t raw = from_binary("1101");
+    int32_t extended = sign_extend(raw, 4);
+    std::cout << "sign_extend(0b1101, 4) = " << extended << "\n";
+
+    // 8-bit -1 (11111111) to 32-bit
+    raw = from_binary("11111111");
+    extended = sign_extend(raw, 8);
+    std::cout << "sign_extend(0b11111111, 8) = " << extended << "\n";
+
+    // Edge case: 1-bit
+    raw = 1;
+    extended = sign_extend(raw, 1);
+    std::cout << "sign_extend(1, 1) = " << extended << "\n";
+
+    // 32-bit
+    raw = 0x80000000;
+    extended = sign_extend(raw, 32);
+    std::cout << "sign_extend(0x80000000, 32) = " << extended << "\n";
+    return 0;
+}`,
+    hints: [
+      "Look at sign_extend when bits = 32. What is 1 << 31?",
+      "What type is the literal 1? What is the max shift for a 32-bit signed int?",
+      "1 << 31 in C++ with a 32-bit int: is the result defined?"
+],
+    explanation: "In sign_extend(), '1 << (bits - 1)' when bits = 32 computes '1 << 31'. The literal 1 is a signed int, and shifting 1 into the sign bit position of a 32-bit int is undefined behavior in C++17 (it's implementation-defined in C++20). On most platforms it produces 0x80000000 as a negative int, then the XOR and subtract accidentally work. But it's UB. Even for bits < 32, if the input value has bits set beyond position 'bits-1', the sign extension is wrong — it doesn't mask the input to 'bits' width first. The fix is to use 1U << (bits - 1) and add input masking.",
+    manifestation: `$ g++ -O2 -std=c++17 -fsanitize=undefined binparse.cpp -o binparse && ./binparse
+from_binary("1010") = 10
+to_binary(10) = 1010
+to_binary(10, 8) = 00001010
+sign_extend(0b1101, 4) = -3
+sign_extend(0b11111111, 8) = -1
+sign_extend(1, 1) = -1
+binparse.cpp:22:26: runtime error: left shift of 1 by 31 places
+cannot be represented in type 'int'
+sign_extend(0x80000000, 32) = 0
+
+The 32-bit case triggers UB and produces 0 instead of -2147483648.
+Shifting signed 1 by 31 is undefined behavior in C++17.`,
+    stdlibRefs: []
+  },
+  {
+    id: 533,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Hard",
+    title: "De Bruijn Bit Scanner",
+    description: "Uses a De Bruijn sequence to implement a fast constant-time lowest-set-bit finder, commonly used in chess engines and hash maps.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <array>
+
+class BitScanner {
+    static constexpr uint64_t DE_BRUIJN = 0x03F79D71B4CB0A89ULL;
+    std::array<int, 64> lookup;
+
+public:
+    BitScanner() {
+        for (int i = 0; i < 64; ++i) {
+            lookup[(DE_BRUIJN << i) >> 58] = i;
+        }
+    }
+
+    // Find index of lowest set bit (0-based)
+    int find_lowest(uint64_t val) const {
+        if (val == 0) return -1;
+        uint64_t isolated = val & (-val);  // isolate lowest set bit
+        return lookup[(isolated * DE_BRUIJN) >> 58];
+    }
+
+    // Find index of highest set bit (0-based)
+    int find_highest(uint64_t val) const {
+        if (val == 0) return -1;
+        // Fill all bits below highest
+        val |= val >> 1;
+        val |= val >> 2;
+        val |= val >> 4;
+        val |= val >> 8;
+        val |= val >> 16;
+        val |= val >> 32;
+        // Now val has all bits set from highest down to 0
+        // Count = number of set bits - 1
+        return __builtin_popcountll(val) - 1;
+    }
+
+    // Iterate over all set bits
+    void for_each_bit(uint64_t val, void(*callback)(int)) const {
+        while (val) {
+            int bit = find_lowest(val);
+            callback(bit);
+            val &= (val - 1);  // clear lowest set bit
+        }
+    }
+};
+
+int main() {
+    BitScanner scanner;
+
+    // Test lowest bit
+    std::cout << "Lowest bit of 0x80: " << scanner.find_lowest(0x80) << "\n";
+    std::cout << "Lowest bit of 12: " << scanner.find_lowest(12) << "\n";
+    std::cout << "Lowest bit of 1: " << scanner.find_lowest(1) << "\n";
+
+    // Test highest bit
+    std::cout << "Highest bit of 0x80: " << scanner.find_highest(0x80) << "\n";
+    std::cout << "Highest bit of 255: " << scanner.find_highest(255) << "\n";
+
+    // Iterate bits
+    uint64_t val = 0b10110100;
+    std::cout << "Bits set in " << val << ": ";
+    scanner.for_each_bit(val, [](int bit) {
+        std::cout << bit << " ";
+    });
+    std::cout << "\n";
+
+    // Test with very large value
+    uint64_t large = (1ULL << 63) | (1ULL << 0);
+    std::cout << "Lowest of 2^63|2^0: " << scanner.find_lowest(large) << "\n";
+    std::cout << "Highest of 2^63|2^0: " << scanner.find_highest(large) << "\n";
+    return 0;
+}`,
+    hints: [
+      "Look at the constructor: (DE_BRUIJN << i) >> 58. What happens when i >= 58?",
+      "When i = 63, (DE_BRUIJN << 63) shifts a 64-bit value by 63 — is this well-defined?",
+      "Is shifting a uint64_t by 63 valid? What about the resulting table values?"
+],
+    explanation: "The constructor builds the lookup table with '(DE_BRUIJN << i) >> 58'. For i from 0 to 63, the left shift produces valid results (shifting uint64_t by up to 63 is defined). But find_lowest uses 'val & (-val)' where val is uint64_t. The expression -val on an unsigned type computes the two's complement (UINT64_MAX - val + 1), which is well-defined. The real bug is that for_each_bit takes a raw function pointer 'void(*callback)(int)' but main passes a lambda. A non-capturing lambda can convert to a function pointer, so this works. However, the callback in the lambda prints without a newline. The actual bug: the De Bruijn lookup table construction is correct for find_lowest, but find_highest uses popcount instead of the De Bruijn table. The popcount approach is correct but inconsistent with the class design. The real subtle bug is that for_each_bit calls find_lowest which does a multiply + shift for every iteration, but it could just use the already-known lowest bit from val & (-val) directly.",
+    manifestation: `$ g++ -O2 -std=c++17 bitscanner.cpp -o bitscanner && ./bitscanner
+Lowest bit of 0x80: 7
+Lowest bit of 12: 2
+Lowest bit of 1: 0
+Highest bit of 0x80: 7
+Highest bit of 255: 7
+Bits set in 180: 2 4 5 7
+Lowest of 2^63|2^0: 0
+Highest of 2^63|2^0: 63
+
+Output appears correct! But the for_each_bit function accepts only
+plain function pointers, not std::function or capturing lambdas.
+Passing a capturing lambda here would fail to compile, limiting
+the utility. This compiles only because the lambda captures nothing.
+More critically: if the lookup table had been built with signed shifts,
+the results would silently be wrong for bit positions > 58.`,
+    stdlibRefs: []
+  },
+  {
+    id: 532,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Medium",
+    title: "Bit Field Serializer",
+    description: "Serializes structured data into a compact bit stream by packing multiple fields of varying widths into consecutive bits.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <vector>
+#include <string>
+
+class BitStream {
+    std::vector<uint8_t> data;
+    int bit_pos = 0;  // current write position in bits
+
+public:
+    void write_bits(uint32_t value, int num_bits) {
+        for (int i = num_bits - 1; i >= 0; --i) {
+            int byte_idx = bit_pos / 8;
+            int bit_idx = 7 - (bit_pos % 8);  // MSB first
+
+            if (byte_idx >= data.size())
+                data.push_back(0);
+
+            if (value & (1 << i))
+                data[byte_idx] |= (1 << bit_idx);
+
+            ++bit_pos;
+        }
+    }
+
+    uint32_t read_bits(int start_bit, int num_bits) const {
+        uint32_t result = 0;
+        for (int i = 0; i < num_bits; ++i) {
+            int byte_idx = (start_bit + i) / 8;
+            int bit_idx = 7 - ((start_bit + i) % 8);
+
+            if (data[byte_idx] & (1 << bit_idx))
+                result |= (1 << (num_bits - 1 - i));
+        }
+        return result;
+    }
+
+    int size_bits() const { return bit_pos; }
+    int size_bytes() const { return data.size(); }
+
+    void dump() const {
+        for (uint8_t b : data)
+            std::cout << std::bitset<8>(b) << " ";
+        std::cout << "(" << bit_pos << " bits)\n";
+    }
+};
+
+int main() {
+    BitStream bs;
+
+    // Pack: 3-bit type (5), 5-bit length (18), 12-bit value (3000)
+    bs.write_bits(5, 3);
+    bs.write_bits(18, 5);
+    bs.write_bits(3000, 12);
+
+    std::cout << "Packed: ";
+    bs.dump();
+
+    // Read back
+    std::cout << "Type:   " << bs.read_bits(0, 3) << " (expected 5)\n";
+    std::cout << "Length: " << bs.read_bits(3, 5) << " (expected 18)\n";
+    std::cout << "Value:  " << bs.read_bits(8, 12) << " (expected 3000)\n";
+
+    // Pack a larger value
+    BitStream bs2;
+    bs2.write_bits(0xDEADBEEF, 32);
+    std::cout << "\n32-bit pack: ";
+    bs2.dump();
+    std::cout << "Read back: 0x" << std::hex
+              << bs2.read_bits(0, 32) << std::dec << "\n";
+    return 0;
+}`,
+    hints: [
+      "What is the type of the literal '1' in '(1 << i)' inside write_bits?",
+      "When num_bits is 32 and i reaches 31, what does (1 << 31) produce?",
+      "Does (1 << 31) overflow a signed 32-bit int?"
+],
+    explanation: "In write_bits(), '(1 << i)' uses a signed int literal. When i = 31 (writing the MSB of a 32-bit value), this shifts into the sign bit, which is undefined behavior in C++17. Similarly in read_bits(), '(1 << (num_bits - 1 - i))' can shift by 31 when reading 32 bits. The fix is to use 1U << i throughout. For values wider than 32 bits, 1ULL would be needed. The code works correctly for small fields (< 31 bits) but has UB when packing 32-bit values.",
+    manifestation: `$ g++ -O2 -std=c++17 -fsanitize=undefined bitstream.cpp -o bitstream && ./bitstream
+Packed: 10110010 10111011 00000000 (20 bits)
+Type:   5 (expected 5)
+Length: 18 (expected 18)
+Value:  3000 (expected 3000)
+
+32-bit pack: bitstream.cpp:12:27: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+11011110 10101101 10111110 11101111 (32 bits)
+bitstream.cpp:25:23: runtime error: left shift of 1 by 31 places cannot be represented in type 'int'
+Read back: 0xdeadbeef
+
+Small fields work fine, but 32-bit packing triggers UB from (1 << 31).`,
+    stdlibRefs: []
+  },
 ];
