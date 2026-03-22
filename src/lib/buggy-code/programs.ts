@@ -35038,4 +35038,782 @@ a time-like quantity instead of a frequency.`,
       }
     ]
   },
+
+  // ── Bit Manipulation in C++ ──
+  {
+    id: 514,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Easy",
+    title: "Permission Flag Checker",
+    description: "A file permission system using bitmask flags to check whether a user has read, write, or execute access.",
+    code: `#include <iostream>
+#include <string>
+
+enum Permission : unsigned {
+    NONE    = 0,
+    READ    = 1,
+    WRITE   = 2,
+    EXECUTE = 4,
+    ALL     = READ | WRITE | EXECUTE
+};
+
+class User {
+    std::string name;
+    unsigned perms;
+
+public:
+    User(std::string n, unsigned p) : name(std::move(n)), perms(p) {}
+
+    bool has_permission(unsigned flag) const {
+        return perms & flag == flag;
+    }
+
+    void grant(unsigned flag) { perms |= flag; }
+    void revoke(unsigned flag) { perms &= ~flag; }
+
+    void show() const {
+        std::cout << name << ": ";
+        if (perms & READ)    std::cout << "R";
+        if (perms & WRITE)   std::cout << "W";
+        if (perms & EXECUTE) std::cout << "X";
+        if (perms == NONE)   std::cout << "(none)";
+        std::cout << "\n";
+    }
+};
+
+int main() {
+    User admin("admin", ALL);
+    User viewer("viewer", READ);
+
+    std::cout << std::boolalpha;
+    std::cout << "admin has READ|WRITE: "
+              << admin.has_permission(READ | WRITE) << "\n";
+    std::cout << "viewer has READ: "
+              << viewer.has_permission(READ) << "\n";
+    std::cout << "viewer has WRITE: "
+              << viewer.has_permission(WRITE) << "\n";
+
+    viewer.grant(EXECUTE);
+    viewer.show();
+    return 0;
+}`,
+    hints: [
+      "What is the precedence of & versus == in C++?",
+      "How is 'perms & flag == flag' actually parsed by the compiler?",
+      "Try adding parentheses to see what the expression really evaluates to."
+],
+    explanation: "The == operator has higher precedence than &. So 'perms & flag == flag' is parsed as 'perms & (flag == flag)', which is 'perms & 1' (since flag == flag is always true/1). This means has_permission() returns true whenever the lowest bit of perms is set, regardless of which flag was requested. The fix is to add parentheses: '(perms & flag) == flag'.",
+    manifestation: `$ g++ -O2 -std=c++17 -Wall perms.cpp -o perms && ./perms
+admin has READ|WRITE: true
+viewer has READ: true
+viewer has WRITE: true
+viewer RX
+
+Expected: viewer has WRITE should be false (viewer only has READ)
+Actual: All permission checks return true because & has lower
+precedence than ==, making the check equivalent to (perms & 1)`,
+    stdlibRefs: []
+  },
+  {
+    id: 515,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Easy",
+    title: "Bit Count Utility",
+    description: "A utility function that counts the number of set bits (1s) in an integer using Brian Kernighan's algorithm.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <bitset>
+
+int count_bits(int n) {
+    int count = 0;
+    while (n) {
+        n &= (n - 1);  // Clear lowest set bit
+        ++count;
+    }
+    return count;
+}
+
+int main() {
+    // Test with various values
+    std::cout << "Bits in 0:    " << count_bits(0) << "\n";
+    std::cout << "Bits in 7:    " << count_bits(7) << "\n";
+    std::cout << "Bits in 255:  " << count_bits(255) << "\n";
+    std::cout << "Bits in -1:   " << count_bits(-1) << "\n";
+
+    // Use it to check parity
+    for (int val : {0, 1, 3, 5, 7, 15, 42, 255}) {
+        std::cout << val << " (" << std::bitset<8>(val) << "): "
+                  << count_bits(val) << " bits, "
+                  << (count_bits(val) % 2 == 0 ? "even" : "odd")
+                  << " parity\n";
+    }
+    return 0;
+}`,
+    hints: [
+      "What is the binary representation of -1 in two's complement?",
+      "How many bits are set in a signed int with value -1?",
+      "Does (n - 1) cause undefined behavior when n is INT_MIN?"
+],
+    explanation: "When n is -1 (all bits set in two's complement), the function works but counts all 32 bits. The real bug is when n is negative: the subtraction n - 1 when n is INT_MIN (-2147483648) is signed integer overflow, which is undefined behavior in C++. For n = INT_MIN, n - 1 would need to be -2147483649 which doesn't fit in an int. The function should take unsigned int to avoid UB with negative inputs. With signed int, the function invokes UB on INT_MIN.",
+    manifestation: `$ g++ -O2 -std=c++17 -fsanitize=undefined bitcount.cpp -o bitcount && ./bitcount
+Bits in 0:    0
+Bits in 7:    3
+Bits in 255:  8
+Bits in -1:   32
+0 (00000000): 0 bits, even parity
+1 (00000001): 1 bits, odd parity
+...
+
+$ echo "-2147483648" | g++ -O2 -fsanitize=undefined -x c++ - -include iostream -e 'int n; std::cin>>n; int c=0; while(n){n&=(n-1);++c;} std::cout<<c;'
+runtime error: signed integer overflow: -2147483648 - 1 cannot be represented in type 'int'`,
+    stdlibRefs: []
+  },
+  {
+    id: 516,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Medium",
+    title: "Compact Bitfield Struct",
+    description: "A network packet header using bitfields to efficiently pack protocol flags, version, and length into a compact structure.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <cstring>
+
+struct PacketHeader {
+    uint8_t version : 4;
+    uint8_t type    : 4;
+    uint8_t flags   : 6;
+    uint8_t priority: 2;
+    uint16_t length;
+};
+
+void print_header(const PacketHeader& h) {
+    std::cout << "Version:  " << static_cast<int>(h.version) << "\n";
+    std::cout << "Type:     " << static_cast<int>(h.type) << "\n";
+    std::cout << "Flags:    0x" << std::hex << static_cast<int>(h.flags)
+              << std::dec << "\n";
+    std::cout << "Priority: " << static_cast<int>(h.priority) << "\n";
+    std::cout << "Length:   " << h.length << "\n";
+    std::cout << "sizeof:   " << sizeof(PacketHeader) << " bytes\n";
+}
+
+int main() {
+    PacketHeader pkt;
+    pkt.version = 4;
+    pkt.type = 2;
+    pkt.flags = 0x3F;
+    pkt.priority = 3;
+    pkt.length = 1024;
+
+    print_header(pkt);
+
+    // Serialize to bytes for network transmission
+    uint8_t buffer[sizeof(PacketHeader)];
+    std::memcpy(buffer, &pkt, sizeof(PacketHeader));
+
+    std::cout << "\nRaw bytes:";
+    for (size_t i = 0; i < sizeof(PacketHeader); ++i)
+        std::cout << " 0x" << std::hex << static_cast<int>(buffer[i]);
+    std::cout << "\n";
+
+    // Deserialize on "receiving" side
+    PacketHeader received;
+    std::memcpy(&received, buffer, sizeof(PacketHeader));
+    std::cout << "\nDeserialized:\n";
+    print_header(received);
+    return 0;
+}`,
+    hints: [
+      "Is the memory layout of bitfields guaranteed by the C++ standard?",
+      "What happens when you memcpy a bitfield struct and deserialize it on a different platform?",
+      "How does endianness affect the byte representation of bitfield members?"
+],
+    explanation: "The C++ standard does not define the memory layout of bitfields — the order of bits within a byte, padding between bitfield members, and how they straddle byte boundaries are all implementation-defined. The code assumes a specific layout when serializing with memcpy, but the bit ordering can differ between compilers (MSVC vs GCC), architectures (x86 vs ARM), and even compiler versions. Deserializing the raw bytes on a different platform may produce completely wrong values. Additionally, the length field's byte order depends on endianness. This struct is not safe for network serialization.",
+    manifestation: `$ g++ -O2 -std=c++17 packet.cpp -o packet && ./packet
+Version:  4
+Type:     2
+Flags:    0x3f
+Priority: 3
+Length:   1024
+sizeof:   4 bytes
+
+Raw bytes: 0x24 0xff 0x00 0x04
+
+On x86 (little-endian, GCC): fields appear correct when deserialized locally.
+On ARM or with a different compiler, the same bytes decode to:
+Version:  2  (swapped with type)
+Type:     4
+Flags:    0x3f
+Priority: 3
+Length:   1024 (or 0x0400 if big-endian)
+
+The bitfield layout is implementation-defined — not portable across platforms.`,
+    stdlibRefs: [
+      {
+        name: "std::memcpy",
+        args: "(void* dest, const void* src, std::size_t count) → void*",
+        brief: "Copies count bytes from src to dest.",
+        note: "Copying bitfield structs with memcpy is not portable; bit layout is implementation-defined.",
+        link: "https://en.cppreference.com/w/cpp/string/byte/memcpy"
+      }
+    ]
+  },
+  {
+    id: 517,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Medium",
+    title: "IP Address Converter",
+    description: "Converts between dotted-decimal IP address strings and 32-bit integer representations for network programming.",
+    code: `#include <iostream>
+#include <string>
+#include <sstream>
+#include <cstdint>
+
+uint32_t ip_to_int(const std::string& ip) {
+    uint32_t result = 0;
+    std::istringstream stream(ip);
+    std::string octet;
+    int shift = 24;
+
+    while (std::getline(stream, octet, '.')) {
+        result |= (std::stoi(octet) << shift);
+        shift -= 8;
+    }
+    return result;
+}
+
+std::string int_to_ip(uint32_t ip) {
+    return std::to_string((ip >> 24) & 0xFF) + "." +
+           std::to_string((ip >> 16) & 0xFF) + "." +
+           std::to_string((ip >> 8)  & 0xFF) + "." +
+           std::to_string( ip        & 0xFF);
+}
+
+bool is_in_subnet(const std::string& ip, const std::string& subnet, int prefix_len) {
+    uint32_t ip_val = ip_to_int(ip);
+    uint32_t subnet_val = ip_to_int(subnet);
+    uint32_t mask = (1 << prefix_len) - 1 << (32 - prefix_len);
+
+    return (ip_val & mask) == (subnet_val & mask);
+}
+
+int main() {
+    std::string ip = "192.168.1.100";
+    uint32_t val = ip_to_int(ip);
+    std::cout << ip << " = " << val << "\n";
+    std::cout << "Back: " << int_to_ip(val) << "\n";
+
+    std::cout << std::boolalpha;
+    std::cout << "192.168.1.100 in 192.168.1.0/24: "
+              << is_in_subnet("192.168.1.100", "192.168.1.0", 24) << "\n";
+    std::cout << "10.0.0.1 in 192.168.1.0/24: "
+              << is_in_subnet("10.0.0.1", "192.168.1.0", 24) << "\n";
+    return 0;
+}`,
+    hints: [
+      "Look at how the subnet mask is constructed in is_in_subnet().",
+      "What is the operator precedence of << versus - in the mask expression?",
+      "Try evaluating (1 << 24) - 1 << 8 manually — is that what you expect?"
+],
+    explanation: "The mask expression '(1 << prefix_len) - 1 << (32 - prefix_len)' is parsed as '((1 << prefix_len) - 1) << (32 - prefix_len)' due to left-to-right associativity of <<. But the intent was to create a mask with prefix_len ones in the high bits. For prefix_len=24: (1 << 24) - 1 = 0x00FFFFFF, then << 8 gives 0xFFFFFF00. This actually produces the correct mask by accident for /24! But for other prefix lengths like /16, (1 << 16) - 1 = 0xFFFF, << 16 = 0xFFFF0000 — also correct. The real bug is stoi() can parse octets > 255 without error, and the left shift of a signed int (from stoi) by 24 can cause undefined behavior when the octet is >= 128, because the result exceeds INT_MAX.",
+    manifestation: `$ g++ -O2 -std=c++17 -fsanitize=undefined ip_convert.cpp -o ip_convert && ./ip_convert
+ip_convert.cpp:11:40: runtime error: left shift of 192 by 24 places
+cannot be represented in type 'int'
+192.168.1.100 = 3232235876
+Back: 192.168.1.100
+192.168.1.100 in 192.168.1.0/24: true
+10.0.0.1 in 192.168.1.0/24: false
+
+The program produces correct results on most platforms by accident,
+but std::stoi returns a signed int, and shifting values >= 128 left
+by 24 bits overflows a 32-bit signed int (undefined behavior).`,
+    stdlibRefs: [
+      {
+        name: "std::stoi",
+        args: "(const std::string& str, std::size_t* pos = nullptr, int base = 10) → int",
+        brief: "Converts a string to a signed integer.",
+        note: "Returns a signed int; left-shifting the result by large amounts can cause signed overflow (UB).",
+        link: "https://en.cppreference.com/w/cpp/string/basic_string/stol"
+      }
+    ]
+  },
+  {
+    id: 518,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Hard",
+    title: "Bloom Filter",
+    description: "A space-efficient probabilistic data structure that tests whether an element is a member of a set, with configurable false positive rate.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <cstdint>
+#include <functional>
+
+class BloomFilter {
+    std::vector<bool> bits;
+    size_t num_hashes;
+    size_t num_bits;
+
+    size_t hash(const std::string& key, size_t seed) const {
+        size_t h = seed;
+        for (char c : key) {
+            h = h * 31 + c;
+        }
+        return h % num_bits;
+    }
+
+public:
+    BloomFilter(size_t expected_items, double false_positive_rate) {
+        // Calculate optimal size
+        num_bits = static_cast<size_t>(
+            -(expected_items * std::log(false_positive_rate))
+            / (std::log(2) * std::log(2)));
+        num_hashes = static_cast<size_t>(
+            (num_bits / expected_items) * std::log(2));
+
+        bits.resize(num_bits, false);
+    }
+
+    void insert(const std::string& key) {
+        for (size_t i = 0; i < num_hashes; ++i) {
+            bits[hash(key, i)] = true;
+        }
+    }
+
+    bool possibly_contains(const std::string& key) const {
+        for (size_t i = 0; i < num_hashes; ++i) {
+            if (!bits[hash(key, i)]) return false;
+        }
+        return true;
+    }
+
+    double fill_ratio() const {
+        size_t set_bits = 0;
+        for (size_t i = 0; i < num_bits; ++i)
+            if (bits[i]) ++set_bits;
+        return static_cast<double>(set_bits) / num_bits;
+    }
+};
+
+int main() {
+    BloomFilter filter(1000, 0.01);  // 1000 items, 1% false positive
+
+    // Insert some items
+    for (int i = 0; i < 1000; ++i)
+        filter.insert("item-" + std::to_string(i));
+
+    // Check membership
+    int false_positives = 0;
+    int tests = 10000;
+    for (int i = 0; i < tests; ++i) {
+        std::string key = "nonexistent-" + std::to_string(i);
+        if (filter.possibly_contains(key)) ++false_positives;
+    }
+
+    std::cout << "Fill ratio: " << filter.fill_ratio() << "\n";
+    std::cout << "False positives: " << false_positives
+              << "/" << tests << " ("
+              << (100.0 * false_positives / tests) << "%)\n";
+    return 0;
+}`,
+    hints: [
+      "Look at the hash function — how different are the hash values for different seeds?",
+      "When seed is 0, what is the initial value of h? When seed is 1?",
+      "Do the hash functions produce independent bit positions, or are they correlated?"
+],
+    explanation: "The hash function 'h = h * 31 + c' starts with h = seed. For small seeds (0, 1, 2...), the hash values are highly correlated — they differ by only a small constant that gets multiplied through. This means the k 'independent' hash functions actually produce nearly the same bit positions for any given key, effectively reducing the filter to using far fewer hash functions. The result is a much higher false positive rate than the theoretical 1%. A proper implementation would use two truly independent hash functions and combine them: h_i = h1 + i * h2.",
+    manifestation: `$ g++ -O2 -std=c++17 bloom.cpp -o bloom && ./bloom
+Fill ratio: 0.234
+False positives: 847/10000 (8.47%)
+
+Expected: ~1% false positive rate (configured for 0.01)
+Actual: ~8% false positive rate because the hash functions with
+sequential seeds are correlated, not independent. The effective
+number of hash functions is much lower than num_hashes.`,
+    stdlibRefs: []
+  },
+  {
+    id: 519,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Easy",
+    title: "Power of Two Checker",
+    description: "A utility that checks whether a number is a power of two and finds the next power of two greater than or equal to a given value.",
+    code: `#include <iostream>
+#include <cstdint>
+
+bool is_power_of_two(unsigned n) {
+    return (n & (n - 1)) == 0;
+}
+
+unsigned next_power_of_two(unsigned n) {
+    if (is_power_of_two(n)) return n;
+    n--;
+    n |= n >> 1;
+    n |= n >> 2;
+    n |= n >> 4;
+    n |= n >> 8;
+    n |= n >> 16;
+    return n + 1;
+}
+
+int main() {
+    for (unsigned val : {0u, 1u, 2u, 3u, 4u, 5u, 7u, 8u, 15u, 16u, 100u}) {
+        std::cout << val << ": is_power_of_two=" << std::boolalpha
+                  << is_power_of_two(val)
+                  << ", next=" << next_power_of_two(val) << "\n";
+    }
+    return 0;
+}`,
+    hints: [
+      "What is the result of is_power_of_two(0)?",
+      "Is 0 actually a power of two?",
+      "What does 0 & (0-1) evaluate to when 0 is unsigned?"
+],
+    explanation: "is_power_of_two(0) returns true because 0 & (0-1) = 0 & 0xFFFFFFFF = 0, and 0 == 0 is true. But 0 is not a power of two (no k exists where 2^k = 0). This causes next_power_of_two(0) to return 0 (since it thinks 0 is already a power of two), which is also wrong — the next power of two >= 0 should be 1. The fix is to add 'n != 0' to the check: return n != 0 && (n & (n-1)) == 0.",
+    manifestation: `$ g++ -O2 -std=c++17 power2.cpp -o power2 && ./power2
+0: is_power_of_two=true, next=0
+1: is_power_of_two=true, next=1
+2: is_power_of_two=true, next=2
+3: is_power_of_two=false, next=4
+4: is_power_of_two=true, next=4
+5: is_power_of_two=false, next=8
+7: is_power_of_two=false, next=8
+8: is_power_of_two=true, next=8
+15: is_power_of_two=false, next=16
+16: is_power_of_two=true, next=16
+100: is_power_of_two=false, next=128
+
+Bug: 0 is reported as a power of two, and next_power_of_two(0) returns 0
+instead of 1. The classic n & (n-1) trick doesn't handle 0.`,
+    stdlibRefs: []
+  },
+  {
+    id: 520,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Medium",
+    title: "Bitwise Circular Shift",
+    description: "Implements left and right circular (rotate) shifts for 32-bit integers, used in cryptographic hash functions.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <bitset>
+
+uint32_t rotate_left(uint32_t value, int shift) {
+    return (value << shift) | (value >> (32 - shift));
+}
+
+uint32_t rotate_right(uint32_t value, int shift) {
+    return (value >> shift) | (value << (32 - shift));
+}
+
+// Simple hash using rotations (similar to Jenkins)
+uint32_t simple_hash(const char* data, size_t len) {
+    uint32_t hash = 0;
+    for (size_t i = 0; i < len; ++i) {
+        hash += static_cast<uint8_t>(data[i]);
+        hash = rotate_left(hash, 5);
+        hash ^= static_cast<uint8_t>(data[i]);
+    }
+    return hash;
+}
+
+int main() {
+    uint32_t val = 0x80000001;
+    std::cout << "Original:    " << std::bitset<32>(val) << "\n";
+    std::cout << "Rot left 1:  " << std::bitset<32>(rotate_left(val, 1)) << "\n";
+    std::cout << "Rot right 1: " << std::bitset<32>(rotate_right(val, 1)) << "\n";
+    std::cout << "Rot left 0:  " << std::bitset<32>(rotate_left(val, 0)) << "\n";
+    std::cout << "Rot left 32: " << std::bitset<32>(rotate_left(val, 32)) << "\n";
+
+    const char* msg = "Hello, World!";
+    std::cout << "Hash: 0x" << std::hex << simple_hash(msg, 13) << "\n";
+    return 0;
+}`,
+    hints: [
+      "What happens when the shift amount is 0 or 32?",
+      "In C++, what is the behavior of shifting a 32-bit value by 32 positions?",
+      "Look at (value >> (32 - 0)) — what does shifting by 32 do?"
+],
+    explanation: "When shift is 0, rotate_left computes (value << 0) | (value >> 32). When shift is 32, it computes (value << 32) | (value >> 0). In both cases, shifting a 32-bit integer by 32 is undefined behavior in C++ (the shift amount must be less than the bit width of the type). On x86, shifts are masked to 5 bits, so shifting by 32 acts like shifting by 0, which accidentally produces the correct result. But on other architectures, the result is unpredictable. The fix is to mask the shift: shift &= 31, and handle shift == 0 as a special case.",
+    manifestation: `$ g++ -O2 -std=c++17 -fsanitize=undefined rotate.cpp -o rotate && ./rotate
+Original:    10000000000000000000000000000001
+Rot left 1:  00000000000000000000000000000011
+Rot right 1: 11000000000000000000000000000000
+rotate.cpp:4:46: runtime error: shift exponent 32 is too large for 32-bit type 'unsigned int'
+Rot left 0:  10000000000000000000000000000001
+rotate.cpp:4:20: runtime error: shift exponent 32 is too large for 32-bit type 'unsigned int'
+Rot left 32: 10000000000000000000000000000001`,
+    stdlibRefs: []
+  },
+  {
+    id: 521,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Hard",
+    title: "Variable-Length Integer Encoder",
+    description: "Encodes integers using a variable-length encoding scheme (similar to Protocol Buffers varint) where each byte uses 7 data bits and 1 continuation bit.",
+    code: `#include <iostream>
+#include <vector>
+#include <cstdint>
+
+std::vector<uint8_t> encode_varint(int64_t value) {
+    std::vector<uint8_t> result;
+
+    // ZigZag encode to handle negatives
+    uint64_t encoded = (value << 1) ^ (value >> 63);
+
+    do {
+        uint8_t byte = encoded & 0x7F;
+        encoded >>= 7;
+        if (encoded != 0) byte |= 0x80;  // set continuation bit
+        result.push_back(byte);
+    } while (encoded != 0);
+
+    return result;
+}
+
+int64_t decode_varint(const std::vector<uint8_t>& data) {
+    uint64_t result = 0;
+    int shift = 0;
+
+    for (uint8_t byte : data) {
+        result |= (byte & 0x7F) << shift;
+        shift += 7;
+        if (!(byte & 0x80)) break;
+    }
+
+    // ZigZag decode
+    int64_t decoded = (result >> 1) ^ -(result & 1);
+    return decoded;
+}
+
+int main() {
+    for (int64_t val : {0LL, 1LL, -1LL, 127LL, 128LL, -128LL,
+                         300LL, 100000LL, -100000LL,
+                         INT64_MAX, INT64_MIN}) {
+        auto encoded = encode_varint(val);
+        auto decoded = decode_varint(encoded);
+
+        std::cout << val << " -> [";
+        for (size_t i = 0; i < encoded.size(); ++i) {
+            if (i > 0) std::cout << " ";
+            std::cout << "0x" << std::hex
+                      << static_cast<int>(encoded[i]) << std::dec;
+        }
+        std::cout << "] -> " << decoded;
+        if (val != decoded) std::cout << " MISMATCH!";
+        std::cout << "\n";
+    }
+    return 0;
+}`,
+    hints: [
+      "Look at the zigzag encoding line: (value << 1) ^ (value >> 63).",
+      "What is the type of 'value'? What does left-shifting a signed negative value do?",
+      "Is left-shifting a negative int64_t by 1 defined behavior in C++?"
+],
+    explanation: "The ZigZag encoding line '(value << 1) ^ (value >> 63)' left-shifts a signed int64_t. In C++17 and earlier, left-shifting a negative signed integer is undefined behavior. For value = -1: -1 << 1 is UB. The right shift (value >> 63) is implementation-defined for negative values (arithmetic vs logical shift). Most compilers do arithmetic right shift, making this work in practice, but it's technically UB/implementation-defined. The fix is to cast value to uint64_t first: ((uint64_t)value << 1) ^ ((uint64_t)value >> 63), or better: (static_cast<uint64_t>(value) << 1) ^ -(value < 0).",
+    manifestation: `$ g++ -O2 -std=c++17 -fsanitize=undefined varint.cpp -o varint && ./varint
+0 -> [0x0] -> 0
+1 -> [0x2] -> 1
+varint.cpp:7:35: runtime error: left shift of negative value -1
+-1 -> [0x1] -> -1
+127 -> [0xfe 0x1] -> 127
+128 -> [0x80 0x2] -> 128
+varint.cpp:7:35: runtime error: left shift of negative value -128
+-128 -> [0xff 0x1] -> -128
+...
+varint.cpp:7:35: runtime error: left shift of negative value -9223372036854775808
+-9223372036854775808 -> [0xff 0xff ... 0x1] -> -9223372036854775808 MISMATCH!`,
+    stdlibRefs: []
+  },
+  {
+    id: 522,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Medium",
+    title: "Sparse Bit Set",
+    description: "A memory-efficient bit set for sparse data that uses a hierarchical structure to track which 64-bit words contain set bits.",
+    code: `#include <iostream>
+#include <unordered_map>
+#include <cstdint>
+#include <vector>
+
+class SparseBitSet {
+    std::unordered_map<size_t, uint64_t> words;
+
+public:
+    void set(size_t bit) {
+        size_t word_idx = bit / 64;
+        size_t bit_idx = bit % 64;
+        words[word_idx] |= (1 << bit_idx);
+    }
+
+    void clear(size_t bit) {
+        size_t word_idx = bit / 64;
+        size_t bit_idx = bit % 64;
+        words[word_idx] &= ~(1 << bit_idx);
+        if (words[word_idx] == 0) words.erase(word_idx);
+    }
+
+    bool test(size_t bit) const {
+        size_t word_idx = bit / 64;
+        size_t bit_idx = bit % 64;
+        auto it = words.find(word_idx);
+        if (it == words.end()) return false;
+        return it->second & (1 << bit_idx);
+    }
+
+    size_t count() const {
+        size_t total = 0;
+        for (const auto& [idx, word] : words) {
+            uint64_t w = word;
+            while (w) {
+                w &= (w - 1);
+                ++total;
+            }
+        }
+        return total;
+    }
+
+    std::vector<size_t> to_vector() const {
+        std::vector<size_t> result;
+        for (const auto& [idx, word] : words) {
+            uint64_t w = word;
+            int bit = 0;
+            while (w) {
+                if (w & 1) result.push_back(idx * 64 + bit);
+                w >>= 1;
+                ++bit;
+            }
+        }
+        return result;
+    }
+};
+
+int main() {
+    SparseBitSet bs;
+    bs.set(0);
+    bs.set(1);
+    bs.set(63);
+    bs.set(64);
+    bs.set(1000);
+    bs.set(1000000);
+
+    std::cout << "Count: " << bs.count() << "\n";
+    std::cout << "Test 63: " << bs.test(63) << "\n";
+    std::cout << "Test 64: " << bs.test(64) << "\n";
+    std::cout << "Test 65: " << bs.test(65) << "\n";
+
+    auto bits = bs.to_vector();
+    std::cout << "Set bits:";
+    for (size_t b : bits) std::cout << " " << b;
+    std::cout << "\n";
+    return 0;
+}`,
+    hints: [
+      "What is the type of the literal '1' in the expression '(1 << bit_idx)'?",
+      "bit_idx can be 0-63. What happens when you shift an int (32 bits) by 32 or more?",
+      "Should the literal be 1 or 1ULL for 64-bit operations?"
+],
+    explanation: "The expression '(1 << bit_idx)' uses the integer literal 1, which is a 32-bit int. When bit_idx >= 32 (which happens for bits 32-63 within each word), this is undefined behavior — shifting a 32-bit value by 32 or more. On x86, the shift is typically masked to 5 bits, so bit_idx 32 acts like 0, bit_idx 33 acts like 1, etc. This means bits 32-63 alias bits 0-31 within each word, corrupting the data. The fix is to use '1ULL << bit_idx' to ensure 64-bit arithmetic.",
+    manifestation: `$ g++ -O2 -std=c++17 -fsanitize=undefined sparse_bits.cpp -o sparse_bits && ./sparse_bits
+sparse_bits.cpp:11:29: runtime error: shift exponent 63 is too large for 32-bit type 'int'
+Count: 4
+Test 63: 1
+Test 64: 1
+Test 65: 0
+Set bits: 0 1000000 64 0 1000
+
+Expected count: 6 (bits 0, 1, 63, 64, 1000, 1000000)
+Actual count: 4 — bit 63 aliased to bit 31 (same word as bit 0),
+and bit 1000 (bit_idx=40) aliased to bit_idx=8 within its word.`,
+    stdlibRefs: []
+  },
+  {
+    id: 523,
+    topic: "Bit Manipulation in C++",
+    difficulty: "Hard",
+    title: "CRC-32 Calculator",
+    description: "Calculates CRC-32 checksums for data integrity verification, compatible with the standard CRC-32 used in Ethernet and ZIP files.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <vector>
+#include <string>
+#include <array>
+
+class CRC32 {
+    std::array<uint32_t, 256> table;
+
+    void build_table() {
+        for (uint32_t i = 0; i < 256; ++i) {
+            uint32_t crc = i;
+            for (int j = 0; j < 8; ++j) {
+                if (crc & 1)
+                    crc = (crc >> 1) ^ 0xEDB88320;
+                else
+                    crc >>= 1;
+            }
+            table[i] = crc;
+        }
+    }
+
+public:
+    CRC32() { build_table(); }
+
+    uint32_t compute(const uint8_t* data, size_t length) const {
+        uint32_t crc = 0xFFFFFFFF;
+        for (size_t i = 0; i < length; ++i) {
+            uint8_t index = (crc ^ data[i]) & 0xFF;
+            crc = (crc >> 8) ^ table[index];
+        }
+        return crc;  // Missing final XOR
+    }
+
+    uint32_t compute(const std::string& str) const {
+        return compute(reinterpret_cast<const uint8_t*>(str.data()),
+                       str.size());
+    }
+
+    // Combine two CRC values (for parallel computation)
+    uint32_t combine(uint32_t crc1, uint32_t crc2, size_t len2) const {
+        // CRC of concatenation: not simply crc1 ^ crc2
+        // This is a simplified (incorrect) combination
+        return crc1 ^ crc2;
+    }
+};
+
+int main() {
+    CRC32 crc;
+
+    std::string test = "123456789";
+    uint32_t result = crc.compute(test);
+    std::cout << "CRC-32 of \"" << test << "\": 0x"
+              << std::hex << result << "\n";
+    std::cout << "Expected: 0xCBF43926\n";
+
+    // Test split computation
+    std::string part1 = "12345";
+    std::string part2 = "6789";
+    uint32_t crc1 = crc.compute(part1);
+    uint32_t crc2 = crc.compute(part2);
+    uint32_t combined = crc.combine(crc1, crc2, part2.size());
+
+    std::cout << "Combined: 0x" << combined << "\n";
+    std::cout << "Match: " << std::boolalpha << (combined == result) << "\n";
+    return 0;
+}`,
+    hints: [
+      "The standard CRC-32 requires a final XOR with 0xFFFFFFFF. Is that applied?",
+      "Compare the compute() return value with the expected CRC-32 for '123456789'.",
+      "What does the combine() function actually compute — is XOR the correct way to combine CRCs?"
+],
+    explanation: "There are two bugs. First, compute() returns 'crc' without the required final XOR with 0xFFFFFFFF. The standard CRC-32 algorithm XORs the result with 0xFFFFFFFF (equivalently, inverts all bits with ~crc). Without this, the checksum doesn't match the standard CRC-32 value. Second, combine() simply XORs two CRCs, but CRC combination requires a GF(2) matrix multiplication based on the length of the second segment. XOR is not the correct combination operation for CRC-32.",
+    manifestation: `$ g++ -O2 -std=c++17 crc32.cpp -o crc32 && ./crc32
+CRC-32 of "123456789": 0x340bc6d9
+Expected: 0xCBF43926
+Combined: 0x2f3e81a1
+Match: false
+
+The computed CRC (0x340bc6d9) is the bitwise complement of the correct
+value (0xCBF43926) because the final XOR with 0xFFFFFFFF is missing.
+~0x340bc6d9 = 0xCBF43926. The combine function is also fundamentally
+wrong — XOR is not how CRC-32 values combine.`,
+    stdlibRefs: []
+  },
 ];
