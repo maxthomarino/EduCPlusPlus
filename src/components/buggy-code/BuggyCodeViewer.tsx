@@ -423,56 +423,33 @@ function MenuView({
             </span>
           </div>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+          <div class="buggy-path-grid">
             {paths.map((path) => (
               <button
                 key={path.id}
                 onClick={() => onSelectPath(path)}
-                class="quiz-topic-card"
-                style={{ flexDirection: "column", alignItems: "stretch", gap: "0.25rem" }}
+                class="buggy-path-card"
               >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    gap: "0.4rem",
-                  }}
-                >
-                  <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
-                    <span style={{ color: "var(--accent)", flexShrink: 0, display: "flex" }}>{PathIcon}</span>
-                    <span
-                      style={{
-                        fontFamily: "var(--font-display)",
-                        fontSize: "0.84rem",
-                        fontWeight: 650,
-                        color: "var(--text-primary)",
-                        lineHeight: "1.3",
-                      }}
-                    >
-                      {path.title}
-                    </span>
-                  </div>
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2.5"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    style={{ color: "var(--text-muted)", flexShrink: 0 }}
+                <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
+                  <span style={{ color: "var(--accent)", flexShrink: 0, display: "flex" }}>{PathIcon}</span>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: "0.82rem",
+                      fontWeight: 650,
+                      color: "var(--text-primary)",
+                      lineHeight: "1.3",
+                    }}
                   >
-                    <path d="m9 18 6-6-6-6" />
-                  </svg>
+                    {path.title}
+                  </span>
                 </div>
                 <div
                   style={{
-                    fontSize: "0.76rem",
+                    fontSize: "0.74rem",
                     color: "var(--text-muted)",
-                    lineHeight: "1.4",
-                    paddingLeft: "1.85rem",
+                    lineHeight: "1.45",
+                    flex: 1,
                   }}
                 >
                   {path.description}
@@ -482,11 +459,11 @@ function MenuView({
                     display: "flex",
                     alignItems: "center",
                     gap: "0.5rem",
-                    paddingLeft: "1.85rem",
-                    fontSize: "0.68rem",
+                    fontSize: "0.66rem",
                     fontWeight: 600,
                     fontFamily: "var(--font-code)",
                     color: "var(--text-muted)",
+                    marginTop: "0.1rem",
                   }}
                 >
                   <span>{path.programIds.length} steps</span>

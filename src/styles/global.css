@@ -443,6 +443,39 @@ details[open] > summary .chevron {
 .answer-pop { animation: answer-pop 250ms ease both; }
 .score-enter { animation: score-count 350ms cubic-bezier(0.22, 0.8, 0.22, 1) both; }
 
+/* ── Learning path grid ── */
+
+.buggy-path-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.5rem;
+}
+
+@media (min-width: 540px) {
+  .buggy-path-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+}
+
+.buggy-path-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--border-soft);
+  background: var(--surface-elevated);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.buggy-path-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 35%, var(--border-soft));
+  background: color-mix(in srgb, var(--accent-soft) 12%, var(--surface-elevated));
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 6%, transparent);
+}
+
 /* ── Quiz topic selection ── */
 
 .quiz-topic-grid {
