@@ -457,6 +457,12 @@ details[open] > summary .chevron {
   }
 }
 
+@media (min-width: 860px) {
+  .buggy-path-grid {
+    grid-template-columns: 1fr 1fr 1fr;
+  }
+}
+
 .buggy-path-card {
   display: flex;
   flex-direction: column;
