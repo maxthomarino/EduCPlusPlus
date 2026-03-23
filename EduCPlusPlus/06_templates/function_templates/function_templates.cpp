@@ -17,6 +17,46 @@
  * REFERENCE:      reference/en/cpp/language/function_template
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: Why must template definitions go in header files?
+// A: The compiler needs the full template body at every call site in order
+//    to stamp out a type-specific instantiation. If the definition is in a
+//    .cpp file, other translation units see only the declaration and cannot
+//    instantiate the template, causing linker errors. The usual solution is
+//    to put definitions in headers. Alternatively, you can use explicit
+//    instantiation in a .cpp file to force specific versions to be
+//    generated there.
+//
+// Q: What is two-phase name lookup?
+// A: Template compilation happens in two phases. Phase 1 (at definition
+//    time) checks syntax and looks up names that do not depend on template
+//    parameters. Phase 2 (at instantiation time) looks up dependent names
+//    -- those that involve the template parameter T. This is why a typo in
+//    a non-dependent name is caught immediately, but an error in a
+//    dependent expression only appears when the template is instantiated.
+//
+// Q: Can template functions be virtual?
+// A: No. Virtual dispatch requires a fixed vtable determined at compile
+//    time, but each instantiation of a function template would need its
+//    own vtable slot. Since the compiler cannot predict all possible
+//    instantiations, virtual function templates are prohibited. Use
+//    type erasure (e.g., std::function, std::any) or the CRTP pattern
+//    if you need polymorphism with templates.
+//
+// Q: When should I use auto parameters vs explicit template parameters?
+// A: The abbreviated syntax void f(auto x) (C++20) is convenient for
+//    simple, unconstrained cases. Use explicit template parameters when
+//    you need to name the type (e.g., to declare a local variable of
+//    type T), when you need multiple parameters to share the same type,
+//    or when you want to apply concepts: template<std::integral T>.
+//    The abbreviated form deduces each auto independently, so
+//    f(auto a, auto b) allows different types for a and b.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <string>

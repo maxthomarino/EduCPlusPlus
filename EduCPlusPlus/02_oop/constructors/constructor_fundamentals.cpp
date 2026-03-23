@@ -24,6 +24,42 @@
  *            reference/en/cpp/language/initializer_list.html
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What is the Most Vexing Parse and how do I avoid it?
+// A: The Most Vexing Parse is a syntactic ambiguity where the compiler
+//    interprets what looks like a variable declaration as a function
+//    declaration. For example, "Widget w();" declares a function named
+//    w that returns a Widget, not a default-constructed Widget. Avoid
+//    it by using brace initialization: "Widget w{};" is unambiguous.
+//
+// Q: When should I use {} vs () for initialization?
+// A: Prefer {} (list initialization) by default because it prevents
+//    narrowing conversions and avoids the Most Vexing Parse. Use ()
+//    when you need to call a specific constructor that would otherwise
+//    be hijacked by a std::initializer_list overload (e.g.,
+//    std::vector<int>(10) for ten elements vs std::vector<int>{10}
+//    for one element with value 10).
+//
+// Q: When does the compiler generate a default constructor automatically?
+// A: The compiler generates an implicit default constructor only when
+//    you declare NO constructors at all. As soon as you declare any
+//    constructor (even a parameterized one), the implicit default
+//    constructor is suppressed. Use "= default" to bring it back
+//    explicitly.
+//
+// Q: What does the explicit keyword do and when should I use it?
+// A: The explicit keyword prevents a constructor from being used for
+//    implicit type conversions. Without it, a single-argument
+//    constructor allows the compiler to silently convert the argument
+//    type to your class type. Mark single-argument constructors
+//    explicit unless you deliberately want implicit conversion, which
+//    is rare.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <string>
@@ -32,11 +68,11 @@
 
 // -----------------------------------------------
 // 1. Default constructor
-//    What: Constructors and special members define object initialization and ownership behavior.
-//    When: Use this when class invariants and resource semantics must be explicit.
-//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
-//    Use: Define/default/delete special members to match ownership intent.
-//    Which: C++98+ (major additions in C++11 and later)
+//    What: A default constructor initializes an object when no arguments are provided.
+//    When: Use this when objects need a valid zero-argument construction path (e.g., containers, arrays, default states).
+//    Why: It ensures objects start in a well-defined state even when the caller provides no initialization data.
+//    Use: Write "= default" to explicitly request the compiler-generated version, or define your own to set safe initial values.
+//    Which: C++98+ (= default syntax added in C++11)
 //
 //    A constructor that can be called with no arguments.
 //
@@ -74,11 +110,11 @@ public:
 
 // -----------------------------------------------
 // 2. Member initializer list — the RIGHT way to initialize
-//    What: Constructors and special members define object initialization and ownership behavior.
-//    When: Use this when class invariants and resource semantics must be explicit.
-//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
-//    Use: Define/default/delete special members to match ownership intent.
-//    Which: C++98+ (major additions in C++11 and later)
+//    What: The member initializer list directly constructs each member in the constructor signature before the body runs.
+//    When: Use this in every constructor — it is required for const members, references, and base classes, and more efficient for all types.
+//    Why: It avoids the cost of default-constructing a member and then assigning over it, and is the only way to initialize non-assignable members.
+//    Use: List members after the colon in declaration order and initialize each with the desired value.
+//    Which: C++98+
 //
 //    HOW IT WORKS:
 //    The initializer list appears after the colon (:) in the constructor
@@ -183,11 +219,11 @@ public:
 
 // -----------------------------------------------
 // 4. Delegating constructors (C++11) — one ctor calls another
-//    What: Constructors and special members define object initialization and ownership behavior.
-//    When: Use this when class invariants and resource semantics must be explicit.
-//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
-//    Use: Define/default/delete special members to match ownership intent.
-//    Which: C++98+ (major additions in C++11 and later)
+//    What: A delegating constructor forwards to another constructor of the same class in its initializer list.
+//    When: Use this when multiple constructors share the same core initialization logic but differ in parameter convenience.
+//    Why: It eliminates duplicated init code — one "real" constructor does the work, and others delegate to it with different defaults.
+//    Use: Call the target constructor in the init list; do not mix delegation with direct member initialization in the same constructor.
+//    Which: C++11
 //
 //    HOW IT WORKS:
 //    Instead of initializing members directly, a delegating constructor
@@ -233,11 +269,11 @@ public:
 
 // -----------------------------------------------
 // 5. explicit — preventing implicit conversions
-//    What: Constructors and special members define object initialization and ownership behavior.
-//    When: Use this when class invariants and resource semantics must be explicit.
-//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
-//    Use: Define/default/delete special members to match ownership intent.
-//    Which: C++98+ (major additions in C++11 and later)
+//    What: The explicit specifier prevents a constructor from being used as an implicit conversion operator.
+//    When: Use this on any constructor callable with a single argument, unless you intentionally want implicit conversion.
+//    Why: It stops the compiler from silently constructing temporaries when argument types do not match, catching type errors at compile time.
+//    Use: Mark single-argument constructors explicit by default; use explicit(false) or omit explicit only when implicit conversion is deliberate.
+//    Which: C++98+ (explicit(bool) conditional form added in C++20)
 //
 //    HOW IT WORKS:
 //    By default, a constructor that takes a single argument can be used

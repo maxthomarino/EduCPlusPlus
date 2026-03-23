@@ -17,17 +17,53 @@
  * method overriding, the 'using' keyword, and multiple inheritance.
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What is the difference between virtual and non-virtual member functions?
+// A: A non-virtual function is resolved at compile time based on the
+//    static type of the pointer or reference. A virtual function is
+//    resolved at runtime via the vtable, so calling through a base
+//    pointer dispatches to the correct derived override. Declare a
+//    function virtual when you expect derived classes to override it
+//    and you call through base pointers or references.
+//
+// Q: When should I use multiple inheritance?
+// A: Use multiple inheritance when a class genuinely models two or more
+//    independent capabilities (e.g., Flyable and Swimmable). Avoid it
+//    for sharing implementation from unrelated hierarchies — prefer
+//    composition in that case. If two bases share a common ancestor,
+//    use virtual inheritance to avoid the diamond problem.
+//
+// Q: How does virtual inheritance solve the diamond problem?
+// A: Without virtual inheritance, a class that inherits from two bases
+//    sharing a common grandparent gets two copies of the grandparent
+//    sub-object, causing ambiguity. Virtual inheritance ensures only
+//    one shared instance of the common base exists. The most-derived
+//    class is responsible for constructing the virtual base, regardless
+//    of inheritance depth.
+//
+// Q: What does the final keyword do in C++?
+// A: Applied to a class, final prevents any further derivation from it.
+//    Applied to a virtual function, final prevents derived classes from
+//    overriding that specific function. The compiler can also use final
+//    to devirtualize calls, turning virtual dispatch into direct calls
+//    when it can prove the concrete type, improving performance.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <string>
 
 // -----------------------------------------------
 // 1. Base class
-//    What: These OOP constructs model interfaces, reuse, and dynamic behavior.
-//    When: Use this when types share contracts or behavior across hierarchies.
-//    Why: It organizes abstractions and enables polymorphic extension.
-//    Use: Define clear base contracts and override behavior intentionally in derived types.
-//    Which: C++98+ (with modern refinements)
+//    What: A base class defines shared state and behavior that derived classes inherit and optionally override.
+//    When: Use this when multiple types share common attributes and operations that can be factored into a single parent.
+//    Why: It eliminates code duplication and establishes the interface through which derived objects can be used polymorphically.
+//    Use: Give the base class a virtual destructor, define virtual methods for overridable behavior, and use protected for derived-accessible members.
+//    Which: C++98+ (virtual destructor, override keyword C++11)
 //
 //    Represents a generic animal with common attributes.
 //

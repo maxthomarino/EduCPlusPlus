@@ -15,6 +15,43 @@
  *            reference/en/cpp/concepts.html
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: How do concepts compare to SFINAE?
+// A: Both constrain templates, but concepts are vastly more readable and
+//    produce clearer error messages. SFINAE relies on substitution failure
+//    in the function signature (enable_if, void_t tricks), which results in
+//    cryptic diagnostics. Concepts express intent directly -- e.g.,
+//    template<std::integral T> -- and the compiler reports "T does not
+//    satisfy integral" instead of pages of template backtraces.
+//
+// Q: What is concept subsumption?
+// A: When two constrained overloads both match, the compiler prefers the
+//    one with a more-constrained concept. Concept A subsumes concept B if
+//    satisfying A logically implies satisfying B. For example,
+//    std::signed_integral subsumes std::integral, so an overload
+//    constrained with signed_integral is preferred over one constrained
+//    with integral when called with int.
+//
+// Q: Can concepts work with classes, not just functions?
+// A: Yes. You can constrain class template parameters with concepts:
+//    template<std::integral T> class Counter { ... }; You can also use
+//    requires clauses on individual member functions so they are only
+//    available when the type satisfies additional constraints, without
+//    needing to specialize the entire class.
+//
+// Q: What does "requires requires" mean?
+// A: The first "requires" introduces a requires-clause (a constraint on the
+//    template), and the second "requires" starts a requires-expression (an
+//    inline predicate that checks whether certain operations are valid).
+//    For example: template<typename T> requires requires(T a) { a + a; }
+//    The double keyword looks odd but is grammatically necessary when you
+//    write an ad-hoc constraint without naming a separate concept.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <concepts>

@@ -16,6 +16,48 @@
  * const methods, static members, operator overloading, and the Rule of Five.
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What is the difference between a struct and a class in C++?
+// A: The only language difference is the default access level: struct
+//    members are public by default, while class members are private.
+//    By convention, struct is used for plain data aggregates and class
+//    for types that enforce invariants through encapsulation.
+//
+// Q: When should I use getters and setters instead of public members?
+// A: Use getters/setters when you need to enforce invariants (e.g.,
+//    a radius must be positive), provide a stable API while the internal
+//    representation may change, or add side effects like logging. If the
+//    type is a simple data holder with no invariants, public members
+//    (or a struct) are perfectly fine.
+//
+// Q: What are friend functions and when should I use them?
+// A: A friend function has access to a class's private and protected
+//    members even though it is not a member itself. Use friends for
+//    operator overloads that need access to internals (like operator<<)
+//    or for tightly coupled helper functions. Overusing friend weakens
+//    encapsulation, so keep the friend list small.
+//
+// Q: What guidelines should I follow for operator overloading?
+// A: Overload operators only when the meaning is obvious and intuitive
+//    (e.g., + for vector addition). Implement compound assignment (+=)
+//    as a member and build the binary operator (+) on top of it. Never
+//    overload &&, ||, or the comma operator because their short-circuit
+//    and sequencing semantics cannot be preserved for overloads.
+//
+// Q: What is the Rule of Five and when does it apply?
+// A: If you define any of the destructor, copy constructor, copy
+//    assignment, move constructor, or move assignment operator, you
+//    should define all five to ensure correct resource management.
+//    It applies whenever your class directly manages a raw resource
+//    (raw pointer, file handle, socket). If your class only holds
+//    RAII types like std::string or std::unique_ptr, prefer the
+//    Rule of Zero and let the compiler generate everything.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <string>
@@ -25,11 +67,11 @@
 
 // -----------------------------------------------
 // 1. Basic class with encapsulation
-//    What: These OOP constructs model interfaces, reuse, and dynamic behavior.
-//    When: Use this when types share contracts or behavior across hierarchies.
-//    Why: It organizes abstractions and enables polymorphic extension.
-//    Use: Define clear base contracts and override behavior intentionally in derived types.
-//    Which: C++98+ (with modern refinements)
+//    What: Encapsulation bundles data with the operations that act on it, hiding internal state behind a public interface.
+//    When: Use this when a group of data members has invariants that must be maintained by controlled access.
+//    Why: It lets you change the internal representation without breaking client code that uses the public API.
+//    Use: Make data members private, expose only the operations clients need, and validate inputs in those operations.
+//    Which: C++98+
 //
 //    Private data + public interface = information hiding.
 //
@@ -74,11 +116,11 @@ public:
 
 // -----------------------------------------------
 // 2. Class with static members and constructor delegation
-//    What: Constructors and special members define object initialization and ownership behavior.
-//    When: Use this when class invariants and resource semantics must be explicit.
-//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
-//    Use: Define/default/delete special members to match ownership intent.
-//    Which: C++98+ (major additions in C++11 and later)
+//    What: Static members belong to the class itself, and delegating constructors forward to another constructor of the same class.
+//    When: Use static members for class-wide state (e.g., instance counts) and delegating constructors to avoid duplicating init logic.
+//    Why: Static members avoid globals while keeping shared state scoped, and delegation eliminates redundant initialization code.
+//    Use: Define static members in one translation unit (or use inline static in C++17+), and chain constructors via delegation.
+//    Which: C++98+ for static members; C++11 for delegating constructors
 //
 //    Watch out: Static members of different translation units have no
 //    guaranteed initialization order (the "static initialization order

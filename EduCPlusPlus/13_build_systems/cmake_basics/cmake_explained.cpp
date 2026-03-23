@@ -22,6 +22,45 @@
  * Prerequisites: None (this is a standalone explanation file).
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What is the difference between CMake and make?
+// A: make is a build tool that reads a Makefile and executes compiler
+//    commands.  CMake is a build-system *generator*: it reads
+//    CMakeLists.txt and produces native build files (Makefiles, Ninja
+//    files, Visual Studio projects, Xcode projects, etc.).  You run CMake
+//    once to generate, then use the native tool to build.
+//
+// Q: Why use CMake instead of calling g++ directly?
+// A: Direct g++ invocations work for tiny programs, but they do not scale.
+//    CMake tracks file dependencies, rebuilds only what changed, compiles
+//    independent files in parallel, and generates the correct flags for
+//    any platform and compiler.  It also integrates testing (CTest),
+//    packaging (CPack), and third-party dependency management.
+//
+// Q: Does the CMake version matter, and what version should I require?
+// A: Yes.  Each CMake release adds new features and policies.  Set
+//    cmake_minimum_required() to the oldest version that supports every
+//    feature you use.  CMake 3.20+ is a safe modern baseline -- it
+//    supports C++20, presets, and modern target-based commands.
+//
+// Q: What are the CMake build types and when should I use each?
+// A: Debug (-g -O0): full debug info, no optimization -- use during
+//    development.  Release (-O3 -DNDEBUG): maximum optimization, asserts
+//    disabled -- use for production.  RelWithDebInfo (-O2 -g): optimized
+//    but debuggable -- use when profiling.  MinSizeRel (-Os -DNDEBUG):
+//    smallest binary -- use for embedded or size-constrained deployments.
+//
+// Q: How do I add a third-party library with CMake?
+// A: Use find_package() for system-installed libraries, or
+//    FetchContent (CMake 3.11+) to download and build dependencies
+//    automatically.  FetchContent is preferred for reproducible builds
+//    because it pins a specific version in your CMakeLists.txt.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 

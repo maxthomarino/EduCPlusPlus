@@ -15,6 +15,35 @@
  * Reference: reference/en/cpp/language/lambda.html
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What is the difference between a lambda and a function pointer?
+// A: A function pointer can only point to a free function or a static member
+//    function -- it carries no state. A lambda is a compiler-generated class
+//    with an operator(); it can capture local variables. A captureless lambda
+//    can decay to a function pointer, but a capturing lambda cannot.
+//
+// Q: How do I capture a move-only type (like std::unique_ptr) into a lambda?
+// A: Use an init capture (C++14): [p = std::move(ptr)] { ... }. This moves
+//    the object into a new member of the closure. Plain [ptr] would try to
+//    copy it, which fails for move-only types.
+//
+// Q: Are there restrictions on generic lambdas (auto parameters)?
+// A: Each auto parameter turns operator() into a template, so every distinct
+//    argument type creates a separate instantiation. You cannot take the
+//    address of a generic lambda as a function pointer, and prior to C++20
+//    you cannot constrain the auto parameters with concepts.
+//
+// Q: Can a lambda stored in std::function outlive the captured references?
+// A: Yes, and that is dangerous. std::function can be copied, stored, and
+//    returned -- if the lambda captures locals by reference, those references
+//    dangle once the original scope exits. Always capture by value (or use
+//    init captures) when storing a lambda in std::function for later use.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <vector>

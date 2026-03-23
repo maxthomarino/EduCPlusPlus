@@ -20,6 +20,43 @@
  *            reference/en/cpp/language/constinit.html
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What is the difference between constexpr and const?
+// A: const means "this value cannot be modified after initialization," but
+//    the initializer may be computed at runtime. constexpr means "this value
+//    must be computable at compile time." A constexpr variable is implicitly
+//    const, but a const variable is not necessarily constexpr.
+//
+// Q: Can constexpr functions use heap allocation (new/delete)?
+// A: Starting in C++20, yes -- constexpr functions may use new and delete,
+//    and even std::vector and std::string, as long as all allocations are
+//    freed before the constant evaluation ends. Memory that "leaks" out of
+//    the compile-time evaluation makes the program ill-formed.
+//
+// Q: What is the difference between consteval and constexpr?
+// A: constexpr functions *may* run at compile time or runtime depending on
+//    the context. consteval (C++20) functions are "immediate functions" that
+//    *must* run at compile time -- every call must be a constant expression,
+//    or the program fails to compile. Use consteval when a runtime call would
+//    be a logic error.
+//
+// Q: When should I use constinit instead of constexpr?
+// A: Use constinit for static or thread_local variables that need guaranteed
+//    compile-time initialization but must remain mutable at runtime. constexpr
+//    makes the variable const (immutable), while constinit only constrains the
+//    initialization -- the variable can be freely modified afterward.
+//
+// Q: Does constexpr guarantee zero runtime cost?
+// A: Only when the result is used in a compile-time context (assigned to a
+//    constexpr variable, used in a static_assert, template argument, etc.).
+//    If you call a constexpr function with a runtime value, it runs at
+//    runtime just like any other function.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <array>
@@ -30,11 +67,11 @@
 
 // -----------------------------------------------
 // 1. Basic constexpr functions
-//    What: constexpr enables compile-time evaluation when inputs are constant expressions.
-//    When: Use this for pure computations or immutable data that can be resolved at compile time.
-//    Why: It shifts work from runtime to compile time and can improve safety/performance.
-//    Use: Mark eligible functions/objects constexpr and keep them valid for constant evaluation.
-//    Which: C++11+ (expanded in later standards)
+//    What: constexpr functions can be evaluated at compile time when given constant arguments.
+//    When: Use this for pure mathematical computations, conversions, and small utility functions.
+//    Why: It eliminates runtime cost for known inputs and enables use in static_assert and template args.
+//    Use: Write the function normally, mark it constexpr, and assign the result to a constexpr variable.
+//    Which: C++11 (single-statement only), C++14+ (loops, variables, multiple statements)
 //
 //    Evaluated at compile time when called with constant arguments,
 //    but can also run at runtime with non-constant arguments.
@@ -63,11 +100,11 @@ constexpr double power(double base, int exp) {
 
 // -----------------------------------------------
 // 2. constexpr class: compile-time objects
-//    What: constexpr enables compile-time evaluation when inputs are constant expressions.
-//    When: Use this for pure computations or immutable data that can be resolved at compile time.
-//    Why: It shifts work from runtime to compile time and can improve safety/performance.
-//    Use: Mark eligible functions/objects constexpr and keep them valid for constant evaluation.
-//    Which: C++11+ (expanded in later standards)
+//    What: Classes with constexpr constructors and methods can be fully created and used at compile time.
+//    When: Use this for lightweight value types (points, colors, ratios) that are known at compile time.
+//    Why: It embeds precomputed objects directly in the binary, avoiding any construction cost at runtime.
+//    Use: Mark constructors and member functions constexpr; all members must be literal types.
+//    Which: C++11 (constexpr constructors), C++14 (non-const constexpr methods)
 //
 //    Constructors and member functions can be constexpr, allowing
 //    entire objects to be created and manipulated at compile time.
@@ -104,11 +141,11 @@ public:
 
 // -----------------------------------------------
 // 3. constexpr with arrays: build lookup tables at compile time
-//    What: constexpr enables compile-time evaluation when inputs are constant expressions.
-//    When: Use this for pure computations or immutable data that can be resolved at compile time.
-//    Why: It shifts work from runtime to compile time and can improve safety/performance.
-//    Use: Mark eligible functions/objects constexpr and keep them valid for constant evaluation.
-//    Which: C++11+ (expanded in later standards)
+//    What: constexpr functions can populate std::array at compile time to create embedded lookup tables.
+//    When: Use this for precomputed data like trigonometry tables, CRC tables, or mapping arrays.
+//    Why: The entire table is baked into the binary as constant data -- zero runtime initialization.
+//    Use: Write a constexpr function that fills and returns a std::array, then assign to a constexpr variable.
+//    Which: C++14 (requires loops inside constexpr), C++17 (std::array fully constexpr)
 //
 //    The entire table is embedded in the binary as constant data —
 //    zero runtime cost. This replaces the old pattern of static
@@ -151,11 +188,11 @@ constexpr auto process(T value) {
 
 // -----------------------------------------------
 // 5. constexpr string processing
-//    What: constexpr enables compile-time evaluation when inputs are constant expressions.
-//    When: Use this for pure computations or immutable data that can be resolved at compile time.
-//    Why: It shifts work from runtime to compile time and can improve safety/performance.
-//    Use: Mark eligible functions/objects constexpr and keep them valid for constant evaluation.
-//    Which: C++11+ (expanded in later standards)
+//    What: std::string_view is a literal type, so constexpr functions can parse and inspect strings at compile time.
+//    When: Use this for compile-time validation, hashing, or parsing of string literals.
+//    Why: It catches format/content errors during compilation rather than at runtime.
+//    Use: Accept std::string_view parameters and iterate or index into them in a constexpr function.
+//    Which: C++17 (string_view + constexpr), C++20 (std::string also usable in constexpr)
 //
 //    std::string_view is a literal type, so it can be processed
 //    at compile time. Useful for compile-time parsing, validation,

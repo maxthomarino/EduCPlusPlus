@@ -16,6 +16,48 @@
  * Reference: reference/en/cpp/container/unordered_map
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What are the requirements for a hash function in C++?
+// A: A hash function must be deterministic (same input always produces
+//    the same output) and must be compatible with operator== (if two
+//    objects compare equal, their hashes must be identical). It should
+//    also distribute values uniformly across buckets to minimize
+//    collisions.
+//
+// Q: What is hash flooding and how can it affect my program?
+// A: Hash flooding is a denial-of-service attack where an adversary
+//    crafts inputs that all hash to the same bucket, degrading O(1)
+//    operations to O(n). Mitigations include using randomized hash
+//    seeds (some implementations do this), switching to ordered
+//    containers for untrusted input, or using collision-resistant
+//    hash functions like SipHash.
+//
+// Q: When should I prefer an ordered container (map/set) over an
+//    unordered one?
+// A: Use ordered containers when you need sorted iteration, range
+//    queries (lower_bound / upper_bound), or guaranteed O(log n)
+//    worst-case performance. Use unordered containers when you only
+//    need fast lookup/insert and can tolerate non-deterministic
+//    iteration order.
+//
+// Q: Why does unordered_map require operator== in addition to a hash?
+// A: Because hash collisions are inevitable -- multiple distinct keys
+//    can hash to the same bucket. The container uses operator== to
+//    distinguish between different keys that landed in the same bucket
+//    and to confirm an exact match during lookup.
+//
+// Q: How can I tell if my hash function is performing well?
+// A: Check load_factor() (average elements per bucket) and
+//    bucket_count(). A load factor near max_load_factor() (default
+//    1.0) is normal. If specific buckets are overloaded, use
+//    bucket_size(i) to detect hotspots. Ideally, bucket sizes should
+//    be roughly uniform.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <unordered_map>

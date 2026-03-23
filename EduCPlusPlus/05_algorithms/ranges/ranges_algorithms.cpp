@@ -18,6 +18,38 @@
  * REFERENCE:      reference/en/cpp/algorithm/ranges
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: Can views be used with plain C arrays?
+// A: Yes. C arrays model the contiguous_range concept, so most view adaptors
+//    (filter, transform, take, drop) work directly on them. You can also
+//    wrap a C array with std::span for added safety without copying.
+//
+// Q: Are views always lazy?
+// A: All standard view adaptors are lazy -- they compute elements on demand
+//    when iterated.  However, some adaptors (e.g., views::reverse on a
+//    non-bidirectional range, or views::join in certain cases) may cache
+//    iterators internally for performance, which can consume a small amount
+//    of state.  The key guarantee is that no intermediate container is
+//    created.
+//
+// Q: How do I materialize a view into a concrete container?
+// A: In C++23, use std::ranges::to<std::vector>() at the end of a pipeline.
+//    In C++20, construct the container from the view's begin/end iterators:
+//    auto v = std::vector(view.begin(), view.end()); or use
+//    std::ranges::copy into a back_inserter.
+//
+// Q: How does the ranges library protect against dangling iterators?
+// A: When you pass an rvalue (temporary) range to a ranges algorithm that
+//    returns an iterator, the library returns the special type
+//    std::ranges::dangling instead of an actual iterator. This causes a
+//    compile error if you try to dereference it, preventing use-after-
+//    destruction bugs that are common with classic STL algorithms.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <vector>

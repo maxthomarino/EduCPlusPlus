@@ -15,6 +15,47 @@
  * Reference: reference/en/cpp/memory/unique_ptr
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What happens if I dereference a unique_ptr that has been moved from?
+// A: After a move, the source unique_ptr holds nullptr. Dereferencing nullptr is
+//    undefined behaviour -- it will typically crash with a segfault, but the compiler
+//    is free to do anything. Always check for nullptr before dereferencing a
+//    unique_ptr that may have been moved from, or restructure your code so that
+//    moved-from pointers are never accessed (e.g., let them go out of scope
+//    immediately after the move).
+//
+// Q: Can unique_ptr manage arrays?
+// A: Yes. Use std::unique_ptr<T[]> which calls delete[] instead of delete, and
+//    provides operator[] for indexed access. std::make_unique<T[]>(n) allocates an
+//    array of n default-initialised elements (C++14). However, in most cases
+//    std::vector<T> is a better choice because it provides bounds checking,
+//    iterators, and automatic resizing. Use unique_ptr<T[]> mainly when you need
+//    a fixed-size buffer with minimal overhead or when interfacing with C APIs that
+//    expect a raw array.
+//
+// Q: What is the difference between release() and reset()?
+// A: release() surrenders ownership and returns the raw pointer WITHOUT deleting the
+//    object. You are now responsible for deleting it yourself. If you discard the
+//    return value, the memory leaks. reset() destroys the currently managed object
+//    (calls delete) and optionally takes ownership of a new raw pointer. Use
+//    reset() when you want to destroy the current object or replace it; use
+//    release() only when you need to hand the raw pointer to a C API or another
+//    owner that will manage its lifetime.
+//
+// Q: How should I pass a unique_ptr to a function that does not take ownership?
+// A: Do not pass the unique_ptr at all. Instead, pass a raw pointer (via .get()) or
+//    a reference (via *ptr) to the underlying object. This makes the function
+//    agnostic to ownership strategy and allows it to work with objects regardless
+//    of how they are managed. Pass unique_ptr by value only when you intend to
+//    transfer ownership into the function. Pass unique_ptr by reference only in
+//    rare cases where the function needs to reseat (reset or move) the caller's
+//    pointer.
+//
+// =====================================================
+
 #include <iostream>
 #include <memory>
 #include <format>
@@ -119,8 +160,8 @@ std::unique_ptr<Resource> create_resource(const std::string& name) {
 
 // -----------------------------------------------
 // 3. Custom deleter example
-//    What: Here we wrap a C-style FILE* so that fclose is called automatically when the unique_ptr goes out of scope.
-//    When: Here we wrap a C-style FILE* so that fclose is called automatically when the unique_ptr goes out of scope.
+//    What: Providing a custom deleter to unique_ptr so it can manage non-new resources like C-style FILE* handles.
+//    When: When wrapping C library resources (FILE*, sqlite3*, HANDLE) that require a specific cleanup function instead of delete.
 //    Why: It improves clarity and helps prevent common correctness mistakes.
 //    Use: Follow the code pattern shown in this section and adapt it to your types.
 //    Which: C++11+ (file discusses C++14, C++17)

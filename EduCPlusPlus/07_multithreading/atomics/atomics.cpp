@@ -24,6 +24,55 @@
  * Compile with: g++ -std=c++20 -pthread atomics.cpp
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What is the difference between memory_order_relaxed and memory_order_seq_cst?
+// A: relaxed guarantees only atomicity -- the operation will not be torn, but
+//    you get no ordering guarantees relative to other operations in other threads.
+//    seq_cst (the default) provides a single total order visible to all threads,
+//    meaning every thread agrees on the sequence of seq_cst operations. seq_cst
+//    is safer but slower because it requires full memory barriers (MFENCE on x86,
+//    DMB on ARM). Use relaxed for standalone counters or statistics where ordering
+//    does not matter; use seq_cst (or acquire/release) when threads must agree on
+//    the order of events.
+//
+// Q: Are std::atomic operations always lock-free?
+// A: No. An atomic is lock-free only if the CPU has native atomic instructions
+//    for that type's size and alignment. For example, std::atomic<int> and
+//    std::atomic<bool> are lock-free on virtually all modern platforms, but
+//    std::atomic<LargeStruct> may silently fall back to an internal spinlock.
+//    Check at compile time with std::atomic<T>::is_always_lock_free, or at
+//    runtime with atomic_var.is_lock_free(). If lock-freedom matters to you,
+//    static_assert on is_always_lock_free.
+//
+// Q: What is the ABA problem in lock-free programming?
+// A: The ABA problem occurs when a CAS-based algorithm reads value A, gets
+//    preempted, another thread changes the value from A to B and back to A,
+//    and then the original thread's CAS succeeds because it still sees A --
+//    even though the underlying state has changed. This can corrupt lock-free
+//    data structures (e.g., a freed node gets reused). Solutions include tagged
+//    pointers (appending a monotonic counter to the pointer), hazard pointers,
+//    and epoch-based reclamation.
+//
+// Q: When should I use a mutex instead of an atomic?
+// A: Use atomics for protecting a single variable with simple operations
+//    (increment, load, store, CAS). Use a mutex when you need to protect
+//    multiple variables as a single consistent unit, perform complex multi-step
+//    operations, or hold a lock across a non-trivial critical section. Atomics
+//    only protect one variable at a time and cannot express invariants spanning
+//    multiple variables.
+//
+// Q: Can I use std::atomic with custom types?
+// A: Yes, but the type must be trivially copyable (no virtual functions, no
+//    non-trivial constructors/destructors). Even then, operations on types
+//    larger than the CPU's native word size may not be lock-free -- the
+//    implementation will use an internal lock. Always verify with
+//    is_always_lock_free if performance matters.
+//
+// =====================================================
+
 // -----------------------------------------------
 // HOW IT WORKS: ATOMICS AT THE HARDWARE LEVEL
 // -----------------------------------------------
@@ -78,10 +127,10 @@
 
 // -----------------------------------------------
 // 1. Basic atomic counter
-//    What: Atomic types provide race-free operations on shared variables.
-//    When: Use this for counters/flags and low-level synchronization without a mutex.
-//    Why: They provide synchronization semantics with low overhead in suitable cases.
-//    Use: Use std::atomic operations with intentional memory-order choices.
+//    What: std::atomic<T> wraps a variable so loads, stores, and increments are indivisible.
+//    When: Use for shared counters and boolean flags where a full mutex is overkill.
+//    Why: Atomic operations map to single CPU instructions -- no OS calls, no blocking.
+//    Use: Declare the variable as std::atomic<int> and use fetch_add, load, store, or ++/--.
 //    Which: C++11
 //
 //    No mutex needed -- increment is atomic.
@@ -109,10 +158,10 @@ void basic_atomic_counter() {
 
 // -----------------------------------------------
 // 2. Compare-and-swap (CAS)
-//    What: Atomic types provide race-free operations on shared variables.
-//    When: Use this for counters/flags and low-level synchronization without a mutex.
-//    Why: They provide synchronization semantics with low overhead in suitable cases.
-//    Use: Use std::atomic operations with intentional memory-order choices.
+//    What: compare_exchange atomically checks a value and replaces it only if it matches.
+//    When: Use CAS for lock-free algorithms, implementing custom atomics, or optimistic updates.
+//    Why: CAS is the fundamental building block of all lock-free data structures.
+//    Use: Call compare_exchange_weak in a loop (preferred on LL/SC architectures like ARM).
 //    Which: C++11
 //
 //    The fundamental building block of lock-free algorithms.

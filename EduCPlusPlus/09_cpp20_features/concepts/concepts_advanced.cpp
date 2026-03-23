@@ -18,6 +18,40 @@
  * REFERENCE:      reference/en/cpp/language/constraints
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: How does concept subsumption ordering work?
+// A: When two constrained overloads both match, the compiler prefers the one
+//    whose constraint "subsumes" the other. Concept A subsumes concept B if A's
+//    constraint is formed by conjoining (&&) B's constraint with additional
+//    requirements. The compiler compares the normalized constraint expressions
+//    structurally, not logically -- so the more-constrained overload must
+//    literally include the less-constrained concept via &&.
+//
+// Q: When should I write a custom concept vs. using standard library concepts?
+// A: Use standard concepts (std::integral, std::copyable, std::ranges::range,
+//    etc.) for generic properties. Write a custom concept when you need to
+//    express domain-specific requirements -- for instance, "has a .serialize()
+//    method returning std::string" -- that no standard concept captures.
+//
+// Q: What is the difference between a concept and a type trait?
+// A: Type traits (std::is_integral_v<T>) are compile-time boolean values that
+//    require enable_if or static_assert for enforcement. Concepts are first-
+//    class language constructs that integrate directly into template parameter
+//    lists and overload resolution, producing far clearer error messages and
+//    enabling subsumption-based overload ranking.
+//
+// Q: What does "constrained auto" mean?
+// A: Writing std::integral auto x in a function parameter or variable
+//    declaration constrains the deduced type to satisfy the given concept.
+//    It is shorthand for a template with a requires clause. For example,
+//    auto f(std::integral auto x) is equivalent to
+//    template<std::integral T> auto f(T x).
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <concepts>

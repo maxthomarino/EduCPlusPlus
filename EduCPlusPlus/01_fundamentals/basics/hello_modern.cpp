@@ -16,6 +16,45 @@
  *            reference/en/cpp/utility/format/format.html
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: When should I NOT use auto?
+// A: Avoid auto when the type is not obvious from the initializer.
+//    For example, auto x = foo(); tells the reader nothing about
+//    what x is unless they already know foo()'s return type. In
+//    public API boundaries and when the type carries important
+//    semantic meaning (e.g., size_t vs int), spelling out the type
+//    is clearer and safer.
+//
+// Q: What is the difference between std::string_view and std::string?
+// A: std::string owns its character data (heap-allocated, copyable,
+//    resizable). std::string_view is a non-owning pointer+length pair
+//    that refers to characters stored somewhere else. Use string_view
+//    for read-only parameters to avoid unnecessary copies. Use string
+//    when you need to store or modify the text.
+//
+// Q: Does auto deduce references and const automatically?
+// A: No. auto strips top-level const and references. If you write
+//    auto x = some_const_ref;, x is a mutable copy. To preserve
+//    const or reference semantics, write const auto& x = ... or
+//    auto& x = ... explicitly.
+//
+// Q: Is std::format available in all compilers today?
+// A: std::format is part of C++20 and is fully supported in MSVC 19.29+
+//    and GCC 13+. Clang/libc++ added full support in Clang 17. If your
+//    compiler does not support it yet, the {fmt} library (which inspired
+//    std::format) is a drop-in alternative you can use today.
+//
+// Q: Can string_view be used with C-style strings (const char*)?
+// A: Yes. std::string_view has an implicit constructor from const char*,
+//    so you can pass string literals or C strings directly. It will
+//    compute the length via strlen. This is one reason string_view works
+//    well as a universal read-only string parameter type.
+//
+// =====================================================
+
 #include <iostream>
 #include <string>
 #include <string_view>

@@ -23,6 +23,41 @@
  *                 reference/en/cpp/coroutine
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What is the difference between a coroutine and a thread?
+// A: A thread is an OS-level execution context with its own stack, scheduled
+//    preemptively by the kernel. A coroutine is a compiler-generated state
+//    machine that suspends and resumes cooperatively in user space -- it does
+//    not require a separate stack or OS scheduling. Coroutines are much
+//    cheaper to create and switch, but they cannot run in true parallelism
+//    on their own.
+//
+// Q: What is the difference between co_await and co_yield?
+// A: co_yield expr is shorthand for co_await promise.yield_value(expr) -- it
+//    produces a value and suspends. co_await expr suspends the coroutine until
+//    the awaited object (an "awaitable") signals that the result is ready.
+//    co_yield is for generators (producing values); co_await is for async
+//    workflows (waiting on I/O, timers, etc.).
+//
+// Q: Do coroutines always allocate on the heap?
+// A: By default, the coroutine frame is heap-allocated. However, the compiler
+//    may apply HALO (Heap Allocation eLision Optimization) to eliminate the
+//    allocation when it can prove the coroutine's lifetime is bounded by the
+//    caller. You can also provide a custom operator new in the promise_type
+//    to control or pool allocations.
+//
+// Q: How does generator performance compare to hand-written iterators?
+// A: With optimizations enabled, a generator coroutine typically compiles down
+//    to code comparable to a hand-rolled state machine. The suspend/resume
+//    overhead is small (saving/restoring a few registers). The main cost risk
+//    is the heap allocation of the coroutine frame, which HALO may or may not
+//    eliminate depending on the compiler and call context.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <coroutine>

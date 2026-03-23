@@ -16,6 +16,45 @@
  * Compile with: g++ -std=c++20 -pthread thread_basics.cpp
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: How many threads should I create?
+// A: For CPU-bound work, start with std::thread::hardware_concurrency() threads
+//    (one per logical core). Creating more threads than cores causes excessive
+//    context switching and cache thrashing, which hurts performance. For I/O-bound
+//    work, you can use more threads since they spend most of their time blocked.
+//    In practice, use a thread pool sized to the hardware concurrency and submit
+//    tasks to it rather than spawning threads ad hoc.
+//
+// Q: What happens if a thread throws an exception?
+// A: If an exception escapes a thread's top-level function, std::terminate() is
+//    called and the entire program aborts. Exceptions do not propagate to the
+//    joining thread automatically. To transfer exceptions across threads, catch
+//    them inside the thread and store them via std::exception_ptr, then rethrow
+//    in the joining thread. std::async handles this automatically by capturing
+//    exceptions in the returned future.
+//
+// Q: What is thread_local storage and when should I use it?
+// A: The thread_local keyword gives each thread its own independent copy of a
+//    variable. It is useful for per-thread caches, random number generators,
+//    error codes, or avoiding contention on shared state. thread_local variables
+//    are initialized the first time the thread accesses them and destroyed when
+//    the thread exits. Be cautious with thread_local in thread pools -- the
+//    variable persists across task invocations on the same thread.
+//
+// Q: What are the risks of calling detach() on a thread?
+// A: A detached thread runs independently with no way to join it or check its
+//    status. If main() returns or local variables go out of scope while the
+//    detached thread is still running, it will access destroyed objects, causing
+//    undefined behavior. Detached threads also make clean shutdown difficult.
+//    Prefer jthread (C++20) with cooperative cancellation, or design the thread
+//    to be joinable so you can guarantee it has finished before destroying any
+//    state it references.
+//
+// =====================================================
+
 #include <iostream>
 #include <thread>
 #include <format>

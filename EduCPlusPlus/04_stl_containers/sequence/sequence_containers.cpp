@@ -19,6 +19,45 @@
  *            reference/en/cpp/container/list
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: Why is std::vector<bool> considered problematic?
+// A: vector<bool> is a special-case template that packs bits to save
+//    space, so operator[] returns a proxy object instead of a real
+//    bool&. This breaks code that takes addresses or references to
+//    elements. Use std::vector<char> or std::bitset instead when you
+//    need predictable reference semantics.
+//
+// Q: What are the iterator invalidation rules for std::vector?
+// A: Any operation that changes the vector's size (push_back, insert,
+//    erase, resize) can invalidate iterators. Specifically, if the
+//    operation triggers a reallocation, ALL iterators are invalidated.
+//    If no reallocation occurs, only iterators at or after the point
+//    of insertion/erasure are invalidated.
+//
+// Q: What is the difference between reserve() and resize()?
+// A: reserve(n) allocates memory for at least n elements but does not
+//    change the vector's size -- no elements are added or removed.
+//    resize(n) changes the actual size: it adds default-constructed
+//    elements if n > size(), or removes elements if n < size().
+//
+// Q: When should I choose std::deque over std::vector?
+// A: Choose deque when you need efficient insertion and removal at
+//    both ends (push_front / pop_front are O(1) for deque but O(n)
+//    for vector). However, deque's memory is not contiguous, so you
+//    cannot pass its data to C APIs expecting a pointer.
+//
+// Q: When is std::list actually worth using over std::vector?
+// A: In practice, rarely. Use list when you need guaranteed O(1)
+//    insert/erase in the middle given an iterator AND you need
+//    iterator stability (list iterators are never invalidated by
+//    insertions or erasures of other elements). Also consider list
+//    when you need O(1) splicing of entire sublists.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <vector>

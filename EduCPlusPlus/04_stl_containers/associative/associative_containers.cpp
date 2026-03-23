@@ -18,6 +18,41 @@
  *            reference/en/cpp/container/set
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: When should I use std::map vs std::unordered_map?
+// A: Use std::map when you need elements in sorted order or need to
+//    perform range queries (e.g., "all keys between 10 and 20").
+//    Use std::unordered_map when you only need fast lookup/insert and
+//    don't care about order -- it offers O(1) average vs O(log n).
+//
+// Q: Why can't I use operator[] on a const std::map?
+// A: Because operator[] inserts a default-constructed value when the
+//    key is missing, which would modify the map. On a const map, use
+//    .at() (throws if missing) or .find() (returns end() if missing).
+//
+// Q: What is a practical use case for std::multimap?
+// A: Multimap is useful when a single key maps to multiple values,
+//    such as a student enrolled in multiple courses or a word with
+//    multiple definitions. Use equal_range() to retrieve all values
+//    for a given key.
+//
+// Q: How do I supply a custom comparator to std::map or std::set?
+// A: Pass a comparator as the second (set) or third (map) template
+//    argument, e.g., std::set<int, std::greater<int>>. The comparator
+//    must satisfy strict weak ordering -- using <= instead of < is
+//    undefined behavior.
+//
+// Q: What happens if my comparator violates strict weak ordering?
+// A: The container's internal balanced tree will make incorrect
+//    assumptions about element relationships. This is undefined
+//    behavior and can cause infinite loops, crashes, or silently
+//    corrupted data during insertion or lookup.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <map>

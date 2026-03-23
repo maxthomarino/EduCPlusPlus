@@ -18,6 +18,39 @@
  * REFERENCE:      reference/en/cpp/algorithm/sort
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: Why can't std::sort work on std::list?
+// A: std::sort requires random-access iterators because it uses index-based
+//    swaps and partitioning (introsort).  std::list provides only
+//    bidirectional iterators, so std::sort cannot compile with list
+//    iterators.  Use the member function list.sort() instead, which is an
+//    O(n log n) merge sort optimized for linked-list node relinking.
+//
+// Q: Is std::sort stable?
+// A: No. std::sort is typically implemented as introsort (quicksort with
+//    heapsort fallback) and does NOT preserve the relative order of equal
+//    elements. If you need stability, use std::stable_sort, which
+//    guarantees that equal elements retain their original order. It uses
+//    merge sort and may allocate extra memory.
+//
+// Q: Can I use parallel execution policies with sorting algorithms?
+// A: Yes, since C++17. Pass std::execution::par or std::execution::par_unseq
+//    as the first argument: std::sort(std::execution::par, v.begin(), v.end()).
+//    Include <execution> and link against the TBB library (on most
+//    implementations). Note that the comparator must be thread-safe.
+//
+// Q: What are the exact requirements for a comparator?
+// A: A comparator must define a strict weak ordering: (1) irreflexivity --
+//    comp(a, a) must be false, (2) asymmetry -- if comp(a, b) then
+//    !comp(b, a), (3) transitivity -- if comp(a, b) and comp(b, c) then
+//    comp(a, c). Using <= instead of < violates irreflexivity and causes
+//    undefined behavior, potentially including infinite loops or crashes.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <vector>

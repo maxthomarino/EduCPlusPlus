@@ -13,6 +13,55 @@
  * Reference: reference/en/cpp/language/raii
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What happens if a constructor throws an exception -- does the destructor still run?
+// A: No. If a constructor throws, the object is considered never fully constructed,
+//    so its destructor is NOT called. However, any member sub-objects or base classes
+//    that were already fully constructed before the throw WILL have their destructors
+//    called. This means partially acquired resources in already-constructed members
+//    are still cleaned up, but any cleanup logic in the failing class's own destructor
+//    is skipped. Design constructors so that each resource is held by its own RAII
+//    member, ensuring automatic cleanup even on partial construction failure.
+//
+// Q: Can RAII be used in C, or is it exclusive to C++?
+// A: RAII is fundamentally a C++ idiom because it relies on deterministic destructor
+//    calls tied to scope exit, which C does not have. In C, the closest approximation
+//    is GCC/Clang's __attribute__((cleanup)) extension, which calls a specified
+//    function when a local variable goes out of scope. Some projects also simulate
+//    RAII with macros and goto-based cleanup chains, but these are fragile and
+//    non-standard. True RAII requires language-level constructor/destructor support.
+//
+// Q: What is the Rule of Zero, and how does it relate to RAII?
+// A: The Rule of Zero says that if every data member of your class is itself an RAII
+//    type (e.g., std::string, std::vector, std::unique_ptr), then you do not need to
+//    write a custom destructor, copy constructor, copy assignment, move constructor,
+//    or move assignment operator. The compiler-generated defaults will correctly
+//    manage all resources by delegating to each member's own RAII logic. The Rule of
+//    Zero is the modern best practice -- only write special member functions when you
+//    are implementing a low-level resource wrapper yourself.
+//
+// Q: Does RAII work for heap-allocated objects (created with new)?
+// A: A bare heap object (allocated with new) does NOT get RAII cleanup automatically
+//    -- you must call delete yourself, which defeats the purpose. The solution is to
+//    wrap the heap allocation in a smart pointer (std::unique_ptr or std::shared_ptr),
+//    which is itself a stack-based RAII object. When the smart pointer goes out of
+//    scope, its destructor deletes the heap object. This is why modern C++ guidelines
+//    say "no naked new" -- always use make_unique or make_shared.
+//
+// Q: Can RAII manage non-memory resources like network sockets or GPU buffers?
+// A: Absolutely. RAII works for any acquire/release resource pair. You write a class
+//    whose constructor acquires the resource (opens a socket, allocates a GPU buffer,
+//    begins a database transaction) and whose destructor releases it (closes the
+//    socket, frees the buffer, commits or rolls back the transaction). The standard
+//    library already provides RAII wrappers for files (fstream), locks (lock_guard,
+//    scoped_lock), and heap memory (unique_ptr, shared_ptr). For anything else, you
+//    write a small custom wrapper following the same pattern.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <fstream>
@@ -44,11 +93,11 @@
 
 // -----------------------------------------------
 // 1. RAII for file handles
-//    What: RAII ties resource lifetime to object lifetime and scope.
-//    When: Use this for files, locks, memory, and any acquire/release resource pair.
-//    Why: It guarantees cleanup on all exits, including exceptions.
-//    Use: Acquire in constructors and release in destructors via owning wrapper types.
-//    Which: C++98+ (foundational idiom)
+//    What: Wrapping file handles in an RAII class so the file closes automatically on scope exit.
+//    When: Whenever you open a file and need guaranteed closure, even if exceptions are thrown.
+//    Why: Manual fclose/close calls are easily skipped by early returns or exceptions, causing resource leaks.
+//    Use: Acquire the file handle in the constructor; close it in the destructor. Delete copy operations.
+//    Which: C++98+ (foundational idiom; fstream itself is already RAII)
 //
 //    The file closes automatically when the object is destroyed,
 //    even if an exception is thrown.
@@ -114,11 +163,11 @@ public:
 
 // -----------------------------------------------
 // 2. RAII for mutex locks
-//    What: RAII ties resource lifetime to object lifetime and scope.
-//    When: Use this for files, locks, memory, and any acquire/release resource pair.
-//    Why: It guarantees cleanup on all exits, including exceptions.
-//    Use: Acquire in constructors and release in destructors via owning wrapper types.
-//    Which: C++98+ (foundational idiom)
+//    What: Using lock_guard/scoped_lock to automatically acquire and release a mutex via RAII.
+//    When: Every time you lock a mutex -- never call mutex::lock/unlock manually.
+//    Why: If an exception or early return occurs while the mutex is held, manual unlock is skipped, causing deadlocks.
+//    Use: Declare a named lock_guard or scoped_lock local variable; the lock is released when it goes out of scope.
+//    Which: C++11 (lock_guard), C++17 (scoped_lock for multiple mutexes)
 //
 //    std::lock_guard and std::scoped_lock are RAII wrappers
 //    around mutex::lock / mutex::unlock.
@@ -166,11 +215,11 @@ public:
 
 // -----------------------------------------------
 // 3. Custom RAII wrapper (generic pattern)
-//    What: RAII ties resource lifetime to object lifetime and scope.
-//    When: Use this for files, locks, memory, and any acquire/release resource pair.
-//    Why: It guarantees cleanup on all exits, including exceptions.
-//    Use: Acquire in constructors and release in destructors via owning wrapper types.
-//    Which: C++98+ (foundational idiom)
+//    What: Building your own RAII wrapper class for resources the standard library does not cover.
+//    When: When you manage a non-standard resource (timers, GPU contexts, C API handles) that needs deterministic cleanup.
+//    Why: A custom wrapper centralises acquire/release logic and prevents every call site from repeating cleanup code.
+//    Use: Store the resource as a member, acquire in the constructor, release in the destructor, and delete copy operations.
+//    Which: C++98+ (the pattern works in any standard; move semantics from C++11 make it more ergonomic)
 //
 //    Acquires a resource and guarantees cleanup.
 // -----------------------------------------------
@@ -198,11 +247,11 @@ public:
 
 // -----------------------------------------------
 // 4. RAII and exception safety
-//    What: RAII ties resource lifetime to object lifetime and scope.
-//    When: Use this for files, locks, memory, and any acquire/release resource pair.
-//    Why: It guarantees cleanup on all exits, including exceptions.
-//    Use: Acquire in constructors and release in destructors via owning wrapper types.
-//    Which: C++98+ (foundational idiom)
+//    What: Demonstrating that RAII objects are properly destroyed during stack unwinding when exceptions propagate.
+//    When: Whenever code can throw exceptions after acquiring resources -- which is nearly all non-trivial code.
+//    Why: Without RAII, exception paths bypass manual cleanup calls, silently leaking resources.
+//    Use: Wrap every resource in an RAII object before any operation that might throw; no try/finally needed.
+//    Which: C++98+ (stack unwinding and destructor guarantees are part of the core language)
 //
 //    Even when exceptions fly, resources are cleaned up.
 // -----------------------------------------------
@@ -225,11 +274,11 @@ void demonstrate_exception_safety() {
 
 // -----------------------------------------------
 // 5. RAII with smart pointers (modern best practice)
-//    What: RAII ties resource lifetime to object lifetime and scope.
-//    When: Use this for files, locks, memory, and any acquire/release resource pair.
-//    Why: It guarantees cleanup on all exits, including exceptions.
-//    Use: Acquire in constructors and release in destructors via owning wrapper types.
-//    Which: C++98+ (foundational idiom)
+//    What: Using unique_ptr and shared_ptr as ready-made RAII wrappers for heap-allocated objects.
+//    When: Every time you need heap allocation -- replace raw new/delete with make_unique or make_shared.
+//    Why: Smart pointers automate delete calls and make ownership semantics explicit in the type system.
+//    Use: Use make_unique by default for single ownership; use make_shared only when multiple owners are needed.
+//    Which: C++11 (unique_ptr, shared_ptr), C++14 (make_unique)
 //
 //    unique_ptr and shared_ptr are RAII for heap memory.
 // -----------------------------------------------

@@ -17,6 +17,51 @@
  *            reference/en/cpp/language/fold.html
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: When should I use a trailing return type instead of auto deduction?
+// A: Use a trailing return type (auto fn() -> Type) when the return
+//    type is part of the API contract and you want it visible in the
+//    declaration. Use auto return deduction for short helper functions
+//    where the return type is obvious from the body. In headers and
+//    public interfaces, explicit return types help readers and tools
+//    understand the function without reading the implementation.
+//
+// Q: What are the limitations of constexpr functions?
+// A: In C++11, constexpr functions could only contain a single return
+//    statement. C++14 relaxed this to allow loops, local variables,
+//    and multiple statements. C++20 relaxed it further (allowing try,
+//    virtual calls, etc.). The key rule is: a constexpr function must
+//    be evaluable at compile time when given constant inputs. It cannot
+//    do I/O, allocate non-transient memory, or call non-constexpr
+//    functions during constant evaluation.
+//
+// Q: What happens if I ignore a [[nodiscard]] return value?
+// A: The compiler issues a warning (not an error). You can suppress
+//    the warning by casting the result to void: (void)compute();
+//    or by storing the result in a variable. Some compilers with
+//    -Werror will turn this warning into a hard error. [[nodiscard]]
+//    is a safety net, not a hard enforcement mechanism.
+//
+// Q: What does = delete actually do?
+// A: Marking a function as = delete makes any call to it a compile
+//    error. It does not remove the function from overload resolution —
+//    the function still participates, but selecting it is an error.
+//    This is useful for preventing implicit conversions (e.g., deleting
+//    f(int) to forbid f(3.14) from silently converting double to int).
+//
+// Q: What happens with a fold expression on an empty parameter pack?
+// A: It depends on the operator. For +, *, and most binary operators,
+//    an empty pack causes a compile error unless you use the binary
+//    fold form with an explicit init value: (0 + ... + args). Some
+//    operators have defined empty-pack values (&&  returns true,
+//    || returns false, comma returns void()). Always use the binary
+//    fold form if an empty pack is possible.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <string>

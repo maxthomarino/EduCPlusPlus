@@ -20,6 +20,38 @@
  *                 reference/en/cpp/utility/move
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What is a "moved-from" object allowed to do?
+// A: The C++ standard says it is in a "valid but unspecified" state. You may
+//    safely destroy it or assign a new value to it. Reading its contents
+//    (size, value, etc.) is technically allowed but yields unspecified results
+//    -- do not rely on them.
+//
+// Q: When does the compiler move automatically (implicit moves)?
+// A: The compiler uses move instead of copy in three key situations: (1) when
+//    initializing or assigning from a prvalue (temporary), (2) when returning
+//    a local variable by value (if NRVO does not apply), and (3) when throwing
+//    or catching a local variable. In all cases the source is an rvalue, so
+//    the move constructor is selected by overload resolution.
+//
+// Q: What happens if I call std::move on a const object?
+// A: std::move(const_obj) casts to const T&&. The move constructor takes T&&
+//    (non-const), so it cannot bind. The copy constructor (const T&) is
+//    selected instead -- the object is silently copied, not moved. This is a
+//    common performance trap that compiles without error.
+//
+// Q: What is the difference between RVO/NRVO and move semantics?
+// A: RVO (Return Value Optimization) and NRVO (Named RVO) eliminate the
+//    copy/move entirely -- the object is constructed directly in the caller's
+//    memory. Move semantics are the fallback when elision is not possible
+//    (e.g., returning different local variables from different branches). RVO
+//    is mandatory since C++17; NRVO is permitted but not guaranteed.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <string>

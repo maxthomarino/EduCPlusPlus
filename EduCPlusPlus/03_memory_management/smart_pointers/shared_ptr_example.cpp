@@ -14,6 +14,55 @@
  * Reference: reference/en/cpp/memory/shared_ptr
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: Is shared_ptr thread-safe?
+// A: The reference count operations (increment/decrement) are atomic, so it is safe
+//    for multiple threads to copy, destroy, or reset different shared_ptr instances
+//    that point to the same object. However, the managed object itself is NOT
+//    protected -- if two threads call non-const methods on the pointed-to object
+//    simultaneously, you still need a mutex. Also, concurrent reads and writes to the
+//    same shared_ptr variable (not copies, the exact same variable) are a data race.
+//    C++20 introduced std::atomic<std::shared_ptr<T>> for that case.
+//
+// Q: How does shared_ptr performance compare to unique_ptr?
+// A: shared_ptr is more expensive in three ways: (1) it heap-allocates a control
+//    block (unless you use make_shared, which merges it with the object), (2) every
+//    copy or destruction performs an atomic increment/decrement on the reference
+//    count, which involves memory barriers and cache-line synchronisation, and
+//    (3) sizeof(shared_ptr) is 2 pointers vs 1 for unique_ptr with default deleter.
+//    In tight loops or high-frequency copy paths, this overhead can be measurable.
+//    Always prefer unique_ptr unless you genuinely need shared ownership.
+//
+// Q: Can shared_ptr manage arrays?
+// A: Yes. Since C++17, shared_ptr<T[]> is supported and will call delete[] instead
+//    of delete. You can also use std::make_shared<T[]>(n) since C++20 to allocate
+//    an array of n elements. Before C++17, you had to provide a custom deleter like
+//    shared_ptr<T>(new T[n], std::default_delete<T[]>()). However, in most cases
+//    you should prefer std::vector<T> over a shared_ptr to an array.
+//
+// Q: What is enable_shared_from_this and when do I need it?
+// A: If an object managed by shared_ptr needs to hand out a shared_ptr to itself
+//    (e.g., registering a callback), it cannot simply do shared_ptr<T>(this) --
+//    that would create a second control block and cause double-delete. Instead,
+//    the class inherits from std::enable_shared_from_this<T>, which stores a
+//    weak_ptr internally. Calling shared_from_this() returns a shared_ptr that
+//    shares the existing control block. The object MUST already be owned by a
+//    shared_ptr before shared_from_this() is called, or the behaviour is undefined
+//    (C++17 throws std::bad_weak_ptr).
+//
+// Q: When should I pass shared_ptr by value vs by reference?
+// A: Pass shared_ptr by value only when the callee needs to share ownership (i.e.,
+//    it will store a copy). Passing by value increments the reference count, which
+//    has an atomic operation cost. If the function just needs to use the object
+//    without taking ownership, pass by const reference to shared_ptr, or better yet,
+//    pass a raw pointer or reference to the underlying object (via .get() or *ptr).
+//    This decouples the function from the ownership mechanism entirely.
+//
+// =====================================================
+
 #include <iostream>
 #include <memory>
 #include <format>
@@ -131,11 +180,11 @@ void demonstrate_shared_ownership() {
 
 // -----------------------------------------------
 // 2. Circular references and std::weak_ptr
-//    What: Smart pointers encode ownership and automate object lifetime management.
-//    When: Use this instead of raw owning pointers in modern C++.
-//    Why: They prevent leaks and clarify ownership semantics.
-//    Use: Prefer make_unique/make_shared and use weak_ptr to break shared cycles.
-//    Which: C++11
+//    What: Using weak_ptr to break circular shared_ptr reference cycles that cause memory leaks.
+//    When: Whenever two objects hold shared_ptrs to each other (parent-child, observer-subject, graph edges).
+//    Why: Circular shared_ptr references prevent the reference count from ever reaching zero, leaking both objects.
+//    Use: Make the "back-pointer" side of the relationship a weak_ptr; call lock() to obtain a temporary shared_ptr when access is needed.
+//    Which: C++11 (weak_ptr was introduced alongside shared_ptr)
 //
 //    Watch out: circular references between shared_ptrs cause memory
 //    leaks -- the reference count never reaches zero.  Use std::weak_ptr

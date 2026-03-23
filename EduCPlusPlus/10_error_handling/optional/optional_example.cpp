@@ -20,6 +20,40 @@
  *                 value in the "empty" case.
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: How does std::optional differ from a raw pointer for representing
+//    "might not have a value"?
+// A: A raw pointer can be null, but it does not own the object it points to
+//    and offers no type-level distinction between "nullable" and "always
+//    valid."  std::optional owns its value (stored inline, no heap), has
+//    value semantics (copyable, movable), and makes the "might be empty"
+//    contract explicit in the type signature.
+//
+// Q: Does std::optional allocate on the heap?
+// A: No.  The contained value is stored inside the optional object itself
+//    using an internal aligned buffer.  sizeof(optional<T>) is roughly
+//    sizeof(T) + sizeof(bool), padded for alignment.  Construction of an
+//    empty optional is essentially free.
+//
+// Q: Why does the standard not allow std::optional<T&>?
+// A: References in C++ are not rebindable -- once bound, they always refer
+//    to the same object.  An optional reference would need to be
+//    "re-seated" on assignment, which contradicts reference semantics.  The
+//    committee chose to disallow it rather than introduce confusing
+//    behavior.  Use a raw pointer or std::reference_wrapper<T> instead.
+//
+// Q: When should I use value() versus value_or()?
+// A: Use value() when the absence of a value is a logic error that should
+//    throw std::bad_optional_access.  Use value_or(default) when you have
+//    a sensible fallback and want to avoid branching.  For performance-
+//    sensitive paths, check has_value() and dereference with operator* to
+//    avoid the exception machinery of value().
+//
+// =====================================================
+
 // -----------------------------------------------
 // HOW OPTIONAL STORES ITS VALUE:
 //

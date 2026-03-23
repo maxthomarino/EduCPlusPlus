@@ -17,6 +17,40 @@
  *            reference/en/cpp/header/compare.html
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: When should I customize <=> instead of using = default?
+// A: Default <=> compares members in declaration order, which works for most
+//    value types. Customize it when member-wise comparison is wrong: e.g.,
+//    case-insensitive strings, semantic versioning where "1.0.0" < "1.0.1"
+//    but you store fields in a different order, or when certain members
+//    should be excluded from comparison entirely.
+//
+// Q: What is the difference between strong, weak, and partial ordering?
+// A: strong_ordering means equal values are substitutable (indistinguishable).
+//    weak_ordering means equivalent values may differ in some observable way
+//    (e.g., case-insensitive strings: "ABC" and "abc" are equivalent but not
+//    identical). partial_ordering allows "unordered" results -- some pairs
+//    cannot be compared at all (e.g., NaN in floating-point arithmetic).
+//
+// Q: Is <=> compatible with C++17 code that uses < and ==?
+// A: Yes. When you default <=> in C++20, the compiler synthesizes all six
+//    relational operators (==, !=, <, >, <=, >=). Code that calls those
+//    operators -- including C++17-era comparisons -- works without changes.
+//    The spaceship operator itself is only called internally; existing call
+//    sites do not need to be rewritten.
+//
+// Q: Why must I define operator== separately when I write a custom <=>?
+// A: For performance. Equality testing can often be optimized (e.g., compare
+//    sizes first before element-wise comparison). The compiler will not
+//    synthesize == from a custom <=> because it cannot know whether your
+//    three-way logic is optimal for the equality case. Defaulting == is
+//    fine if member-wise equality is correct.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <compare>

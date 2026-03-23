@@ -19,6 +19,44 @@
  * Compile with: g++ -std=c++20 -pthread condition_variables.cpp
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What are spurious wakeups and why do they happen?
+// A: A spurious wakeup is when a thread blocked on wait() resumes even though
+//    no other thread called notify_one() or notify_all(). This can happen due
+//    to OS-level implementation details (e.g., signal handling on POSIX, or the
+//    kernel waking threads for internal bookkeeping). This is why you must
+//    always re-check the condition after waking -- either with a while-loop or
+//    by using the predicate overload of wait().
+//
+// Q: What is condition_variable_any and when should I use it?
+// A: std::condition_variable only works with std::unique_lock<std::mutex>.
+//    std::condition_variable_any works with any lock type that satisfies the
+//    BasicLockable requirements (has lock() and unlock()). Use it when you need
+//    a condition variable with std::shared_mutex, std::recursive_mutex, or a
+//    custom lock type. It has slightly more overhead than condition_variable
+//    because it manages an internal mutex to coordinate with arbitrary locks.
+//
+// Q: How does wait_for() differ from wait(), and how should I handle timeouts?
+// A: wait_for() blocks for at most a specified duration. It returns
+//    std::cv_status::timeout if the duration elapsed without a notification, or
+//    std::cv_status::no_timeout if it was notified. The predicate overload
+//    returns false on timeout. Always re-check the condition after wait_for()
+//    returns -- a timeout does not mean the condition is false, and a
+//    notification does not mean the condition is true (spurious wakeups).
+//
+// Q: Why should I always pass a predicate to wait() instead of using a bare wait?
+// A: The predicate overload of wait(lock, pred) is equivalent to
+//    while (!pred()) wait(lock), which handles spurious wakeups automatically.
+//    Without a predicate, you must write the while-loop yourself, and forgetting
+//    to do so is a common bug that leads to threads proceeding when the condition
+//    is not actually met. The predicate overload is shorter, safer, and
+//    self-documenting.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <thread>

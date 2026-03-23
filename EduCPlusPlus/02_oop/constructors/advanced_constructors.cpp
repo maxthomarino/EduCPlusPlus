@@ -23,6 +23,42 @@
  *            reference/en/cpp/language/constexpr.html
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What makes a type an aggregate vs a non-aggregate?
+// A: An aggregate has no user-declared constructors, no private or
+//    protected non-static data members, no virtual functions, and no
+//    virtual/private/protected base classes. In C++20 the rules got
+//    stricter: a class with ANY user-declared constructor (including
+//    = default or = delete inside the class body) is NOT an aggregate.
+//    This means a seemingly innocent "MyStruct() = default;" inside
+//    the class removes aggregate status in C++20.
+//
+// Q: Are designated initializers portable between C and C++?
+// A: No. C99 designated initializers allow out-of-order designators
+//    and array element designation (e.g., [3] = 5), but C++20
+//    designated initializers require designators in declaration order
+//    and do not support array element designation. Code using C99-only
+//    features will not compile as C++20.
+//
+// Q: What are the requirements for a constexpr constructor?
+// A: In C++14 and later, a constexpr constructor can contain statements
+//    (loops, conditionals), but all member types must be literal types,
+//    no dynamic allocation is allowed (except C++20 transient allocation),
+//    and the constructor must be able to produce a constant expression
+//    when given constant arguments. All members must be initialized.
+//
+// Q: When should I use inheriting constructors vs writing my own?
+// A: Use inheriting constructors ("using Base::Base;") when the derived
+//    class adds no new data members, or all new members have default
+//    member initializers. Write your own constructors when the derived
+//    class needs to initialize new members that have no sensible default,
+//    or when you need validation logic beyond what the base provides.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <string>
@@ -35,11 +71,11 @@
 
 // -----------------------------------------------
 // 1. Inheriting constructors (C++11) — using Base::Base
-//    What: Constructors and special members define object initialization and ownership behavior.
-//    When: Use this when class invariants and resource semantics must be explicit.
-//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
-//    Use: Define/default/delete special members to match ownership intent.
-//    Which: C++98+ (major additions in C++11 and later)
+//    What: Inheriting constructors import all base-class constructors into a derived class with a single using-declaration.
+//    When: Use this when the derived class adds no new uninitialized data members and the base constructors are sufficient.
+//    Why: It eliminates boilerplate forwarding constructors that simply pass arguments through to the base.
+//    Use: Write "using Base::Base;" in the derived class and ensure any new members have default member initializers.
+//    Which: C++11
 //
 //    HOW IT WORKS:
 //    When a derived class adds no new data members (or all new members
@@ -94,11 +130,11 @@ public:
 
 // -----------------------------------------------
 // 2. std::initializer_list constructor
-//    What: Constructors and special members define object initialization and ownership behavior.
-//    When: Use this when class invariants and resource semantics must be explicit.
-//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
-//    Use: Define/default/delete special members to match ownership intent.
-//    Which: C++98+ (major additions in C++11 and later)
+//    What: An initializer_list constructor accepts a brace-enclosed list of values of a single type.
+//    When: Use this when your class should support brace initialization with a variable number of homogeneous elements (e.g., {1, 2, 3}).
+//    Why: It provides natural container-like initialization syntax and is strongly preferred by the compiler during {} overload resolution.
+//    Use: Accept std::initializer_list<T> as a constructor parameter; use () instead of {} when you need to bypass it.
+//    Which: C++11
 //
 //    HOW IT WORKS:
 //    std::initializer_list<T> is a lightweight wrapper around a temporary
@@ -145,11 +181,11 @@ public:
 
 // -----------------------------------------------
 // 3. Aggregate initialization — no constructor needed
-//    What: Constructors and special members define object initialization and ownership behavior.
-//    When: Use this when class invariants and resource semantics must be explicit.
-//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
-//    Use: Define/default/delete special members to match ownership intent.
-//    Which: C++98+ (major additions in C++11 and later)
+//    What: Aggregate initialization lets you initialize a class with no user-declared constructors directly from a brace-enclosed list of values.
+//    When: Use this for simple data-holder types (DTOs, config structs) that have no invariants to enforce.
+//    Why: It avoids writing constructors entirely — the compiler initializes members in declaration order from the provided values.
+//    Use: Keep the type free of user-declared constructors, private data members, and virtual functions to preserve aggregate status.
+//    Which: C++98+ (relaxed in C++14/17; stricter user-declared constructor rules in C++20)
 //
 //    HOW IT WORKS:
 //    An aggregate is a class/struct with:
@@ -169,8 +205,10 @@ public:
 //    DTOs, configuration structs, and return types.
 //
 //    Watch out: adding a user-declared constructor (even = default
-//    inside the class body in C++17 and earlier) removes aggregate
-//    status. In C++20, = default inside the class is OK.
+//    inside the class body) removes aggregate status. C++20 made this
+//    rule STRICTER, not more lenient: any user-declared constructor
+//    (including = default inside the class) disqualifies a type as an
+//    aggregate. To keep aggregate status, declare no constructors at all.
 // -----------------------------------------------
 
 struct Point3D {
@@ -227,11 +265,11 @@ struct ServerConfig {
 
 // -----------------------------------------------
 // 5. Converting constructor vs explicit — how implicit conversion works
-//    What: Constructors and special members define object initialization and ownership behavior.
-//    When: Use this when class invariants and resource semantics must be explicit.
-//    Why: It prevents lifetime bugs and makes copy/move behavior predictable.
-//    Use: Define/default/delete special members to match ownership intent.
-//    Which: C++98+ (major additions in C++11 and later)
+//    What: A converting constructor is a non-explicit constructor callable with one argument, enabling implicit type conversion to the class type.
+//    When: Use a converting (non-explicit) constructor only when implicit conversion is semantically meaningful and safe for callers.
+//    Why: Implicit conversions can hide bugs by silently constructing temporaries; explicit prevents this and forces intentional construction.
+//    Use: Default to explicit on single-argument constructors; omit it only when the conversion is natural and expected by users of the type.
+//    Which: C++98+ (explicit(bool) conditional form added in C++20)
 //
 //    HOW IMPLICIT CONVERSION HAPPENS:
 //    When a function expects type A but receives type B, the compiler

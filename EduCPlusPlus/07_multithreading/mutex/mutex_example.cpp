@@ -18,6 +18,45 @@
  * Compile with: g++ -std=c++20 -pthread mutex_example.cpp
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What is std::recursive_mutex and when should I use it?
+// A: std::recursive_mutex allows the same thread to lock the mutex multiple
+//    times without deadlocking. Each lock() must be paired with an unlock().
+//    Use it when a function that holds the lock calls another function that
+//    also needs the lock (e.g., public methods calling each other). However,
+//    needing a recursive mutex often signals a design problem -- consider
+//    refactoring so that internal methods assume the lock is already held.
+//
+// Q: What is the difference between std::unique_lock and std::lock_guard?
+// A: std::lock_guard is a simple RAII wrapper: it locks on construction and
+//    unlocks on destruction. std::unique_lock is more flexible: it supports
+//    deferred locking, timed locking (try_lock_for), manual unlock/re-lock,
+//    and moving ownership between scopes. Use lock_guard when you just need
+//    basic scoped locking; use unique_lock when you need to unlock early,
+//    pass the lock to a condition_variable, or use try_lock.
+//
+// Q: How does try_lock() work and when is it useful?
+// A: try_lock() attempts to acquire the mutex without blocking. It returns
+//    true if the lock was acquired, false if another thread already holds it.
+//    This is useful for avoiding deadlocks in certain patterns, implementing
+//    non-blocking algorithms, or doing optimistic work that falls back to a
+//    different strategy when the lock is contended. std::try_lock() (the free
+//    function) can attempt to lock multiple mutexes at once.
+//
+// Q: What strategies exist for avoiding deadlocks with multiple mutexes?
+// A: (1) Use std::scoped_lock (C++17) which locks multiple mutexes using a
+//    deadlock-avoidance algorithm internally. (2) Establish a global lock
+//    ordering -- always acquire mutexes in the same order across all threads.
+//    (3) Use std::lock() to lock multiple mutexes atomically, then adopt them
+//    into lock_guards with std::adopt_lock. (4) Use try_lock with backoff to
+//    release already-held locks if a subsequent lock fails. std::scoped_lock
+//    is the simplest and most recommended approach.
+//
+// =====================================================
+
 #include <iostream>
 #include <thread>
 #include <mutex>

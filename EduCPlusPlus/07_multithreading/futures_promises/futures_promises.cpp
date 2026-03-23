@@ -17,6 +17,44 @@
  * Compile with: g++ -std=c++20 -pthread futures_promises.cpp
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What is the difference between std::async and creating a std::thread?
+// A: std::async is a higher-level abstraction that returns a std::future holding
+//    the task's return value (or exception). The runtime may pool threads or
+//    defer execution. std::thread is lower-level: you manage the thread's
+//    lifetime yourself and must use shared state or a promise to retrieve
+//    results. Prefer std::async for simple "compute and return" tasks; use
+//    std::thread when you need fine-grained control over thread lifetime,
+//    affinity, or when the work is long-running and ongoing.
+//
+// Q: What is std::packaged_task and when would I use it?
+// A: std::packaged_task wraps a callable and provides a future for its result,
+//    but unlike std::async it does not launch execution automatically. You
+//    invoke it manually or pass it to a thread. This is useful for thread pools:
+//    you can enqueue packaged_tasks into a work queue and have worker threads
+//    execute them, while callers hold futures to retrieve results later.
+//
+// Q: What does std::launch::deferred do exactly?
+// A: With launch::deferred, the task is not executed until someone calls get()
+//    or wait() on the returned future. It runs in the calling thread at that
+//    point -- no new thread is ever created. This is useful for lazy evaluation:
+//    compute the result only if it turns out to be needed. Note that if you
+//    never call get() or wait(), the task never runs at all.
+//
+// Q: What is the fire-and-forget anti-pattern with std::async?
+// A: If you discard the future returned by std::async(std::launch::async, ...),
+//    the future's destructor blocks until the task completes. This makes the
+//    call effectively synchronous, defeating the purpose of async execution.
+//    For example: std::async(std::launch::async, slow_fn); // blocks here!
+//    Always capture the returned future in a variable and call get() later, or
+//    use a detached std::thread if you truly want fire-and-forget (but then you
+//    lose exception propagation and result retrieval).
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <future>

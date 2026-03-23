@@ -17,6 +17,42 @@
  * REFERENCE:      reference/en/cpp/language/class_template
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What is the difference between full and partial specialization?
+// A: Full (explicit) specialization provides a completely custom
+//    implementation for one exact set of template arguments (e.g.,
+//    Stack<bool, 8>). Partial specialization fixes some parameters while
+//    leaving others open (e.g., TypeInfo<T*> for all pointer types). Only
+//    class templates support partial specialization; function templates must
+//    use overloading instead.
+//
+// Q: What is CTAD and when should I be careful with it?
+// A: Class Template Argument Deduction (C++17) lets the compiler infer
+//    template arguments from constructor parameters, so you can write
+//    Pair p(1, 2.0) instead of Pair<int, double> p(1, 2.0). Be careful
+//    with string literals: std::vector v{"hello"} deduces vector<const
+//    char*>, not vector<string>. Write explicit deduction guides to steer
+//    the deduction toward the intended types.
+//
+// Q: What are alias templates?
+// A: An alias template is a templated type alias declared with the "using"
+//    keyword: template<typename T> using Vec = std::vector<T>; This lets
+//    you create shorter or more expressive names for complex template
+//    types. Unlike a typedef, an alias template can itself be parameterized.
+//
+// Q: Can template member functions be virtual?
+// A: No. Virtual functions require a fixed vtable entry, but each
+//    instantiation of a template member function would need its own slot.
+//    The compiler cannot know in advance which instantiations will exist,
+//    so virtual template member functions are not allowed. You can,
+//    however, have a virtual function in a class template (e.g., a virtual
+//    destructor in Stack<T>), because the class instantiation fixes T.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <string>

@@ -14,6 +14,48 @@
  *            reference/en/cpp/language/range-for.html
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: What is the difference between if constexpr and a regular if?
+// A: A regular if evaluates its condition at runtime and both branches
+//    must compile for the current type. if constexpr evaluates at
+//    compile time and the untaken branch is discarded entirely — it
+//    does not even need to be valid code for that type. This matters
+//    in templates and generic lambdas where different types require
+//    completely different operations.
+//
+// Q: Is it safe to insert or erase elements during a range-based for loop?
+// A: No. Range-for caches the end iterator before the loop starts.
+//    If you insert or erase elements, the cached iterator may become
+//    invalid, leading to undefined behavior. If you need to modify the
+//    container's size during iteration, use a traditional index-based
+//    or iterator-based loop with careful bookkeeping instead.
+//
+// Q: Does the initializer in if(init; cond) or switch(init; val) leak
+//    into the surrounding scope?
+// A: No. The variable declared in the initializer is scoped to the
+//    entire if/else or switch statement, including all branches, but
+//    it is destroyed once execution leaves that statement. This is the
+//    main benefit — it keeps helper values out of the enclosing scope.
+//
+// Q: Why is goto not covered in this lesson?
+// A: goto exists in C++ and is occasionally useful in very specific
+//    patterns (e.g., breaking out of deeply nested loops in C-style
+//    code). However, structured control flow (if, switch, loops, early
+//    return) handles nearly every case more clearly. Modern C++ style
+//    guides generally discourage goto because it makes control flow
+//    harder to follow and reason about.
+//
+// Q: Can I use if constexpr outside of templates?
+// A: You can write it outside templates, but it provides no advantage
+//    there. In non-dependent contexts, both branches must still be
+//    well-formed. The real power of if constexpr is that it discards
+//    branches that would fail to compile for certain template arguments.
+//
+// =====================================================
+
 #include <iostream>
 #include <format>
 #include <vector>

@@ -20,6 +20,47 @@
  * REFERENCE:      reference/en/cpp/error/exception
  */
 
+// =====================================================
+// FREQUENTLY ASKED QUESTIONS
+// =====================================================
+//
+// Q: When should I use exceptions instead of error codes?
+// A: Use exceptions for truly exceptional situations that cannot be handled
+//    locally -- errors that must propagate across multiple call frames.  Use
+//    return-based error handling (error codes, std::optional, std::expected)
+//    for expected failure paths like "key not found" or "parse failed" where
+//    the immediate caller is responsible for handling the result.
+//
+// Q: Why should I catch exceptions by const reference instead of by value?
+// A: Catching by value copies the exception object, which slices off any
+//    derived-class data.  If you throw a ConnectionError and catch by
+//    std::exception value, you lose the error_code() member and the
+//    derived what() message.  Catching by const reference avoids the copy
+//    and preserves the full derived type.
+//
+// Q: What is std::expected (C++23) and how does it relate to exceptions?
+// A: std::expected<T, E> is a return type that holds either a value of type
+//    T (the success case) or an error of type E (the failure case).  It is
+//    designed for functions where failure is a normal outcome, not an
+//    exceptional one.  Unlike exceptions, there is no stack unwinding, so
+//    performance is predictable and the caller is forced by the type system
+//    to inspect the result.
+//
+// Q: When should I mark a function noexcept?
+// A: Always mark destructors, move constructors, move-assignment operators,
+//    and swap functions noexcept.  Also mark any function that you can
+//    guarantee will never allow an exception to escape.  The noexcept
+//    specification enables compiler optimizations and allows containers
+//    like std::vector to choose move over copy during reallocation.
+//
+// Q: What happens if an exception is thrown inside a destructor during
+//    stack unwinding?
+// A: std::terminate() is called and the program aborts.  Destructors are
+//    implicitly noexcept since C++11.  Never throw from a destructor; if
+//    cleanup can fail, log the error or store it for later inspection.
+//
+// =====================================================
+
 // -----------------------------------------------
 // HOW EXCEPTION PROPAGATION WORKS:
 //
@@ -81,10 +122,10 @@
 
 // -----------------------------------------------
 // 2. Custom exception class
-//    What: Exceptions signal error conditions using stack unwinding and typed handlers.
-//    When: Use this for error paths that cannot be handled locally and should propagate to a caller.
-//    Why: They separate normal control flow from failure handling and preserve invariants with RAII.
-//    Use: Throw specific exception types and catch by const reference at handling boundaries.
+//    What: User-defined exception types that extend the standard hierarchy with domain-specific data.
+//    When: Use this when standard exception types lack the context callers need (error codes, hostnames, etc.).
+//    Why: Custom types let catch blocks discriminate by domain error and extract structured information.
+//    Use: Inherit from std::runtime_error (or another standard base) and add domain-specific members.
 //    Which: C++98+ (modern guidance continues)
 //
 //    Inherit from std::exception or its subclasses.
@@ -142,10 +183,10 @@ public:
 
 // -----------------------------------------------
 // 3. Functions that throw
-//    What: Exceptions signal error conditions using stack unwinding and typed handlers.
-//    When: Use this for error paths that cannot be handled locally and should propagate to a caller.
-//    Why: They separate normal control flow from failure handling and preserve invariants with RAII.
-//    Use: Throw specific exception types and catch by const reference at handling boundaries.
+//    What: Throw expressions that create and launch exception objects up the call stack.
+//    When: Use this when a function detects a precondition violation or unrecoverable local error.
+//    Why: Throwing moves error reporting out of the return channel, keeping the return type for real results.
+//    Use: Throw the most specific exception type that describes the error; rethrow with `throw;` to preserve type.
 //    Which: C++98+ (modern guidance continues)
 //
 // -----------------------------------------------
