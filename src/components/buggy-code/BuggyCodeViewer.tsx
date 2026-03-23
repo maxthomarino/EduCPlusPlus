@@ -674,7 +674,7 @@ function ListView({
   onBack: () => void;
 }) {
   return (
-    <div class="page-reveal">
+    <div class="page-reveal" style={{ maxWidth: "780px", margin: "0 auto" }}>
       <div
         style={{
           display: "flex",
@@ -925,7 +925,7 @@ function ViewerView({
   }, [goPrev, goNext, onBack]);
 
   return (
-    <div>
+    <div style={{ maxWidth: "780px", margin: "0 auto" }}>
       {/* Header */}
       <div
         style={{

@@ -459,7 +459,19 @@ details[open] > summary .chevron {
 
 @media (min-width: 860px) {
   .buggy-path-grid {
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .buggy-path-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (min-width: 1400px) {
+  .buggy-path-grid {
+    grid-template-columns: repeat(5, 1fr);
   }
 }
 
