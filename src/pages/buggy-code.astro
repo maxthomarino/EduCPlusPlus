@@ -1,7 +1,7 @@
 ---
 import BaseLayout from "../layouts/BaseLayout.astro";
 import BuggyCodeViewer from "../components/buggy-code/BuggyCodeViewer.tsx";
-import { programs, BUGGY_TOPICS, learningPaths } from "../lib/buggy-code";
+import { programs, BUGGY_TOPICS, learningPaths, pathGroups } from "../lib/buggy-code";
 import type { BuggyProgramHighlighted } from "../lib/buggy-code";
 import { createHighlighter } from "shiki";
 
@@ -44,6 +44,6 @@ const totalTopics = BUGGY_TOPICS.length;
         Each compiles cleanly but contains exactly one subtle bug.
       </p>
     </div>
-    <BuggyCodeViewer client:load programs={highlighted} paths={learningPaths} />
+    <BuggyCodeViewer client:load programs={highlighted} paths={learningPaths} pathGroups={pathGroups} />
   </main>
 </BaseLayout>

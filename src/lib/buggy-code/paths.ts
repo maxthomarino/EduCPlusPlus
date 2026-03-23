@@ -1,4 +1,4 @@
-import type { LearningPath } from "./types";
+import type { LearningPath, PathGroup } from "./types";
 
 export const learningPaths: LearningPath[] = [
   {
@@ -186,5 +186,36 @@ export const learningPaths: LearningPath[] = [
     title: "Compilation Traps",
     description: "ODR violations, macro hygiene, and template linkage — ten programs that break between compile and link.",
     programIds: [394, 395, 396, 397, 398, 399, 400, 401, 402, 403],
+  },
+];
+
+export const pathGroups: PathGroup[] = [
+  {
+    label: "Memory & Ownership",
+    pathIds: ["ownership-problem", "smart-pointer-mastery", "pointer-discipline", "memory-forensics", "lifetime-puzzles"],
+  },
+  {
+    label: "Objects & Classes",
+    pathIds: ["object-lifecycle", "object-anatomy", "construction-zone", "operator-overloading", "inheritance-maze"],
+  },
+  {
+    label: "Containers & Algorithms",
+    pathIds: ["iterator-invalidation", "algorithm-contracts", "stdlib-surprises", "container-gotchas", "build-it-yourself"],
+  },
+  {
+    label: "Resources & Error Handling",
+    pathIds: ["resource-guards", "resource-discipline", "value-in-motion", "when-things-throw"],
+  },
+  {
+    label: "Concurrency",
+    pathIds: ["shared-state", "thread-hazards", "concurrency-patterns"],
+  },
+  {
+    label: "Templates & Metaprogramming",
+    pathIds: ["template-traps", "template-depths"],
+  },
+  {
+    label: "Language, Types & Text",
+    pathIds: ["fundamentals-gauntlet", "language-traps", "silent-conversions", "numeric-hazards", "compilation-traps", "c-string-archaeology", "text-processing"],
   },
 ];

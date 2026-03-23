@@ -29,3 +29,8 @@ export interface LearningPath {
   description: string;
   programIds: number[];
 }
+
+export interface PathGroup {
+  label: string;
+  pathIds: string[];
+}

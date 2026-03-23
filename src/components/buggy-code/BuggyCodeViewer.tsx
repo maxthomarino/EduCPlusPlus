@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect } from "preact/hooks";
 import type { ComponentChildren } from "preact";
-import type { BuggyProgramHighlighted, StdlibRef, LearningPath } from "../../lib/buggy-code";
+import type { BuggyProgramHighlighted, StdlibRef, LearningPath, PathGroup } from "../../lib/buggy-code";
 
 type View = "menu" | "list" | "viewer";
 
@@ -361,6 +361,7 @@ function MenuView({
   topicCounts,
   totalPrograms,
   paths,
+  pathGroups,
   programById,
   onSelectTopic,
   onSelectPath,
@@ -369,6 +370,7 @@ function MenuView({
   topicCounts: Map<string, { total: number; easy: number; medium: number; hard: number }>;
   totalPrograms: number;
   paths: LearningPath[];
+  pathGroups: PathGroup[];
   programById: Map<number, BuggyProgramHighlighted>;
   onSelectTopic: (topic: string) => void;
   onSelectPath: (path: LearningPath) => void;
@@ -381,6 +383,12 @@ function MenuView({
     return topics.filter((t) => t.toLowerCase().includes(q));
   }, [search, topics]);
 
+  const pathById = useMemo(() => {
+    const map = new Map<string, LearningPath>();
+    for (const p of paths) map.set(p.id, p);
+    return map;
+  }, [paths]);
+
   const getDifficultyRange = (path: LearningPath) => {
     const diffs = path.programIds
       .map((id) => programById.get(id))
@@ -392,17 +400,66 @@ function MenuView({
     return min === max ? min : `${min} → ${max}`;
   };
 
+  const renderPathCard = (path: LearningPath) => (
+    <button
+      key={path.id}
+      onClick={() => onSelectPath(path)}
+      class="buggy-path-card"
+    >
+      <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
+        <span style={{ color: "var(--accent)", flexShrink: 0, display: "flex" }}>{PathIcon}</span>
+        <span
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "0.82rem",
+            fontWeight: 650,
+            color: "var(--text-primary)",
+            lineHeight: "1.3",
+          }}
+        >
+          {path.title}
+        </span>
+      </div>
+      <div
+        style={{
+          fontSize: "0.74rem",
+          color: "var(--text-muted)",
+          lineHeight: "1.45",
+          flex: 1,
+        }}
+      >
+        {path.description}
+      </div>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          fontSize: "0.66rem",
+          fontWeight: 600,
+          fontFamily: "var(--font-code)",
+          color: "var(--text-muted)",
+          marginTop: "0.1rem",
+        }}
+      >
+        <span>{path.programIds.length} steps</span>
+        <span style={{ opacity: 0.4 }}>·</span>
+        <span>{getDifficultyRange(path)}</span>
+      </div>
+    </button>
+  );
+
   return (
     <div class="page-reveal">
       {/* Learning Paths section */}
       {paths.length > 0 && (
-        <div class="surface-card" style={{ padding: "1rem 1.25rem", marginBottom: "0.6rem" }}>
+        <div style={{ marginBottom: "0.6rem" }}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
               gap: "0.5rem",
-              marginBottom: "0.6rem",
+              marginBottom: "0.75rem",
             }}
           >
             <p class="eyebrow" style={{ margin: 0 }}>
@@ -423,55 +480,33 @@ function MenuView({
             </span>
           </div>
 
-          <div class="buggy-path-grid">
-            {paths.map((path) => (
-              <button
-                key={path.id}
-                onClick={() => onSelectPath(path)}
-                class="buggy-path-card"
-              >
-                <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
-                  <span style={{ color: "var(--accent)", flexShrink: 0, display: "flex" }}>{PathIcon}</span>
-                  <span
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            {pathGroups.map((group) => {
+              const groupPaths = group.pathIds
+                .map((id) => pathById.get(id))
+                .filter(Boolean) as LearningPath[];
+              if (groupPaths.length === 0) return null;
+              return (
+                <div key={group.label}>
+                  <div
                     style={{
-                      fontFamily: "var(--font-display)",
-                      fontSize: "0.82rem",
+                      fontSize: "0.72rem",
                       fontWeight: 650,
-                      color: "var(--text-primary)",
-                      lineHeight: "1.3",
+                      fontFamily: "var(--font-display)",
+                      color: "var(--text-secondary)",
+                      letterSpacing: "0.02em",
+                      marginBottom: "0.4rem",
+                      paddingLeft: "0.1rem",
                     }}
                   >
-                    {path.title}
-                  </span>
+                    {group.label}
+                  </div>
+                  <div class="buggy-path-grid">
+                    {groupPaths.map(renderPathCard)}
+                  </div>
                 </div>
-                <div
-                  style={{
-                    fontSize: "0.74rem",
-                    color: "var(--text-muted)",
-                    lineHeight: "1.45",
-                    flex: 1,
-                  }}
-                >
-                  {path.description}
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem",
-                    fontSize: "0.66rem",
-                    fontWeight: 600,
-                    fontFamily: "var(--font-code)",
-                    color: "var(--text-muted)",
-                    marginTop: "0.1rem",
-                  }}
-                >
-                  <span>{path.programIds.length} steps</span>
-                  <span style={{ opacity: 0.4 }}>·</span>
-                  <span>{getDifficultyRange(path)}</span>
-                </div>
-              </button>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -1086,9 +1121,11 @@ function ViewerView({
 export default function BuggyCodeViewer({
   programs,
   paths,
+  pathGroups,
 }: {
   programs: BuggyProgramHighlighted[];
   paths: LearningPath[];
+  pathGroups: PathGroup[];
 }) {
   const [view, setView] = useState<View>("menu");
   const [selectedTopic, setSelectedTopic] = useState("");
@@ -1181,6 +1218,7 @@ export default function BuggyCodeViewer({
           topicCounts={topicCounts}
           totalPrograms={programs.length}
           paths={paths}
+          pathGroups={pathGroups}
           programById={programById}
           onSelectTopic={handleSelectTopic}
           onSelectPath={handleSelectPath}
