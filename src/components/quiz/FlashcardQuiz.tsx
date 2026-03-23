@@ -154,10 +154,10 @@ function MenuView({
   return (
     <div class="page-reveal">
       {/* ── Topics ── */}
-      <div class="surface-card" style={{ padding: "1.25rem 1.5rem", marginBottom: "0.75rem" }}>
+      <div class="surface-card" style={{ padding: "1rem 1.2rem", marginBottom: "0.5rem" }}>
         <div style={{
           display: "flex", alignItems: "center", justifyContent: "space-between",
-          marginBottom: "0.75rem",
+          marginBottom: "0.6rem",
         }}>
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
             <p class="eyebrow" style={{ margin: 0 }}>Topics</p>
@@ -293,7 +293,7 @@ function MenuView({
       </div>
 
       {/* ── Configuration ── */}
-      <div class="surface-card" style={{ padding: "1.1rem 1.5rem", marginBottom: "0.75rem" }}>
+      <div class="surface-card" style={{ padding: "0.85rem 1.2rem", marginBottom: "0.5rem" }}>
         <div class="quiz-config-row">
           {/* Difficulty */}
           <div>
@@ -510,19 +510,19 @@ function QuizView({
       <div
         key={question.id}
         class={`surface-card ${animClass}`}
-        style={{ padding: "1.25rem 1.5rem", marginBottom: "1rem" }}
+        style={{ padding: "1rem 1.2rem", marginBottom: "0.75rem" }}
       >
-        <p class="eyebrow" style={{ marginBottom: "0.35rem" }}>
+        <p class="eyebrow" style={{ marginBottom: "0.3rem", fontSize: "0.68rem" }}>
           {question.topic}
         </p>
         <p
           class="display-font"
           style={{
-            fontSize: "1.05rem",
+            fontSize: "1rem",
             fontWeight: "600",
             lineHeight: "1.5",
             color: "var(--text-primary)",
-            marginBottom: question.code ? "0.75rem" : "0",
+            marginBottom: question.code ? "0.65rem" : "0",
           }}
         >
           {question.question}
@@ -533,9 +533,9 @@ function QuizView({
             style={{
               background: "var(--surface-code)",
               color: "var(--text-inverse)",
-              padding: "0.85rem 1rem",
-              borderRadius: "0.65rem",
-              fontSize: "0.82rem",
+              padding: "0.75rem 0.9rem",
+              borderRadius: "0.5rem",
+              fontSize: "0.8rem",
               lineHeight: "1.6",
               overflowX: "auto",
               fontFamily: "var(--font-code)",
@@ -569,11 +569,11 @@ function QuizView({
                 ...optionStyle(i, selected, revealed, question.correctIndex),
                 display: "flex",
                 alignItems: "flex-start",
-                gap: "0.6rem",
-                padding: "0.7rem 0.85rem",
-                borderRadius: "0.65rem",
+                gap: "0.5rem",
+                padding: "0.6rem 0.75rem",
+                borderRadius: "0.5rem",
                 textAlign: "left",
-                fontSize: "0.88rem",
+                fontSize: "0.85rem",
                 lineHeight: "1.5",
                 fontWeight: "500",
               }}
@@ -622,15 +622,15 @@ function QuizView({
         <div
           class="page-reveal"
           style={{
-            padding: "0.85rem 1rem",
-            borderRadius: "0.65rem",
-            borderLeft: `3px solid ${selected === question.correctIndex ? "var(--success)" : "var(--warning)"}`,
+            padding: "0.75rem 0.9rem",
+            borderRadius: "0.5rem",
+            borderLeft: `2.5px solid ${selected === question.correctIndex ? "var(--success)" : "var(--warning)"}`,
             background:
               selected === question.correctIndex
-                ? "color-mix(in srgb, var(--success-soft) 60%, var(--surface-elevated))"
-                : "color-mix(in srgb, var(--warning-soft) 60%, var(--surface-elevated))",
+                ? "color-mix(in srgb, var(--success-soft) 50%, var(--surface-elevated))"
+                : "color-mix(in srgb, var(--warning-soft) 50%, var(--surface-elevated))",
             marginBottom: "1rem",
-            fontSize: "0.88rem",
+            fontSize: "0.84rem",
             lineHeight: "1.6",
             color: "var(--text-secondary)",
           }}
@@ -639,12 +639,14 @@ function QuizView({
             class="display-font"
             style={{
               fontWeight: "700",
-              fontSize: "0.8rem",
-              marginBottom: "0.3rem",
+              fontSize: "0.76rem",
+              marginBottom: "0.25rem",
+              letterSpacing: "0.02em",
+              textTransform: "uppercase" as const,
               color: selected === question.correctIndex ? "var(--success)" : "var(--warning)",
             }}
           >
-            {selected === question.correctIndex ? "Correct!" : "Incorrect"}
+            {selected === question.correctIndex ? "Correct" : "Incorrect"}
           </p>
           <p>{question.explanation}</p>
           {question.link && (
@@ -655,12 +657,12 @@ function QuizView({
               style={{
                 display: "inline-flex",
                 alignItems: "center",
-                gap: "0.3rem",
-                marginTop: "0.5rem",
-                fontSize: "0.82rem",
+                gap: "0.25rem",
+                marginTop: "0.4rem",
+                fontSize: "0.78rem",
                 color: "var(--accent)",
                 textDecoration: "none",
-                fontWeight: 500,
+                fontWeight: 600,
               }}
             >
               Learn more ↗
@@ -748,18 +750,21 @@ function ResultsView({
       <div
         class="surface-card"
         style={{
-          padding: "2rem",
+          padding: "1.75rem 1.5rem",
           textAlign: "center",
-          marginBottom: "1.5rem",
+          marginBottom: "0.75rem",
+          borderTop: `3px solid ${scoreColor}`,
         }}
       >
         <p
           class="display-font score-enter"
           style={{
-            fontSize: "3.5rem",
-            fontWeight: "700",
+            fontSize: "2.6rem",
+            fontWeight: "800",
             color: scoreColor,
-            lineHeight: "1.1",
+            lineHeight: "1",
+            letterSpacing: "-0.03em",
+            fontFamily: "var(--font-code)",
           }}
         >
           {pct}%
@@ -767,9 +772,10 @@ function ResultsView({
         <p
           class="score-enter"
           style={{
-            fontSize: "1rem",
+            fontSize: "0.9rem",
             color: "var(--text-secondary)",
-            marginTop: "0.5rem",
+            marginTop: "0.4rem",
+            fontWeight: "500",
             animationDelay: "80ms",
           }}
         >
@@ -778,9 +784,9 @@ function ResultsView({
         <p
           class="score-enter"
           style={{
-            fontSize: "0.85rem",
+            fontSize: "0.8rem",
             color: "var(--text-muted)",
-            marginTop: "0.25rem",
+            marginTop: "0.15rem",
             animationDelay: "160ms",
           }}
         >
@@ -794,39 +800,46 @@ function ResultsView({
 
       {/* Topic breakdown */}
       <div
-        class="surface-card-soft"
-        style={{ padding: "1.25rem 1.5rem", marginBottom: "1.5rem" }}
+        class="surface-card"
+        style={{ padding: "1rem 1.25rem", marginBottom: "1rem" }}
       >
         <p
           class="eyebrow"
-          style={{ marginBottom: "0.75rem" }}
+          style={{ marginBottom: "0.6rem" }}
         >
           Breakdown by topic
         </p>
-        <div style={{ display: "grid", gap: "0.5rem" }}>
+        <div style={{ display: "grid", gap: "0.45rem" }}>
           {[...byTopic.entries()].map(([topic, { correct: c, total: t }]) => {
             const topicPct = Math.round((c / t) * 100);
+            const barColor = topicPct >= 80 ? "var(--success)" : topicPct >= 50 ? "var(--warning)" : "var(--deep)";
             return (
               <div key={topic}>
                 <div
                   style={{
                     display: "flex",
                     justifyContent: "space-between",
-                    fontSize: "0.82rem",
-                    marginBottom: "0.2rem",
+                    alignItems: "baseline",
+                    fontSize: "0.8rem",
+                    marginBottom: "0.15rem",
                   }}
                 >
                   <span style={{ fontWeight: "600", color: "var(--text-primary)" }}>
                     {topic}
                   </span>
-                  <span style={{ color: "var(--text-muted)" }}>
+                  <span style={{
+                    color: "var(--text-muted)",
+                    fontFamily: "var(--font-code)",
+                    fontSize: "0.72rem",
+                    fontWeight: 600,
+                  }}>
                     {c}/{t}
                   </span>
                 </div>
                 <div
                   style={{
-                    height: "5px",
-                    borderRadius: "3px",
+                    height: "3px",
+                    borderRadius: "2px",
                     background: "var(--surface-muted)",
                     overflow: "hidden",
                   }}
@@ -835,13 +848,8 @@ function ResultsView({
                     style={{
                       height: "100%",
                       width: `${topicPct}%`,
-                      borderRadius: "3px",
-                      background:
-                        topicPct >= 80
-                          ? "var(--success)"
-                          : topicPct >= 50
-                            ? "var(--warning)"
-                            : "var(--deep)",
+                      borderRadius: "2px",
+                      background: barColor,
                       transition: "width 0.6s cubic-bezier(0.2, 0.8, 0.2, 1)",
                     }}
                   />

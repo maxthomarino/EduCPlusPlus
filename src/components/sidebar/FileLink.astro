@@ -11,18 +11,64 @@ const { file, isActive } = Astro.props;
 
 <a
   href={`/${file.slug}`}
-  class:list={[
-    "hover-lift block truncate rounded-lg border px-2.5 py-1.5 text-sm transition-all",
-    isActive
-      ? "font-medium"
-      : "font-medium hover:border-[color:var(--border-soft)] hover:bg-[color:var(--surface-muted)] hover:text-[color:var(--text-primary)]",
-  ]}
-  style={
-    isActive
-      ? "border-color: color-mix(in srgb, var(--accent) 30%, var(--border-soft)); background: color-mix(in srgb, var(--accent-soft) 66%, var(--surface-elevated)); color: var(--text-primary);"
-      : "border-color: transparent; background: transparent; color: var(--text-secondary);"
-  }
+  class:list={["fl", isActive && "fl--active"]}
   title={file.shortTitle}
 >
-  {file.shortTitle}
+  <span class="fl-dot" />
+  <span class="fl-text">{file.shortTitle}</span>
 </a>
+
+<style>
+  .fl {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.35rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: color 0.14s ease, background 0.14s ease;
+    text-decoration: none;
+  }
+
+  .fl:hover {
+    color: var(--text-primary);
+    background: color-mix(in srgb, var(--surface-muted) 45%, transparent);
+  }
+
+  .fl--active {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent-soft) 35%, transparent);
+    font-weight: 600;
+  }
+
+  .fl--active:hover {
+    color: var(--accent);
+    background: color-mix(in srgb, var(--accent-soft) 50%, transparent);
+  }
+
+  .fl-dot {
+    width: 3.5px;
+    height: 3.5px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    background: var(--border-strong);
+    opacity: 0.4;
+    transition: background 0.14s ease, opacity 0.14s ease, transform 0.14s ease;
+  }
+
+  .fl--active .fl-dot {
+    background: var(--accent);
+    opacity: 1;
+    transform: scale(1.4);
+  }
+
+  .fl-text {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+</style>

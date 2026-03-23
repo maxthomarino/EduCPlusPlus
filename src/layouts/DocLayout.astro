@@ -18,31 +18,34 @@ const { title, description, sidebarData, currentSlug, toc = [] } = Astro.props;
 <BaseLayout title={title} description={description}>
   <!-- Mobile header -->
   <header
-    class="glass-bar sticky top-3 z-40 mx-3 flex items-center gap-3 rounded-xl px-3 py-2 md:hidden"
+    class="glass-bar sticky top-2.5 z-40 mx-2.5 flex items-center gap-2 rounded-xl px-2.5 py-1.5 md:hidden"
   >
     <button
       id="mobile-menu-btn"
-      class="hover-lift inline-flex h-8 w-8 items-center justify-center rounded-lg border"
-      style="border-color: var(--border-soft); color: var(--text-secondary); background: var(--surface-elevated);"
+      class="inline-flex h-8 w-8 items-center justify-center rounded-lg"
+      style="color: var(--text-secondary); background: transparent;"
       aria-label="Open navigation"
     >
-      <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+      <svg class="h-[18px] w-[18px]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 6h16M4 12h16M4 18h16" />
       </svg>
     </button>
-    <span class="display-font text-xs font-semibold tracking-[0.08em]" style="color: var(--accent);">EduC++</span>
-    <span class="truncate text-sm font-medium" style="color: var(--text-secondary);">{title}</span>
+    <div class="flex min-w-0 flex-1 items-center gap-1.5">
+      <span class="display-font text-[0.7rem] font-bold tracking-[0.06em]" style="color: var(--accent);">EduC++</span>
+      <span style="color: var(--border-strong); font-size: 0.7rem;">/</span>
+      <span class="truncate text-[0.82rem] font-medium" style="color: var(--text-secondary);">{title}</span>
+    </div>
     <!-- Mobile theme toggle -->
     <button
       id="mobile-theme-toggle"
-      class="hover-lift ml-auto inline-flex h-8 w-8 items-center justify-center rounded-lg border"
-      style="border-color: var(--border-soft); color: var(--text-secondary); background: var(--surface-elevated);"
+      class="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+      style="color: var(--text-muted); background: transparent;"
       aria-label="Toggle dark mode"
     >
-      <svg class="h-5 w-5 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="h-[18px] w-[18px] dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
       </svg>
-      <svg class="hidden h-5 w-5 dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <svg class="hidden h-[18px] w-[18px] dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
       </svg>
     </button>
@@ -59,15 +62,15 @@ const { title, description, sidebarData, currentSlug, toc = [] } = Astro.props;
     <!-- Sidebar -->
     <aside
       id="sidebar"
-      class="fixed inset-y-0 left-0 z-50 w-[280px] -translate-x-full transform transition-transform md:sticky md:top-0 md:z-0 md:h-screen md:translate-x-0"
-      style="background: var(--surface-elevated); border-right: 1px solid var(--border-soft); box-shadow: var(--shadow-sm);"
+      class="fixed inset-y-0 left-0 z-50 w-[272px] -translate-x-full transform transition-transform md:sticky md:top-0 md:z-0 md:h-screen md:translate-x-0"
+      style="background: var(--surface-elevated); border-right: 1px solid var(--border-soft);"
     >
       <Sidebar modules={sidebarData} currentSlug={currentSlug} />
     </aside>
 
     <!-- Main content -->
     <main class="min-w-0 flex-1">
-      <div class="mx-auto max-w-[820px] px-5 py-8 sm:px-7 lg:px-9">
+      <div class="mx-auto max-w-[780px] px-5 py-7 sm:px-6 lg:px-8">
         <slot />
       </div>
     </main>
@@ -75,14 +78,14 @@ const { title, description, sidebarData, currentSlug, toc = [] } = Astro.props;
     <!-- Table of Contents (desktop only) -->
     {toc.length > 0 && (
       <aside
-        class="sticky top-0 hidden h-screen w-[220px] shrink-0 overflow-y-auto px-4 py-8 xl:block"
+        class="sticky top-0 hidden h-screen w-[200px] shrink-0 overflow-y-auto px-3.5 py-8 xl:block"
         style="border-left: 1px solid var(--border-soft);"
       >
-        <p class="display-font mb-3 text-[10px] font-semibold tracking-[0.1em]" style="color: var(--text-muted);">
+        <p class="display-font mb-2.5 text-[0.6rem] font-bold tracking-[0.12em]" style="color: var(--text-muted); text-transform: uppercase;">
           On this page
         </p>
         <nav id="toc-nav">
-          <ul class="space-y-1.5">
+          <ul class="space-y-0.5">
             {toc.map((entry) => (
               <li>
                 <a

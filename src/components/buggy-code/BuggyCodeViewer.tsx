@@ -65,12 +65,16 @@ function Expandable({
   return (
     <div
       style={{
-        borderRadius: "0.75rem",
+        borderRadius: "0.5rem",
         border: `1px solid var(--border-soft)`,
+        borderLeft: accentBorder && open
+          ? `2.5px solid color-mix(in srgb, ${accentBorder} 50%, transparent)`
+          : `1px solid var(--border-soft)`,
         background: "var(--surface-elevated)",
         overflow: "hidden",
+        transition: "border-color 0.18s ease",
         ...(accentBorder && open
-          ? { borderColor: `color-mix(in srgb, ${accentBorder} 30%, var(--border-soft))` }
+          ? { borderColor: `color-mix(in srgb, ${accentBorder} 20%, var(--border-soft))` }
           : {}),
       }}
     >
@@ -81,13 +85,13 @@ function Expandable({
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          padding: "0.65rem 1rem",
+          padding: "0.55rem 0.85rem",
           cursor: "pointer",
           background: "none",
           border: "none",
           color: "var(--text-primary)",
           fontFamily: "var(--font-display)",
-          fontSize: "0.84rem",
+          fontSize: "0.82rem",
           fontWeight: 650,
           letterSpacing: "-0.01em",
         }}
@@ -119,11 +123,11 @@ function Expandable({
         <div
           class="page-reveal"
           style={{
-            padding: "0 1rem 0.75rem 1rem",
+            padding: "0 0.85rem 0.65rem 0.85rem",
             borderTop: "1px solid var(--border-soft)",
           }}
         >
-          <div style={{ paddingTop: "0.65rem" }}>{children}</div>
+          <div style={{ paddingTop: "0.55rem" }}>{children}</div>
         </div>
       )}
     </div>
@@ -324,12 +328,12 @@ function HintsAndExplanation({
         <pre
           style={{
             fontFamily: "var(--font-code)",
-            fontSize: "0.78rem",
+            fontSize: "0.76rem",
             lineHeight: "1.55",
-            color: "var(--text-secondary)",
+            color: "var(--text-inverse)",
             background: "var(--surface-code)",
-            borderRadius: "0.5rem",
-            padding: "0.75rem 1rem",
+            borderRadius: "0.45rem",
+            padding: "0.65rem 0.85rem",
             margin: 0,
             whiteSpace: "pre-wrap",
             overflowX: "auto",
@@ -392,13 +396,13 @@ function MenuView({
     <div class="page-reveal">
       {/* Learning Paths section */}
       {paths.length > 0 && (
-        <div class="surface-card" style={{ padding: "1.25rem 1.5rem", marginBottom: "0.75rem" }}>
+        <div class="surface-card" style={{ padding: "1rem 1.25rem", marginBottom: "0.6rem" }}>
           <div
             style={{
               display: "flex",
               alignItems: "center",
               gap: "0.5rem",
-              marginBottom: "0.75rem",
+              marginBottom: "0.6rem",
             }}
           >
             <p class="eyebrow" style={{ margin: 0 }}>
@@ -495,13 +499,13 @@ function MenuView({
         </div>
       )}
 
-      <div class="surface-card" style={{ padding: "1.25rem 1.5rem" }}>
+      <div class="surface-card" style={{ padding: "1rem 1.25rem" }}>
         <div
           style={{
             display: "flex",
             alignItems: "center",
             gap: "0.5rem",
-            marginBottom: "0.75rem",
+            marginBottom: "0.6rem",
           }}
         >
           <p class="eyebrow" style={{ margin: 0 }}>
@@ -1021,19 +1025,19 @@ function ViewerView({
       <div key={program.id} class={animClass}>
         <div
           class="surface-card"
-          style={{ padding: "1.25rem 1.5rem", marginBottom: "0.75rem" }}
+          style={{ padding: "1rem 1.25rem", marginBottom: "0.6rem" }}
         >
-          <p class="eyebrow" style={{ marginBottom: "0.2rem" }}>
+          <p class="eyebrow" style={{ marginBottom: "0.15rem", fontSize: "0.62rem" }}>
             {program.topic}
           </p>
           <h2
             class="display-font"
             style={{
-              fontSize: "1.15rem",
-              fontWeight: 660,
+              fontSize: "1.1rem",
+              fontWeight: 680,
               color: "var(--text-primary)",
-              letterSpacing: "-0.015em",
-              lineHeight: "1.35",
+              letterSpacing: "-0.02em",
+              lineHeight: "1.3",
               margin: 0,
             }}
           >
@@ -1041,9 +1045,9 @@ function ViewerView({
           </h2>
           <p
             style={{
-              fontSize: "0.86rem",
+              fontSize: "0.84rem",
               color: "var(--text-secondary)",
-              marginTop: "0.35rem",
+              marginTop: "0.3rem",
               lineHeight: "1.55",
             }}
           >

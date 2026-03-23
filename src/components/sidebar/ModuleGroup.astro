@@ -16,37 +16,25 @@ const isActive = module.subfolders.some((sub) =>
 const fileCount = module.subfolders.reduce((sum, sub) => sum + sub.files.length, 0);
 ---
 
-<details class="mb-1" open={isActive}>
+<details class="mg" open={isActive}>
   <summary
-    class="hover-lift group flex cursor-pointer items-center gap-2 rounded-xl border px-2.5 py-2 text-sm font-medium"
-    style={
-      isActive
-        ? "border-color: color-mix(in srgb, var(--accent) 34%, var(--border-soft)); background: color-mix(in srgb, var(--accent-soft) 70%, var(--surface-elevated)); color: var(--text-primary);"
-        : "border-color: transparent; color: var(--text-secondary); background: transparent;"
-    }
+    class:list={["mg-summary", isActive && "mg-summary--active"]}
   >
-    <svg class="chevron h-3.5 w-3.5 shrink-0" style="color: var(--text-muted);" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+    <svg class="chevron mg-chevron" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
     </svg>
-    <span
-      class="inline-flex h-5 min-w-5 items-center justify-center rounded-md px-1 text-[10px] font-semibold"
-      style={
-        isActive
-          ? "background: var(--accent); color: var(--text-inverse);"
-          : "background: var(--surface-muted); color: var(--text-secondary);"
-      }
-    >
+    <span class:list={["mg-num", isActive && "mg-num--active"]}>
       {String(module.order).padStart(2, "0")}
     </span>
-    <span class="truncate">{module.title}</span>
-    <span class="ml-auto text-[10px] font-medium tracking-[0.06em]" style="color: var(--text-muted);">{fileCount}</span>
+    <span class="mg-title">{module.title}</span>
+    <span class="mg-count">{fileCount}</span>
   </summary>
 
-  <div class="ml-3 mt-1 border-l pl-2.5" style="border-color: var(--border-soft);">
+  <div class="mg-children">
     {module.subfolders.map((sub) => (
-      <div class="mb-1">
+      <div class="mg-sub">
         {module.subfolders.length > 1 && (
-          <p class="px-2 py-1 text-[10px] font-medium tracking-[0.08em]" style="color: var(--text-muted);">
+          <p class="mg-sub-label">
             {sub.name.replace(/_/g, " ")}
           </p>
         )}
@@ -57,3 +45,104 @@ const fileCount = module.subfolders.reduce((sum, sub) => sum + sub.files.length,
     ))}
   </div>
 </details>
+
+<style>
+  .mg {
+    margin-bottom: 0.15rem;
+  }
+
+  .mg-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.38rem 0.55rem;
+    border-radius: 0.45rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    list-style: none;
+    color: var(--text-secondary);
+    border: 1px solid transparent;
+    transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  }
+
+  .mg-summary::-webkit-details-marker { display: none; }
+  .mg-summary::marker { display: none; content: ""; }
+
+  .mg-summary:hover {
+    background: color-mix(in srgb, var(--surface-muted) 60%, transparent);
+    color: var(--text-primary);
+  }
+
+  .mg-summary--active {
+    background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface-elevated));
+    border-color: color-mix(in srgb, var(--accent) 18%, var(--border-soft));
+    color: var(--text-primary);
+  }
+
+  .mg-chevron {
+    width: 12px;
+    height: 12px;
+    flex-shrink: 0;
+    color: var(--text-muted);
+  }
+
+  .mg-num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 0.2rem;
+    border-radius: 0.25rem;
+    font-family: var(--font-code);
+    font-size: 0.6rem;
+    font-weight: 700;
+    flex-shrink: 0;
+    background: var(--surface-muted);
+    color: var(--text-muted);
+  }
+
+  .mg-num--active {
+    background: var(--accent);
+    color: #fff;
+  }
+
+  .mg-title {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .mg-count {
+    font-family: var(--font-code);
+    font-size: 0.62rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    flex-shrink: 0;
+    opacity: 0.7;
+  }
+
+  .mg-children {
+    margin-left: 0.9rem;
+    margin-top: 0.2rem;
+    padding-left: 0.7rem;
+    border-left: 1.5px solid var(--border-soft);
+  }
+
+  .mg-sub {
+    margin-bottom: 0.15rem;
+  }
+
+  .mg-sub-label {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.62rem;
+    font-weight: 650;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    opacity: 0.7;
+  }
+</style>

@@ -46,40 +46,40 @@ function getLevel(order: number): { label: string; cssClass: string } {
     <span class="lp-badge" style="animation-delay:60ms">Open-source learning platform</span>
     <h1 class="lp-title" style="animation-delay:100ms">
       Master Modern<br />
-      <span class="lp-accent">C++20</span>
+      <span class="lp-accent">C++</span>
     </h1>
     <p class="lp-desc" style="animation-delay:160ms">
       A structured path from core fundamentals to advanced features &mdash;
       focused explanations, runnable code, and clear decision-making guidance.
     </p>
-    <div class="lp-stats">
-      <div class="lp-stat" style="animation-delay:200ms">
-        <span class="lp-stat-num">{totalFiles}</span>
-        <span class="lp-stat-lbl">Lessons</span>
-      </div>
-      <div class="lp-stat" style="animation-delay:260ms">
-        <span class="lp-stat-num">{totalModules}</span>
-        <span class="lp-stat-lbl">Modules</span>
-      </div>
-      <div class="lp-stat" style="animation-delay:320ms">
-        <span class="lp-stat-num">{totalArticles}</span>
-        <span class="lp-stat-lbl">Articles</span>
-      </div>
-      <div class="lp-stat" style="animation-delay:380ms">
-        <span class="lp-stat-num">{questions.length}</span>
-        <span class="lp-stat-lbl">Quiz Qs</span>
-      </div>
-      <div class="lp-stat" style="animation-delay:440ms">
-        <span class="lp-stat-num">{buggyPrograms.length}</span>
-        <span class="lp-stat-lbl">Buggy Programs</span>
-      </div>
-    </div>
-    <div class="lp-actions" style="animation-delay:300ms">
+    <div class="lp-actions" style="animation-delay:220ms">
       <a href={`/${sidebarData[0]?.subfolders[0]?.files[0]?.slug || ""}`} class="lp-btn-pri">
         Start Learning
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
       </a>
       <a href="/quiz" class="lp-btn-sec">Take the Quiz</a>
+    </div>
+    <div class="lp-stats">
+      <div class="lp-stat lp-stat--accent" style="animation-delay:260ms">
+        <span class="lp-stat-num">{totalFiles}</span>
+        <span class="lp-stat-lbl">Lessons</span>
+      </div>
+      <div class="lp-stat lp-stat--accent" style="animation-delay:300ms">
+        <span class="lp-stat-num">{totalModules}</span>
+        <span class="lp-stat-lbl">Modules</span>
+      </div>
+      <div class="lp-stat lp-stat--deep" style="animation-delay:340ms">
+        <span class="lp-stat-num">{totalArticles}</span>
+        <span class="lp-stat-lbl">Articles</span>
+      </div>
+      <div class="lp-stat lp-stat--deep" style="animation-delay:380ms">
+        <span class="lp-stat-num">{questions.length}</span>
+        <span class="lp-stat-lbl">Quiz Qs</span>
+      </div>
+      <div class="lp-stat lp-stat--warn" style="animation-delay:420ms">
+        <span class="lp-stat-num">{buggyPrograms.length}</span>
+        <span class="lp-stat-lbl">Bug Challenges</span>
+      </div>
     </div>
   </section>
 
@@ -132,7 +132,7 @@ function getLevel(order: number): { label: string; cssClass: string } {
           <a
             href={firstFile ? `/${firstFile.slug}` : "#"}
             class={`lp-mod ${level.cssClass}`}
-            style={`animation-delay:${80 + i * 45}ms`}
+            style={`animation-delay:${60 + i * 30}ms`}
           >
             <div class="lp-mod-top">
               <span class="lp-mod-num">{String(mod.order).padStart(2, "0")}</span>
@@ -179,7 +179,7 @@ function getLevel(order: number): { label: string; cssClass: string } {
           <a
             href={`/articles/${article.slug}`}
             class="lp-art"
-            style={`animation-delay:${100 + i * 65}ms`}
+            style={`animation-delay:${60 + i * 40}ms`}
           >
             <time class="lp-art-date">{formatDate(article.data.publishDate)}</time>
             <h3 class="lp-art-title">{article.data.title}</h3>
@@ -201,30 +201,36 @@ function getLevel(order: number): { label: string; cssClass: string } {
 
   /* --- Hero --- */
   .lp-hero {
-    padding: 1.5rem 0 2.5rem;
+    padding: 1.5rem 0 2rem;
+  }
+
+  @media (min-width: 640px) {
+    .lp-hero {
+      padding: 2rem 0 2.5rem;
+    }
   }
 
   .lp-badge {
     display: inline-flex;
-    font-size: 0.7rem;
-    font-weight: 650;
-    letter-spacing: 0.055em;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--accent);
-    padding: 0.28rem 0.72rem;
-    border-radius: 999px;
-    border: 1px solid color-mix(in srgb, var(--accent) 22%, var(--border-soft));
-    background: color-mix(in srgb, var(--accent-soft) 45%, var(--surface-elevated));
-    margin-bottom: 1.4rem;
+    padding: 0.22rem 0.6rem;
+    border-radius: 0.3rem;
+    border: 1px solid color-mix(in srgb, var(--accent) 16%, var(--border-soft));
+    background: color-mix(in srgb, var(--accent-soft) 30%, var(--surface-elevated));
+    margin-bottom: 1.2rem;
     animation: lp-up 420ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
   }
 
   .lp-title {
     font-family: var(--font-display);
-    font-size: clamp(2.6rem, 6vw, 3.8rem);
-    font-weight: 700;
-    line-height: 1.06;
-    letter-spacing: -0.035em;
+    font-size: clamp(2.2rem, 5.5vw, 3.2rem);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.04em;
     color: var(--text-primary);
     animation: lp-up 460ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
   }
@@ -233,20 +239,21 @@ function getLevel(order: number): { label: string; cssClass: string } {
     background: linear-gradient(
       135deg,
       var(--accent) 0%,
-      var(--deep) 50%,
-      color-mix(in srgb, var(--accent) 55%, var(--success)) 100%
+      var(--deep) 60%,
+      color-mix(in srgb, var(--accent) 70%, var(--success)) 100%
     );
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    padding-right: 0.05em;
   }
 
   .lp-desc {
-    margin-top: 1.25rem;
-    font-size: 1.06rem;
-    line-height: 1.65;
+    margin-top: 1rem;
+    font-size: 0.98rem;
+    line-height: 1.6;
     color: var(--text-secondary);
-    max-width: 540px;
+    max-width: 500px;
     animation: lp-up 460ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
   }
 
@@ -254,30 +261,54 @@ function getLevel(order: number): { label: string; cssClass: string } {
   .lp-stats {
     display: flex;
     flex-wrap: wrap;
-    gap: 1.6rem;
-    margin-top: 2.2rem;
+    gap: 0.45rem;
+    margin-top: 2rem;
   }
 
   .lp-stat {
     animation: lp-up 400ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
+    padding: 0.5rem 0.8rem;
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-soft);
+    background: var(--surface-elevated);
+    min-width: 68px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
   }
+
+  .lp-stat::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    opacity: 0.6;
+  }
+
+  .lp-stat--accent::before { background: var(--accent); }
+  .lp-stat--deep::before { background: var(--deep); }
+  .lp-stat--warn::before { background: var(--warning); }
+  .lp-stat--success::before { background: var(--success); }
 
   .lp-stat-num {
     display: block;
-    font-family: var(--font-display);
-    font-size: 1.75rem;
+    font-family: var(--font-code);
+    font-size: 1.25rem;
     font-weight: 700;
-    letter-spacing: -0.03em;
+    letter-spacing: -0.02em;
     line-height: 1;
     color: var(--text-primary);
   }
 
   .lp-stat-lbl {
     display: block;
-    margin-top: 0.22rem;
-    font-size: 0.73rem;
-    font-weight: 520;
-    letter-spacing: 0.015em;
+    margin-top: 0.25rem;
+    font-size: 0.62rem;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
     color: var(--text-muted);
   }
 
@@ -285,90 +316,115 @@ function getLevel(order: number): { label: string; cssClass: string } {
   .lp-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.6rem;
-    margin-top: 2.2rem;
+    gap: 0.5rem;
+    margin-top: 1.6rem;
     animation: lp-up 460ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
   }
 
   .lp-btn-pri {
     display: inline-flex;
     align-items: center;
-    gap: 0.5rem;
-    padding: 0.62rem 1.25rem;
-    font-size: 0.87rem;
-    font-weight: 640;
-    border-radius: 0.6rem;
+    gap: 0.45rem;
+    padding: 0.55rem 1.25rem;
+    font-size: 0.84rem;
+    font-weight: 650;
+    border-radius: 0.5rem;
     background: var(--accent);
     color: #fff;
-    box-shadow: 0 2px 14px -4px color-mix(in srgb, var(--accent) 38%, transparent);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+    box-shadow: 0 1px 6px -2px color-mix(in srgb, var(--accent) 30%, transparent);
+    transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.18s ease, filter 0.18s ease;
   }
 
   .lp-btn-pri:hover {
     transform: translateY(-1px);
-    box-shadow: 0 6px 22px -6px color-mix(in srgb, var(--accent) 50%, transparent);
+    box-shadow: 0 4px 16px -4px color-mix(in srgb, var(--accent) 40%, transparent);
     filter: brightness(1.08);
   }
 
   .lp-btn-sec {
     display: inline-flex;
     align-items: center;
-    padding: 0.62rem 1.25rem;
-    font-size: 0.87rem;
-    font-weight: 640;
-    border-radius: 0.6rem;
+    padding: 0.55rem 1.25rem;
+    font-size: 0.84rem;
+    font-weight: 650;
+    border-radius: 0.5rem;
     border: 1px solid var(--border-soft);
     background: var(--surface-elevated);
     color: var(--text-primary);
-    transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    transition: border-color 0.18s ease, color 0.18s ease;
   }
 
   .lp-btn-sec:hover {
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
     border-color: var(--border-strong);
+    color: var(--accent);
   }
 
   /* --- Quick Access --- */
   .lp-quick {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 0.65rem;
-    margin-bottom: 2.8rem;
+    gap: 0.5rem;
+    margin-bottom: 2.2rem;
     animation: lp-up 460ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
   }
 
-  @media (min-width: 540px) {
+  @media (min-width: 480px) {
     .lp-quick { grid-template-columns: 1fr 1fr 1fr; }
   }
 
   .lp-qcard {
     display: flex;
     align-items: center;
-    gap: 0.8rem;
-    padding: 0.9rem 1.1rem;
-    border-radius: 0.75rem;
+    gap: 0.65rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 0.55rem;
     border: 1px solid var(--border-soft);
     background: var(--surface-elevated);
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
   }
 
+  .lp-qcard::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+  }
+
+  .lp-qcard:nth-child(1)::before { background: var(--accent); }
+  .lp-qcard:nth-child(2)::before { background: var(--deep); }
+  .lp-qcard:nth-child(3)::before { background: var(--warning); }
+
   .lp-qcard:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
     border-color: var(--border-strong);
+  }
+
+  .lp-qcard:hover::before {
+    opacity: 0.7;
   }
 
   .lp-qcard-icon {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 0.55rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 0.45rem;
     flex-shrink: 0;
     color: var(--accent);
     background: var(--accent-soft);
+  }
+
+  .lp-qcard-icon svg {
+    width: 16px;
+    height: 16px;
   }
 
   .lp-qcard-icon--quiz {
@@ -383,35 +439,38 @@ function getLevel(order: number): { label: string; cssClass: string } {
 
   .lp-qcard-title {
     font-family: var(--font-display);
-    font-size: 0.92rem;
-    font-weight: 650;
+    font-size: 0.84rem;
+    font-weight: 660;
     color: var(--text-primary);
     letter-spacing: -0.01em;
+    line-height: 1.2;
   }
 
   .lp-qcard-sub {
-    font-size: 0.76rem;
+    font-size: 0.68rem;
     color: var(--text-muted);
     margin-top: 0.05rem;
-    line-height: 1.4;
+    line-height: 1.3;
   }
 
   .lp-qcard-arrow {
     margin-left: auto;
-    font-size: 1.05rem;
+    font-size: 0.85rem;
     color: var(--text-muted);
     flex-shrink: 0;
-    transition: transform 0.2s ease, color 0.2s ease;
+    opacity: 0;
+    transition: transform 0.18s ease, opacity 0.18s ease;
   }
 
   .lp-qcard:hover .lp-qcard-arrow {
-    transform: translateX(3px);
+    transform: translateX(2px);
+    opacity: 1;
     color: var(--accent);
   }
 
   /* --- Modules --- */
   .lp-modules {
-    margin-bottom: 2.8rem;
+    margin-bottom: 2.2rem;
     animation: lp-up 460ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
   }
 
@@ -426,47 +485,53 @@ function getLevel(order: number): { label: string; cssClass: string } {
 
   .lp-sec-title {
     font-family: var(--font-display);
-    font-size: 1.4rem;
+    font-size: 1.25rem;
     font-weight: 700;
     letter-spacing: -0.025em;
     color: var(--text-primary);
   }
 
   .lp-sec-sub {
-    font-size: 0.8rem;
+    font-family: var(--font-code);
+    font-size: 0.68rem;
     color: var(--text-muted);
     font-weight: 500;
+    letter-spacing: 0.02em;
   }
 
   .lp-sec-link {
-    font-size: 0.84rem;
+    font-size: 0.78rem;
     font-weight: 620;
     color: var(--accent);
     transition: opacity 0.15s ease;
   }
 
-  .lp-sec-link:hover { opacity: 0.75; }
+  .lp-sec-link:hover { opacity: 0.7; }
 
   .lp-mod-grid {
     display: grid;
     grid-template-columns: 1fr;
-    gap: 0.55rem;
+    gap: 0.4rem;
   }
 
-  @media (min-width: 540px) {
+  @media (min-width: 480px) {
     .lp-mod-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  @media (min-width: 720px) {
+    .lp-mod-grid { grid-template-columns: 1fr 1fr 1fr; }
   }
 
   .lp-mod {
     display: block;
-    padding: 1rem 1.15rem;
-    border-radius: 0.7rem;
+    padding: 0.7rem 0.85rem 0.7rem 0.95rem;
+    border-radius: 0.55rem;
     border: 1px solid var(--border-soft);
     background: var(--surface-elevated);
     position: relative;
     overflow: hidden;
     animation: lp-up 380ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.2s ease, border-color 0.2s ease;
   }
 
   /* Colored left accent bar */
@@ -474,12 +539,12 @@ function getLevel(order: number): { label: string; cssClass: string } {
     content: "";
     position: absolute;
     left: 0;
-    top: 0;
-    bottom: 0;
-    width: 3px;
-    border-radius: 0 3px 3px 0;
-    opacity: 0.6;
-    transition: opacity 0.2s ease;
+    top: 12%;
+    bottom: 12%;
+    width: 2.5px;
+    border-radius: 0 2px 2px 0;
+    opacity: 0.45;
+    transition: opacity 0.2s ease, top 0.2s ease, bottom 0.2s ease;
   }
 
   .lp-mod.level-beginner::before { background: var(--success); }
@@ -487,12 +552,16 @@ function getLevel(order: number): { label: string; cssClass: string } {
   .lp-mod.level-advanced::before { background: var(--deep); }
 
   .lp-mod:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
     box-shadow: var(--shadow-md);
     border-color: var(--border-strong);
   }
 
-  .lp-mod:hover::before { opacity: 1; }
+  .lp-mod:hover::before {
+    opacity: 1;
+    top: 0;
+    bottom: 0;
+  }
 
   .lp-mod-top {
     display: flex;
@@ -503,19 +572,20 @@ function getLevel(order: number): { label: string; cssClass: string } {
 
   .lp-mod-num {
     font-family: var(--font-code);
-    font-size: 0.7rem;
-    font-weight: 500;
+    font-size: 0.62rem;
+    font-weight: 600;
     color: var(--text-muted);
     letter-spacing: 0.02em;
+    opacity: 0.6;
   }
 
   .lp-mod-lvl {
-    font-size: 0.62rem;
-    font-weight: 660;
-    letter-spacing: 0.04em;
+    font-size: 0.56rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    padding: 0.12rem 0.48rem;
-    border-radius: 999px;
+    padding: 0.1rem 0.38rem;
+    border-radius: 0.25rem;
   }
 
   .lp-mod-lvl.level-beginner { color: var(--success); background: var(--success-soft); }
@@ -524,35 +594,40 @@ function getLevel(order: number): { label: string; cssClass: string } {
 
   .lp-mod-name {
     font-family: var(--font-display);
-    font-size: 1.02rem;
+    font-size: 0.9rem;
     font-weight: 660;
     letter-spacing: -0.015em;
     color: var(--text-primary);
-    line-height: 1.3;
+    line-height: 1.25;
   }
 
   .lp-mod-meta {
-    margin-top: 0.3rem;
-    font-size: 0.74rem;
+    margin-top: 0.25rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
     line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .lp-sep {
-    margin: 0 0.3rem;
-    opacity: 0.4;
+    margin: 0 0.25rem;
+    opacity: 0.35;
   }
 
   /* --- Getting Started --- */
   .lp-start {
     display: flex;
     align-items: flex-start;
-    gap: 0.9rem;
-    padding: 1.1rem 1.3rem;
-    border-radius: 0.75rem;
-    background: color-mix(in srgb, var(--accent-soft) 36%, var(--surface-elevated));
-    border: 1px solid color-mix(in srgb, var(--accent) 14%, var(--border-soft));
-    margin-bottom: 2.8rem;
+    gap: 0.65rem;
+    padding: 0.7rem 0.9rem;
+    border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--accent-soft) 15%, var(--surface-elevated));
+    border: 1px solid color-mix(in srgb, var(--accent) 10%, var(--border-soft));
+    border-left: 2.5px solid color-mix(in srgb, var(--accent) 45%, transparent);
+    margin-bottom: 2rem;
     animation: lp-up 460ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
   }
 
@@ -560,124 +635,143 @@ function getLevel(order: number): { label: string; cssClass: string } {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 34px;
-    height: 34px;
-    border-radius: 0.5rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 0.4rem;
     background: var(--accent);
     color: #fff;
     flex-shrink: 0;
-    margin-top: 0.05rem;
+    margin-top: 0.1rem;
+  }
+
+  .lp-start-icon svg {
+    width: 14px;
+    height: 14px;
   }
 
   .lp-start-title {
     font-family: var(--font-display);
     font-weight: 660;
-    font-size: 0.93rem;
+    font-size: 0.88rem;
     color: var(--text-primary);
     letter-spacing: -0.01em;
   }
 
   .lp-start-text {
-    font-size: 0.84rem;
+    font-size: 0.82rem;
     color: var(--text-secondary);
-    margin-top: 0.15rem;
+    margin-top: 0.1rem;
     line-height: 1.55;
   }
 
   .lp-start-link {
     color: var(--accent);
     font-weight: 650;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    text-decoration-thickness: 1.5px;
+    text-decoration: none;
+    border-bottom: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    transition: border-color 0.15s ease;
   }
 
-  .lp-start-link:hover { opacity: 0.8; }
+  .lp-start-link:hover { border-color: var(--accent); }
 
   /* --- Articles --- */
   .lp-articles {
-    margin-bottom: 2.8rem;
+    margin-bottom: 2.2rem;
     animation: lp-up 460ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
   }
 
   .lp-art-grid {
     display: grid;
-    gap: 0.55rem;
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  @media (min-width: 560px) {
+    .lp-art-grid { grid-template-columns: 1fr 1fr 1fr; }
   }
 
   .lp-art {
-    display: block;
-    padding: 1rem 1.2rem;
-    border-radius: 0.7rem;
+    display: flex;
+    flex-direction: column;
+    padding: 0.7rem 0.85rem;
+    border-radius: 0.55rem;
     border: 1px solid var(--border-soft);
     background: var(--surface-elevated);
     animation: lp-up 380ms cubic-bezier(0.22, 0.8, 0.22, 1) both;
-    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: transform 0.18s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.18s ease, border-color 0.18s ease;
   }
 
   .lp-art:hover {
-    transform: translateY(-2px);
+    transform: translateY(-1px);
     box-shadow: var(--shadow-md);
     border-color: var(--border-strong);
   }
 
   .lp-art-date {
-    font-size: 0.7rem;
-    font-weight: 540;
-    letter-spacing: 0.04em;
+    font-family: var(--font-code);
+    font-size: 0.62rem;
+    font-weight: 500;
+    letter-spacing: 0.03em;
     color: var(--text-muted);
-    text-transform: uppercase;
   }
 
   .lp-art-title {
     font-family: var(--font-display);
-    font-size: 1.08rem;
+    font-size: 0.92rem;
     font-weight: 660;
     letter-spacing: -0.015em;
     color: var(--text-primary);
-    margin-top: 0.3rem;
-    line-height: 1.3;
+    margin-top: 0.2rem;
+    line-height: 1.25;
   }
 
   .lp-art-desc {
-    font-size: 0.82rem;
+    font-size: 0.78rem;
     color: var(--text-secondary);
-    margin-top: 0.35rem;
-    line-height: 1.55;
+    margin-top: 0.2rem;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
   }
 
   .lp-art-author {
     display: inline-block;
-    margin-top: 0.5rem;
-    font-size: 0.7rem;
-    font-weight: 620;
+    margin-top: auto;
+    padding-top: 0.4rem;
+    font-size: 0.65rem;
+    font-weight: 600;
     color: var(--text-muted);
+    letter-spacing: 0.01em;
   }
 
   /* --- Footer --- */
   .lp-footer {
     text-align: center;
-    padding: 2.5rem 0 1rem;
-    font-size: 0.76rem;
+    padding: 1.25rem 0 1rem;
+    margin-top: 0.5rem;
+    font-size: 0.7rem;
     color: var(--text-muted);
+    border-top: 1px solid var(--border-soft);
+    letter-spacing: 0.01em;
+    opacity: 0.8;
   }
 
   .lp-footer-link {
     font-weight: 650;
     color: var(--text-secondary);
-    text-decoration: underline;
-    text-underline-offset: 2px;
-    text-decoration-thickness: 1px;
+    text-decoration: none;
     transition: color 0.15s ease;
   }
 
-  .lp-footer-link:hover { color: var(--text-primary); }
+  .lp-footer-link:hover { color: var(--accent); }
 
   /* --- Entrance animation --- */
   @keyframes lp-up {
     from {
       opacity: 0;
-      transform: translateY(6px);
+      transform: translateY(4px);
     }
     to {
       opacity: 1;
