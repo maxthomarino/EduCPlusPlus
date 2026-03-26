@@ -12,7 +12,7 @@ author: "EduC++ Team"
 draft: false
 ---
 
-Here is a perfectly normal class. It holds a name and an age. You have written a hundred things like it.
+Here is a perfectly normal class. It holds a name and an age. You may have written a hundred things like it.
 
 ```cpp
 struct Person {
