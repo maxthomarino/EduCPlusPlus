@@ -37796,4 +37796,596 @@ The loop condition 'i < length - 1' underflows when length is 0
 (size_t is unsigned), causing SIZE_MAX iterations and a crash.`,
     stdlibRefs: []
   },
+
+  // ── Runtime Bugs ──
+  {
+    id: 544,
+    topic: "Runtime Bugs",
+    difficulty: "Easy",
+    title: "Grade Average Calculator",
+    description: "Computes the average test score for students who scored above a given threshold.",
+    code: `#include <iostream>
+#include <vector>
+
+int averageAboveThreshold(const std::vector<int>& scores, int threshold) {
+    int sum = 0;
+    int count = 0;
+
+    for (int score : scores) {
+        if (score > threshold) {
+            sum += score;
+            ++count;
+        }
+    }
+
+    return sum / count;
+}
+
+int main() {
+    std::vector<int> scores = {45, 62, 58, 71, 80, 55, 67};
+
+    std::cout << "Average above 50: "
+              << averageAboveThreshold(scores, 50) << std::endl;
+    std::cout << "Average above 70: "
+              << averageAboveThreshold(scores, 70) << std::endl;
+    std::cout << "Average above 90: "
+              << averageAboveThreshold(scores, 90) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What value does `count` have when no scores exceed the threshold?",
+      "What happens when you divide an integer by zero in C++?",
+    ],
+    explanation: "When no scores exceed the threshold (e.g., 90), `count` remains 0 and the function performs integer division by zero (`sum / count`). Unlike floating-point division by zero which yields infinity, integer division by zero is undefined behavior and typically causes a SIGFPE (Floating Point Exception) crash. The fix is to check for `count == 0` before dividing.",
+    manifestation: `$ ./grades
+Average above 50: 67
+Average above 70: 80
+Floating point exception (core dumped)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 545,
+    topic: "Runtime Bugs",
+    difficulty: "Easy",
+    title: "Moving Average Calculator",
+    description: "Computes the moving average of the last N entries in a time series of stock prices.",
+    code: `#include <iostream>
+#include <vector>
+
+double movingAverage(const std::vector<double>& prices, size_t window) {
+    double sum = 0.0;
+    size_t begin = prices.size() - window;
+
+    for (size_t i = 0; i < window; ++i) {
+        sum += prices[begin + i];
+    }
+
+    return sum / static_cast<double>(window);
+}
+
+int main() {
+    std::vector<double> prices = {10.5, 11.2, 10.8, 11.5, 12.0, 11.8, 12.3};
+
+    std::cout << "3-day avg: " << movingAverage(prices, 3) << std::endl;
+    std::cout << "5-day avg: " << movingAverage(prices, 5) << std::endl;
+    std::cout << "10-day avg: " << movingAverage(prices, 10) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What type is `begin`, and what happens when `window` exceeds `prices.size()`?",
+      "What does unsigned integer subtraction produce when the result would be negative?",
+      "After the underflow, what address does `prices[begin + i]` try to access?",
+    ],
+    explanation: "When `window` (10) exceeds `prices.size()` (7), the subtraction `prices.size() - window` underflows because both operands are `size_t` (unsigned). The result wraps to a massive value near SIZE_MAX, and accessing `prices[begin + i]` reads far out of bounds, causing a segmentation fault. The fix is to check that `window <= prices.size()` before the subtraction.",
+    manifestation: `$ ./moving_avg
+3-day avg: 12.0333
+5-day avg: 11.72
+Segmentation fault (core dumped)
+
+Or with AddressSanitizer:
+$ g++ -fsanitize=address -g moving_avg.cpp -o moving_avg && ./moving_avg
+3-day avg: 12.0333
+5-day avg: 11.72
+=================================================================
+==24601==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x604000000078
+READ of size 8 at 0x604000000078 thread T0
+    #0 0x5581a3 in movingAverage moving_avg.cpp:8
+    #1 0x5582e1 in main moving_avg.cpp:18
+SUMMARY: AddressSanitizer: heap-buffer-overflow moving_avg.cpp:8 in movingAverage`,
+    stdlibRefs: [
+      { name: "std::vector::size", args: "() const noexcept \\u2192 size_type", brief: "Returns the number of elements as an unsigned integer (size_type, typically size_t).", note: "Subtracting from size() can silently underflow since the return type is unsigned.", link: "https://en.cppreference.com/w/cpp/container/vector/size" },
+    ],
+  },
+  {
+    id: 546,
+    topic: "Runtime Bugs",
+    difficulty: "Easy",
+    title: "Coin Change Counter",
+    description: "Counts the number of ways to make change for a given amount using standard coin denominations.",
+    code: `#include <iostream>
+#include <vector>
+
+int countWays(const std::vector<int>& coins, int amount) {
+    std::vector<int> dp(amount + 1, 0);
+    dp[0] = 1;
+
+    for (int coin : coins) {
+        for (int j = coin; j <= amount; ++j) {
+            dp[j] += dp[j - coin];
+        }
+    }
+
+    return dp[amount];
+}
+
+int main() {
+    std::vector<int> coins = {1, 5, 10, 25};
+
+    std::cout << "Ways to make 30 cents: "
+              << countWays(coins, 30) << std::endl;
+    std::cout << "Ways to make 0 cents: "
+              << countWays(coins, 0) << std::endl;
+    std::cout << "Ways to make -5 cents: "
+              << countWays(coins, -5) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What is the value of `amount + 1` when `amount` is negative?",
+      "What type does the `std::vector` constructor expect for its size parameter?",
+      "What happens when a negative integer is implicitly converted to `size_t`?",
+    ],
+    explanation: "When `amount` is -5, the expression `amount + 1` evaluates to -4. This negative value is implicitly converted to `size_t` (unsigned) when passed to the vector constructor, becoming an enormous value (approximately 2^64 - 4 on 64-bit systems). The vector attempts to allocate this much memory and throws `std::bad_alloc`. The fix is to validate that `amount >= 0` before creating the vector.",
+    manifestation: `$ ./coins
+Ways to make 30 cents: 18
+Ways to make 0 cents: 1
+terminate called after throwing an instance of 'std::bad_alloc'
+  what():  std::bad_alloc
+Aborted (core dumped)`,
+    stdlibRefs: [
+      { name: "std::vector::vector", args: "(size_type count, const T& value)", brief: "Constructs a vector with `count` copies of `value`.", note: "The `count` parameter is `size_type` (unsigned); passing a negative int silently converts to a huge positive value, attempting a massive allocation.", link: "https://en.cppreference.com/w/cpp/container/vector/vector" },
+    ],
+  },
+  {
+    id: 547,
+    topic: "Runtime Bugs",
+    difficulty: "Medium",
+    title: "Power Calculator",
+    description: "Computes base raised to an integer exponent using a simple recursive approach, supporting both positive and negative exponents.",
+    code: `#include <iostream>
+
+double power(double base, int exp) {
+    if (exp == 0)
+        return 1.0;
+
+    if (exp > 0)
+        return base * power(base, exp - 1);
+
+    return (1.0 / base) * power(base, exp - 1);
+}
+
+int main() {
+    std::cout << "2^10  = " << power(2.0, 10) << std::endl;
+    std::cout << "5^0   = " << power(5.0, 0) << std::endl;
+    std::cout << "2^-3  = " << power(2.0, -3) << std::endl;
+    std::cout << "10^-2 = " << power(10.0, -2) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Trace the recursive calls when `exp` is negative. Does it move toward the base case?",
+      "In the negative-exponent branch, which direction should `exp` change to eventually reach 0?",
+      "What happens to the call stack when recursion never terminates?",
+    ],
+    explanation: "When `exp` is negative, the function recurses with `exp - 1`, making the exponent more negative on each call (-3, -4, -5, ...) instead of moving toward the base case of 0. This causes infinite recursion, exhausting the call stack and resulting in a segmentation fault (stack overflow). The fix is to use `exp + 1` in the negative-exponent branch so that `exp` approaches 0.",
+    manifestation: `$ ./power
+2^10  = 1024
+5^0   = 1
+Segmentation fault (core dumped)
+
+With ulimit showing the stack overflow:
+$ ulimit -s 8192 && ./power
+2^10  = 1024
+5^0   = 1
+Segmentation fault (core dumped)
+
+$ g++ -fsanitize=address -g power.cpp -o power && ./power
+2^10  = 1024
+5^0   = 1
+=================================================================
+==9501==ERROR: AddressSanitizer: stack-overflow on address 0x7ffc3c200ff8
+    #0 0x5601a3 in power(double, int) power.cpp:3
+    #1 0x5601c8 in power(double, int) power.cpp:9
+    ...repeated frames...
+SUMMARY: AddressSanitizer: stack-overflow power.cpp:3 in power(double, int)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 548,
+    topic: "Runtime Bugs",
+    difficulty: "Medium",
+    title: "Factorial Table Printer",
+    description: "Prints a formatted table of factorials from 0! through 20!, useful for quick combinatorics reference.",
+    code: `#include <iostream>
+#include <iomanip>
+
+int factorial(int n) {
+    int result = 1;
+    for (int i = 2; i <= n; ++i) {
+        result *= i;
+    }
+    return result;
+}
+
+int main() {
+    std::cout << std::setw(4) << "n" << std::setw(16) << "n!" << std::endl;
+    std::cout << std::string(20, '-') << std::endl;
+
+    for (int n = 0; n <= 20; ++n) {
+        std::cout << std::setw(4) << n
+                  << std::setw(16) << factorial(n) << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "What is the largest value a 32-bit `int` can hold?",
+      "At what value of `n` does `n!` exceed that limit?",
+      "What does the C++ standard say about signed integer overflow?",
+    ],
+    explanation: "The factorial function uses `int` (32-bit signed), which can hold values up to 2,147,483,647. Starting at 13! (6,227,020,800), the result exceeds this limit. Signed integer overflow is undefined behavior in C++, and in practice the values wrap around, producing incorrect and sometimes negative results. The fix is to use `long long` or `unsigned long long` for the result, which correctly stores factorials up to 20!.",
+    manifestation: `$ ./factorial_table
+   n              n!
+--------------------
+   0               1
+   1               1
+   2               2
+   3               6
+   4              24
+   5             120
+   6             720
+   7            5040
+   8           40320
+   9          362880
+  10        3628800
+  11       39916800
+  12      479001600
+  13     1932053504
+  14     1278945280
+  15     2004310016
+  16     2004189184
+  17     -288522240
+  18     -898433024
+  19      109641728
+  20    -2102132736
+
+Expected: 13! = 6227020800, 20! = 2432902008176640000`,
+    stdlibRefs: [],
+  },
+  {
+    id: 549,
+    topic: "Runtime Bugs",
+    difficulty: "Medium",
+    title: "Square Root Finder",
+    description: "Computes the square root of a number using Newton's method (Babylonian method) with iterative refinement.",
+    code: `#include <iostream>
+
+double squareRoot(double value) {
+    if (value < 0) {
+        std::cout << "Error: negative input" << std::endl;
+        return -1.0;
+    }
+    if (value == 0) return 0.0;
+
+    double guess = value / 2.0;
+
+    while (guess * guess != value) {
+        guess = (guess + value / guess) / 2.0;
+    }
+
+    return guess;
+}
+
+int main() {
+    std::cout << "sqrt(4)  = " << squareRoot(4.0) << std::endl;
+    std::cout << "sqrt(9)  = " << squareRoot(9.0) << std::endl;
+    std::cout << "sqrt(2)  = " << squareRoot(2.0) << std::endl;
+    std::cout << "sqrt(10) = " << squareRoot(10.0) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "For which inputs does `guess * guess` converge to exactly `value` in floating-point?",
+      "What happens when Newton's method reaches the closest representable double to the true square root, but `guess * guess` still isn't exactly `value`?",
+      "How should floating-point convergence be checked instead of using `!=`?",
+    ],
+    explanation: "The loop condition `guess * guess != value` uses exact floating-point equality. For perfect squares like 4 and 9, the result is exactly representable, so the loop terminates. But for values like 2 or 10, the square root is irrational and `guess * guess` can never exactly equal `value` in finite-precision floating-point. The loop runs forever, oscillating between the two nearest representable values. The fix is to use an epsilon-based convergence check: `std::abs(guess * guess - value) > 1e-10`.",
+    manifestation: `$ ./sqrt_finder
+sqrt(4)  = 2
+sqrt(9)  = 3
+(program hangs — infinite loop computing sqrt(2))
+
+The Newton iterations converge to 1.4142135623730951, but
+1.4142135623730951 * 1.4142135623730951 = 2.0000000000000004
+which is not exactly 2.0, so the loop never exits.`,
+    stdlibRefs: [
+      { name: "std::abs (floating-point)", args: "(double x) \\u2192 double | (float x) \\u2192 float | (long double x) \\u2192 long double", brief: "Returns the absolute value of a floating-point number.", note: "Essential for epsilon-based convergence checks in numerical algorithms where exact equality is unreliable.", link: "https://en.cppreference.com/w/cpp/numeric/math/abs" },
+    ],
+  },
+  {
+    id: 550,
+    topic: "Runtime Bugs",
+    difficulty: "Medium",
+    title: "Config Lookup Table",
+    description: "Looks up server configuration by environment name and prints the connection details for each known environment.",
+    code: `#include <iostream>
+#include <map>
+#include <string>
+
+struct Config {
+    std::string host;
+    int port;
+    bool ssl;
+};
+
+Config* findConfig(std::map<std::string, Config>& configs,
+                   const std::string& env) {
+    auto it = configs.find(env);
+    if (it != configs.end()) {
+        return &it->second;
+    }
+    return nullptr;
+}
+
+int main() {
+    std::map<std::string, Config> configs;
+    configs["production"] = {"prod.example.com", 443, true};
+    configs["staging"]    = {"staging.example.com", 8443, true};
+
+    std::string environments[] = {"production", "staging", "development"};
+
+    for (const auto& env : environments) {
+        Config* cfg = findConfig(configs, env);
+        std::cout << env << ": " << cfg->host
+                  << ":" << cfg->port << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "What does `findConfig` return when the environment name isn't in the map?",
+      "Is the return value of `findConfig` checked before being used?",
+      "What happens when you dereference a null pointer with `->`?",
+    ],
+    explanation: "The function `findConfig` returns `nullptr` when the requested environment (\"development\") is not in the map. The loop dereferences `cfg->host` without checking whether `cfg` is null, causing a null pointer dereference and segmentation fault on the third iteration. The fix is to check `if (cfg != nullptr)` before accessing the pointer's members.",
+    manifestation: `$ ./config_lookup
+production: prod.example.com:443
+staging: staging.example.com:8443
+Segmentation fault (core dumped)
+
+With AddressSanitizer:
+$ g++ -fsanitize=address -g config.cpp -o config && ./config
+production: prod.example.com:443
+staging: staging.example.com:8443
+=================================================================
+==31042==ERROR: AddressSanitizer: SEGV on unknown address 0x000000000000
+    #0 0x55a1b2 in main config.cpp:26
+    #1 0x7f3c2a in __libc_start_main
+SUMMARY: AddressSanitizer: SEGV config.cpp:26 in main`,
+    stdlibRefs: [
+      { name: "std::map::find", args: "(const Key& key) \\u2192 iterator", brief: "Searches for an element with the given key; returns end() if not found.", note: "Code that wraps find() in a pointer-returning helper must ensure callers check for nullptr before dereferencing.", link: "https://en.cppreference.com/w/cpp/container/map/find" },
+    ],
+  },
+  {
+    id: 551,
+    topic: "Runtime Bugs",
+    difficulty: "Hard",
+    title: "Magnitude Sorter",
+    description: "Sorts a collection of integers by their absolute value (magnitude), placing values closest to zero first.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+#include <cstdlib>
+#include <climits>
+
+void sortByMagnitude(std::vector<int>& values) {
+    std::sort(values.begin(), values.end(),
+        [](int a, int b) {
+            return std::abs(a) < std::abs(b);
+        });
+}
+
+void printVec(const std::vector<int>& v) {
+    for (int x : v) std::cout << x << " ";
+    std::cout << std::endl;
+}
+
+int main() {
+    std::vector<int> data = {-5, 3, -2, 7, 0, -1, 4};
+    sortByMagnitude(data);
+    std::cout << "Sorted by magnitude: ";
+    printVec(data);
+
+    std::vector<int> sensor = {100, -200, INT_MIN, 42, -7};
+    sortByMagnitude(sensor);
+    std::cout << "Sensor readings sorted: ";
+    printVec(sensor);
+
+    return 0;
+}`,
+    hints: [
+      "What is the result of `std::abs(INT_MIN)` on a 32-bit int?",
+      "Can every negative `int` value be represented as a positive `int`?",
+      "If `std::abs` returns a negative number, how does that affect the `<` comparison in the sort?",
+    ],
+    explanation: "Calling `std::abs(INT_MIN)` is undefined behavior because |INT_MIN| (2,147,483,648) exceeds INT_MAX (2,147,483,647). On most implementations using two's complement, it returns INT_MIN itself (still negative). This causes the sort comparator to treat INT_MIN as having the smallest magnitude, incorrectly placing it first. The fix is to cast to `long long` before taking the absolute value: `std::abs(static_cast<long long>(a))`.",
+    manifestation: `$ ./magnitude_sort
+Sorted by magnitude: 0 -1 -2 3 4 -5 7
+Sensor readings sorted: -2147483648 -7 42 100 -200
+
+Expected output:
+Sorted by magnitude: 0 -1 -2 3 4 -5 7
+Sensor readings sorted: -7 42 100 -200 -2147483648
+
+INT_MIN appears first (smallest magnitude) instead of last
+(largest magnitude) because std::abs(INT_MIN) returns INT_MIN,
+a negative value that compares less than all positive magnitudes.`,
+    stdlibRefs: [
+      { name: "std::abs (integer)", args: "(int n) \\u2192 int | (long n) \\u2192 long | (long long n) \\u2192 long long", brief: "Returns the absolute value of an integer.", note: "Undefined behavior when called with the most negative value of a signed type (e.g., INT_MIN), because the positive result cannot be represented.", link: "https://en.cppreference.com/w/cpp/numeric/math/abs" },
+      { name: "std::sort", args: "(RandomIt first, RandomIt last, Compare comp) \\u2192 void", brief: "Sorts elements in [first, last) using the given comparator.", note: "The comparator must define a strict weak ordering; undefined behavior in abs() can corrupt the ordering guarantee.", link: "https://en.cppreference.com/w/cpp/algorithm/sort" },
+    ],
+  },
+  {
+    id: 552,
+    topic: "Runtime Bugs",
+    difficulty: "Hard",
+    title: "Simple Hash Map",
+    description: "Implements a basic hash map using separate chaining, with a string hash function and fixed number of buckets.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+
+class SimpleHashMap {
+    static const int NUM_BUCKETS = 16;
+    std::vector<std::pair<std::string, int>> buckets[NUM_BUCKETS];
+
+    int hashToBucket(const std::string& key) const {
+        int hash = 0;
+        for (char c : key) {
+            hash = hash * 31 + c;
+        }
+        return hash % NUM_BUCKETS;
+    }
+
+public:
+    void put(const std::string& key, int value) {
+        int idx = hashToBucket(key);
+        for (auto& p : buckets[idx]) {
+            if (p.first == key) {
+                p.second = value;
+                return;
+            }
+        }
+        buckets[idx].push_back({key, value});
+    }
+
+    int get(const std::string& key) const {
+        int idx = hashToBucket(key);
+        for (const auto& p : buckets[idx]) {
+            if (p.first == key) return p.second;
+        }
+        return -1;
+    }
+};
+
+int main() {
+    SimpleHashMap map;
+
+    std::vector<std::string> keys = {
+        "cat", "dog", "fish", "elephant", "rhinoceros"
+    };
+
+    for (size_t i = 0; i < keys.size(); ++i) {
+        map.put(keys[i], static_cast<int>(i + 1));
+    }
+
+    for (const auto& key : keys) {
+        std::cout << key << ": " << map.get(key) << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "What type is `hash`, and what happens to it for longer strings like \"elephant\"?",
+      "In C++, what is the result of the `%` operator when the dividend is negative?",
+      "Can a negative value be used as an array index, and what would happen?",
+    ],
+    explanation: "The hash computation uses `int`, which overflows for longer strings (signed integer overflow is undefined behavior, but typically wraps to a negative value on most platforms). When `hash` is negative, `hash % NUM_BUCKETS` produces a negative result in C++ (e.g., -10), which is then used to index the `buckets` array out of bounds. The fix is to use `unsigned int` for the hash, or mask the sign bit: `return (hash & 0x7FFFFFFF) % NUM_BUCKETS`.",
+    manifestation: `$ ./hashmap
+cat: 1
+dog: 2
+fish: 3
+Segmentation fault (core dumped)
+
+With AddressSanitizer:
+$ g++ -fsanitize=address -g hashmap.cpp -o hashmap && ./hashmap
+cat: 1
+dog: 2
+fish: 3
+=================================================================
+==18234==ERROR: AddressSanitizer: stack-buffer-overflow on address 0x7ffd4a1ffac0
+WRITE of size 32 at 0x7ffd4a1ffac0 thread T0
+    #0 0x401a2b in SimpleHashMap::put(std::string const&, int) hashmap.cpp:19
+    #1 0x401e15 in main hashmap.cpp:38
+SUMMARY: AddressSanitizer: stack-buffer-overflow hashmap.cpp:19 in SimpleHashMap::put`,
+    stdlibRefs: [],
+  },
+  {
+    id: 553,
+    topic: "Runtime Bugs",
+    difficulty: "Hard",
+    title: "Safe Division Calculator",
+    description: "Provides a division function with error handling that validates inputs and returns structured results for a batch of test cases.",
+    code: `#include <iostream>
+#include <vector>
+#include <climits>
+
+struct CalcResult {
+    bool valid;
+    int value;
+};
+
+CalcResult safeDivide(int a, int b) {
+    if (b == 0) {
+        return {false, 0};
+    }
+    return {true, a / b};
+}
+
+int main() {
+    struct TestCase { int a; int b; };
+
+    std::vector<TestCase> tests = {
+        {100, 3},
+        {-42, 7},
+        {10, 0},
+        {0, 5},
+        {INT_MIN, -1},
+        {15, 4},
+    };
+
+    for (const auto& t : tests) {
+        auto result = safeDivide(t.a, t.b);
+        if (result.valid) {
+            std::cout << t.a << " / " << t.b
+                      << " = " << result.value << std::endl;
+        } else {
+            std::cout << t.a << " / " << t.b
+                      << " = ERROR (division by zero)" << std::endl;
+        }
+    }
+
+    return 0;
+}`,
+    hints: [
+      "The function guards against division by zero\\u2014are there other integer division inputs that are dangerous?",
+      "What is the mathematical result of dividing the most negative representable integer by -1?",
+      "Can `INT_MIN / -1` be represented as an `int`? What does the CPU do when it cannot?",
+    ],
+    explanation: "The `safeDivide` function checks for division by zero but misses a second dangerous case: `INT_MIN / -1`. The mathematical result (2,147,483,648) exceeds INT_MAX and cannot be stored in a 32-bit signed integer. This is undefined behavior in C++, and on x86 platforms the CPU's `idiv` instruction raises a hardware exception (SIGFPE). The fix is to add the check: `if (a == INT_MIN && b == -1) return {false, 0};`.",
+    manifestation: `$ ./safe_calc
+100 / 3 = 33
+-42 / 7 = -6
+10 / 0 = ERROR (division by zero)
+0 / 5 = 0
+Floating point exception (core dumped)
+
+The division-by-zero check passes (b is -1, not 0), but
+INT_MIN / -1 overflows the signed int result. On x86, the
+hardware idiv instruction traps, producing SIGFPE despite
+b being non-zero.`,
+    stdlibRefs: [],
+  },
 ];
