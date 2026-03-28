@@ -38388,4 +38388,665 @@ hardware idiv instruction traps, producing SIGFPE despite
 b being non-zero.`,
     stdlibRefs: [],
   },
+
+  // ── Logic Errors ──
+  {
+    id: 554,
+    topic: "Logic Errors",
+    difficulty: "Easy",
+    title: "Palindrome Checker",
+    description: "Checks whether each word in a list reads the same forwards and backwards.",
+    code: `#include <iostream>
+#include <string>
+
+bool isPalindrome(const std::string& s) {
+    int left = 0;
+    int right = s.size();
+
+    while (left < right) {
+        if (s[left] != s[right]) {
+            return false;
+        }
+        ++left;
+        --right;
+    }
+    return true;
+}
+
+int main() {
+    std::string words[] = {"racecar", "hello", "madam", "noon", "world"};
+
+    for (const auto& word : words) {
+        std::cout << word << " -> "
+                  << (isPalindrome(word) ? "palindrome" : "not palindrome")
+                  << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "What index does `right` start at, and what character lives at that position in a std::string?",
+      "In C++, what does std::string::operator[] return when called with an index equal to the string's size?",
+      "Should `right` start at `s.size()` or `s.size() - 1`?",
+    ],
+    explanation: "The variable `right` is initialized to `s.size()`, which points one past the last character. In C++, `s[s.size()]` is valid and returns a null character ('\\0'), so no crash occurs. However, the very first comparison always checks the first character against '\\0', which never matches, so the function returns false for every non-empty string. The fix is to initialize `right` to `s.size() - 1`.",
+    manifestation: `$ ./palindrome
+racecar -> not palindrome
+hello -> not palindrome
+madam -> not palindrome
+noon -> not palindrome
+world -> not palindrome
+
+Expected:
+racecar -> palindrome
+hello -> not palindrome
+madam -> palindrome
+noon -> palindrome
+world -> not palindrome`,
+    stdlibRefs: [],
+  },
+  {
+    id: 555,
+    topic: "Logic Errors",
+    difficulty: "Easy",
+    title: "Temperature Table",
+    description: "Prints a conversion table from Celsius to Fahrenheit for temperatures from 0 to 100 degrees.",
+    code: `#include <iostream>
+#include <iomanip>
+
+double toFahrenheit(int celsius) {
+    return 9 / 5 * celsius + 32;
+}
+
+int main() {
+    std::cout << std::fixed << std::setprecision(1);
+    std::cout << std::setw(10) << "Celsius"
+              << std::setw(14) << "Fahrenheit" << std::endl;
+    std::cout << std::string(24, '-') << std::endl;
+
+    for (int c = 0; c <= 100; c += 10) {
+        std::cout << std::setw(10) << c
+                  << std::setw(14) << toFahrenheit(c) << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "What is the value of the expression `9 / 5` when both operands are integers?",
+      "When both sides of `/` are `int`, what kind of division does C++ perform?",
+      "How would you ensure floating-point division is used in the formula?",
+    ],
+    explanation: "The expression `9 / 5` performs integer division because both operands are `int`, yielding 1 instead of 1.8. The formula effectively becomes `celsius + 32` instead of `celsius * 1.8 + 32`. Despite the function returning `double`, the truncation happens before the implicit conversion. The fix is to use a floating-point literal: `9.0 / 5 * celsius + 32`.",
+    manifestation: `$ ./temp_table
+   Celsius    Fahrenheit
+------------------------
+         0          32.0
+        10          42.0
+        20          52.0
+        30          62.0
+        40          72.0
+        50          82.0
+        60          92.0
+        70         102.0
+        80         112.0
+        90         122.0
+       100         132.0
+
+Expected (100 C = 212.0 F, not 132.0 F):
+         0          32.0
+        10          50.0
+        20          68.0
+        ...
+       100         212.0`,
+    stdlibRefs: [],
+  },
+  {
+    id: 556,
+    topic: "Logic Errors",
+    difficulty: "Easy",
+    title: "Matrix Transposer",
+    description: "Transposes a square matrix in-place by swapping rows and columns, then prints the result.",
+    code: `#include <iostream>
+#include <iomanip>
+
+const int N = 3;
+
+void transpose(int matrix[N][N]) {
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            int temp = matrix[i][j];
+            matrix[i][j] = matrix[j][i];
+            matrix[j][i] = temp;
+        }
+    }
+}
+
+void printMatrix(const int matrix[N][N]) {
+    for (int i = 0; i < N; ++i) {
+        for (int j = 0; j < N; ++j) {
+            std::cout << std::setw(4) << matrix[i][j];
+        }
+        std::cout << std::endl;
+    }
+}
+
+int main() {
+    int matrix[N][N] = {
+        {1, 2, 3},
+        {4, 5, 6},
+        {7, 8, 9}
+    };
+
+    std::cout << "Original:" << std::endl;
+    printMatrix(matrix);
+
+    transpose(matrix);
+
+    std::cout << "Transposed:" << std::endl;
+    printMatrix(matrix);
+
+    return 0;
+}`,
+    hints: [
+      "How many times is each off-diagonal pair (i,j) and (j,i) visited during the nested loops?",
+      "When i=0 and j=1, the elements at (0,1) and (1,0) are swapped. What happens later when i=1 and j=0?",
+      "Should the inner loop start at j=0, or at j=i+1?",
+    ],
+    explanation: "The inner loop runs `j` from 0 to N-1, causing every off-diagonal pair to be swapped twice: once when processing position (i,j) and again when processing (j,i). Two swaps cancel out, leaving the matrix completely unchanged. The fix is to iterate only over the upper triangle by starting the inner loop at `j = i + 1`.",
+    manifestation: `$ ./transpose
+Original:
+   1   2   3
+   4   5   6
+   7   8   9
+Transposed:
+   1   2   3
+   4   5   6
+   7   8   9
+
+Expected:
+Transposed:
+   1   4   7
+   2   5   8
+   3   6   9`,
+    stdlibRefs: [],
+  },
+  {
+    id: 557,
+    topic: "Logic Errors",
+    difficulty: "Medium",
+    title: "Roman Numeral Converter",
+    description: "Converts integers to their Roman numeral representation using a greedy algorithm with a lookup table.",
+    code: `#include <iostream>
+#include <string>
+
+std::string toRoman(int num) {
+    int values[]        = {1000, 500, 100, 50, 10, 5, 1};
+    std::string symbols[] = {"M", "D", "C", "L", "X", "V", "I"};
+
+    std::string result;
+    for (int i = 0; i < 7; ++i) {
+        while (num >= values[i]) {
+            result += symbols[i];
+            num -= values[i];
+        }
+    }
+
+    return result;
+}
+
+int main() {
+    int tests[] = {3, 4, 9, 14, 40, 90, 399, 1994, 2024};
+
+    for (int n : tests) {
+        std::cout << n << " = " << toRoman(n) << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Does Roman numeral notation always use purely additive combinations, or are there subtractive cases like IV and IX?",
+      "How are numbers like 4, 9, 40, 90, 400, and 900 represented in standard Roman numerals?",
+      "What additional value-symbol pairs would the lookup table need to handle subtractive notation?",
+    ],
+    explanation: "The conversion table only includes the seven basic Roman symbols (M, D, C, L, X, V, I) and omits the six subtractive pairs (CM=900, CD=400, XC=90, XL=40, IX=9, IV=4). Without these entries, the greedy algorithm produces non-standard additive-only notation like IIII for 4 and VIIII for 9 instead of IV and IX. The fix is to expand the arrays to all 13 value-symbol pairs: {1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1}.",
+    manifestation: `$ ./roman
+3 = III
+4 = IIII
+9 = VIIII
+14 = XIIII
+40 = XXXX
+90 = LXXXX
+399 = CCCLXXXXVIIII
+1994 = MDCCCCLXXXXIIII
+2024 = MMXXIIII
+
+Expected:
+3 = III
+4 = IV
+9 = IX
+14 = XIV
+40 = XL
+90 = XC
+399 = CCCXCIX
+1994 = MCMXCIV
+2024 = MMXXIV`,
+    stdlibRefs: [],
+  },
+  {
+    id: 558,
+    topic: "Logic Errors",
+    difficulty: "Medium",
+    title: "Maximum Subarray Sum",
+    description: "Finds the contiguous subarray with the largest sum using Kadane's algorithm.",
+    code: `#include <iostream>
+#include <vector>
+#include <algorithm>
+
+int maxSubarraySum(const std::vector<int>& arr) {
+    int maxSum = 0;
+    int currentSum = 0;
+
+    for (int num : arr) {
+        currentSum = std::max(currentSum + num, num);
+        maxSum = std::max(maxSum, currentSum);
+    }
+
+    return maxSum;
+}
+
+int main() {
+    std::vector<int> a = {-2, 1, -3, 4, -1, 2, 1, -5, 4};
+    std::cout << "Test 1: " << maxSubarraySum(a) << std::endl;
+
+    std::vector<int> b = {1, 2, 3, 4, 5};
+    std::cout << "Test 2: " << maxSubarraySum(b) << std::endl;
+
+    std::vector<int> c = {-1, -2, -3, -4};
+    std::cout << "Test 3: " << maxSubarraySum(c) << std::endl;
+
+    std::vector<int> d = {-5, -3, -1, -4, -2};
+    std::cout << "Test 4: " << maxSubarraySum(d) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What does the function return when every element in the array is negative?",
+      "What implicit assumption does the initial value of `maxSum` make about the minimum possible answer?",
+      "Should `maxSum` start at 0, or at the value of the first element?",
+    ],
+    explanation: "Initializing `maxSum` to 0 implicitly assumes the answer is at least 0, as if an empty subarray (with sum 0) were a valid choice. When all elements are negative, `currentSum` never exceeds 0, so `maxSum` stays at 0 instead of returning the least negative element (-1). The fix is to initialize `maxSum` to `arr[0]` and start the loop from index 1, or use `INT_MIN`.",
+    manifestation: `$ ./max_subarray
+Test 1: 6
+Test 2: 15
+Test 3: 0
+Test 4: 0
+
+Expected:
+Test 1: 6
+Test 2: 15
+Test 3: -1
+Test 4: -1`,
+    stdlibRefs: [
+      { name: "std::max", args: "(const T& a, const T& b) \\u2192 const T&", brief: "Returns the greater of two values.", note: "Kadane's algorithm relies on std::max to decide whether to extend or restart the current subarray, but the initial seed value determines correctness for all-negative inputs.", link: "https://en.cppreference.com/w/cpp/algorithm/max" },
+    ],
+  },
+  {
+    id: 559,
+    topic: "Logic Errors",
+    difficulty: "Medium",
+    title: "String Deduplicator",
+    description: "Removes all duplicate strings from a collection and returns only unique entries.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <algorithm>
+
+std::vector<std::string> removeDuplicates(std::vector<std::string> items) {
+    auto last = std::unique(items.begin(), items.end());
+    items.erase(last, items.end());
+    return items;
+}
+
+int main() {
+    std::vector<std::string> fruits = {
+        "apple", "banana", "apple", "cherry",
+        "banana", "date", "cherry", "apple"
+    };
+
+    std::cout << "Before: ";
+    for (const auto& f : fruits) std::cout << f << " ";
+    std::cout << std::endl;
+
+    auto result = removeDuplicates(fruits);
+
+    std::cout << "After:  ";
+    for (const auto& f : result) std::cout << f << " ";
+    std::cout << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What exactly does std::unique remove \\u2014 all duplicates, or only consecutive ones?",
+      "If the input contains 'apple banana apple', does std::unique consider the two 'apple' entries as duplicates?",
+      "What step is missing before calling std::unique to ensure all duplicates are adjacent?",
+    ],
+    explanation: "std::unique only removes consecutively duplicate elements, not all duplicates in a range. In the unsorted input, non-adjacent duplicates like 'apple' at positions 0 and 2 are not removed because they are separated by 'banana'. The function returns the input nearly unchanged. The fix is to call `std::sort(items.begin(), items.end())` before std::unique so that all duplicates become adjacent.",
+    manifestation: `$ ./dedup
+Before: apple banana apple cherry banana date cherry apple
+After:  apple banana apple cherry banana date cherry apple
+
+Expected:
+After:  apple banana cherry date`,
+    stdlibRefs: [
+      { name: "std::unique", args: "(ForwardIt first, ForwardIt last) \\u2192 ForwardIt", brief: "Eliminates consecutive duplicate elements from a range, returning an iterator past the new logical end.", note: "Only removes adjacent duplicates; the range must be sorted first to remove all duplicates globally.", link: "https://en.cppreference.com/w/cpp/algorithm/unique" },
+    ],
+  },
+  {
+    id: 560,
+    topic: "Logic Errors",
+    difficulty: "Medium",
+    title: "Hamming Distance Calculator",
+    description: "Computes the Hamming distance between two integers by counting the differing bit positions in their binary representations.",
+    code: `#include <iostream>
+
+int countSetBits(int n) {
+    int count = 0;
+    while (n > 0) {
+        count += n & 1;
+        n >>= 1;
+    }
+    return count;
+}
+
+int hammingDistance(int x, int y) {
+    return countSetBits(x ^ y);
+}
+
+int main() {
+    std::cout << "Hamming(1, 4) = "
+              << hammingDistance(1, 4) << std::endl;
+    std::cout << "Hamming(7, 0) = "
+              << hammingDistance(7, 0) << std::endl;
+    std::cout << "Hamming(255, 0) = "
+              << hammingDistance(255, 0) << std::endl;
+    std::cout << "Hamming(0, -1) = "
+              << hammingDistance(0, -1) << std::endl;
+    std::cout << "Hamming(-1, 0) = "
+              << hammingDistance(-1, 0) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What is the result of `0 ^ -1` in two's complement representation?",
+      "When `n` is negative, is the loop condition `n > 0` ever true?",
+      "How many iterations does the loop execute when `countSetBits` receives a negative number?",
+    ],
+    explanation: "The bit-counting loop uses `n > 0` as its condition, which is immediately false for negative numbers. When `x ^ y` produces a negative result (e.g., `0 ^ -1` = -1, with all 32 bits set), `countSetBits` returns 0 without entering the loop. The fix is to use `unsigned int` for the parameter type, which handles all bit patterns correctly and avoids implementation-defined behavior from right-shifting negative signed integers.",
+    manifestation: `$ ./hamming
+Hamming(1, 4) = 3
+Hamming(7, 0) = 3
+Hamming(255, 0) = 8
+Hamming(0, -1) = 0
+Hamming(-1, 0) = 0
+
+Expected:
+Hamming(1, 4) = 3
+Hamming(7, 0) = 3
+Hamming(255, 0) = 8
+Hamming(0, -1) = 32
+Hamming(-1, 0) = 32`,
+    stdlibRefs: [],
+  },
+  {
+    id: 561,
+    topic: "Logic Errors",
+    difficulty: "Hard",
+    title: "Longest Common Subsequence",
+    description: "Computes the length of the longest common subsequence of two strings using dynamic programming.",
+    code: `#include <iostream>
+#include <string>
+#include <vector>
+#include <algorithm>
+
+int lcs(const std::string& a, const std::string& b) {
+    int m = a.size(), n = b.size();
+    std::vector<std::vector<int>> dp(m + 1, std::vector<int>(n + 1, 0));
+
+    for (int i = 1; i <= m; ++i) {
+        for (int j = 1; j <= n; ++j) {
+            if (a[i] == b[j]) {
+                dp[i][j] = dp[i - 1][j - 1] + 1;
+            } else {
+                dp[i][j] = std::max(dp[i - 1][j], dp[i][j - 1]);
+            }
+        }
+    }
+
+    return dp[m][n];
+}
+
+int main() {
+    std::cout << "LCS(abcde, ace):   " << lcs("abcde", "ace") << std::endl;
+    std::cout << "LCS(abc, abc):     " << lcs("abc", "abc") << std::endl;
+    std::cout << "LCS(abc, def):     " << lcs("abc", "def") << std::endl;
+    std::cout << "LCS(hello, world): " << lcs("hello", "world") << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The DP indices `i` and `j` range from 1 to m and 1 to n respectively. What characters do `a[i]` and `b[j]` access at those indices?",
+      "What does `a[a.size()]` return in C++, and could this phantom character participate in a match?",
+      "When two strings share no common characters, should the LCS be 0? What does this function actually return?",
+    ],
+    explanation: "The DP uses 1-based loop indices but accesses characters as `a[i]` and `b[j]` instead of `a[i-1]` and `b[j-1]`. This shifts all character comparisons by one position. Worse, when `i == m` and `j == n`, both `a[m]` and `b[n]` access the null terminator ('\\0'), which always matches, inflating the result by 1. The bug is especially insidious because many test cases (like identical strings) still produce the correct answer. The fix is to use `a[i-1]` and `b[j-1]`.",
+    manifestation: `$ ./lcs
+LCS(abcde, ace):   3
+LCS(abc, abc):     3
+LCS(abc, def):     1
+LCS(hello, world): 2
+
+Expected:
+LCS(abcde, ace):   3
+LCS(abc, abc):     3
+LCS(abc, def):     0
+LCS(hello, world): 1
+
+The first two results are correct by accident (the shifted characters
+and the null-terminator match compensate). The bug only surfaces when
+strings share few or no common characters.`,
+    stdlibRefs: [],
+  },
+  {
+    id: 562,
+    topic: "Logic Errors",
+    difficulty: "Hard",
+    title: "Directed Graph Cycle Detector",
+    description: "Determines whether a directed graph contains a cycle using depth-first search.",
+    code: `#include <iostream>
+#include <vector>
+
+class Graph {
+    int V;
+    std::vector<std::vector<int>> adj;
+
+    bool dfs(int node, std::vector<bool>& visited) {
+        visited[node] = true;
+
+        for (int neighbor : adj[node]) {
+            if (!visited[neighbor]) {
+                if (dfs(neighbor, visited))
+                    return true;
+            } else {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+public:
+    Graph(int V) : V(V), adj(V) {}
+
+    void addEdge(int from, int to) {
+        adj[from].push_back(to);
+    }
+
+    bool hasCycle() {
+        std::vector<bool> visited(V, false);
+        for (int i = 0; i < V; ++i) {
+            if (!visited[i]) {
+                if (dfs(i, visited))
+                    return true;
+            }
+        }
+        return false;
+    }
+};
+
+int main() {
+    Graph dag(4);
+    dag.addEdge(0, 1);
+    dag.addEdge(0, 2);
+    dag.addEdge(1, 3);
+    dag.addEdge(2, 3);
+
+    std::cout << "Diamond DAG has cycle: "
+              << (dag.hasCycle() ? "yes" : "no") << std::endl;
+
+    Graph cyclic(3);
+    cyclic.addEdge(0, 1);
+    cyclic.addEdge(1, 2);
+    cyclic.addEdge(2, 0);
+
+    std::cout << "Triangle has cycle: "
+              << (cyclic.hasCycle() ? "yes" : "no") << std::endl;
+
+    Graph chain(5);
+    chain.addEdge(0, 1);
+    chain.addEdge(1, 2);
+    chain.addEdge(2, 3);
+    chain.addEdge(3, 4);
+
+    std::cout << "Chain has cycle: "
+              << (chain.hasCycle() ? "yes" : "no") << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "In a directed graph, does encountering an already-visited node always mean there is a cycle?",
+      "What is the difference between a node currently on the DFS recursion stack and a node from a previously completed traversal?",
+      "Should the algorithm use a two-state (visited/not) or three-state (unvisited/in-progress/done) coloring scheme?",
+    ],
+    explanation: "The DFS treats any already-visited node as evidence of a cycle, but in a directed graph, only back edges (to a node on the current recursion path) indicate cycles. A cross-edge to a fully explored node is harmless. In the diamond DAG, node 3 is first visited via 0\\u21921\\u21923, and when DFS later explores 0\\u21922\\u21923, it falsely reports a cycle because 3 is already marked visited. The fix is to use three states (WHITE/GRAY/BLACK) and only report a cycle when encountering a GRAY (in-progress) node.",
+    manifestation: `$ ./cycle_detect
+Diamond DAG has cycle: yes
+Triangle has cycle: yes
+Chain has cycle: no
+
+Expected:
+Diamond DAG has cycle: no
+Triangle has cycle: yes
+Chain has cycle: no
+
+The diamond-shaped DAG (0->1->3, 0->2->3) has two paths to
+node 3 but no cycle. The algorithm falsely flags the cross-edge
+from node 2 to the already-visited node 3 as a back edge.`,
+    stdlibRefs: [],
+  },
+  {
+    id: 563,
+    topic: "Logic Errors",
+    difficulty: "Hard",
+    title: "Arithmetic Expression Evaluator",
+    description: "Evaluates infix arithmetic expressions with +, -, *, / and parentheses, respecting standard operator precedence.",
+    code: `#include <iostream>
+#include <string>
+#include <stack>
+#include <cctype>
+
+int precedence(char op) {
+    if (op == '+' || op == '-') return 1;
+    if (op == '*' || op == '/') return 2;
+    return 0;
+}
+
+void applyOp(std::stack<int>& nums, std::stack<char>& ops) {
+    int b = nums.top(); nums.pop();
+    int a = nums.top(); nums.pop();
+    char op = ops.top(); ops.pop();
+    switch (op) {
+        case '+': nums.push(a + b); break;
+        case '-': nums.push(a - b); break;
+        case '*': nums.push(a * b); break;
+        case '/': nums.push(a / b); break;
+    }
+}
+
+int evaluate(const std::string& expr) {
+    std::stack<int> nums;
+    std::stack<char> ops;
+
+    for (size_t i = 0; i < expr.size(); ++i) {
+        if (expr[i] == ' ') continue;
+
+        if (std::isdigit(expr[i])) {
+            int num = 0;
+            while (i < expr.size() && std::isdigit(expr[i])) {
+                num = num * 10 + (expr[i] - '0');
+                ++i;
+            }
+            --i;
+            nums.push(num);
+        } else if (expr[i] == '(') {
+            ops.push('(');
+        } else if (expr[i] == ')') {
+            while (ops.top() != '(') applyOp(nums, ops);
+            ops.pop();
+        } else {
+            while (!ops.empty() && ops.top() != '(' &&
+                   precedence(ops.top()) > precedence(expr[i])) {
+                applyOp(nums, ops);
+            }
+            ops.push(expr[i]);
+        }
+    }
+
+    while (!ops.empty()) applyOp(nums, ops);
+    return nums.top();
+}
+
+int main() {
+    std::cout << "2+3*4     = " << evaluate("2+3*4") << std::endl;
+    std::cout << "2*3+4     = " << evaluate("2*3+4") << std::endl;
+    std::cout << "10-3-2    = " << evaluate("10-3-2") << std::endl;
+    std::cout << "24/4/2    = " << evaluate("24/4/2") << std::endl;
+    std::cout << "(2+3)*4   = " << evaluate("(2+3)*4") << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "Which test cases give wrong results, and what do those expressions have in common?",
+      "When two operators have the same precedence, should the one already on the stack be applied before pushing the new one?",
+      "Does the comparison `precedence(top) > precedence(current)` correctly handle left-to-right associativity for operators of equal precedence?",
+    ],
+    explanation: "The shunting-yard algorithm uses `>` to compare operator precedence, but left-associative operators of equal precedence must also be applied before pushing the new operator. The condition should be `>=` instead of `>`. With `>`, same-precedence operators accumulate on the stack and evaluate right-to-left. For example, 10-3-2 evaluates as 10-(3-2)=9 instead of (10-3)-2=5, and 24/4/2 evaluates as 24/(4/2)=12 instead of (24/4)/2=3. The fix is to change the `>` to `>=`.",
+    manifestation: `$ ./expr_eval
+2+3*4     = 14
+2*3+4     = 10
+10-3-2    = 9
+24/4/2    = 12
+(2+3)*4   = 20
+
+Expected:
+2+3*4     = 14
+2*3+4     = 10
+10-3-2    = 5
+24/4/2    = 3
+(2+3)*4   = 20
+
+Expressions with different-precedence operators work correctly,
+but same-precedence chains like 10-3-2 and 24/4/2 evaluate
+right-to-left instead of left-to-right.`,
+    stdlibRefs: [],
+  },
 ];
