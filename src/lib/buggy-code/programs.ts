@@ -39049,4 +39049,708 @@ but same-precedence chains like 10-3-2 and 24/4/2 evaluate
 right-to-left instead of left-to-right.`,
     stdlibRefs: [],
   },
+
+  // ── C++ casting ──
+  {
+    id: 564,
+    topic: "C++ Casting",
+    difficulty: "Easy",
+    title: "Integer Division Fix",
+    description: "A utility that computes the average of a vector of integers, returning a floating-point result.",
+    code: `#include <iostream>
+#include <vector>
+#include <numeric>
+
+double average(const std::vector<int>& values) {
+    int sum = std::accumulate(values.begin(), values.end(), 0);
+    return static_cast<double>(sum / values.size());
+}
+
+int main() {
+    std::vector<int> scores = {85, 92, 78, 90, 88};
+    std::cout << "Average score: " << average(scores) << std::endl;
+
+    std::vector<int> small = {1, 2};
+    std::cout << "Average of {1,2}: " << average(small) << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What type does the division produce before the cast is applied?",
+      "Does static_cast<double> affect the division, or does it only convert the already-computed result?",
+      "If sum is 3 and values.size() is 2, what is the result of integer division before the cast?",
+    ],
+    explanation: "The static_cast<double> wraps the entire expression sum / values.size(), but the division is performed as integer arithmetic first, truncating the result before the cast ever happens. The fix is to cast sum to double before the division: return static_cast<double>(sum) / values.size(). With the buggy version, average({1,2}) returns 1.0 instead of 1.5.",
+    manifestation: `$ ./average
+Average score: 86
+Average of {1,2}: 1
+
+Expected:
+Average score: 86.6
+Average of {1,2}: 1.5`,
+    stdlibRefs: [
+      { name: "std::accumulate", args: "(InputIt first, InputIt last, T init) → T", brief: "Computes the sum of the given range starting from an initial value.", note: "The return type matches the type of init, not the element type. Passing 0 (int) means the accumulation is done in int.", link: "https://en.cppreference.com/w/cpp/algorithm/accumulate" },
+    ],
+  },
+  {
+    id: 565,
+    topic: "C++ Casting",
+    difficulty: "Easy",
+    title: "Sensor Reading Converter",
+    description: "Reads raw sensor bytes from a buffer and converts them to signed temperature values for display.",
+    code: `#include <iostream>
+#include <vector>
+#include <cstdint>
+
+struct SensorReading {
+    int16_t temperature;
+    uint16_t humidity;
+};
+
+void printReadings(const uint8_t* buffer, size_t count) {
+    for (size_t i = 0; i < count; ++i) {
+        const SensorReading* reading =
+            reinterpret_cast<const SensorReading*>(buffer + i * sizeof(SensorReading));
+        std::cout << "Sensor " << i
+                  << ": temp=" << reading->temperature
+                  << " humidity=" << reading->humidity << std::endl;
+    }
+}
+
+int main() {
+    uint8_t buffer[] = {
+        0xF6, 0xFF, 0x32, 0x00,
+        0x19, 0x00, 0x41, 0x00,
+        0x01, 0x00, 0x2B, 0x00,
+    };
+
+    alignas(SensorReading) uint8_t aligned_buf[sizeof(buffer)];
+    for (size_t i = 0; i < sizeof(buffer); ++i)
+        aligned_buf[i] = buffer[i];
+
+    printReadings(reinterpret_cast<uint8_t*>(buffer), 3);
+
+    return 0;
+}`,
+    hints: [
+      "The code creates an aligned buffer — but which buffer is actually passed to printReadings?",
+      "What is the purpose of aligned_buf if it's never used?",
+      "Does the original stack array buffer satisfy the alignment requirements of SensorReading?",
+    ],
+    explanation: "The code carefully creates an aligned copy of the data in aligned_buf, but then passes the original unaligned buffer to printReadings instead. The reinterpret_cast on an improperly aligned pointer is undefined behavior. The fix is to pass aligned_buf instead of buffer to printReadings. On some architectures this causes a bus error or corrupted reads; on x86 it may silently work but is still UB.",
+    manifestation: `$ g++ -fsanitize=undefined -g sensor.cpp -o sensor && ./sensor
+sensor.cpp:13:13: runtime error: reference binding to misaligned address 0x7ffd4a3c1b03 for type 'const SensorReading', which requires 2 byte alignment
+0x7ffd4a3c1b03: note: pointer points here
+  f6 ff 32 00 19 00 41 00  01 00 2b 00 00 00 00 00
+              ^
+Sensor 0: temp=-10 humidity=50
+Sensor 1: temp=25 humidity=65
+Sensor 2: temp=1 humidity=43`,
+    stdlibRefs: [],
+  },
+  {
+    id: 566,
+    topic: "C++ Casting",
+    difficulty: "Easy",
+    title: "Polymorphic Logger",
+    description: "A logging system with different log-level handlers, using a base class pointer to invoke the correct formatter.",
+    code: `#include <iostream>
+#include <string>
+#include <memory>
+
+class Logger {
+public:
+    virtual ~Logger() = default;
+    virtual std::string format(const std::string& msg) const {
+        return "[LOG] " + msg;
+    }
+};
+
+class ErrorLogger : public Logger {
+    int errorCount_ = 0;
+public:
+    std::string format(const std::string& msg) const override {
+        return "[ERROR] " + msg;
+    }
+    void incrementCount() { ++errorCount_; }
+    int errorCount() const { return errorCount_; }
+};
+
+void processError(Logger* logger, const std::string& msg) {
+    std::cout << logger->format(msg) << std::endl;
+    ErrorLogger* errLog = static_cast<ErrorLogger*>(logger);
+    errLog->incrementCount();
+    std::cout << "Total errors: " << errLog->errorCount() << std::endl;
+}
+
+int main() {
+    Logger general;
+    ErrorLogger errors;
+
+    processError(&errors, "disk full");
+    processError(&general, "timeout");
+
+    return 0;
+}`,
+    hints: [
+      "What types of Logger pointers can be passed to processError?",
+      "Is static_cast safe for downcasting when you don't know the actual dynamic type?",
+      "What happens when a plain Logger object is cast to ErrorLogger* and member functions are called on it?",
+    ],
+    explanation: "processError uses static_cast to downcast a Logger* to ErrorLogger*, but the function can be called with any Logger subtype — including a plain Logger. When called with &general, the static_cast succeeds at compile time but produces undefined behavior at runtime because general is not actually an ErrorLogger. Calling incrementCount() writes to memory that doesn't belong to errorCount_. The fix is to use dynamic_cast and check for nullptr.",
+    manifestation: `$ g++ -fsanitize=address,undefined -g logger.cpp -o logger && ./logger
+[ERROR] disk full
+Total errors: 1
+[LOG] timeout
+Total errors: 1
+
+(On some runs with different compilers/optimizations:)
+[ERROR] disk full
+Total errors: 1
+[LOG] timeout
+Segmentation fault (core dumped)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 567,
+    topic: "C++ Casting",
+    difficulty: "Medium",
+    title: "Config Value Store",
+    description: "A type-erased configuration store that holds values of different types and retrieves them by key.",
+    code: `#include <iostream>
+#include <string>
+#include <unordered_map>
+
+class ConfigStore {
+    std::unordered_map<std::string, void*> data_;
+public:
+    template<typename T>
+    void set(const std::string& key, const T& value) {
+        data_[key] = new T(value);
+    }
+
+    template<typename T>
+    T get(const std::string& key) const {
+        auto it = data_.find(key);
+        if (it == data_.end())
+            throw std::runtime_error("Key not found: " + key);
+        return *static_cast<T*>(it->second);
+    }
+
+    ~ConfigStore() {
+        for (auto& [key, ptr] : data_)
+            delete ptr;
+    }
+};
+
+int main() {
+    ConfigStore config;
+    config.set("port", 8080);
+    config.set("host", std::string("localhost"));
+    config.set("timeout", 30.0);
+
+    std::cout << "Port: " << config.get<int>("port") << std::endl;
+    std::cout << "Host: " << config.get<std::string>("host") << std::endl;
+    std::cout << "Timeout: " << config.get<double>("timeout") << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The destructor deletes every pointer — but what type is each pointer deleted as?",
+      "When you delete a void*, does the pointed-to object's destructor get called?",
+      "Which stored types have non-trivial destructors that need to run?",
+    ],
+    explanation: "The destructor calls delete on void* pointers. Deleting a void* is undefined behavior — the compiler cannot call the destructor of the pointed-to object because it doesn't know the type. For trivial types like int and double this may appear to work, but for std::string the destructor is never called, leaking its internal heap buffer. The fix is to store type-erasing wrappers (like std::any) or store a deleter function alongside each pointer.",
+    manifestation: `$ g++ -fsanitize=address -g config.cpp -o config && ./config
+Port: 8080
+Host: localhost
+Timeout: 30
+
+=================================================================
+==18234==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 32 byte(s) in 1 object(s) allocated from:
+    #0 0x7f3a2b1c4e40 in operator new(unsigned long)
+    #1 0x401d8a in std::basic_string<char>::basic_string(std::basic_string<char> const&)
+    #2 0x401892 in void ConfigStore::set<std::string>(std::string const&, std::string const&)
+    #3 0x4013a5 in main
+
+SUMMARY: AddressSanitizer: 32 byte(s) leaked in 1 allocation(s).`,
+    stdlibRefs: [],
+  },
+  {
+    id: 568,
+    topic: "C++ Casting",
+    difficulty: "Medium",
+    title: "Network Packet Parser",
+    description: "Parses a binary network packet header from a raw byte buffer and prints the protocol fields.",
+    code: `#include <iostream>
+#include <cstdint>
+#include <cstring>
+#include <arpa/inet.h>
+
+struct PacketHeader {
+    uint32_t srcIP;
+    uint32_t dstIP;
+    uint16_t srcPort;
+    uint16_t dstPort;
+    uint32_t seqNum;
+};
+
+void parsePacket(const char* rawData, size_t len) {
+    if (len < sizeof(PacketHeader)) {
+        std::cerr << "Packet too short" << std::endl;
+        return;
+    }
+
+    PacketHeader header;
+    std::memcpy(&header, rawData, sizeof(header));
+
+    char srcStr[16], dstStr[16];
+    uint32_t srcNet = htonl(header.srcIP);
+    uint32_t dstNet = htonl(header.dstIP);
+    inet_ntop(AF_INET, &srcNet, srcStr, sizeof(srcStr));
+    inet_ntop(AF_INET, &dstNet, dstStr, sizeof(dstStr));
+
+    std::cout << "Source:      " << srcStr << ":" << ntohs(header.srcPort) << std::endl;
+    std::cout << "Destination: " << dstStr << ":" << ntohs(header.dstPort) << std::endl;
+    std::cout << "Sequence:    " << ntohl(header.seqNum) << std::endl;
+}
+
+int main() {
+    const uint8_t packet[] = {
+        0xC0, 0xA8, 0x01, 0x0A,
+        0xC0, 0xA8, 0x01, 0x01,
+        0x1F, 0x90,
+        0x00, 0x50,
+        0x00, 0x00, 0x00, 0x01,
+    };
+
+    parsePacket(reinterpret_cast<const char*>(packet), sizeof(packet));
+    return 0;
+}`,
+    hints: [
+      "The data in the packet buffer is already in network byte order — how does the code interpret it?",
+      "What does htonl do to a value that's already in network byte order?",
+      "If the IP bytes are 0xC0 0xA8 0x01 0x0A on a little-endian machine, what does memcpy put into the uint32_t field, and what does htonl then do to it?",
+    ],
+    explanation: "On a little-endian machine, memcpy copies the raw bytes into the uint32_t fields, producing a host-byte-order integer that happens to have the bytes reversed from network order. The code then calls htonl() thinking the value is in host order, but the bytes were already in the network-order layout in the buffer. The correct approach is to use ntohl() to convert from the network-byte-order representation to host order, not htonl(). Using htonl() double-swaps the bytes, producing correct results only on big-endian machines. On little-endian, the IPs display as the wrong addresses.",
+    manifestation: `$ ./packet_parser
+Source:      10.1.168.192:8080
+Destination: 1.1.168.192:80
+Sequence:    16777216
+
+Expected:
+Source:      192.168.1.10:8080
+Destination: 192.168.1.1:80
+Sequence:    1
+
+The IP octets appear reversed because htonl was used
+instead of ntohl on values already stored in network byte order.`,
+    stdlibRefs: [
+      { name: "ntohl", args: "(uint32_t netlong) → uint32_t", brief: "Converts a 32-bit integer from network byte order to host byte order.", note: "Use ntohl when reading from a network buffer into host variables. htonl goes the opposite direction — host to network.", link: "https://en.cppreference.com/w/cpp/header/arpa/inet.h" },
+      { name: "std::memcpy", args: "(void* dest, const void* src, size_t count) → void*", brief: "Copies count bytes from src to dest.", note: "memcpy does not perform byte-order conversion — the bytes are copied as-is regardless of endianness.", link: "https://en.cppreference.com/w/cpp/string/byte/memcpy" },
+    ],
+  },
+  {
+    id: 569,
+    topic: "C++ Casting",
+    difficulty: "Medium",
+    title: "Shape Area Calculator",
+    description: "Calculates the total area of a collection of shapes using polymorphism, with special handling for circles.",
+    code: `#include <iostream>
+#include <vector>
+#include <memory>
+#include <cmath>
+
+class Shape {
+public:
+    virtual ~Shape() = default;
+    virtual double area() const = 0;
+};
+
+class Circle : public Shape {
+    double radius_;
+public:
+    explicit Circle(double r) : radius_(r) {}
+    double area() const override { return M_PI * radius_ * radius_; }
+    double radius() const { return radius_; }
+};
+
+class Rectangle : public Shape {
+    double w_, h_;
+public:
+    Rectangle(double w, double h) : w_(w), h_(h) {}
+    double area() const override { return w_ * h_; }
+};
+
+void printCircleInfo(const std::vector<std::unique_ptr<Shape>>& shapes) {
+    for (const auto& shape : shapes) {
+        const Circle& circle = dynamic_cast<const Circle&>(*shape);
+        std::cout << "Circle radius: " << circle.radius()
+                  << " area: " << circle.area() << std::endl;
+    }
+}
+
+int main() {
+    std::vector<std::unique_ptr<Shape>> shapes;
+    shapes.push_back(std::make_unique<Circle>(5.0));
+    shapes.push_back(std::make_unique<Rectangle>(3.0, 4.0));
+    shapes.push_back(std::make_unique<Circle>(2.5));
+
+    double total = 0;
+    for (const auto& s : shapes)
+        total += s->area();
+    std::cout << "Total area: " << total << std::endl;
+
+    printCircleInfo(shapes);
+
+    return 0;
+}`,
+    hints: [
+      "The function is named printCircleInfo — does it only receive circles?",
+      "What happens when dynamic_cast to a reference type fails?",
+      "Unlike dynamic_cast with pointers (which returns nullptr on failure), what does the reference form do?",
+    ],
+    explanation: "printCircleInfo iterates over all shapes and uses dynamic_cast<const Circle&> on each one. When the shape is a Rectangle, the reference-form dynamic_cast throws std::bad_cast instead of returning a null indicator. The pointer form (dynamic_cast<const Circle*>) would return nullptr and could be checked, but the reference form has no way to signal failure other than an exception. The fix is to use the pointer form and skip non-Circle shapes.",
+    manifestation: `$ ./shapes
+Total area: 109.269
+Circle radius: 5 area: 78.5398
+terminate called after throwing an instance of 'std::bad_cast'
+  what():  std::bad_cast
+Aborted (core dumped)`,
+    stdlibRefs: [
+      { name: "dynamic_cast", brief: "Safely converts pointers and references along the inheritance hierarchy at runtime using RTTI.", note: "The pointer form returns nullptr on failure; the reference form throws std::bad_cast. Choose the form that matches your error-handling strategy.", link: "https://en.cppreference.com/w/cpp/language/dynamic_cast" },
+    ],
+  },
+  {
+    id: 570,
+    topic: "C++ Casting",
+    difficulty: "Medium",
+    title: "Immutable Config Reader",
+    description: "A configuration reader that caches parsed values and provides read-only access through a const interface.",
+    code: `#include <iostream>
+#include <string>
+#include <map>
+
+class ConfigReader {
+    std::map<std::string, std::string> cache_;
+    std::string filename_;
+
+    void loadIfNeeded() const {
+        if (cache_.empty()) {
+            auto& mutableCache = const_cast<std::map<std::string, std::string>&>(cache_);
+            mutableCache["db_host"] = "localhost";
+            mutableCache["db_port"] = "5432";
+            mutableCache["db_name"] = "production";
+        }
+    }
+
+public:
+    explicit ConfigReader(const std::string& filename) : filename_(filename) {}
+
+    std::string get(const std::string& key) const {
+        loadIfNeeded();
+        auto it = cache_.find(key);
+        if (it != cache_.end())
+            return it->second;
+        return "";
+    }
+};
+
+int main() {
+    const ConfigReader config("app.conf");
+
+    std::cout << "Host: " << config.get("db_host") << std::endl;
+    std::cout << "Port: " << config.get("db_port") << std::endl;
+    std::cout << "Name: " << config.get("db_name") << std::endl;
+    std::cout << "Missing: '" << config.get("db_user") << "'" << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "The config object is declared const — what does that make its member variables?",
+      "What does the C++ standard say about modifying a const object through const_cast?",
+      "If an object is originally declared const, is using const_cast to modify it defined behavior?",
+    ],
+    explanation: "The ConfigReader object config is declared as const. Using const_cast to strip const from cache_ and then modifying it is undefined behavior when the underlying object was originally declared const. The compiler may place the object in read-only memory or optimize based on the assumption that const members don't change. The correct solution is to declare cache_ as mutable, which is specifically designed for this lazy-initialization pattern and is well-defined even on const objects.",
+    manifestation: `$ g++ -O2 -g config.cpp -o config && ./config
+Host:
+Port:
+Name:
+Missing: ''
+
+(With -O2, the compiler assumes the const object's members
+don't change and optimizes away the cache population entirely.
+With -O0 it may appear to work, masking the undefined behavior.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 571,
+    topic: "C++ Casting",
+    difficulty: "Hard",
+    title: "Plugin Loader",
+    description: "A plugin system that loads shared libraries and retrieves typed function pointers from them.",
+    code: `#include <iostream>
+#include <string>
+#include <functional>
+#include <cstdint>
+
+using PluginFunc = int(*)(const char*, int);
+
+class PluginRegistry {
+    struct Entry {
+        std::string name;
+        void* funcPtr;
+    };
+
+    Entry entries_[16];
+    size_t count_ = 0;
+
+public:
+    void registerFunc(const std::string& name, void* ptr) {
+        if (count_ < 16) {
+            entries_[count_++] = {name, ptr};
+        }
+    }
+
+    PluginFunc resolve(const std::string& name) const {
+        for (size_t i = 0; i < count_; ++i) {
+            if (entries_[i].name == name) {
+                return reinterpret_cast<PluginFunc>(entries_[i].funcPtr);
+            }
+        }
+        return nullptr;
+    }
+};
+
+int processData(const char* label, int value) {
+    std::cout << label << ": " << value * 2 << std::endl;
+    return value * 2;
+}
+
+double computeRatio(const char* label, double a, double b) {
+    std::cout << label << ": " << a / b << std::endl;
+    return a / b;
+}
+
+int main() {
+    PluginRegistry registry;
+    registry.registerFunc("process", reinterpret_cast<void*>(&processData));
+    registry.registerFunc("ratio", reinterpret_cast<void*>(&computeRatio));
+
+    auto fn1 = registry.resolve("process");
+    if (fn1) fn1("test", 42);
+
+    auto fn2 = registry.resolve("ratio");
+    if (fn2) fn2("pi approx", 22);
+
+    return 0;
+}`,
+    hints: [
+      "Both functions are registered as void* — what information is lost in the process?",
+      "When resolve() is called for 'ratio', what type is the returned function pointer?",
+      "computeRatio takes (const char*, double, double) but the resolved pointer is called as (const char*, int) — what happens to the arguments?",
+    ],
+    explanation: "computeRatio has the signature (const char*, double, double) → double, but it's stored as void* and resolved as PluginFunc which is int(*)(const char*, int). Calling it through the wrong function pointer type is undefined behavior: the calling convention for doubles vs ints differs (doubles use SSE registers, ints use general-purpose registers on x86-64), so the function receives garbage values. The fix is to store type information with each entry or use a type-safe dispatch mechanism.",
+    manifestation: `$ ./plugin_loader
+test: 84
+pi approx: -nan
+
+(The second call passes an int where a double is expected.
+On x86-64, the int 22 goes into RSI but computeRatio reads
+from XMM0/XMM1, picking up whatever garbage was there.)`,
+    stdlibRefs: [],
+  },
+  {
+    id: 572,
+    topic: "C++ Casting",
+    difficulty: "Hard",
+    title: "Widget Hierarchy Serializer",
+    description: "Serializes a hierarchy of UI widgets to a text format, handling different widget types through a visitor pattern.",
+    code: `#include <iostream>
+#include <vector>
+#include <string>
+#include <memory>
+#include <sstream>
+
+class Widget {
+public:
+    virtual ~Widget() = default;
+    virtual std::string type() const = 0;
+    std::string name;
+};
+
+class Button : public Widget {
+public:
+    std::string label;
+    std::string type() const override { return "Button"; }
+};
+
+class Panel : public Widget {
+public:
+    std::vector<std::shared_ptr<Widget>> children;
+    std::string type() const override { return "Panel"; }
+};
+
+class Slider : public Widget {
+public:
+    double minVal = 0, maxVal = 100, current = 50;
+    std::string type() const override { return "Slider"; }
+};
+
+std::string serialize(const std::shared_ptr<Widget>& widget, int depth = 0) {
+    std::string indent(depth * 2, ' ');
+    std::ostringstream out;
+    out << indent << widget->type() << " '" << widget->name << "'";
+
+    if (auto* panel = dynamic_cast<Panel*>(widget.get())) {
+        out << " {\\n";
+        for (const auto& child : panel->children)
+            out << serialize(child, depth + 1);
+        out << indent << "}\\n";
+    } else if (auto* btn = dynamic_cast<Button*>(widget.get())) {
+        out << " label='" << btn->label << "'\\n";
+    } else if (auto* slider = dynamic_cast<Slider*>(widget.get())) {
+        out << " range=[" << slider->minVal << ".." << slider->maxVal << "]\\n";
+    }
+
+    return out.str();
+}
+
+int main() {
+    auto root = std::make_shared<Panel>();
+    root->name = "main";
+
+    auto btn = std::make_shared<Button>();
+    btn->name = "ok";
+    btn->label = "OK";
+
+    auto slider = std::make_shared<Slider>();
+    slider->name = "volume";
+    slider->minVal = 0;
+    slider->maxVal = 100;
+
+    auto sub = std::make_shared<Panel>();
+    sub->name = "toolbar";
+    sub->children.push_back(btn);
+
+    root->children.push_back(sub);
+    root->children.push_back(slider);
+    root->children.push_back(btn);
+
+    std::cout << serialize(root);
+    return 0;
+}`,
+    hints: [
+      "Look at the escape sequences in the output strings — are those actual newlines or literal backslash-n?",
+      "What is the difference between '\\n' and '\\\\n' inside a C++ string literal?",
+      "The code writes out << ... << '\\\\n' — what characters does that actually produce in the output?",
+    ],
+    explanation: "The string literals use '\\\\n' which in C++ source code represents the two-character sequence backslash + n, not an actual newline character. The serialized output contains literal \\n text instead of line breaks. The fix is to use '\\n' (actual newline) instead of '\\\\n'. This is a common mistake when writing string output code — confusing escaped characters in source with the characters they produce.",
+    manifestation: `$ ./serialize
+Panel 'main' {\\nPanel 'toolbar' {\\nButton 'ok' label='OK'\\n}\\nSlider 'volume' range=[0..100]\\nButton 'ok' label='OK'\\n}\\n
+
+Expected:
+Panel 'main' {
+  Panel 'toolbar' {
+    Button 'ok' label='OK'
+  }
+  Slider 'volume' range=[0..100]
+  Button 'ok' label='OK'
+}`,
+    stdlibRefs: [
+      { name: "dynamic_cast", brief: "Safely converts pointers and references along the inheritance hierarchy at runtime using RTTI.", note: "Returns nullptr when the pointer form fails, allowing safe branching on the actual dynamic type.", link: "https://en.cppreference.com/w/cpp/language/dynamic_cast" },
+    ],
+  },
+  {
+    id: 573,
+    topic: "C++ Casting",
+    difficulty: "Hard",
+    title: "Event Dispatcher",
+    description: "A type-safe event system that dispatches events to registered handlers based on runtime type identification.",
+    code: `#include <iostream>
+#include <vector>
+#include <functional>
+#include <memory>
+#include <typeindex>
+#include <unordered_map>
+
+struct Event {
+    virtual ~Event() = default;
+};
+
+struct ClickEvent : Event {
+    int x, y;
+    ClickEvent(int x, int y) : x(x), y(y) {}
+};
+
+struct KeyEvent : Event {
+    char key;
+    explicit KeyEvent(char k) : key(k) {}
+};
+
+class Dispatcher {
+    std::unordered_map<std::type_index,
+        std::vector<std::function<void(const Event&)>>> handlers_;
+
+public:
+    template<typename E>
+    void subscribe(std::function<void(const E&)> handler) {
+        handlers_[std::type_index(typeid(E))].push_back(
+            [handler](const Event& e) {
+                handler(static_cast<const E&>(e));
+            }
+        );
+    }
+
+    void dispatch(const Event& event) const {
+        auto it = handlers_.find(std::type_index(typeid(Event)));
+        if (it != handlers_.end()) {
+            for (const auto& handler : it->second)
+                handler(event);
+        }
+    }
+};
+
+int main() {
+    Dispatcher dispatcher;
+
+    dispatcher.subscribe<ClickEvent>([](const ClickEvent& e) {
+        std::cout << "Click at (" << e.x << ", " << e.y << ")" << std::endl;
+    });
+
+    dispatcher.subscribe<KeyEvent>([](const KeyEvent& e) {
+        std::cout << "Key pressed: " << e.key << std::endl;
+    });
+
+    ClickEvent click(100, 200);
+    KeyEvent key('A');
+
+    dispatcher.dispatch(click);
+    dispatcher.dispatch(key);
+
+    return 0;
+}`,
+    hints: [
+      "In the dispatch method, what type_index is being looked up in the map?",
+      "subscribe registers handlers under typeid(E) — what does dispatch search for?",
+      "Does typeid(Event) give the same result as typeid(ClickEvent) when E is ClickEvent?",
+    ],
+    explanation: "The dispatch method looks up handlers using typeid(Event), the static base class type, instead of typeid(event) which would give the dynamic type of the actual event object. Since subscribe stores handlers under the concrete type (e.g. typeid(ClickEvent)), but dispatch always searches for typeid(Event), no handlers are ever found. The fix is to change typeid(Event) to typeid(event) in the dispatch method — using the object rather than the type name invokes polymorphic typeid, which returns the dynamic type.",
+    manifestation: `$ ./events
+(no output)
+
+Expected:
+Click at (100, 200)
+Key pressed: A
+
+Both dispatch calls silently find no handlers because
+the map lookup uses the base class type_index instead
+of the derived event's actual type_index.`,
+    stdlibRefs: [
+      { name: "std::type_index", args: "(const std::type_info& info)", brief: "A wrapper around std::type_info that supports use as a key in associative containers.", note: "typeid(Type) returns the static type's info; typeid(object) on a polymorphic reference returns the dynamic type's info.", link: "https://en.cppreference.com/w/cpp/types/type_index" },
+      { name: "typeid", brief: "Returns a std::type_info reference identifying the type of an expression or type-id.", note: "When applied to a polymorphic glvalue, typeid evaluates the expression and returns the dynamic type. When applied to a type name, it returns the static type.", link: "https://en.cppreference.com/w/cpp/language/typeid" },
+    ],
+  },
 ];
