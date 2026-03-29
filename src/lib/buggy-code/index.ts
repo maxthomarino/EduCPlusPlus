@@ -1,6 +1,7 @@
 export type { BuggyProgram, BuggyProgramHighlighted, StdlibRef, LearningPath, PathGroup } from "./types";
 export { programs } from "./programs";
 export { learningPaths, pathGroups } from "./paths";
+export { getCompletedIds, markCompleted, markIncomplete, resetAllProgress } from "./progress";
 
 import { programs } from "./programs";
 

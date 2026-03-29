@@ -1,6 +1,7 @@
 import { useState, useMemo, useCallback, useEffect } from "preact/hooks";
 import type { ComponentChildren } from "preact";
 import type { BuggyProgramHighlighted, StdlibRef, LearningPath, PathGroup } from "../../lib/buggy-code";
+import { getCompletedIds, markCompleted as persistCompleted, resetAllProgress } from "../../lib/buggy-code";
 
 type View = "menu" | "list" | "viewer";
 
@@ -12,6 +13,30 @@ function shuffle<T>(arr: T[]): T[] {
   }
   return a;
 }
+
+function useProgress() {
+  const [completedIds, setCompletedIds] = useState<Set<number>>(() => getCompletedIds());
+
+  const markDone = useCallback((id: number) => {
+    setCompletedIds((prev) => {
+      if (prev.has(id)) return prev;
+      return persistCompleted(id);
+    });
+  }, []);
+
+  const resetProgress = useCallback(() => {
+    resetAllProgress();
+    setCompletedIds(new Set());
+  }, []);
+
+  return { completedIds, markDone, resetProgress };
+}
+
+const CheckIcon = (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M20 6 9 17l-5-5" />
+  </svg>
+);
 
 const difficultyStyle = (d: BuggyProgramHighlighted["difficulty"]) => {
   switch (d) {
@@ -52,12 +77,14 @@ function Expandable({
   icon,
   iconColor,
   accentBorder,
+  onOpen,
   children,
 }: {
   label: string;
   icon: ComponentChildren;
   iconColor: string;
   accentBorder?: string;
+  onOpen?: () => void;
   children: ComponentChildren;
 }) {
   const [open, setOpen] = useState(false);
@@ -79,7 +106,11 @@ function Expandable({
       }}
     >
       <button
-        onClick={() => setOpen(!open)}
+        onClick={() => {
+          const willOpen = !open;
+          setOpen(willOpen);
+          if (willOpen && onOpen) onOpen();
+        }}
         style={{
           width: "100%",
           display: "flex",
@@ -262,11 +293,13 @@ function HintsAndExplanation({
   explanation,
   manifestation,
   stdlibRefs,
+  onExplanationReveal,
 }: {
   hints: string[];
   explanation: string;
   manifestation: string;
   stdlibRefs?: StdlibRef[];
+  onExplanationReveal?: () => void;
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "0.45rem", marginTop: "0.75rem" }}>
@@ -306,6 +339,7 @@ function HintsAndExplanation({
         icon={BugIcon}
         iconColor="var(--warning)"
         accentBorder="var(--warning)"
+        onOpen={onExplanationReveal}
       >
         <p
           style={{
@@ -363,8 +397,11 @@ function MenuView({
   paths,
   pathGroups,
   programById,
+  programs,
+  completedIds,
   onSelectTopic,
   onSelectPath,
+  onResetProgress,
 }: {
   topics: string[];
   topicCounts: Map<string, { total: number; easy: number; medium: number; hard: number }>;
@@ -372,8 +409,11 @@ function MenuView({
   paths: LearningPath[];
   pathGroups: PathGroup[];
   programById: Map<number, BuggyProgramHighlighted>;
+  programs: BuggyProgramHighlighted[];
+  completedIds: Set<number>;
   onSelectTopic: (topic: string) => void;
   onSelectPath: (path: LearningPath) => void;
+  onResetProgress: () => void;
 }) {
   const [search, setSearch] = useState("");
 
@@ -389,6 +429,18 @@ function MenuView({
     return map;
   }, [paths]);
 
+  const topicCompleted = useMemo(() => {
+    const map = new Map<string, number>();
+    for (const p of programs) {
+      if (completedIds.has(p.id)) {
+        map.set(p.topic, (map.get(p.topic) || 0) + 1);
+      }
+    }
+    return map;
+  }, [programs, completedIds]);
+
+  const totalCompleted = completedIds.size;
+
   const getDifficultyRange = (path: LearningPath) => {
     const diffs = path.programIds
       .map((id) => programById.get(id))
@@ -400,14 +452,17 @@ function MenuView({
     return min === max ? min : `${min} → ${max}`;
   };
 
-  const renderPathCard = (path: LearningPath) => (
+  const renderPathCard = (path: LearningPath) => {
+    const pathDone = path.programIds.filter((id) => completedIds.has(id)).length;
+    const allDone = pathDone === path.programIds.length;
+    return (
     <button
       key={path.id}
       onClick={() => onSelectPath(path)}
       class="buggy-path-card"
     >
       <div style={{ display: "flex", alignItems: "center", gap: "0.45rem" }}>
-        <span style={{ color: "var(--accent)", flexShrink: 0, display: "flex" }}>{PathIcon}</span>
+        <span style={{ color: allDone ? "var(--success)" : "var(--accent)", flexShrink: 0, display: "flex" }}>{allDone ? CheckIcon : PathIcon}</span>
         <span
           style={{
             fontFamily: "var(--font-display)",
@@ -446,8 +501,30 @@ function MenuView({
         <span style={{ opacity: 0.4 }}>·</span>
         <span>{getDifficultyRange(path)}</span>
       </div>
+      {pathDone > 0 && (
+        <div
+          style={{
+            height: "3px",
+            borderRadius: "2px",
+            background: "color-mix(in srgb, var(--success) 15%, var(--surface-muted))",
+            overflow: "hidden",
+            marginTop: "0.25rem",
+          }}
+        >
+          <div
+            style={{
+              height: "100%",
+              width: `${(pathDone / path.programIds.length) * 100}%`,
+              background: "var(--success)",
+              borderRadius: "2px",
+              transition: "width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)",
+            }}
+          />
+        </div>
+      )}
     </button>
-  );
+    );
+  };
 
   return (
     <div class="page-reveal">
@@ -631,33 +708,19 @@ function MenuView({
                       flex: 1,
                       height: "3px",
                       borderRadius: "2px",
-                      display: "flex",
-                      gap: "1px",
+                      background: "color-mix(in srgb, var(--success) 15%, var(--surface-muted))",
                       overflow: "hidden",
-                      opacity: 0.6,
                     }}
                   >
-                    {counts.easy > 0 && (
-                      <div
-                        style={{
-                          flex: counts.easy,
-                          background: "var(--success)",
-                          borderRadius: "2px 0 0 2px",
-                        }}
-                      />
-                    )}
-                    {counts.medium > 0 && (
-                      <div style={{ flex: counts.medium, background: "var(--warning)" }} />
-                    )}
-                    {counts.hard > 0 && (
-                      <div
-                        style={{
-                          flex: counts.hard,
-                          background: "var(--deep)",
-                          borderRadius: "0 2px 2px 0",
-                        }}
-                      />
-                    )}
+                    <div
+                      style={{
+                        height: "100%",
+                        width: `${((topicCompleted.get(t) || 0) / counts.total) * 100}%`,
+                        background: "var(--success)",
+                        borderRadius: "2px",
+                        transition: "width 0.4s cubic-bezier(0.2, 0.8, 0.2, 1)",
+                      }}
+                    />
                   </div>
                 </div>
               </button>
@@ -684,9 +747,33 @@ function MenuView({
             class="quiz-start-btn"
             style={{ width: "100%" }}
           >
-            All Challenges ({totalPrograms})
+            All Challenges ({totalCompleted > 0 ? `${totalCompleted} / ${totalPrograms}` : totalPrograms})
           </button>
         </div>
+
+        {totalCompleted > 0 && (
+          <div style={{ marginTop: "0.5rem", textAlign: "center" }}>
+            <button
+              onClick={() => {
+                if (window.confirm("Reset all progress? This cannot be undone.")) {
+                  onResetProgress();
+                }
+              }}
+              style={{
+                background: "none",
+                border: "none",
+                cursor: "pointer",
+                fontSize: "0.72rem",
+                color: "var(--text-muted)",
+                fontFamily: "var(--font-display)",
+                padding: "0.25rem 0.5rem",
+                opacity: 0.7,
+              }}
+            >
+              Reset Progress
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -700,6 +787,7 @@ function ListView({
   onSelectProgram,
   onShuffleStart,
   onBack,
+  completedIds,
 }: {
   topic: string;
   programs: BuggyProgramHighlighted[];
@@ -707,6 +795,7 @@ function ListView({
   onSelectProgram: (index: number) => void;
   onShuffleStart: () => void;
   onBack: () => void;
+  completedIds: Set<number>;
 }) {
   return (
     <div class="page-reveal" style={{ maxWidth: "780px", margin: "0 auto" }}>
@@ -737,7 +826,11 @@ function ListView({
             color: "var(--text-muted)",
           }}
         >
-          {programs.length} {path ? (programs.length === 1 ? "step" : "steps") : (programs.length === 1 ? "challenge" : "challenges")}
+          {(() => {
+            const done = programs.filter((p) => completedIds.has(p.id)).length;
+            const label = path ? (programs.length === 1 ? "step" : "steps") : (programs.length === 1 ? "challenge" : "challenges");
+            return done > 0 ? `${done} / ${programs.length} ${label}` : `${programs.length} ${label}`;
+          })()}
         </span>
       </div>
 
@@ -771,6 +864,7 @@ function ListView({
           {programs.map((p, i) => {
             const dStyle = difficultyStyle(p.difficulty);
             const isLast = i === programs.length - 1;
+            const isDone = completedIds.has(p.id);
             return (
               <div key={p.id} style={{ display: "flex", gap: path ? "0.75rem" : "0" }}>
                 {/* Step indicator with connecting line */}
@@ -790,19 +884,23 @@ function ListView({
                         width: "1.35rem",
                         height: "1.35rem",
                         borderRadius: "50%",
-                        border: "2px solid var(--accent)",
-                        background: "var(--surface-elevated)",
+                        border: isDone ? "2px solid var(--success)" : "2px solid var(--accent)",
+                        background: isDone ? "var(--success)" : "var(--surface-elevated)",
                         display: "flex",
                         alignItems: "center",
                         justifyContent: "center",
                         fontSize: "0.62rem",
                         fontWeight: 700,
                         fontFamily: "var(--font-code)",
-                        color: "var(--accent)",
+                        color: isDone ? "#fff" : "var(--accent)",
                         flexShrink: 0,
                       }}
                     >
-                      {i + 1}
+                      {isDone ? (
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+                          <path d="M20 6 9 17l-5-5" />
+                        </svg>
+                      ) : (i + 1)}
                     </div>
                     {!isLast && (
                       <div
@@ -871,6 +969,11 @@ function ListView({
                       {p.description}
                     </div>
                   </div>
+                  {isDone && (
+                    <span style={{ color: "var(--success)", display: "flex", alignItems: "center", flexShrink: 0 }} title="Completed">
+                      {CheckIcon}
+                    </span>
+                  )}
                   <svg
                     width="14"
                     height="14"
@@ -910,11 +1013,15 @@ function ViewerView({
   startIndex = 0,
   backLabel = "← Topics",
   onBack,
+  completedIds,
+  onMarkCompleted,
 }: {
   programs: BuggyProgramHighlighted[];
   startIndex?: number;
   backLabel?: string;
   onBack: () => void;
+  completedIds: Set<number>;
+  onMarkCompleted: (id: number) => void;
 }) {
   const [currentIndex, setCurrentIndex] = useState(startIndex);
   const [animClass, setAnimClass] = useState("card-enter");
@@ -1009,6 +1116,11 @@ function ViewerView({
           >
             {program.difficulty}
           </span>
+          {completedIds.has(program.id) && (
+            <span style={{ color: "var(--success)", display: "flex", alignItems: "center" }} title="Completed">
+              {CheckIcon}
+            </span>
+          )}
         </div>
       </div>
 
@@ -1069,7 +1181,7 @@ function ViewerView({
 
         <HighlightedCodeBlock html={program.highlightedHtml} />
 
-        <HintsAndExplanation hints={program.hints} explanation={program.explanation} manifestation={program.manifestation} stdlibRefs={program.stdlibRefs} />
+        <HintsAndExplanation hints={program.hints} explanation={program.explanation} manifestation={program.manifestation} stdlibRefs={program.stdlibRefs} onExplanationReveal={() => onMarkCompleted(program.id)} />
       </div>
 
       {/* Navigation */}
@@ -1133,6 +1245,7 @@ export default function BuggyCodeViewer({
   const [listPrograms, setListPrograms] = useState<BuggyProgramHighlighted[]>([]);
   const [viewerPrograms, setViewerPrograms] = useState<BuggyProgramHighlighted[]>([]);
   const [viewerStartIndex, setViewerStartIndex] = useState(0);
+  const { completedIds, markDone, resetProgress } = useProgress();
 
   // Lookup map for resolving path programIds
   const programById = useMemo(() => {
@@ -1220,8 +1333,11 @@ export default function BuggyCodeViewer({
           paths={paths}
           pathGroups={pathGroups}
           programById={programById}
+          programs={programs}
+          completedIds={completedIds}
           onSelectTopic={handleSelectTopic}
           onSelectPath={handleSelectPath}
+          onResetProgress={resetProgress}
         />
       )}
       {view === "list" && (
@@ -1232,6 +1348,7 @@ export default function BuggyCodeViewer({
           onSelectProgram={handleSelectProgram}
           onShuffleStart={handleShuffleStart}
           onBack={() => setView("menu")}
+          completedIds={completedIds}
         />
       )}
       {view === "viewer" && (
@@ -1240,6 +1357,8 @@ export default function BuggyCodeViewer({
           startIndex={viewerStartIndex}
           backLabel={backLabel}
           onBack={() => setView(selectedTopic || activePath ? "list" : "menu")}
+          completedIds={completedIds}
+          onMarkCompleted={markDone}
         />
       )}
     </div>
