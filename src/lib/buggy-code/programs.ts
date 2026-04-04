@@ -39753,4 +39753,561 @@ of the derived event's actual type_index.`,
       { name: "typeid", brief: "Returns a std::type_info reference identifying the type of an expression or type-id.", note: "When applied to a polymorphic glvalue, typeid evaluates the expression and returns the dynamic type. When applied to a type name, it returns the static type.", link: "https://en.cppreference.com/w/cpp/language/typeid" },
     ],
   },
+  // ── Common C++ Mistakes ──
+  {
+    id: 574,
+    topic: "Common C++ Mistakes",
+    difficulty: "Easy",
+    title: "Array Average",
+    description: "Computes the average of all elements in an integer array and prints the result.",
+    code: `#include <iostream>
+
+int main() {
+    int values[] = {3, 7, 2, 8, 5};
+    int count = sizeof(values) / sizeof(values[0]);
+    int sum = 0;
+
+    for (int i = 0; i < count; ++i) {
+        sum += values[i];
+    }
+
+    int average = sum / count;
+    std::cout << "Average: " << average << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What is the type of the variable that stores the average?",
+      "When you divide two integers in C++, what type is the result?",
+      "The sum is 25 and count is 5, so this works — but what about {3, 7, 2, 8, 4}?",
+    ],
+    explanation: "The average is computed using integer division (sum / count), which truncates the decimal part. For inputs where the sum isn't evenly divisible by the count, the result silently loses precision. For example, {3, 7, 2, 8, 4} has sum 24 / 5 = 4 instead of 4.8. The fix is to cast either operand to double before dividing: static_cast<double>(sum) / count.",
+    manifestation: `$ g++ -o average average.cpp && ./average
+Average: 5
+
+$ # Change array to {3, 7, 2, 8, 4}:
+$ ./average
+Average: 4
+
+Expected output: Average: 4.8
+Actual output:   Average: 4
+
+Integer division silently truncates the fractional part.`,
+    stdlibRefs: [],
+  },
+  {
+    id: 575,
+    topic: "Common C++ Mistakes",
+    difficulty: "Easy",
+    title: "String Tokenizer",
+    description: "Splits a sentence into individual words and prints each word on a separate line.",
+    code: `#include <iostream>
+#include <sstream>
+#include <string>
+#include <vector>
+
+std::vector<std::string> tokenize(const std::string& text) {
+    std::vector<std::string> tokens;
+    std::istringstream stream(text);
+    std::string word;
+
+    while (stream >> word) {
+        tokens.push_back(word);
+    }
+    return tokens;
+}
+
+int main() {
+    std::string sentence = "the quick brown fox";
+    std::vector<std::string> words = tokenize(sentence);
+
+    for (int i = 0; i <= words.size(); ++i) {
+        std::cout << words[i] << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "Look carefully at the loop condition in main().",
+      "If a vector has 4 elements, what is the valid index range?",
+      "What happens when you use <= instead of < with size()?",
+    ],
+    explanation: "The loop uses i <= words.size() instead of i < words.size(), causing an off-by-one error that reads one past the end of the vector. When i equals words.size(), words[i] is an out-of-bounds access, resulting in undefined behavior. The fix is to change the condition to i < words.size().",
+    manifestation: `$ g++ -fsanitize=address -g tokenizer.cpp -o tokenizer && ./tokenizer
+the
+quick
+brown
+fox
+=================================================================
+==22841==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x604000000070
+READ of size 32 at 0x604000000070 thread T0
+    #0 0x401a8f in main tokenizer.cpp:23
+    #1 0x7f28c3 in __libc_start_main
+SUMMARY: AddressSanitizer: heap-buffer-overflow tokenizer.cpp:23 in main`,
+    stdlibRefs: [
+      { name: "std::vector::size", args: "() → size_type", brief: "Returns the number of elements in the vector.", note: "Returns an unsigned type (size_type). Using <= instead of < with size() in a loop causes an off-by-one overread.", link: "https://en.cppreference.com/w/cpp/container/vector/size" },
+    ],
+  },
+  {
+    id: 576,
+    topic: "Common C++ Mistakes",
+    difficulty: "Easy",
+    title: "Swap Utility",
+    description: "Swaps the values of two integers and prints them before and after the swap.",
+    code: `#include <iostream>
+
+void swap(int a, int b) {
+    int temp = a;
+    a = b;
+    b = temp;
+}
+
+int main() {
+    int x = 10, y = 20;
+    std::cout << "Before: x=" << x << " y=" << y << std::endl;
+    swap(x, y);
+    std::cout << "After:  x=" << x << " y=" << y << std::endl;
+    return 0;
+}`,
+    hints: [
+      "How are the parameters of swap() declared?",
+      "When you pass an int by value, does modifying the parameter affect the caller's variable?",
+      "What would you need to change in the function signature to make the swap visible to main()?",
+    ],
+    explanation: "The swap function takes its parameters by value, so a and b are local copies. Modifying them inside the function has no effect on the caller's variables x and y. The fix is to pass by reference: void swap(int& a, int& b).",
+    manifestation: `$ g++ -o swap swap.cpp && ./swap
+Before: x=10 y=20
+After:  x=10 y=20
+
+Expected output:
+Before: x=10 y=20
+After:  x=20 y=10
+
+The swap had no effect because the function
+modified local copies, not the original variables.`,
+    stdlibRefs: [],
+  },
+  {
+    id: 577,
+    topic: "Common C++ Mistakes",
+    difficulty: "Medium",
+    title: "Config Parser",
+    description: "Parses a key=value configuration string and returns the value associated with a given key.",
+    code: `#include <iostream>
+#include <string>
+#include <map>
+#include <sstream>
+
+std::map<std::string, std::string> parseConfig(const std::string& config) {
+    std::map<std::string, std::string> result;
+    std::istringstream stream(config);
+    std::string line;
+
+    while (std::getline(stream, line)) {
+        size_t pos = line.find('=');
+        std::string key = line.substr(0, pos);
+        std::string value = line.substr(pos + 1);
+        result[key] = value;
+    }
+    return result;
+}
+
+int main() {
+    std::string config = "host=localhost\nport=8080\ntimeout=30";
+    auto settings = parseConfig(config);
+
+    std::cout << "host: " << settings["host"] << std::endl;
+    std::cout << "port: " << settings["port"] << std::endl;
+    std::cout << "timeout: " << settings["timeout"] << std::endl;
+
+    return 0;
+}`,
+    hints: [
+      "What does find() return when the character is not found in the string?",
+      "What happens to substr() when pos is std::string::npos?",
+      "Look at the string literal in main() — are those actual newline characters or something else?",
+    ],
+    explanation: "The config string uses literal backslash-n (\\\\n) instead of actual newline characters (\\n), so getline reads the entire string as one line. The find('=') hits the first '=' and the value becomes everything after it, including subsequent key=value pairs. This means only \"host\" is parsed, and its value is \"localhost\\nport=8080\\ntimeout=30\". The port and timeout keys are never parsed, so they return empty strings. The fix is to use actual newlines in the string.",
+    manifestation: `$ g++ -o config config.cpp && ./config
+host: localhost\nport=8080\ntimeout=30
+port:
+timeout:
+
+Expected output:
+host: localhost
+port: 8080
+timeout: 30
+
+The escaped backslash-n is a literal two-character
+sequence, not a newline, so getline reads everything
+as a single line.`,
+    stdlibRefs: [
+      { name: "std::getline", args: "(std::istream& input, std::string& str, char delim = '\\n') → istream&", brief: "Reads characters from an input stream into a string until the delimiter is found.", note: "Only splits on actual newline bytes (0x0A), not on the literal text backslash-n.", link: "https://en.cppreference.com/w/cpp/string/basic_string/getline" },
+      { name: "std::string::find", args: "(char ch, size_type pos = 0) → size_type", brief: "Searches for the first occurrence of a character starting from position pos.", note: "Returns std::string::npos (the largest size_type value) when the character is not found.", link: "https://en.cppreference.com/w/cpp/string/basic_string/find" },
+    ],
+  },
+  {
+    id: 578,
+    topic: "Common C++ Mistakes",
+    difficulty: "Medium",
+    title: "Unique Counter",
+    description: "Counts the number of unique integers in an array using a boolean lookup table.",
+    code: `#include <iostream>
+
+int countUnique(int arr[], int size) {
+    bool seen[100];
+    int count = 0;
+
+    for (int i = 0; i < size; ++i) {
+        if (!seen[arr[i]]) {
+            seen[arr[i]] = true;
+            ++count;
+        }
+    }
+    return count;
+}
+
+int main() {
+    int data[] = {5, 3, 8, 3, 5, 1, 8, 9, 1, 7};
+    int size = sizeof(data) / sizeof(data[0]);
+
+    std::cout << "Unique values: " << countUnique(data, size) << std::endl;
+    return 0;
+}`,
+    hints: [
+      "What are the initial values of a local array in C++?",
+      "Is the seen[] array guaranteed to contain all false values when the function starts?",
+      "What does it mean for the program if some entries of seen[] start as true?",
+    ],
+    explanation: "The local array bool seen[100] is not initialized, so its elements contain indeterminate values — some may already appear as true. This means some values in the input array could be incorrectly marked as 'already seen', leading to an undercount. The fix is to initialize the array: bool seen[100] = {};  or use memset/std::fill to zero it out.",
+    manifestation: `$ g++ -o unique unique.cpp && ./unique
+Unique values: 5
+
+$ ./unique
+Unique values: 7
+
+$ ./unique
+Unique values: 6
+
+Expected output: Unique values: 7 (every time)
+
+The uninitialized seen[] array contains garbage values,
+so the count varies across runs depending on what
+happens to be on the stack.`,
+    stdlibRefs: [],
+  },
+  {
+    id: 579,
+    topic: "Common C++ Mistakes",
+    difficulty: "Medium",
+    title: "Matrix Printer",
+    description: "Dynamically allocates a 2D matrix, fills it with sequential values, and prints it in row-major order.",
+    code: `#include <iostream>
+
+int main() {
+    int rows = 3, cols = 4;
+
+    int** matrix = new int*[rows];
+    for (int i = 0; i < rows; ++i) {
+        matrix[i] = new int[cols];
+    }
+
+    int val = 1;
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            matrix[i][j] = val++;
+        }
+    }
+
+    for (int i = 0; i < rows; ++i) {
+        for (int j = 0; j < cols; ++j) {
+            std::cout << matrix[i][j] << "\t";
+        }
+        std::cout << std::endl;
+    }
+
+    delete[] matrix;
+    return 0;
+}`,
+    hints: [
+      "The matrix is allocated in two steps — rows first, then each row's columns. How is it freed?",
+      "Does delete[] matrix free all the memory that was allocated?",
+      "How many calls to new were made, and how many calls to delete?",
+    ],
+    explanation: "The code only calls delete[] matrix, which frees the array of row pointers but not the individual row arrays allocated with new int[cols]. This leaks rows * cols * sizeof(int) bytes of memory. The fix is to loop through each row and delete[] matrix[i] before deleting the outer array.",
+    manifestation: `$ g++ -fsanitize=leak -g matrix.cpp -o matrix && ./matrix
+1	2	3	4
+5	6	7	8
+9	10	11	12
+
+=================================================================
+==31204==ERROR: LeakSanitizer: detected memory leaks
+
+Direct leak of 48 byte(s) in 3 object(s) allocated from:
+    #0 0x7f3a2b in operator new[](unsigned long)
+    #1 0x401234 in main matrix.cpp:8
+    #2 0x7f2c83 in __libc_start_main
+
+SUMMARY: AddressSanitizer: 48 byte(s) leaked in 3 allocation(s).`,
+    stdlibRefs: [],
+  },
+  {
+    id: 580,
+    topic: "Common C++ Mistakes",
+    difficulty: "Medium",
+    title: "Factorial Table",
+    description: "Prints a table of factorials from 0! through 20! using an iterative computation.",
+    code: `#include <iostream>
+
+int main() {
+    std::cout << "n\tn!" << std::endl;
+    std::cout << "---\t---" << std::endl;
+
+    for (int n = 0; n <= 20; ++n) {
+        int factorial = 1;
+        for (int i = 1; i <= n; ++i) {
+            factorial *= i;
+        }
+        std::cout << n << "\t" << factorial << std::endl;
+    }
+
+    return 0;
+}`,
+    hints: [
+      "How large does 20! get? Can you estimate the number of digits?",
+      "What is the maximum value an int can store on most systems?",
+      "At what value of n does n! exceed 2,147,483,647?",
+    ],
+    explanation: "20! is approximately 2.4 × 10^18, which far exceeds the maximum value of a 32-bit int (about 2.1 × 10^9). Starting around 13!, the computation overflows, producing incorrect (and potentially negative) values due to signed integer overflow, which is undefined behavior in C++. The fix is to use a larger type such as long long or unsigned long long for the factorial variable.",
+    manifestation: `$ g++ -o factorial factorial.cpp && ./factorial
+n	n!
+---	---
+0	1
+1	1
+2	2
+...
+12	479001600
+13	1932053504
+14	1278945280
+15	2004310016
+16	2004189184
+17	-288522240
+18	-898433024
+19	109641728
+20	-2102132736
+
+Expected: 13! = 6227020800, 20! = 2432902008176640000
+Signed integer overflow produces wrong values starting at 13!.`,
+    stdlibRefs: [],
+  },
+  {
+    id: 581,
+    topic: "Common C++ Mistakes",
+    difficulty: "Hard",
+    title: "Employee Database",
+    description: "Stores employee records in a map and retrieves them by ID, printing the name and salary of each employee.",
+    code: `#include <iostream>
+#include <map>
+#include <string>
+
+struct Employee {
+    std::string name;
+    double salary;
+};
+
+class Database {
+    std::map<int, Employee> records;
+
+public:
+    void add(int id, const std::string& name, double salary) {
+        records[id] = {name, salary};
+    }
+
+    const Employee& lookup(int id) const {
+        auto it = records.find(id);
+        if (it != records.end()) {
+            return it->second;
+        }
+        static Employee empty{"", 0.0};
+        return empty;
+    }
+
+    bool exists(int id) {
+        return records[id].name != "";
+    }
+
+    void printAll() const {
+        for (const auto& [id, emp] : records) {
+            std::cout << id << ": " << emp.name
+                      << " ($" << emp.salary << ")" << std::endl;
+        }
+    }
+};
+
+int main() {
+    Database db;
+    db.add(101, "Alice", 85000);
+    db.add(102, "Bob", 72000);
+    db.add(103, "Charlie", 91000);
+
+    if (!db.exists(999)) {
+        std::cout << "Employee 999 not found" << std::endl;
+    }
+
+    db.printAll();
+    return 0;
+}`,
+    hints: [
+      "How does the exists() method check whether an employee ID is present?",
+      "What does operator[] do on a std::map when the key doesn't exist?",
+      "After calling exists(999), how many entries does the map contain?",
+    ],
+    explanation: "The exists() method uses records[id] to check if an employee exists, but operator[] on std::map default-constructs and inserts an entry when the key is not found. So calling exists(999) silently creates an empty Employee record with ID 999. When printAll() runs afterward, it prints four entries instead of three — including the spurious empty record. The fix is to use records.find(id) or records.count(id) instead of operator[].",
+    manifestation: `$ g++ -o employees employees.cpp && ./employees
+Employee 999 not found
+101: Alice ($85000)
+102: Bob ($72000)
+103: Charlie ($91000)
+999:  ($0)
+
+Expected output:
+Employee 999 not found
+101: Alice ($85000)
+102: Bob ($72000)
+103: Charlie ($91000)
+
+The exists() check accidentally inserted a blank
+entry for ID 999 via operator[].`,
+    stdlibRefs: [
+      { name: "std::map::operator[]", args: "(const key_type& key) → mapped_type&", brief: "Returns a reference to the value mapped to key, inserting a default-constructed value if the key does not exist.", note: "Using operator[] to test for existence will silently create an entry. Use find() or count() for existence checks.", link: "https://en.cppreference.com/w/cpp/container/map/operator_at" },
+      { name: "std::map::find", args: "(const Key& key) → iterator", brief: "Finds an element with key equivalent to the given key; returns end() if not found.", link: "https://en.cppreference.com/w/cpp/container/map/find" },
+    ],
+  },
+  {
+    id: 582,
+    topic: "Common C++ Mistakes",
+    difficulty: "Hard",
+    title: "Sorted Merge",
+    description: "Merges two sorted vectors into a single sorted vector and prints the result.",
+    code: `#include <iostream>
+#include <vector>
+
+std::vector<int> merge(const std::vector<int>& a, const std::vector<int>& b) {
+    std::vector<int> result;
+    result.reserve(a.size() + b.size());
+
+    size_t i = 0, j = 0;
+
+    while (i < a.size() && j < b.size()) {
+        if (a[i] <= b[j]) {
+            result.push_back(a[i++]);
+        } else {
+            result.push_back(b[j++]);
+        }
+    }
+
+    while (i <= a.size()) {
+        result.push_back(a[i++]);
+    }
+    while (j <= b.size()) {
+        result.push_back(b[j++]);
+    }
+
+    return result;
+}
+
+int main() {
+    std::vector<int> x = {1, 3, 5, 7, 9};
+    std::vector<int> y = {2, 4, 6, 8, 10};
+
+    auto merged = merge(x, y);
+    for (int v : merged) {
+        std::cout << v << " ";
+    }
+    std::cout << std::endl;
+    return 0;
+}`,
+    hints: [
+      "Compare the loop condition in the main merge loop with the two tail loops.",
+      "What is the valid index range for a vector of size 5?",
+      "When i equals a.size(), is a[i] a valid access?",
+    ],
+    explanation: "The two tail loops use <= instead of < in their conditions (while i <= a.size() and while j <= b.size()). This causes each loop to read one element past the end of the vector, resulting in an out-of-bounds access and undefined behavior. The main merge loop correctly uses <, but the author forgot to use the same condition for the cleanup loops. The fix is to change both tail loops to use < instead of <=.",
+    manifestation: `$ g++ -fsanitize=address -g merge.cpp -o merge && ./merge
+=================================================================
+==18432==ERROR: AddressSanitizer: heap-buffer-overflow on address 0x604000000038
+READ of size 4 at 0x604000000038 thread T0
+    #0 0x401bf2 in merge(std::vector<int>&, std::vector<int>&) merge.cpp:19
+    #1 0x401e8a in main merge.cpp:33
+    #2 0x7f4bc3 in __libc_start_main
+0x604000000038 is located 0 bytes after 20-byte region
+    [0x604000000024,0x604000000038)
+SUMMARY: AddressSanitizer: heap-buffer-overflow merge.cpp:19 in merge`,
+    stdlibRefs: [
+      { name: "std::vector::operator[]", args: "(size_type pos) → reference", brief: "Returns a reference to the element at specified position; no bounds checking.", note: "Accessing index size() is undefined behavior. Unlike at(), operator[] does not throw on out-of-bounds access.", link: "https://en.cppreference.com/w/cpp/container/vector/operator_at" },
+    ],
+  },
+  {
+    id: 583,
+    topic: "Common C++ Mistakes",
+    difficulty: "Hard",
+    title: "Shape Hierarchy",
+    description: "Defines a hierarchy of shapes, stores them in a vector of base class pointers, and prints each shape's area.",
+    code: `#include <iostream>
+#include <vector>
+#include <cmath>
+
+class Shape {
+public:
+    virtual double area() const = 0;
+    virtual std::string name() const = 0;
+    ~Shape() {}
+};
+
+class Circle : public Shape {
+    double radius;
+public:
+    Circle(double r) : radius(r) {}
+    double area() const override { return M_PI * radius * radius; }
+    std::string name() const override { return "Circle"; }
+};
+
+class Rectangle : public Shape {
+    double w, h;
+public:
+    Rectangle(double w, double h) : w(w), h(h) {}
+    double area() const override { return w * h; }
+    std::string name() const override { return "Rectangle"; }
+};
+
+int main() {
+    std::vector<Shape*> shapes;
+    shapes.push_back(new Circle(5.0));
+    shapes.push_back(new Rectangle(3.0, 4.0));
+    shapes.push_back(new Circle(2.5));
+
+    for (const auto* s : shapes) {
+        std::cout << s->name() << ": area = " << s->area() << std::endl;
+    }
+
+    for (auto* s : shapes) {
+        delete s;
+    }
+    return 0;
+}`,
+    hints: [
+      "When you delete a derived object through a base class pointer, which destructor is called?",
+      "Look at the Shape base class — is there anything special about its destructor?",
+      "What does the C++ standard say about deleting through a base pointer when the destructor is not virtual?",
+    ],
+    explanation: "The Shape base class destructor is not declared virtual. When the derived objects (Circle, Rectangle) are deleted through Shape* pointers, only Shape's destructor is called — the derived class destructors are skipped. This is undefined behavior per the C++ standard. While the current code may appear to work because the derived classes only have trivial members, if any derived class acquires resources (heap memory, file handles), they would leak. The fix is to declare the destructor virtual: virtual ~Shape() {}.",
+    manifestation: `$ g++ -fsanitize=undefined -g shapes.cpp -o shapes && ./shapes
+Circle: area = 78.5398
+Rectangle: area = 12
+Circle: area = 19.635
+shapes.cpp:39:9: runtime error: delete called on 'Shape' that is not final and has virtual member functions but non-virtual destructor
+shapes.cpp:39:9: runtime error: delete called on 'Shape' that is not final and has virtual member functions but non-virtual destructor
+shapes.cpp:39:9: runtime error: delete called on 'Shape' that is not final and has virtual member functions but non-virtual destructor`,
+    stdlibRefs: [],
+  },
 ];
